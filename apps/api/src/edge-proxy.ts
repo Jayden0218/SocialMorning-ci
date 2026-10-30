@@ -1,4 +1,4 @@
-// DRAFT, never deployed — the Vercel edge proxy: forwards a request to the Lambda Function URL and signs the real client address.
+// The Vercel edge proxy (drafted, NOT deployed): forwards a request to the Lambda Function URL and signs the real client address.
 /**
  * M28 US2 (research R2, tasks T025). After the cutover `socialmorning-api.vercel.app` would forward every request to the
  * Lambda Function URL. A plain `rewrites` entry cannot add request headers, and without them every listener would reach
@@ -10,7 +10,7 @@
  * and streams the answer back. Any `x-sm-*` header the client sent is removed first. With no `EDGE_SECRET` or no origin it
  * answers 500 and forwards nothing (fail closed).
  *
- * DRAFT — NEVER DEPLOYED, and not in any bundle (the Vercel and Lambda builds start from their entry files, which do not import this one). NOT deployed in M28: `EDGE_SECRET` is created only after the quickstart B10 check (headers reach Lambda; Vercel Hobby limits fit),
+ * NOT deployed in M28: `EDGE_SECRET` is created only after the quickstart B10 check (headers reach Lambda; Vercel Hobby limits fit),
  * and until then `apps/api/vercel.cutover.json`'s rewrite stays the plan. It is not part of `npm run build`.
  */
 

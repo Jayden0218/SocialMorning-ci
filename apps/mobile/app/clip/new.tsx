@@ -7,13 +7,10 @@
  * M17 (`ClipNew-B`): the page is the serif "New clip" header over the rebuilt composer
  * (range card, Start / End cards, caption, Preview + Save bar at the foot — see
  * `ClipComposer`). The save flow below is unchanged.
- *
- * M31 W3-B (T041; design-pulse2 `clip-new--screen`, `-signed-out`, `-episode-missing`, `-saved-share-panel`,
- * `toast--clip-new`): the composer is the Ring page (src/ui/clips/ClipComposer.tsx). Signed out: the shared empty
- * block — "Sign in to make a clip." — with a Sign in pill (to the existing sign-in); an episode that is not in the library:
- * a grey page with "This episode is not in the library." and Back only. Saved: the app's share panel, then back.
  */
 import { useState } from 'react';
+import { Share } from 'react-native';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useGraph } from '@/graph/context';
@@ -21,11 +18,10 @@ import { useSocial } from '@/social/context';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { toPlayable } from '@/storage/playable';
 import { ClipComposer } from '@/ui/clips/ClipComposer';
-import { COMPOSER_EMPTY } from '@/ui/clips/measures';
-import { useClipShare, useSharePanel } from '@/ui/clips/ShareChooser';
-import { EmptyBlock } from '@/ui/chat/EmptyBlock';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { shareClip } from '@/graph/share';
+import { apiBaseUrl } from '@/social/base-url';
+import { useClipVideoRows, useSharePanel } from '@/ui/clips/ShareChooser';
+import { PageHeader } from '@/ui/kit/PageHeader';
 
 export default function NewClipScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ episodeId: string; positionMs: string; startMs?: string; endMs?: string; caption?: string }>();
@@ -40,31 +36,14 @@ export default function NewClipScreen(): React.ReactElement {
   const [saving, setSaving] = useState(false);
   // M16a T005 (FR-015): after a save the app's share panel opens here; closing it goes back.
   const [share, sharePanel] = useSharePanel();
-  // F3: the clip's panel is the player's (chat, the chat apps, More, Share as video, Copy link).
-  const clipShare = useClipShare();
+  // M19: "Share as video" when this build can make one and the clip is at most 60 s.
+  const videoRows = useClipVideoRows();
   const episode = params.episodeId ? toPlayable(stores, params.episodeId) : undefined;
-  if (!episode) {
-    return (
-      <PushedPage title="New clip" tone="grey">
-        {(l) => <Box style={{ paddingTop: l.top + COMPOSER_EMPTY.missing }}><EmptyBlock title="Not in the library" line="This episode is not in the library." /></Box>}
-      </PushedPage>
-    );
-  }
-  if (!listener) {
-    return (
-      <PushedPage title="New clip">
-        {(l) => (
-          <Box style={{ paddingTop: l.top + COMPOSER_EMPTY.signedOut }}>
-            <EmptyBlock title="Sign in to make a clip." line="Clips are yours to share; they need an account.">
-              <PulseButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
-            </EmptyBlock>
-          </Box>
-        )}
-      </PushedPage>
-    );
-  }
+  if (!episode) return <><PageHeader title="New clip" /><Box className="flex-1 bg-background px-screen-x"><Text className="text-text text-body">This episode is not in the library.</Text></Box></>;
+  if (!listener) return <><PageHeader title="New clip" /><Box className="flex-1 bg-background px-screen-x"><Text className="text-text text-body">Sign in to make a clip.</Text></Box></>;
   return (
     <>
+    <PageHeader title="New clip" />
     <ClipComposer
       episode={episode}
       initialPositionMs={Number(params.positionMs ?? range?.endMs ?? 0)}
@@ -77,7 +56,7 @@ export default function NewClipScreen(): React.ReactElement {
         setSaving(false);
         if (r.kind === 'sent') {
           const clip = r.clip;
-          share({ ...clipShare(clip, episode, 'Clip saved — share it'), onClosed: () => router.back() });
+          share({ heading: 'Clip saved — share it', rows: videoRows(clip, episode), more: { detail: 'other apps', run: () => void shareClip(Share, clip, episode.title, apiBaseUrl()) }, onClosed: () => router.back() });
         } else if (r.kind === 'pending') {
           toast('Clip saved — it will be sent when you are online.');
           router.back();

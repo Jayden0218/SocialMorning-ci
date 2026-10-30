@@ -34,7 +34,7 @@ jest.mock('expo-router', () => ({
   useScrollToTop: () => undefined,
 }));
 jest.mock('@/ui/lib/safe-area-view', () => ({ SafeAreaView: ({ children }: { children?: React.ReactNode }) => children }));
-jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined }, feedCache: {}, queue: { list: () => [] } }), useToast: () => () => undefined }));
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined }, feedCache: {} }), useToast: () => () => undefined }));
 jest.mock('@/social/context', () => ({ useSocial: () => ({ api: {}, listener: undefined }) }));
 jest.mock('@/graph/feed', () => ({ createFeed: () => ({ unread: () => 0, cached: () => undefined }) }));
 jest.mock('@/me/moments', () => ({ listMoments: () => [] }));
@@ -43,20 +43,10 @@ jest.mock('@/social/store-ready', () => ({ readStoreReady: () => false }));
 jest.mock('@/social/m19-api', () => ({ lastMonth: () => '2026-09', monthName: () => 'September' }));
 jest.mock('@/ui/kit/Avatar', () => ({ Avatar: () => null }));
 jest.mock('@/me/my-avatar', () => ({ useMyAvatar: () => undefined }));
-// M31 T033: the Me tab's title bar clears the now bar while something is loaded; these renders have no player, so nothing is (idle).
-jest.mock('@/playback/store', () => ({ ...jest.requireActual('@/playback/store'), usePlayerSelector: () => true }));
 jest.mock('@/social/profile-api', () => ({ useProfileApi: () => ({ me: () => Promise.resolve(undefined) }) }));
 
 import MeScreen from '../app/(tabs)/me';
-import { useShortcutTiles } from '@/ui/discover/DiscoverShortcuts';
-import { DiscoverMosaic } from '@/ui/discover/DiscoverMosaic';
-
-/** M31 T025: Discover's shortcuts are tiles of the mosaic; this draws them with the real hook. */
-function ShortcutProbe(): React.ReactElement {
-  const noop = () => undefined;
-  const tiles = useShortcutTiles({ onCategories: noop, onPremium: noop });
-  return createElement(DiscoverMosaic, { pick: undefined, hot: undefined, offline: false, tiles, actions: { onOpen: noop, onPlay: noop, onQueue: noop, onHot: noop } });
-}
+import { DiscoverShortcuts } from '@/ui/discover/DiscoverShortcuts';
 
 const draw = (el: React.ReactElement): ReactTestRenderer => {
   let r!: ReactTestRenderer;
@@ -72,7 +62,7 @@ beforeAll(() => {
   ME_LINKS = new Set(me.root.findAll((n) => n.type === 'link').map((n) => String(n.props['href'])));
   act(() => { me.unmount(); });
   mockPush.mockClear();
-  const d = draw(createElement(ShortcutProbe));
+  const d = draw(createElement(DiscoverShortcuts, { onCategories: () => undefined, onPremium: () => undefined }));
   const tiles = d.root.findAll((n) => n.props['accessibilityRole'] === 'button' && typeof n.props['onPress'] === 'function');
   for (const t of tiles) act(() => { t.props['onPress'](); });
   DISCOVER_TILES = new Set(mockPush.mock.calls.map((c) => String(c[0])));
@@ -81,10 +71,7 @@ beforeAll(() => {
 
 const read = (f: string) => readFileSync(join(__dirname, '..', 'app', '(tabs)', f), 'utf8');
 /** Kept as source: the two tab pages too heavy to render here (see the header). */
-const src = (f: string) => readFileSync(join(__dirname, '..', 'src', 'ui', 'discover', f), 'utf8');
-/** M31 T025: Home is split — the screen joins the pieces, the page and its hook hold the links. */
-const HOME = [read('index.tsx'), src('DiscoverPage.tsx'), src('useDiscoverPage.ts'), src('TrendingSearch.tsx')].join('\n');
-const SCREEN: Record<string, string> = { '/': HOME, '/library': read('library.tsx') };
+const SCREEN: Record<string, string> = { '/': read('index.tsx'), '/library': read('library.tsx') };
 /** Does this screen's source open `href` — a Link, a MenuRow, or a router.push? */
 const links = (src: string, href: string): boolean => {
   const h = href.replace(/[/]/g, '\\/');
@@ -126,7 +113,7 @@ it('the rendered screens draw what they should: Me its links, Discover its eight
   expect(ME_LINKS.size).toBeGreaterThanOrEqual(8);
   expect([...DISCOVER_TILES]).toEqual(expect.arrayContaining(['/queue', '/issues', '/chart']));
   // Kept as source (index.tsx is not rendered): the tiles are on Discover.
-  expect(SCREEN['/']).toMatch(/useShortcutTiles\(/);
+  expect(SCREEN['/']).toMatch(/<DiscoverShortcuts\b/);
 });
 
 it('every 1-tap destination is a tab or a link on Discover', () => {

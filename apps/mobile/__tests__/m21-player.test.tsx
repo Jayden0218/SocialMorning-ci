@@ -14,6 +14,7 @@ import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { TranscriptLine } from '@socialmorning/player-core';
 import { TranscriptPane, nowAndNext } from '@/ui/player/TranscriptPane';
+import { HeatScrubber, bucketAt, fractionAt, isPlayed } from '@/ui/player/HeatScrubber';
 import { ClapBurst, CLAP_MS } from '@/ui/player/ClapBurst';
 
 const lines: TranscriptLine[] = [
@@ -45,6 +46,34 @@ describe('the transcript', () => {
     act(() => { pressable(r, 'Share lines')!.props['onPress'](); });
     expect(pressable(r, 'Cancel picking lines')).toBeDefined();
     act(() => { r.unmount(); });
+  });
+});
+
+describe('the heat curve as the seek bar', () => {
+  it('one adjustable "Seek" with the spoken value and ±30 / −15; the curve\'s sentence is its hint', () => {
+    const skips: number[] = [];
+    const r = render(createElement(HeatScrubber, { heat: { available: true, buckets: new Array(100).fill(0).map((_, i) => (i === 50 ? 1 : 0)) }, positionMs: 872_000, durationMs: 2_057_000, heatAxisMs: 2_057_000, onSeek: () => undefined, onSkip: (d: number) => void skips.push(d) }));
+    const seek = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'adjustable');
+    expect(seek).toHaveLength(1);
+    expect(seek[0]!.props['accessibilityLabel']).toBe('Seek');
+    expect(seek[0]!.props['accessibilityValue']).toMatchObject({ text: '14:32 of 34:17' });
+    expect(seek[0]!.props['accessibilityHint']).toMatch(/^Reaction curve\. Most reactions at/);
+    act(() => { seek[0]!.props['onAccessibilityAction']({ nativeEvent: { actionName: 'increment' } }); });
+    act(() => { seek[0]!.props['onAccessibilityAction']({ nativeEvent: { actionName: 'decrement' } }); });
+    expect(skips).toEqual([30_000, -15_000]);
+    act(() => { r.unmount(); });
+  });
+
+  it('played bars are those the position has passed; buckets sit on the server\'s axis', () => {
+    expect(isPlayed(0, 1, 100_000)).toBe(true);
+    expect(isPlayed(50, 50_000, 100_000)).toBe(false);
+    expect(isPlayed(49, 50_000, 100_000)).toBe(true);
+    expect(isPlayed(0, 1, undefined)).toBe(false);
+    expect(bucketAt(50_000, 100_000)).toBe(50);
+    expect(bucketAt(200_000, 100_000)).toBe(99);
+    expect(bucketAt(5, undefined)).toBe(0);
+    expect(fractionAt(25, 100)).toBe(0.25);
+    expect(fractionAt(25, undefined)).toBe(0);
   });
 });
 

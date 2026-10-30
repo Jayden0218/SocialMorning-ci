@@ -11,7 +11,6 @@ import { chartIds, showsByIds, topShows, type EpisodeCard, type ShowCard } from 
 import { SHOWS_SERVED, type DiscoverBody, type DiscoverItem, type NewShow } from './discover.ts';
 import { ARRIVALS_SHOWN, newArrivals, said, SAID_SHOWN, saidByIds, videoEpisodes, type NewArrival, type Said } from './discover-extras.ts';
 import { activeFor, applyList, categoryListId, defaultTab, NONE, pinnedEpisode, pinnedShow, type Active, type DefaultTab } from './lists.ts';
-import { log } from '../../../log.ts';
 
 const keyOf = (c: { feedUrl: string; guid: string }) => `${c.feedUrl}\u0001${c.guid}`;
 const epRef = (e: { feedUrl: string; guid: string }) => ({ feedUrl: e.feedUrl, guid: e.guid });
@@ -122,7 +121,7 @@ export async function servedCategory(db: Db, f: typeof fetch, genreId: number, p
   let ov: Active = NONE;
   let tab: DefaultTab | undefined;
   try { [ov, tab] = await Promise.all([activeFor(db, [listId]).then((m) => m.get(listId) ?? NONE), defaultTab(db, listId)]); }
-  catch (e) { log.warn('categories_overrides_skipped', { error: e }); }
+  catch (e) { console.warn(`[categories] list overrides skipped: ${e instanceof Error ? e.message : String(e)}`); }
   const hidden = await hiddenFeedUrls(db);
   const pinnedUrls = ov.pins.flatMap((p) => (p.feedUrl && !hidden.has(p.feedUrl) ? [p.feedUrl] : []));
   // Only when there is something to say, so an untouched category answers exactly as before.

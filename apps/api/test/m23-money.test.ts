@@ -42,7 +42,7 @@ async function purchaseWithEntitlement(t: TestDb, listenerId: string, token: str
  */
 async function breakRefund(t: TestDb, listenerId: string): Promise<{ db: Db; restore: () => Promise<void> }> {
   const { withStore } = await import('../src/db/backend-ddb.ts');
-  const { withFaults } = await import('./ddb-wrappers.ts');
+  const { withFaults } = await import('../src/db/ddb/test-wrappers.ts');
   return { db: withStore(t.db, withFaults(t.store, [{ command: 'TransactWriteCommand', prefix: `L#${listenerId}` }])), restore: async () => undefined };
 }
 

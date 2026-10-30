@@ -3,9 +3,7 @@
  * M9 T039: the sheets rebuilt on gluestack's Actionsheet keep their promises.
  * - Moment sheet: someone else's comment has Report (iOS i8 — only the episode page had it);
  *   every action is at least 44 pt (iOS i4 — Close, Reply, Delete were 36–42 × 17).
- * The break that turns it red: drop the Report branch or the `TAP` style in src/ui/comments/MomentSheet.tsx.
- * M31 W2-B: the Pulse sheet draws 13 pt words in a card, so a button is its drawn size plus `hitSlop` — the tap area is
- * what the test measures (style size + the slop on each side).
+ * The break that turns it red: drop the Report branch or the `TAP` class in src/ui/comments/MomentSheet.tsx.
  */
 // The gluestack sheets animate with @legendapp/motion, which starts each animation from a
 // requestAnimationFrame (a setTimeout under jest). With real timers those fired after the file
@@ -19,8 +17,7 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('@/social/context', () => ({ useSocial: () => ({ composer: { remove: jest.fn() }, listener: { listenerId: 'me' }, bump: jest.fn() }) }));
-jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }), useToast: () => jest.fn() }));
-jest.mock('@/social/m12-api', () => ({ useM12Api: () => ({ likeComment: jest.fn(), unlikeComment: jest.fn() }) }));
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 jest.mock('@/safety/context', () => ({ useSafety: () => ({ safety: { report: () => 'hidden' } }), announce: jest.fn() }));
 
 import { MomentSheet } from '@/ui/comments/MomentSheet';
@@ -41,8 +38,7 @@ function render(comments: Comment[]): ReactTestRenderer {
 
 /** Host nodes that are buttons, outermost first. */
 const buttons = (r: ReactTestRenderer): ReactTestInstance[] =>
-  // The scrim ("Close", absolute inset-0) fills the whole screen; it is not a control with a size to measure.
-  r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'button' && !String(n.props['className'] ?? '').includes('inset-0'));
+  r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'button');
 
 it('i8: someone else\'s comment has Report; your own has Delete instead', () => {
   const other = render([comment('c1', false)]);
@@ -57,10 +53,6 @@ it('i4: every action in the moment sheet is at least 44 pt tall and wide', () =>
   expect(found.length).toBeGreaterThanOrEqual(3); // Close, Reply, Report
   for (const b of found) {
     const s = (StyleSheet.flatten(b.props['style']) ?? {}) as Record<string, unknown>;
-    const slop = (typeof b.props['hitSlop'] === 'number' ? { top: b.props['hitSlop'], bottom: b.props['hitSlop'], left: b.props['hitSlop'], right: b.props['hitSlop'] } : (b.props['hitSlop'] ?? {})) as Record<string, number | undefined>;
-    const high = Math.max(Number(s['height'] ?? 0), Number(s['minHeight'] ?? 0)) + (slop['top'] ?? 0) + (slop['bottom'] ?? 0);
-    // A full-width button (`self-stretch`) spans the sheet.
-    const wide = String(b.props['className'] ?? '').includes('self-stretch') ? 999 : Math.max(Number(s['width'] ?? 0), Number(s['minWidth'] ?? 0)) + (slop['left'] ?? 0) + (slop['right'] ?? 0);
-    expect([b.props['accessibilityLabel'] ?? 'button', high >= 44, wide >= 44]).toEqual([b.props['accessibilityLabel'] ?? 'button', true, true]);
+    expect([b.props['accessibilityLabel'] ?? 'button', Number(s['minHeight']) >= 44, Number(s['minWidth']) >= 44]).toEqual([b.props['accessibilityLabel'] ?? 'button', true, true]);
   }
 });

@@ -4,26 +4,30 @@
  * to send. Signed out → sign in first; own content → "delete it instead". The hide is
  * local and instant (src/safety/hidden.ts); the sheet only collects the reason.
  *
- * M31 W2-B (`social.html` `reportSheet`, `comments--report-sheet`): the kit sheet. "Report comment" in Unbounded 800 26 and
- * "Choose one reason." (Note 14/20, text2); the seven reasons as 52 tiles, two a row (radius 16, 8 apart) — a flag, the
- * words, and when chosen a light fill with void words and a check; the odd last one, "Something else", takes the full
- * width; the note field (radius 18, 64 tall, borderless; its 500 count only near the limit); "Send report" as a hot 48 pill; Cancel as a 14 tall text action under it (48 pt hit area). Same
- * reasons, note, handlers and props as before; the sheet lifts above the keyboard.
+ * M17 T100 (`ReportSheet-B`): an accent eyebrow ("Hidden for you once sent" — what `send`
+ * does), a 32 pt serif "Report …" title and a muted "Choose one reason."; the seven reasons are
+ * white tiles in two columns (chosen = yellow with a check; the odd last one spans the row); the
+ * note is a white box under a bold label; Send is a full-width yellow pill with Cancel below it
+ * as an accent text action. Same reasons, note, handlers and props as before.
  */
 import { useState } from 'react';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Heading } from '@/ui/lib/heading';
+import { Box } from '@/ui/lib/box';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper, ActionsheetItem, ActionsheetItemText, ActionsheetScrollView } from '@/ui/lib/actionsheet';
+import { Textarea, TextareaInput } from '@/ui/lib/textarea';
 import { router } from 'expo-router';
 import { REPORT_NOTE_MAX, REPORT_REASONS, type ReportReason } from '@socialmorning/social-core';
-import { Box } from '@/ui/lib/box';
-import { Pressable } from '@/ui/lib/pressable';
-import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { ActionSheet } from '@/ui/kit/ActionSheet';
-import { Icon } from '@/ui/kit/Icon';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { Type } from '@/ui/kit/Type';
-import { colour } from '@/design';
 import { announce, useSafety } from '@/safety/context';
 import type { HiddenKind } from '@/storage/types';
-import { COMMENTS } from './measures';
+import { useStores } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { Icon } from '@/ui/kit/Icon';
+
+/** M17: a reason tile and the Send pill are 52 pt in `ReportSheet-B`. */
+const REASON = { minHeight: 52 };
 
 export const REASON_LABEL: Record<ReportReason, string> = {
   spam: 'Spam', harassment: 'Harassment', hate: 'Hate', sexual: 'Sexual content', violence: 'Violence', illegal: 'Illegal content', other: 'Something else',
@@ -31,17 +35,14 @@ export const REASON_LABEL: Record<ReportReason, string> = {
 
 export type ReportTarget = { kind: HiddenKind; id: string; authorId: string | null; label: string };
 
-/** The note's 500 count shows from here (the drawing has none). */
-const NOTE_COUNT_FROM = 400;
-const CANCEL_SLOP = { top: 14, bottom: 20, left: 40, right: 40 };
-const TILE = { minHeight: COMMENTS.reasonHeight, borderRadius: COMMENTS.reasonRadius, paddingHorizontal: 12, gap: 8 };
-
 export function ReportSheet(props: { target: ReportTarget | undefined; onClose: () => void; onReported?: () => void }): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const { safety } = useSafety();
   const [reason, setReason] = useState<ReportReason | undefined>();
   const [note, setNote] = useState('');
   const [own, setOwn] = useState(false);
-  /** The reasons in rows of two; the odd last one ("Something else") takes the full width. */
+  /** M17: the reasons in rows of two; the odd last one ("Something else") takes the full width. */
   const reasonRows: ReportReason[][] = [];
   for (let i = 0; i < REPORT_REASONS.length; i += 2) reasonRows.push(REPORT_REASONS.slice(i, i + 2));
   const close = () => { setReason(undefined); setNote(''); setOwn(false); props.onClose(); };
@@ -57,49 +58,42 @@ export function ReportSheet(props: { target: ReportTarget | undefined; onClose: 
   }
 
   return (
-    // Each reason is a radio button with a checked state, so VoiceOver reaches all 7 (iOS i7: the radio rows were not in the tree).
-    <ActionSheet open={props.target !== undefined} onClose={close} label={`Report ${props.target?.label ?? ''}`} keyboard>
-      <Box className="gap-hair">
-        <Type step="hero" className="text-text" accessibilityRole="header" style={{ fontSize: COMMENTS.titleSize, lineHeight: COMMENTS.titleLine }}>Report {props.target?.label ?? ''}</Type>
-        <Type step="note" className="text-text2">Choose one reason.</Type>
-      </Box>
-      {own ? <Type step="note" className="text-hotText">That's yours — delete it instead.</Type> : null}
-      <Box accessibilityRole="radiogroup" accessibilityLabel="Reason" style={{ gap: 8 }}>
-        {reasonRows.map((pair) => (
-          <Box key={pair.join('|')} className="flex-row" style={{ gap: 8 }}>
-            {pair.map((r) => {
-              const on = reason === r;
-              return (
-                <Pressable
-                  key={r}
-                  onPress={() => setReason(r)}
-                  accessibilityRole="radio"
-                  accessibilityState={{ checked: on }}
-                  accessibilityLabel={REASON_LABEL[r]}
-                  className={`flex-1 flex-row items-center ${on ? 'bg-text' : 'bg-raise border border-line'}`}
-                  style={TILE}
-                >
-                  <Icon name={on ? 'checkmark' : r === 'other' ? 'ellipsis-horizontal' : 'flag-outline'} size={16} color={on ? colour.void : colour.text} />
-                  <Type step="compact" className={on ? 'text-void flex-1' : 'text-text flex-1'} numberOfLines={1}>{REASON_LABEL[r]}</Type>
-                </Pressable>
-              );
-            })}
+    // M9: gluestack's Actionsheet. Each reason is an ActionsheetItem — a real button with a
+    // selected state — so VoiceOver can reach all 7 (iOS i7: the radio rows were not in the tree).
+    <Actionsheet isOpen={props.target !== undefined} onClose={close}>
+      <ActionsheetBackdrop />
+      {/* M16a T014 / guard G-S1: no fixed bottom padding — ActionsheetContent's own `pb-safe` clears the home indicator. */}
+      <ActionsheetContent className="px-screen-x pt-row max-h-[85%] items-stretch" accessibilityViewIsModal>
+        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+        <Eyebrow accent className="mt-gap">Hidden for you once sent</Eyebrow>
+        <Heading className="text-display font-display text-text mt-1" accessibilityRole="header">Report {props.target?.label ?? ''}</Heading>
+        <Text className="text-body text-muted mt-1">Choose one reason.</Text>
+        {own ? <Text className="text-body text-accent mt-gap">That's yours — delete it instead.</Text> : null}
+        <ActionsheetScrollView className="grow-0 mt-row">
+          <Box className="gap-gap" accessibilityRole="radiogroup" accessibilityLabel="Reason">
+            {reasonRows.map((pair) => (
+              <Box key={pair.join('|')} className="flex-row gap-gap">
+                {pair.map((r) => (
+                  <ActionsheetItem key={r} className={`flex-1 w-auto flex-row items-center justify-between px-3.5 rounded-row min-h-12 ${reason === r ? 'bg-primary border border-primary' : 'bg-surface border border-border'}`} style={REASON} onPress={() => setReason(r)} accessibilityRole="radio" accessibilityState={{ checked: reason === r }} accessibilityLabel={REASON_LABEL[r]}>
+                    <ActionsheetItemText className={reason === r ? 'text-body font-bold text-onPrimary' : 'text-body font-semibold text-text'}>{REASON_LABEL[r]}</ActionsheetItemText>
+                    {reason === r ? <Icon name="checkmark" size={18} color={c.onPrimary} /> : null}
+                  </ActionsheetItem>
+                ))}
+              </Box>
+            ))}
           </Box>
-        ))}
-      </Box>
-      {/* Drawn `.field` (64 tall, radius 18, raise2 on the raise2 sheet — no border, no counter row). The server's 500-character
-          limit stays (maxLength); its count shows only near the limit, inside the field's corner, so the sheet is not taller. */}
-      <Box className="relative">
-        <Textarea className="h-auto border-0 bg-raise2" style={{ height: COMMENTS.noteHeight, borderRadius: COMMENTS.writeRadius }}>
-          <TextareaInput placeholderTextColor={colour.text3} className="text-pulse-note text-text align-top" style={{ paddingHorizontal: 14, paddingTop: 12 }} placeholder="Note, optional" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
+        </ActionsheetScrollView>
+        <Text className="text-meta font-bold text-text mt-section mb-1.5">Note, optional</Text>
+        <Textarea className="bg-surface border border-border rounded-row min-h-16 h-auto">
+          <TextareaInput placeholderTextColor={c.muted} className="p-3 align-top text-body text-text" placeholder="Anything to add? (optional)" value={note} onChangeText={(t) => setNote(t.slice(0, REPORT_NOTE_MAX))} multiline maxLength={REPORT_NOTE_MAX} accessibilityLabel="Note, optional" />
         </Textarea>
-        {note.length >= NOTE_COUNT_FROM ? <Type step="mono" testID="report-note-count" className="absolute text-text3" style={{ right: 14, bottom: 6 }}>{note.length} / {REPORT_NOTE_MAX}</Type> : null}
-      </Box>
-      <PulseButton label="Send report" kind="hot" onPress={send} disabled={!reason} full />
-      {/* Drawn: a 14 tall text line. The 48 pt tap is its hitSlop (14 up to the Send pill, 20 down into the sheet's foot). */}
-      <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Cancel" hitSlop={CANCEL_SLOP} testID="report-cancel" className="items-center justify-center" style={{ height: COMMENTS.cancelHeight }}>
-        <Type step="compact" className="text-text2" style={{ lineHeight: COMMENTS.cancelHeight }}>Cancel</Type>
-      </Pressable>
-    </ActionSheet>
+        <Text className="text-muted text-xs text-right mt-1">{note.length} / {REPORT_NOTE_MAX}</Text>
+        <Box className="gap-1 mt-row">
+          <Pressable onPress={send} disabled={!reason} accessibilityRole="button" accessibilityLabel="Send report" accessibilityState={{ disabled: !reason }} className={`min-h-12 items-center justify-center bg-primary rounded-pill ${!reason ? 'opacity-40' : ''}`} style={REASON}><Text className="text-sm font-bold text-onPrimary">Send</Text></Pressable>
+          <Pressable onPress={close} accessibilityRole="button" accessibilityLabel="Cancel" className="min-h-12 items-center justify-center"><Text className="text-body font-bold text-accent">Cancel</Text></Pressable>
+        </Box>
+      </ActionsheetContent>
+    </Actionsheet>
   );
 }
+

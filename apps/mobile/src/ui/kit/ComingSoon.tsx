@@ -1,34 +1,43 @@
 // A "Coming soon" sheet shown when you tap a feature not ready yet.
 /**
  * M17 (FR-013, `ComingSoonWallet-B` / `ComingSoonSocialSignIn-B`): what a not-released feature
- * says when it is tapped — instead of a short toast or a control that does nothing. Never a date, never a price.
+ * says when it is tapped — instead of a short toast or a control that does nothing. A bottom
+ * sheet (owner, 2026-10-04: as the B designs, not a centred card): the drag handle, the
+ * feature's mark on a tinted tile beside its name in capitals, "Coming soon" in the serif, one
+ * sentence on what it will do, and a yellow "Got it". An optional second action goes somewhere
+ * real (e.g. "Continue with email") as a bold accent text button. Never a date, never a price.
  *
  *   const [comingSoon, dialog] = useComingSoon();
  *   comingSoon({ feature: 'Google sign-in', mark: 'google', line: '…', second: { label: 'Continue with email', onPress } });
  *   return <>…{dialog}</>;
- *
- * M31 S-C (T062; design-pulse2 `shell.html` `coming-soon--wallet-sheet`): the kit `ActionSheet` with no title row — a 56 tile
- * (radius 18, hot at 16 %) with the feature's mark in hot-text beside its name in hot-text mono capitals, "Coming soon" in
- * Unbounded 800 34, one sentence in Geist 500 15 on 22 in text-2, "Got it" as the light pill (54) and an optional second action as
- * a hot-text 700 button (44 drawn, 48 to touch) that closes the sheet and goes somewhere real (e.g. "Open Wallet"). The scrim
- * and a drag down close it.
  */
 import { useCallback, useState } from 'react';
 import { Image } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import {
+  Actionsheet,
+  ActionsheetBackdrop,
+  ActionsheetContent,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+} from '@/ui/lib/actionsheet';
 import { hit } from '@/design';
-import { AUTH, AUTH_TYPE } from '@/ui/auth/measures';
-import { ActionSheet } from './ActionSheet';
+import { display } from '@/ui/auth/display';
+import { inkOn } from '@/ui/auth/AuthShell';
+import { useStores } from '@/ui/shell/providers';
+import { Eyebrow } from './Eyebrow';
 import { Icon, type IconName } from './Icon';
-import { PulseButton } from './PulseButton';
-import { Type } from './Type';
 import { useColours } from './useColours';
 
 /** Google's own "G", from its sign-in branding kit — shown only as supplied. */
 const GOOGLE_G = require('../../../assets/google-g.png');
 const G = { width: 28, height: 28 };
-const SECOND = { minHeight: hit.min };
+/** The design's 56 pt mark tile, 54 pt Got it pill and 48 pt text button. */
+const TILE = { width: 56, height: 56 };
+const PILL = { minHeight: 54 };
+const TAP = { minHeight: hit.min };
 
 export type ComingSoonRequest = {
   /** The feature's name, shown in capitals, e.g. "Google sign-in". */
@@ -42,27 +51,38 @@ export type ComingSoonRequest = {
 };
 
 export function ComingSoonDialog(props: { request: ComingSoonRequest | undefined; onClose: () => void }): React.ReactElement {
-  const c = useColours();
+  const c = useColours(useStores().settings);
   const r = props.request;
   return (
-    <ActionSheet open={r !== undefined} onClose={props.onClose} label={r ? `Coming soon: ${r.feature}` : 'Coming soon'}>
-      <Box className="flex-row items-center" style={{ gap: AUTH.rate.gap }}>
-        <Box className="bg-hotSoft items-center justify-center" style={{ width: AUTH.soon.tile, height: AUTH.soon.tile, borderRadius: AUTH.soon.tileRadius }} accessible={false}>
-          {r?.mark === 'google'
-            ? <Image source={GOOGLE_G} style={G} accessibilityIgnoresInvertColors />
-            : r ? <Icon name={r.mark} size={28} color={c.hotText} /> : null}
+    <Actionsheet isOpen={r !== undefined} onClose={props.onClose}>
+      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+      <ActionsheetContent className="px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
+        <ActionsheetDragIndicatorWrapper>
+          <ActionsheetDragIndicator />
+        </ActionsheetDragIndicatorWrapper>
+        <Box className="flex-row items-center gap-row mt-row">
+          <Box className="rounded-row bg-accentTint items-center justify-center" style={TILE} accessible={false}>
+            {r?.mark === 'google'
+              ? <Image source={GOOGLE_G} style={G} accessibilityIgnoresInvertColors />
+              : r ? <Icon name={r.mark} size={28} color={c.accent} /> : null}
+          </Box>
+          <Eyebrow accent>{r?.feature ?? ''}</Eyebrow>
         </Box>
-        <Type step="mono" className="text-hotText" style={AUTH_TYPE.fieldLabel}>{r?.feature ?? ''}</Type>
-      </Box>
-      <Type step="hero" className="text-text" style={AUTH_TYPE.comingSoon} accessibilityRole="header">Coming soon</Type>
-      <Type step="body" className="text-text2 font-medium" style={AUTH_TYPE.sheetLine}>{r?.line ?? ''}</Type>
-      <PulseButton label="Got it" kind="light" height={AUTH.soon.got} full onPress={props.onClose} />
-      {r?.second ? (
-        <Pressable onPress={() => { const go = r.second!.onPress; props.onClose(); go(); }} accessibilityRole="button" accessibilityLabel={r.second.label} className="items-center justify-center" style={SECOND}>
-          <Type step="row" className="text-hotText font-bold">{r.second.label}</Type>
+        <Text style={display(34, c.text, { leading: 40 })} className="text-text font-display mt-section" accessibilityRole="header">
+          Coming soon
+        </Text>
+        <Text className="text-muted text-[15px] leading-[23px] mt-gap">{r?.line ?? ''}</Text>
+        <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Got it" className="items-center justify-center rounded-pill bg-primary mt-screen-x" style={PILL}>
+          <Text className="text-onPrimary text-[15px] font-extrabold" style={{ color: inkOn(c) }}>Got it</Text>
         </Pressable>
-      ) : null}
-    </ActionSheet>
+        {r?.second ? (
+          <Pressable onPress={() => { const go = r.second!.onPress; props.onClose(); go(); }} accessibilityRole="button" accessibilityLabel={r.second.label} className="items-center justify-center mt-1" style={TAP}>
+            <Text className="text-accent text-[15px] font-bold">{r.second.label}</Text>
+          </Pressable>
+        ) : null}
+        <Box className="h-section" />
+      </ActionsheetContent>
+    </Actionsheet>
   );
 }
 

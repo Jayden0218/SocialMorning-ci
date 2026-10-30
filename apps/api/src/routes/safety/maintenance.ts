@@ -11,7 +11,6 @@
 import type { MiddlewareHandler } from 'hono';
 import type { AuthEnv } from '../../auth/session.ts';
 import { activeMaintenance } from '../../db/repos/safety/maintenance.ts';
-import { log } from '../../log.ts';
 
 const EXEMPT = /^\/v1\/(health|meta|admin(\/|$)|internal(\/|$)|studio\/(session|me)(\/|$)|auth\/(sign-in|code)(\/|$))/;
 
@@ -22,7 +21,7 @@ export function maintenanceExempt(path: string): boolean {
 export const maintenanceGate: MiddlewareHandler<AuthEnv> = async (c, next) => {
   if (maintenanceExempt(c.req.path)) return next();
   // A read that fails (e.g. migration 023 not applied yet) is "off": the switch never takes the API down by itself.
-  const m = await activeMaintenance(c.get('db')).catch((e: unknown) => { log.warn('maintenance_read_failed', { error: e }); return null; });
+  const m = await activeMaintenance(c.get('db')).catch((e: unknown) => { console.warn('[maintenance] read failed', e instanceof Error ? e.message : e); return null; });
   if (!m) return next();
   c.header('cache-control', 'no-store');
   c.header('retry-after', String(Math.max(60, Math.ceil((Date.parse(m.until) - Date.now()) / 1000))));

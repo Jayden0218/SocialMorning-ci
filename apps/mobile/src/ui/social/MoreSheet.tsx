@@ -1,28 +1,32 @@
-// A small "More" sheet: a title, a few Panel rows (Report, Stop suggesting…) and Cancel.
+// A small "More" sheet: a title, a few rows (Report, Stop suggesting…) and Cancel.
 /**
  * M24 US1/US17: the status viewer, a chat message and a shared list each offer a short list of
- * actions on someone else's content. A row closes the sheet, then runs.
- *
- * M31 W3-D (design-pulse2 `lists--more-sheet`): the kit `ActionSheet` titled "More" (or the caller's
- * title), the rows as one Panel group (`PanelRow`, hot-text icon, chevron), then a quiet Cancel pill with
- * hot-text words. Same rows, names and handlers.
+ * actions on someone else's content. Our own sheet (gluestack's Actionsheet, like the Subscriptions
+ * row menu) — never a native action sheet. A row closes the sheet, then runs.
  */
-import { ActionSheet } from '@/ui/kit/ActionSheet';
-import { PanelRow } from '@/ui/kit/PanelRow';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { PanelGroup } from '@/ui/me/Panel';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { SheetRow } from '@/ui/kit/SheetRow';
 import type { IconName } from '@/ui/kit/Icon';
+import { hit } from '@/design';
 
-/** `danger` draws the row's words in hot-text (Report, under the rule: `status--more-sheet`). */
-export type MoreRow = { icon: IconName; label: string; onPress: () => void; danger?: boolean };
+export type MoreRow = { icon: IconName; label: string; onPress: () => void };
 
-export function MoreSheet(props: { open: boolean; title: string; rows: readonly MoreRow[]; iconColour?: string; onClose: () => void }): React.ReactElement | null {
+export function MoreSheet(props: { open: boolean; title: string; rows: readonly MoreRow[]; iconColour: string; onClose: () => void }): React.ReactElement {
   return (
-    <ActionSheet open={props.open} onClose={props.onClose} label={props.title} title={props.title}>
-      <PanelGroup>
-        {props.rows.map((r) => <PanelRow key={r.label} icon={r.icon} label={r.label} {...(r.danger === true ? { danger: true } : {})} onPress={() => { props.onClose(); r.onPress(); }} />)}
-      </PanelGroup>
-      <PulseButton label="Cancel" kind="quiet" hotWords full onPress={props.onClose} />
-    </ActionSheet>
+    <Actionsheet isOpen={props.open} onClose={props.onClose}>
+      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+      <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row items-stretch">
+        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+        <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{props.title}</Text>
+        {props.rows.map((r) => (
+          <SheetRow key={r.label} icon={r.icon} label={r.label} iconColour={props.iconColour} onPress={() => { props.onClose(); r.onPress(); }} />
+        ))}
+        <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={{ minHeight: hit.min }}>
+          <Text className="text-accent text-sm font-bold">Cancel</Text>
+        </Pressable>
+      </ActionsheetContent>
+    </Actionsheet>
   );
 }

@@ -51,8 +51,8 @@ export function Scrubber(props: {
       accessibilityValue={scrubberValue(props.positionMs, props.durationMs)}
       accessibilityActions={[{ name: 'increment', label: 'Forward 30 seconds' }, { name: 'decrement', label: 'Back 15 seconds' }]}
       onAccessibilityAction={(e) => props.onSkip(e.nativeEvent.actionName === 'increment' ? 30_000 : -15_000)}
-      className="rounded-sm justify-center"
-      style={{ width: '100%', height: 8, marginTop: 8, backgroundColor: c.track }}
+      className="rounded-sm mt-2 justify-center"
+      style={{ width: '100%', height: 8, backgroundColor: c.track }}
     >
       <Box importantForAccessibility="no-hide-descendants" accessibilityElementsHidden className="w-full h-full justify-center">
         <Slider

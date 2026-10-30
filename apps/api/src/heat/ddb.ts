@@ -16,14 +16,14 @@
  * `replaceHeat` writes a whole curve from a set of marks (rebuild after a duration becomes known); `repairHeat` recomputes `b` from the marks
  * (the nightly repair, §6).
  */
-import { encode, ttlAfter } from '../db/ddb/codec.ts';
+import { encode } from '../db/ddb/codec.ts';
 import * as K from '../db/ddb/keys.ts';
 import { queryAll } from '../db/ddb/paginate.ts';
 import { withRetry } from '../db/ddb/retry.ts';
 import { batchWriteAll, type WriteRequest } from '../db/ddb/batch.ts';
 import { get, isoNow, put, type Item, type Store } from '../db/ddb/store.ts';
 import { tx, TxCancelled, type Tx } from '../db/ddb/tx.ts';
-import { drainOutbox, enqueue, registerHandler, type OutboxEntry } from '../jobs/outbox.ts';
+import { registerHandler } from '../jobs/outbox.ts';
 
 export const BUCKETS = 100;
 
@@ -38,7 +38,7 @@ const zeros = (): number[] => Array.from({ length: BUCKETS }, () => 0);
 export async function heatCurve(store: Store, episodeId: string): Promise<number[]> {
   const it = await get(store, 'main', K.heat(episodeId));
   const b = (it?.['b'] as number[] | undefined) ?? zeros();
-  return b.map((n) => Math.max(0, Number(n)));
+  return b.map((n) => Number(n));
 }
 
 /** Only the curve and mark conditions are worth a retry; a failed condition on the caller's own item is an answer. */
@@ -52,10 +52,10 @@ function heatRetryable(e: unknown): boolean {
 function curveStep(t: Tx, store: Store, heat: Item | undefined, m: Mark, delta: 1 | -1): void {
   const bb = K.bucket(m.bucket);
   if (!heat) {
-    // The first mark of an episode makes its curve. A removal that arrives before its add (two outbox shards) makes it at -1,
-    // so the sum stays right once the add lands; readers clamp at 0.
+    // The first mark of an episode makes its curve (a removal with no curve has nothing to take away).
+    if (delta < 0) return;
     const b = zeros();
-    b[m.bucket] = delta;
+    b[m.bucket] = 1;
     t.put('main', encode('heat', K.heat(m.episodeId), { episodeId: m.episodeId, b, v: 1, updatedAt: isoNow(store.clock) }), {
       condition: 'attribute_not_exists(PK)', label: 'heat:curve',
     });
@@ -70,25 +70,13 @@ function curveStep(t: Tx, store: Store, heat: Item | undefined, m: Mark, delta: 
   });
 }
 
-/** `inline` puts the curve step in the caller's own transaction (the outbox handler `heat.place`, which is already off the request path). */
-type HeatOpts = { inline?: boolean };
-
-/** Outbox kind: the curve moves by `delta` in `bucket` (M32 C6). The mark (per listener) is in the writing transaction; the hot curve item is not. */
-export const HEAT_BUMP = 'heat.bump';
-
-/** M32 C6 (review.md): the one hot item per episode is written by the outbox, not by every comment's transaction. */
-function curveOrOutbox(t: Tx, store: Store, heat: Item | undefined, m: Mark, delta: 1 | -1, opts: HeatOpts): void {
-  if (opts.inline) { curveStep(t, store, heat, m, delta); return; }
-  enqueue(t, store, { kind: HEAT_BUMP, payload: { episodeId: m.episodeId, bucket: m.bucket, delta } });
-}
-
 /**
  * One more of this listener's things in bucket `m.bucket`. `also` adds the caller's item (the reaction or
  * the comment) to the same transaction; it is called again on every retry with a fresh Tx.
  */
-export async function addHeatMark(store: Store, m: Mark, also?: (t: Tx) => void, opts: HeatOpts = {}): Promise<void> {
+export async function addHeatMark(store: Store, m: Mark, also?: (t: Tx) => void): Promise<void> {
   await withRetry(async () => {
-    const [hm, heat] = await Promise.all([get(store, 'main', K.heatMark(m.episodeId, m.bucket, m.listenerId)), opts.inline ? get(store, 'main', K.heat(m.episodeId)) : undefined]);
+    const [hm, heat] = await Promise.all([get(store, 'main', K.heatMark(m.episodeId, m.bucket, m.listenerId)), get(store, 'main', K.heat(m.episodeId))]);
     const seen = Number(hm?.['refs'] ?? 0);
     const t = tx(store);
     also?.(t);
@@ -96,7 +84,7 @@ export async function addHeatMark(store: Store, m: Mark, also?: (t: Tx) => void,
       t.put('main', encode('heatMark', K.heatMark(m.episodeId, m.bucket, m.listenerId), { episodeId: m.episodeId, listenerId: m.listenerId, bucket: m.bucket, refs: 1 }), {
         condition: 'attribute_not_exists(PK)', label: 'heat:mark',
       });
-      curveOrOutbox(t, store, heat, m, 1, opts);
+      curveStep(t, store, heat, m, 1);
     } else {
       t.update('main', K.heatMark(m.episodeId, m.bucket, m.listenerId), {
         update: 'SET #r = :n', condition: '#r = :seen', names: { '#r': 'refs' }, values: { ':n': seen + 1, ':seen': seen }, label: 'heat:mark',
@@ -107,15 +95,15 @@ export async function addHeatMark(store: Store, m: Mark, also?: (t: Tx) => void,
 }
 
 /** One fewer of this listener's things in the bucket; the curve drops only when the last one goes. */
-export async function removeHeatMark(store: Store, m: Mark, also?: (t: Tx) => void, opts: HeatOpts = {}): Promise<void> {
+export async function removeHeatMark(store: Store, m: Mark, also?: (t: Tx) => void): Promise<void> {
   await withRetry(async () => {
-    const [hm, heat] = await Promise.all([get(store, 'main', K.heatMark(m.episodeId, m.bucket, m.listenerId)), opts.inline ? get(store, 'main', K.heat(m.episodeId)) : undefined]);
+    const [hm, heat] = await Promise.all([get(store, 'main', K.heatMark(m.episodeId, m.bucket, m.listenerId)), get(store, 'main', K.heat(m.episodeId))]);
     const seen = Number(hm?.['refs'] ?? 0);
     const t = tx(store);
     also?.(t);
     if (seen === 1) {
       t.delete('main', K.heatMark(m.episodeId, m.bucket, m.listenerId), { condition: '#r = :seen', names: { '#r': 'refs' }, values: { ':seen': 1 }, label: 'heat:mark' });
-      curveOrOutbox(t, store, heat, m, -1, opts);
+      curveStep(t, store, heat, m, -1);
     } else if (seen > 1) {
       t.update('main', K.heatMark(m.episodeId, m.bucket, m.listenerId), {
         update: 'SET #r = :n', condition: '#r = :seen', names: { '#r': 'refs' }, values: { ':n': seen - 1, ':seen': seen }, label: 'heat:mark',
@@ -142,24 +130,11 @@ const curveOf = (marks: Iterable<{ bucket: number; refs: number }>): number[] =>
 };
 
 /**
- * M32 FB3: a rebuild writes the curve from the marks, and a mark is written in the same transaction as its `heat.bump` entry.
- * A bump still waiting in the outbox would be applied on top of the rebuilt curve and count twice, so the episode's pending
- * bumps are run first (the handler is idempotent). Entries that failed 10 times are PARKED, not pending: they are not run
- * here, the old curve stays short until a repair, and repairHeat counts the MARKS (never the bumps), so a repair also fixes
- * a short curve. A bump retried from /mod after a repair would count twice; a second repair puts that right.
- * A comment posted between this drain and the write is not covered (the nightly repair corrects it).
- */
-async function drainHeatBumps(store: Store, episodeId: string): Promise<void> {
-  await drainOutbox(store, undefined, { match: (e) => e.kind === HEAT_BUMP && e.payload['episodeId'] === episodeId });
-}
-
-/**
  * Replaces an episode's marks and curve with exactly `marks` (refs per listener per bucket). Not one
  * transaction (an episode can have thousands of marks): marks first, the curve last, so a reader sees the
  * old curve or the new one. Used by the rebuild.
  */
 export async function replaceHeat(store: Store, episodeId: string, marks: readonly { listenerId: string; bucket: number; refs: number }[]): Promise<number[]> {
-  await drainHeatBumps(store, episodeId);
   const want = new Map(marks.filter((m) => m.refs > 0).map((m) => [`${K.bucket(m.bucket)}#${m.listenerId}`, m]));
   const have = await heatMarks(store, episodeId);
   const writes: WriteRequest[] = [];
@@ -181,7 +156,6 @@ export async function replaceHeat(store: Store, episodeId: string, marks: readon
 
 /** §6 repair: recompute the curve from the marks; writes only when it differs. */
 export async function repairHeat(store: Store, episodeId: string): Promise<{ before: number[]; after: number[]; fixed: boolean }> {
-  await drainHeatBumps(store, episodeId);
   const marks = (await heatMarks(store, episodeId)).map((it) => ({ bucket: Number(it['bucket']), refs: Number(it['refs']) }));
   const after = curveOf(marks);
   const before = await heatCurve(store, episodeId);
@@ -220,7 +194,7 @@ export async function placeParkedComments(store: Store, episodeId: string): Prom
     try {
       await addHeatMark(store, { episodeId, listenerId: String(c['authorId']), bucket }, (t) => {
         t.update('main', key, { update: 'SET #b = :b', condition: 'attribute_exists(PK) AND attribute_not_exists(#b)', names: { '#b': 'bucket' }, values: { ':b': bucket }, label: 'comment:place' });
-      }, { inline: true });
+      });
       placed++;
     } catch (e) {
       if (!(e instanceof TxCancelled && e.failed('comment:place'))) throw e;
@@ -230,19 +204,3 @@ export async function placeParkedComments(store: Store, episodeId: string): Prom
 }
 
 registerHandler(HEAT_PLACE, async (store, entry) => { await placeParkedComments(store, String(entry.payload['episodeId'])); });
-
-/**
- * The `heat.bump` handler: moves the curve by the entry's delta, once. The entry's `U#APPLIED` marker is written in the same
- * transaction as the curve step, so a repeat (a crash before the entry is deleted) finds the marker and does nothing.
- */
-registerHandler(HEAT_BUMP, async (store: Store, entry: OutboxEntry) => {
-  const p = entry.payload as { episodeId: string; bucket: number; delta: 1 | -1 };
-  const m: Mark = { episodeId: p.episodeId, listenerId: '', bucket: Number(p.bucket) };
-  await withRetry(async () => {
-    const heat = await get(store, 'main', K.heat(m.episodeId));
-    const t = tx(store);
-    t.put('main', encode('unique', K.U.applied(entry.id), { owner: entry.kind }, { ttl: ttlAfter(store.clock.now(), 2 * 86_400_000) }), { condition: 'attribute_not_exists(PK)', label: 'applied' });
-    curveStep(t, store, heat, m, p.delta);
-    try { await t.commit(); } catch (e) { if (e instanceof TxCancelled && !e.conflict && e.failed('applied')) return; throw e; }
-  }, { tries: 8, retryOn: heatRetryable });
-});

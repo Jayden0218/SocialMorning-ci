@@ -1,17 +1,17 @@
 // Block or Unblock a person, asking first.
 /**
  * M6 US1: Block / Unblock a listener, with a confirm. The block is local at once; the server hears later.
- * M31 W4-D (T053; design-pulse2 `profile--blocked`, `profile--block-dialog-from-blocked-page`, `profile--cannot-block-owner`, Blocked listeners'
- * "Unblock" pill): a quiet 48 pill. The default `pill` is the short "Block" / "Unblock" (a Blocked-listeners card); `bar` is the
- * blocked profile's bottom-zone pill, stretched, with the block glyph and the name: "Unblock Rui Costa". The question is the kit
- * dialog (`useConfirm`): Cancel quiet, Block hot; the owner and yourself get the lone light OK. Same words and handlers as before.
+ * M17 (`Profile-B`): the white outlined pill beside Follow. Same confirm, same words.
  */
-import { PulseButton } from '@/ui/kit/PulseButton';
+import { Button, ButtonText } from '@/ui/lib/button';
+import { hit } from '@/design';
+
+const TAP = { minHeight: hit.min };
 import { useConfirm } from '@/ui/kit/confirm';
 import { router } from 'expo-router';
 import { announce, useSafety } from '@/safety/context';
 
-export function BlockButton(props: { listenerId: string; displayName: string; onChange?: (blocked: boolean) => void; /** `bar`: the profile's bottom-zone pill (glyph, the name, fills the row). */ look?: 'pill' | 'bar'; /** S-A: the pill sits on a raise tile (Blocked listeners' cards), so its fill is raise-2. */ onTile?: boolean }): React.ReactElement {
+export function BlockButton(props: { listenerId: string; displayName: string; onChange?: (blocked: boolean) => void }): React.ReactElement {
   const { safety, version } = useSafety();
   void version;
   const blocked = safety.isBlocked(props.listenerId);
@@ -37,21 +37,16 @@ export function BlockButton(props: { listenerId: string; displayName: string; on
       },
     });
   }
-  const bar = props.look === 'bar';
-  const word = blocked ? 'Unblock' : 'Block';
   return (
     <>
-      {/* FR-016: the word carries it, not the hue — Block and Unblock share one look. */}
-      <PulseButton
-        kind={props.onTile === true ? 'quiet2' : 'quiet'}
-        label={bar ? `${word} ${props.displayName}` : word}
-        accessibilityLabel={`${word} ${props.displayName}`}
-        {...(bar ? { icon: 'ban-outline' as const } : {})}
-        {...(props.onTile === true ? { height: 40 } : {})}
-        className={bar ? 'flex-1' : 'self-start'}
-        onPress={press}
-      />
-      {dialog}
+    {/* M9 (T032): gluestack's Button. M17: an outlined pill — a peer of Report, not a shout. */}
+    <Button variant="outline" onPress={press} accessibilityRole="button" accessibilityLabel={blocked ? `Unblock ${props.displayName}` : `Block ${props.displayName}`} className="px-section rounded-pill border border-border bg-surface justify-center items-center self-start" style={TAP}>
+      {/* FR-016: the word carries it, not the hue — Block and Unblock share one colour. Report beside it is
+          muted for the same reason — neither of two peer actions should shout over the other. */}
+      <ButtonText className="text-text text-body font-semibold">{blocked ? 'Unblock' : 'Block'}</ButtonText>
+    </Button>
+    {dialog}
     </>
   );
 }
+

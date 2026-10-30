@@ -19,7 +19,6 @@ afterAll(() => { jest.clearAllTimers(); });
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement, type ReactElement } from 'react';
-import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 const mockPush = jest.fn();
@@ -44,15 +43,13 @@ jest.mock('@/ui/shell/providers', () => ({ useStores: () => mockStores }));
 jest.mock('@/social/context', () => ({ useSocial: () => mockSocial }));
 jest.mock('@/social/profile-api', () => ({ useProfileApi: () => mockProfileApi }));
 jest.mock('@/me/my-avatar', () => ({ useMyAvatar: () => undefined }));
-// M31 T033: the Me tab's title bar clears the now bar while something is loaded; these renders have no player, so nothing is (idle).
-jest.mock('@/playback/store', () => ({ ...jest.requireActual('@/playback/store'), usePlayerSelector: () => true }));
 jest.mock('@/me/moments', () => ({ listMoments: () => [] }));
 jest.mock('@/graph/feed', () => ({ createFeed: () => mockFeed }));
 jest.mock('@/social/m19-api', () => ({ lastMonth: () => '2026-09', monthName: () => 'September' }));
 // Sign-in's own side jobs (the notification ask, the moving tiles, the consent row) are not this guard.
 jest.mock('@/notify/permission', () => ({ askForNotifications: () => Promise.resolve('known') }));
 jest.mock('@/notify/expo', () => ({ expoNotify: {} }));
-jest.mock('@/ui/auth/ArtWall', () => ({ ArtWall: () => null, WallFade: () => null }));
+jest.mock('@/ui/auth/ArtWall', () => ({ ArtWall: () => null }));
 jest.mock('@/ui/auth/Consent', () => ({ ConsentRow: () => null, ConsentDialog: () => null, useLegalOverlay: () => ({ open: () => undefined, overlay: null }) }));
 // gluestack's AlertDialog loads reanimated, whose native worklets cannot start under jest (gate
 // 37744935171: "reading 'loadUnpackersWithCode'"). Me's sign-out uses it; stand-ins keep their
@@ -71,7 +68,7 @@ jest.mock('@/ui/lib/alert-dialog', () => {
 });
 
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
-import { ActionSheet } from '@/ui/kit/ActionSheet';
+import { Actionsheet, ActionsheetContent } from '@/ui/lib/actionsheet';
 import { AlertDialog } from '@/ui/lib/alert-dialog';
 import { ComingSoonDialog, type ComingSoonRequest } from '@/ui/kit/ComingSoon';
 import { MenuRow } from '@/ui/me/parts';
@@ -127,10 +124,8 @@ it('M25 L3c: sign-in draws no not-ready method, so it has no Coming soon of its 
 describe('G-E7: Me opens Coming soon for Wallet while the store is off, and keeps the page one tap on', () => {
   const sheet = (r: ReactTestRenderer) => r.root.findByType(ComingSoonDialog);
   /** What the open sheet says — its content node, wherever the overlay mounts it. */
-  // M31 S-C: the sheet is the kit ActionSheet (a native modal): its content node is the one with the `action-sheet` test id.
-  const sheetNodes = (r: ReactTestRenderer) => r.root.findAll((n) => n.props['testID'] === 'action-sheet' && typeof n.type !== 'string');
-  const sheetWords = (r: ReactTestRenderer) => sheetNodes(r).map(words).join(' ');
-  const sheetIcons = (r: ReactTestRenderer, name: string) => sheetNodes(r).flatMap((c) => c.findAll((n) => n.props['name'] === name));
+  const sheetWords = (r: ReactTestRenderer) => r.root.findAllByType(ActionsheetContent).map(words).join(' ');
+  const sheetIcons = (r: ReactTestRenderer, name: string) => r.root.findAllByType(ActionsheetContent).flatMap((c) => c.findAll((n) => n.props['name'] === name));
 
   it('store off: Wallet opens the sheet with the wallet mark; "Open Wallet" goes to /wallet', () => {
     const r = render(createElement(MeScreen));
@@ -167,31 +162,13 @@ describe('G-E7: Me opens Coming soon for Wallet while the store is off, and keep
   });
 });
 
-it('G-E7: Coming soon is the kit bottom sheet — a mark tile, never the old centred card', () => {
+it('G-E7: Coming soon is the B bottom sheet — a mark tile, never the old centred card', () => {
   const icon = render(createElement(ComingSoonDialog, { request: { feature: 'Wallet', mark: 'wallet-outline', line: 'One line.' }, onClose: () => undefined }));
-  expect(icon.root.findAllByType(ActionSheet)).toHaveLength(1);
+  expect(icon.root.findAllByType(Actionsheet)).toHaveLength(1);
   expect(icon.root.findAllByType(AlertDialog)).toHaveLength(0);
   expect(icon.root.findAll((n) => n.props['name'] === 'wallet-outline').length).toBeGreaterThan(0);
   expect(words(icon.root)).toContain('Coming soon');
   // The tile also takes Google's own "G" picture.
   const google = render(createElement(ComingSoonDialog, { request: { feature: 'Google sign-in', mark: 'google', line: 'One line.' }, onClose: () => undefined }));
   expect(google.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityIgnoresInvertColors'] === true).length).toBeGreaterThan(0);
-});
-
-/**
- * M31 S-C (T062; design-pulse2 `coming-soon--wallet-sheet`): the sheet's numbers read off the render — the mark tile 56 round 18, the
- * title Unbounded 34, "Got it" the light pill at 54, the second action a hot-text button with a 48 touch area. Break that turns it
- * red: change `AUTH.soon.got` (src/ui/auth/measures.ts) or put the title back to a 28.
- */
-it('M31: the mark tile is 56 round 18, the title 34, Got it 54 tall, the second action 48 to touch', () => {
-  const r = render(createElement(ComingSoonDialog, { request: { feature: 'Wallet', mark: 'wallet-outline', line: 'One line.', second: { label: 'Open Wallet', onPress: () => undefined } }, onClose: () => undefined }));
-  const style = (n: ReactTestInstance): Record<string, unknown> => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
-  const tile = r.root.findAll((n) => typeof n.type === 'string' && style(n)['width'] === 56 && style(n)['height'] === 56)[0]!;
-  expect(style(tile)['borderRadius']).toBe(18);
-  const title = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header' && style(n)['fontSize'] === 34)[0]!;
-  expect(words(title)).toBe('Coming soon');
-  const got = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Got it' && typeof n.props['onPress'] === 'function')[0]!;
-  expect(style(got)['height']).toBe(54);
-  const second = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Open Wallet' && typeof n.props['onPress'] === 'function')[0]!;
-  expect(style(second)['minHeight']).toBe(48);
 });

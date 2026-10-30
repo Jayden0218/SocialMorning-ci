@@ -16,10 +16,9 @@ here or a line does not match its file.
 |---|---|
 | `app.ts` | Builds the Hono app: shared setup, error handling, and every route mounted. |
 | `config.ts` | What environment the API runs in, which DynamoDB tables it uses, and the Db + options built from it. |
-| `edge-proxy.ts` | DRAFT, never deployed — the Vercel edge proxy: forwards a request to the Lambda Function URL and signs the real client address. |
+| `edge-proxy.ts` | The Vercel edge proxy (drafted, NOT deployed): forwards a request to the Lambda Function URL and signs the real client address. |
 | `errors.ts` | The single API error shape and its error codes with HTTP statuses. |
 | `lambda-entry.ts` | The API as an AWS Lambda function behind a Function URL (API Gateway v2 event shape). |
-| `log.ts` | A tiny structured logger: one JSON line per event, level threshold from LOG_LEVEL, secrets scrubbed. |
 | `secrets.ts` | The secrets of the API on AWS Lambda, read from SSM Parameter Store and re-read every 15 minutes. |
 | `server.ts` | Starts the API locally on Node, on DynamoDB Local (DDB_ENDPOINT) — see src/config.ts. |
 | `validate.ts` | Checks JSON request bodies with zod and answers 422 naming bad fields. |
@@ -114,7 +113,6 @@ here or a line does not match its file.
 | `foryou.ts` | For You route: the personal recommendation list — signed in, or signed out with picked categories. |
 | `issues.ts` | Routes for past daily picks and curated issues. |
 | `launch.ts` | Public launch-screen routes: live promotions and anonymous view or tap counts. |
-| `moments.ts` | Route for the Moments list: the hottest moments of episodes the viewer follows, then the chart's. |
 | `nextup.ts` | Route for an episode's "Next up" suggestions. |
 | `search.ts` | Search routes: shows and episodes from Apple, and people by name, rate-limited. |
 | `search-requests.ts` | "Can't find it? Tell us": a listener sends search words the catalogue did not answer. |
@@ -212,7 +210,6 @@ here or a line does not match its file.
 | `client.ts` | The DynamoDB DocumentClient: plain JS objects in and out; refuses real AWS until it is approved. |
 | `codec.ts` | Row ↔ item: every item gets its type `t`, dates become ISO strings, and each type's attribute allowlist is enforced. |
 | `cursor.ts` | Page cursors: a DynamoDB resume key ↔ an opaque, signed string the API hands out (a forged one is refused). |
-| `day-index.ts` | Reads one UTC day of the sm-events E1 index across its 8 shards and the old unsharded key (M32 C7). |
 | `keys.ts` | Every DynamoDB key shape in data-model.md §3–§5, one function each, so no repo spells a key by hand. |
 | `paginate.ts` | "Up to N" lists over DynamoDB's 1 MB pages: keep querying until N items are found or the partition ends. |
 | `retry.ts` | Retry for optimistic writes: a version check or transaction conflict is retried a few times, never forever. |
@@ -220,6 +217,7 @@ here or a line does not match its file.
 | `seq.ts` | Numeric ids for the seven former bigserial tables: a SEQ# counter item, so ids keep their type and order. |
 | `store.ts` | The Store handle every DynamoDB repo takes: the client, the three table names, a clock and a cursor secret. |
 | `append-only.ts` | The admin record is append-only: the one Store send path refuses any update, delete or overwrite of an AUDIT# item. |
+| `test-wrappers.ts` | Test-only Store wrappers for what DynamoDB Local cannot do: GSI lag, transaction conflicts, faults by key prefix. |
 | `tx.ts` | TransactWriteItems builder: refuses more than 100 items before sending, and names which item cancelled a transaction. |
 | `unique.ts` | Uniqueness without a UNIQUE index: a U# item claimed with attribute_not_exists in the same transaction as the row. |
 
@@ -228,7 +226,6 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `charts.ts` | The whole episode catalogue for the lists that rank every episode (new shows, plaza, treasure hunt, video): one index Scan. |
-| `handlers.ts` | Every module that registers an outbox handler, imported for its side effect (M32 A1, review.md). |
 | `cache-sweep.ts` | The hourly cache sweep on DynamoDB: feed and Apple-search entries older than 7 days go (a Scan of sm-cache — jobs only). |
 | `health.ts` | The hourly outbox health check: one email when the outbox gets stuck, one when it clears (counts only, never a payload). |
 | `outbox.ts` | The outbox: work a commit causes (fan-outs, rollups) queued in the same transaction, then drained idempotently; and resumable jobs. |
@@ -498,14 +495,12 @@ here or a line does not match its file.
 | `admin-picks.ts` | The owner's daily picks on DynamoDB: one document item per day, saved with a version condition. |
 | `catalog.ts` | The admin catalogue (picks, issues, collections) read from lane DV's documents, in the row shapes catalog/live.ts merges. |
 | `common.ts` | Shared pieces of the discover DynamoDB code: the clock, episode rows from the catalogue items, show and listener walks. |
-| `moments.ts` | Moments on DynamoDB: an episode's hottest buckets and their top comments, and the episodes a viewer follows. Queries and GetItems only. |
 | `discover-extras.ts` | Discover's extra parts on DynamoDB: pick counts, followed shows, new arrivals, what people said, video episodes. |
 | `discover-settings.ts` | Discover's layout on DynamoDB: one settings item with a version; the trending pins and hides in the trending list document. |
 | `dismissals.ts` | "Not interested" on DynamoDB: one item per turned-down episode or show, in the listener's own partition. |
 | `explore.ts` | The Explore lists on DynamoDB: the New shows and Rising charts, the treasure hunt, the plaza, faces on picks. |
 | `foryou-rules.ts` | The owner's For You rules and weights on DynamoDB: one partition of rules, one weights item with a version. |
 | `foryou.ts` | For You's reads on DynamoDB: the listener's own items for the context, and each channel's episodes by show or by category. |
-| `pool.ts` | The shared candidate pool of the Discover lists that rank every episode: rebuilt at most once per 5 minutes. |
 | `listens.ts` | The per-episode listen index on DynamoDB: one sm-events item per listened activity row, by episode and by day. |
 | `lists.ts` | The owner's pins and hides on DynamoDB: one document item per list, written with a version condition. |
 | `nextup.ts` | "Next up" on DynamoDB: who else listened (the listen index, then those listeners' own activity), and what the viewer finished. |

@@ -1,39 +1,50 @@
-// One comment card on the thread: avatar, name, age, words, voice or picture, like, reply, replies link, more.
+// One comment card: picture, name, badge, time and region, moment chip, text, likes, replies; a tap opens its menu.
 /**
- * M31 W2-B (T032; `design-pulse2/social.html` `cmt`, `index.html#comments--screen`). A comment is a raise card (radius
- * 18, padding 12, 7 between its parts) 56 from the node's left edge on the spine; a reply steps in 30 more and is a card
- * of its own. Top row: a 24 avatar, the name (Geist 600 14; "You" on your own), the light HOST tag, the age in mono 11
- * (text3) — "5h", with the commenter's country after it when the server sent one. Then the words (Body 15/22), the voice
- * block or the picture, and the action row: heart (+ count in mono), "Reply", "n replies ›" in hot text, the ⋯ at the
- * right. A pinned comment starts with a mono 11 hot-text line; a folded one is a dashed card; a held one carries "Only
- * you". The moment is not in the card any more: it is the chip on the spine above it (CommentThread).
+ * One comment on the comments page (M12 US2, FR-022/024/025). An avatar (initials when there is
+ * no picture), the name, how long ago, the moment as a chip that plays from there, the text
+ * folded after 8 lines, and the like count on the right. Reply, Copy, Save and Report/Delete
+ * live behind a long-press (the "Reply ☆ Report" row under every comment is gone). Up to two
+ * replies are previewed in a tinted box; the rest open with "Show N more".
  *
- * What stayed (the action replay): a tap or long-press on the words opens the menu, the same menu as ⋯; the heart likes
- * (not on your own); "Reply" opens the composer for the comment; "n replies ›" opens the reply page; the name opens the
- * profile; "Show" unfolds a hidden comment; "More" / "Less" folds long text. The card's spoken name is one line — name,
- * age, "Play from m:ss", the words — which the iOS journey reads (`.maestro/journey.yaml`).
+ * Owner, 2026-10-01 (the 小宇宙 comments page): the name on its own line, then "time · place"
+ * (place = the commenter's IP location when the server sends one), the like count on the
+ * right; replies in a grey box under the parent, the first 2 shown and "Show N more" for the rest.
  *
- * Earlier (kept in the code below): M12 US2 (FR-022/024/025) public likes, "Show N more"; M17/M19/M21/M22 pins, folds,
- * voice, pictures, badges and the region.
+ * M17 (`Comments-B`): each top-level comment is a white card. Avatar 36 and the name in bold,
+ * "time · place" under it; the moment as its own tinted chip (▶ 14:32) that plays from there;
+ * the text in the serif (display-m) so the words lead; replies in a warm box inside the card;
+ * then a footer with the like on the left and a ⋯ button on the right that opens the same
+ * menu as the long-press (which still works). The Host badge is the yellow pill.
+ *
+ * M19 US5/US6 (FR-040…FR-044): a pinned comment carries a small accent "Pinned by the host" line;
+ * a comment folded for being unfriendly is one muted row, "Hidden for being unfriendly — Show",
+ * that opens it on tap; a voice comment plays inline (VoiceComment). Under a parent the first 2
+ * replies still show, and "N replies ›" opens the reply page (`onOpenThread`) in place of the
+ * old inline "Show N more" — the reply page has every reply and its own reply box.
+ *
+ * M21 US6: a TAP on the comment opens its menu (Reply, Share, Save, Copy, Mute, Mark as unfriendly,
+ * Report / Delete) — the long-press and ⋯ still do too. The listening badge ("100h+", "500h+",
+ * "1000h+") sits beside the name; the region the server saw at post time follows the time.
  */
 import { useState } from 'react';
 import { Link } from '@/design/tailwind';
 import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { Icon } from '@/ui/kit/Icon';
-import { Type } from '@/ui/kit/Type';
-import { Avatar } from '@/ui/kit/Avatar';
 import { plural } from '@socialmorning/social-core';
-import { compactCount, mmss, pluralCompact, relativeTime } from '@/ui/kit/format';
+import { mmss, relativeTime } from '@/ui/kit/format';
 import { Placeholder, placeholderFor } from './Placeholder';
-import { colour } from '@/design';
+import { hit } from '@/design';
 import type { Comment } from '@/social/api';
 import { countryName } from '@/ui/me/country';
+import { Avatar } from '@/ui/kit/Avatar';
 import { badgeLabel, extrasOf, m21Of, replyCountOf } from '@/social/comment-extras-api';
 import { VoiceComment, type PlayVoice } from './VoiceComment';
 import { CommentImage } from './CommentImage';
-import { COMMENTS, cardLeft } from './measures';
-import { drawnType } from '@/design/type-px';
+
+const TAP = { minHeight: hit.min, minWidth: hit.min };
+const AVATAR = { width: 36, height: 36 };
 
 /** The avatar's letter: what the server sent, else the name's first letter or digit. */
 export function initialsFor(c: Pick<Comment, 'initials' | 'displayName'>): string {
@@ -44,7 +55,7 @@ export function initialsFor(c: Pick<Comment, 'initials' | 'displayName'>): strin
 
 export type LikeView = { count: number; liked: boolean };
 
-/** How many replies show under a comment before "n replies ›" (the rest are on the reply page). */
+/** How many replies show before "Show N more". */
 export const REPLY_PREVIEW = 2;
 
 /**
@@ -62,21 +73,6 @@ export function timeAndPlace(createdAt: string, serverTime: string, place: strin
   return place ? `${when} · ${place}` : when;
 }
 
-/** The drawing's age: "now", "5m", "4h", "3d" (from the SERVER clock, never negative). */
-export function shortAgo(createdAt: string, serverTime: string): string {
-  const s = Math.max(0, Math.round((new Date(serverTime).getTime() - new Date(createdAt).getTime()) / 1000));
-  if (s < 60) return 'now';
-  if (s < 3600) return `${Math.floor(s / 60)}m`;
-  if (s < 86_400) return `${Math.floor(s / 3600)}h`;
-  return `${Math.floor(s / 86_400)}d`;
-}
-
-/** "5h", or "5h · Malaysia" — what sits after the name in mono 11. */
-export function agoAndPlace(createdAt: string, serverTime: string, place: string | undefined): string {
-  const when = shortAgo(createdAt, serverTime);
-  return place ? `${when} · ${place}` : when;
-}
-
 /**
  * The old fold under a parent's replies: "Show 3 more", or "Show fewer replies" once open.
  * M19 US5 replaced it on the card with `repliesLink` (the reply page); kept for its test.
@@ -88,100 +84,87 @@ export function moreRepliesLabel(total: number, expanded: boolean): string | und
 
 /** M19 FR-043: the link under a parent to its reply page — "1 reply ›", "5 replies ›". */
 export function repliesLink(total: number): string | undefined {
-  return total > 0 ? `${pluralCompact(total, 'reply', 'replies')} ›` : undefined;
+  return total > 0 ? `${plural(total, 'reply', 'replies')} ›` : undefined;
 }
-
-/**
- * The 48 pt tap a 16 pt glyph row needs: 8 above (the 7 between the parts), 24 below (12 of padding, the 10 between
- * cards, 2 into the next) and 8 to each side (half the 16 between actions).
- */
-const ACTION_SLOP = { top: 8, bottom: 24, left: 8, right: 8 };
-const ROW = { gap: COMMENTS.actionGap };
-/** Drawn `line-height: 1` lines: the pin words 13, the action row's words 16 (the row is the 16 heart), so the card is not taller than drawn. */
-const LINE_PIN = { lineHeight: COMMENTS.pinLine };
-const LINE_ACTION = { lineHeight: COMMENTS.heart };
-/** M31 F13 (widths W6): after a long name the age keeps room for "2h" and ellipsizes instead of being cut to "2". */
-const AGE = { flexShrink: 1, minWidth: 24 } as const;
 
 export function CommentRow(props: {
   c: Comment;
   serverTime: string;
   /** The like state to show — the page's instant (optimistic) copy, falling back to the server's. */
   likeOf: (c: Comment) => LikeView;
-  /** Kept so older callers compile; the card takes its colours from the tokens. */
-  iconColour?: { muted: string; accent: string };
+  iconColour: { muted: string; accent: string };
   onSeek: (offsetMs: number) => void;
   onLike: (c: Comment) => void;
   onMenu: (c: Comment) => void;
   isReply?: boolean;
-  /** Shows "Reply" on a top-level card; it opens the composer for this comment. */
-  onReply?: (c: Comment) => void;
-  /** M19 FR-043: opens the reply page; without it (the reply page itself) no replies are drawn under the card. */
+  /** M19 FR-043: opens the reply page; without it (the reply page itself) no replies box is drawn. */
   onOpenThread?: (c: Comment) => void;
   /** M19 FR-044: plays a voice comment (`playVoice` from the playback adapter, passed by the page). */
   playVoice?: PlayVoice;
   /** M20 US9: teen mode ("hide explicit") — comment pictures start hidden behind "Tap to show". */
   teenMode?: boolean;
-  /** How far in the card sits: 0 on the spine, 1 for a reply (30 more). The replies page draws every card at 0. */
-  level?: number;
-  /** The card is the one being answered (the reply sheet is open): a 1.5 hot ring. */
-  ringed?: boolean;
-  /** No spine: the card starts at the page's edge (the episode page's two newest comments). */
-  flush?: boolean;
 }): React.ReactElement {
   const { c } = props;
   const like = props.likeOf(c);
   const [open, setOpen] = useState(false);
   const [unfold, setUnfold] = useState(false);
-  const reply = props.isReply === true;
-  const level = props.level ?? (reply ? 1 : 0);
-  const left = { marginLeft: props.flush === true ? 0 : cardLeft(level) };
   const kind = placeholderFor(c, c.reported);
   if (kind !== undefined) {
-    return <Box className="bg-raise" style={[left, CARD]}><Placeholder kind={kind} /></Box>;
+    return props.isReply
+      ? <Box className="py-2"><Placeholder kind={kind} /></Box>
+      : <Box className="bg-surface border border-border rounded-row p-row"><Placeholder kind={kind} /></Box>;
   }
   const extra = extrasOf(c);
-  // FR-041: folded for everyone at 5 "unfriendly" marks — one dashed card that opens it.
+  // FR-041: folded for everyone at 5 "unfriendly" marks — one muted row that opens it.
   if (extra.folded && !unfold) {
     return (
-      <Pressable onPress={() => setUnfold(true)} accessibilityRole="button" accessibilityLabel="Show hidden comment" className="border border-line" style={[left, CARD, DASHED]}>
-        <Type step="caption" className="text-text3">Hidden for being unfriendly — <Type step="caption" className="text-hotText font-bold">Show</Type></Type>
+      <Pressable
+        onPress={() => setUnfold(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Show hidden comment"
+        className={props.isReply ? 'py-1 justify-center' : 'bg-surface border border-border rounded-row px-row justify-center'}
+        style={TAP}
+      >
+        <Text className="text-muted text-xs">Hidden for being unfriendly — <Text className="text-accent text-xs font-bold">Show</Text></Text>
       </Pressable>
     );
   }
 
   const replies = c.replies ?? [];
   const shownReplies = replies.slice(0, REPLY_PREVIEW);
-  const total = replyCountOf(c);
-  const link = !reply && props.onOpenThread ? repliesLink(total) : undefined;
+  const link = props.onOpenThread ? repliesLink(replyCountOf(c)) : undefined;
   const name = c.displayName ?? 'Deleted account';
-  const shownName = c.mine ? 'You' : name;
+  const reply = props.isReply === true;
   const badge = m21Of(c).badge;
-  const serverTime = props.serverTime;
-  const age = agoAndPlace(c.createdAt, serverTime, placeOf(c));
-  const spoken = [name, relativeTime(c.createdAt, serverTime), c.offsetMs !== null ? `Play from ${mmss(c.offsetMs)}` : undefined, c.body ?? undefined].filter((x): x is string => x !== undefined && x !== '').join(', ');
-  const pinned = !reply && (extra.pinned || (c as Comment & { pinnedBottom?: true }).pinnedBottom === true);
 
-  const heart = (
-    <>
-      <Icon name={like.liked ? 'heart' : 'heart-outline'} size={COMMENTS.heart} color={like.liked ? colour.hotText : colour.text2} />
-      {like.count > 0 ? <Type step="mono" className={like.liked ? 'text-hotText' : 'text-text2'} style={LINE_ACTION}>{compactCount(like.count)}</Type> : null}
-    </>
+  const likeButton = c.mine ? null : (
+    <Pressable
+      onPress={() => props.onLike(c)}
+      accessibilityRole="button"
+      accessibilityState={{ selected: like.liked }}
+      accessibilityLabel={`${like.liked ? 'Unlike' : 'Like'}. ${plural(like.count, 'like')}`}
+      className={reply ? 'items-center justify-start pt-1' : 'flex-row items-center gap-1.5 pr-2'}
+      style={TAP}
+    >
+      <Icon name={like.liked ? 'thumbs-up' : 'thumbs-up-outline'} size={reply ? 14 : 16} color={like.liked ? props.iconColour.accent : props.iconColour.muted} />
+      {like.count > 0 ? <Text className={like.liked ? 'text-accent text-xs font-semibold' : 'text-muted text-xs font-semibold'}>{like.count}</Text> : null}
+    </Pressable>
   );
 
-  const card = (
-    <Box className="bg-raise" style={[left, CARD, props.ringed ? RING : null]} testID="comment-card">
-      {extra.pinned ? (
-        <Box className="flex-row items-center" style={PIN_ROW} accessible accessibilityLabel="Pinned by the host">
-          <Icon name="pin" size={13} color={colour.hotText} />
-          <Type step="tag" className="text-hotText font-semibold" style={PIN_WORDS}>PINNED BY THE HOST</Type>
+  return (
+    <Box className={reply ? 'py-1 flex-row gap-2' : 'bg-surface border border-border rounded-row px-row pt-row'}>
+      {/* FR-040: the host's pinned comment says so, above the name. */}
+      {!reply && extra.pinned ? (
+        <Box className="flex-row items-center gap-1 pb-2" accessible accessibilityLabel="Pinned by the host">
+          <Icon name="pin" size={12} color={props.iconColour.accent} />
+          <Text className="text-accent text-xs font-bold">Pinned by the host</Text>
         </Box>
       ) : null}
       {/* M22 US10: the bottom pin says so too (it sits last under every order). */}
-      {!extra.pinned && pinned ? (
-        <Box className="flex-row items-center" style={PIN_ROW} accessible accessibilityLabel="Pinned to the bottom by the host">
-          <Icon name="pin" size={13} color={colour.hotText} />
-          <Type step="tag" className="text-hotText font-semibold" style={PIN_WORDS}>PINNED BY THE HOST</Type>
+      {!reply && !extra.pinned && (c as Comment & { pinnedBottom?: true }).pinnedBottom ? (
+        <Box className="flex-row items-center gap-1 pb-2" accessible accessibilityLabel="Pinned to the bottom by the host">
+          <Icon name="pin-outline" size={12} color={props.iconColour.accent} />
+          <Text className="text-accent text-xs font-bold">Pinned by the host</Text>
         </Box>
       ) : null}
       <Pressable
@@ -189,86 +172,78 @@ export function CommentRow(props: {
         onLongPress={() => props.onMenu(c)}
         delayLongPress={350}
         accessibilityRole="button"
-        accessibilityLabel={spoken}
         accessibilityHint="Opens reply, share, save, copy, mute and report"
         accessibilityActions={[{ name: 'longpress', label: 'More actions' }]}
         onAccessibilityAction={() => props.onMenu(c)}
-        style={BODY}
+        className={reply ? 'flex-1 gap-0.5' : 'gap-2'}
       >
-        <Box className="flex-row items-center" style={HEAD}>
-          {/* M19 T014: the author's photo when they set one; the coloured letter disc otherwise. */}
-          <Avatar size={COMMENTS.avatar} url={c.avatarUrl} name={c.displayName} />
-          {c.authorId !== null ? (
-            <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
-              <Pressable accessibilityRole="link" accessibilityLabel={name} className="flex-shrink min-w-0"><Type step="compact" className="text-text" numberOfLines={1}>{shownName}</Type></Pressable>
-            </Link>
-          ) : <Type step="compact" className="text-text flex-shrink" numberOfLines={1}>{shownName}</Type>}
-          {c.host ? <Type step="badge" className="bg-text text-void" style={HOST} numberOfLines={1} accessibilityLabel="Host of this show">HOST</Type> : null}
-          {badge ? <Type step="badge" className="bg-hotSoft text-hotText" style={HOST} numberOfLines={1} accessibilityLabel={`Has listened ${badge} hours or more`}>{badgeLabel(badge)}</Type> : null}
-          <Type step="tag" className="text-text3 flex-shrink" style={AGE} numberOfLines={1}>{age}</Type>
-          {c.held ? <Type step="tag" className="text-hotText">Only you</Type> : null}
+        <Box className="flex-row items-center gap-2.5">
+          {reply ? null : (
+            // M19 T014: the author's photo when they set one; the letter disc otherwise.
+            <Avatar size={AVATAR.width} url={c.avatarUrl} name={c.displayName} initials={initialsFor(c)} />
+          )}
+          <Box className="flex-1">
+            <Box className="flex-row items-center gap-1.5 flex-wrap">
+              {c.authorId !== null ? (
+                <Link href={{ pathname: '/profile/[id]', params: { id: c.authorId } }} asChild>
+                  <Pressable accessibilityRole="link" className="flex-shrink min-w-0"><Text className={reply ? 'text-text text-meta font-bold' : 'text-text text-body font-bold'} numberOfLines={1}>{name}</Text></Pressable>
+                </Link>
+              ) : <Text className={reply ? 'text-text text-meta font-bold flex-shrink' : 'text-text text-body font-bold flex-shrink'} numberOfLines={1}>{name}</Text>}
+              {c.host ? <Text className="bg-primary text-onPrimary rounded-pill px-1.5 text-micro font-bold" accessibilityLabel="Host of this show">Host</Text> : null}
+              {badge ? <Text className="bg-accentTint text-accent rounded-pill px-1.5 text-micro font-bold" accessibilityLabel={`Has listened ${badge} hours or more`}>{badgeLabel(badge)}</Text> : null}
+            </Box>
+            {reply ? null : <Text className="text-muted text-xs">{timeAndPlace(c.createdAt, props.serverTime, placeOf(c))}</Text>}
+          </Box>
         </Box>
+        {!reply && c.offsetMs !== null ? (
+          <Pressable onPress={() => props.onSeek(c.offsetMs!)} accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`} className="self-start justify-center" style={TAP}>
+            <Box className="flex-row items-center gap-1 bg-accentTint rounded-pill px-2.5 py-1">
+              <Icon name="play" size={10} color={props.iconColour.accent} />
+              <Text className="text-accent text-xs font-bold">{mmss(c.offsetMs)}</Text>
+            </Box>
+          </Pressable>
+        ) : null}
         {/* iPhone walk 2026-10-06: a voice comment has no words — draw no empty line (it left a gap). */}
-        {c.body ? <Type step="body" className="text-text" numberOfLines={open ? undefined : 8}>{c.body}</Type> : null}
+        {c.body ? (
+          <Text className={reply ? 'text-text text-meta leading-[20px]' : 'text-text text-title font-display-semibold leading-[24px]'} numberOfLines={open ? undefined : 8}>
+            {reply && c.offsetMs !== null ? (
+              <Text className="text-accent font-semibold" accessibilityRole="button" accessibilityLabel={`Play from ${mmss(c.offsetMs)}`} onPress={() => props.onSeek(c.offsetMs!)}>
+                {`${mmss(c.offsetMs)}  `}
+              </Text>
+            ) : null}
+            {c.body}
+          </Text>
+        ) : null}
         {extra.voice && props.playVoice ? <VoiceComment voice={extra.voice} play={props.playVoice} /> : null}
-        {extra.image ? <CommentImage image={extra.image} teen={props.teenMode === true} by={{ name: shownName, offsetMs: c.offsetMs }} /> : null}
+        {extra.image ? <CommentImage image={extra.image} teen={props.teenMode === true} /> : null}
         {(c.body ?? '').length > 320 ? (
-          <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" accessibilityLabel={open ? 'Less' : 'More'} hitSlop={SLOP_MORE} className="self-start">
-            <Type step="caption" className="text-hotText font-semibold">{open ? 'Less' : 'More'}</Type>
+          <Pressable onPress={() => setOpen((o) => !o)} accessibilityRole="button" className="self-start justify-center" style={TAP}>
+            <Text className="text-accent text-xs font-semibold">{open ? 'Less' : 'More'}</Text>
           </Pressable>
         ) : null}
-        {c.hiddenByHost ? <Type step="caption" className="text-text3 italic">Hidden by the host — only you can see it</Type> : null}
+        {c.hiddenByHost ? <Text className="text-muted text-xs italic">Hidden by the host — only you can see it</Text> : null}
       </Pressable>
-      <Box className="flex-row items-center" style={ROW}>
-        {c.mine ? (
-          like.count > 0 ? <Box className="flex-row items-center" style={HEART}>{heart}</Box> : null
-        ) : (
-          <Pressable
-            onPress={() => props.onLike(c)}
-            accessibilityRole="button"
-            accessibilityState={{ selected: like.liked }}
-            accessibilityLabel={`${like.liked ? 'Unlike' : 'Like'}. ${plural(like.count, 'like')}`}
-            hitSlop={ACTION_SLOP}
-            className="flex-row items-center"
-            style={HEART}
-          >
-            {heart}
+      {reply ? (likeButton ?? <Box style={TAP} />) : null}
+      {!reply && link ? (
+        <Box className="mt-2.5 bg-background rounded-row px-row py-2">
+          {shownReplies.map((r) => (
+            <CommentRow key={r.id} {...props} c={r} isReply />
+          ))}
+          {link ? (
+            <Pressable onPress={() => props.onOpenThread?.(c)} accessibilityRole="link" accessibilityLabel={`${link.replace(' ›', '')}. Open the replies`} className="justify-center" style={TAP}>
+              <Text className="text-accent text-xs font-bold">{link}</Text>
+            </Pressable>
+          ) : null}
+        </Box>
+      ) : null}
+      {reply ? null : (
+        <Box className="flex-row items-center justify-between">
+          {likeButton ?? <Box style={TAP} />}
+          <Pressable onPress={() => props.onMenu(c)} accessibilityRole="button" accessibilityLabel="More for this comment" className="items-center justify-center" style={TAP}>
+            <Icon name="ellipsis-horizontal" size={18} color={props.iconColour.muted} />
           </Pressable>
-        )}
-        {!reply && props.onReply ? (
-          <Pressable onPress={() => props.onReply?.(c)} accessibilityRole="button" accessibilityLabel="Reply" hitSlop={ACTION_SLOP}>
-            <Type step="caption" className="text-text2" style={LINE_ACTION}>Reply</Type>
-          </Pressable>
-        ) : null}
-        {link ? (
-          <Pressable onPress={() => props.onOpenThread?.(c)} accessibilityRole="link" accessibilityLabel={`${link.replace(' ›', '')}. Open the replies`} hitSlop={ACTION_SLOP}>
-            <Type step="caption" className="text-hotText" style={LINE_ACTION}>{link}</Type>
-          </Pressable>
-        ) : null}
-        <Box className="flex-1" />
-        <Pressable onPress={() => props.onMenu(c)} accessibilityRole="button" accessibilityLabel="More for this comment" hitSlop={ACTION_SLOP}>
-          <Icon name="ellipsis-horizontal" size={COMMENTS.heart} color={colour.text2} />
-        </Pressable>
-      </Box>
-    </Box>
-  );
-  if (reply || !props.onOpenThread || shownReplies.length === 0) return card;
-  return (
-    <Box style={NODE}>
-      {card}
-      {shownReplies.map((r) => <CommentRow key={r.id} {...props} c={r} isReply />)}
+        </Box>
+      )}
     </Box>
   );
 }
-
-const CARD = { borderRadius: COMMENTS.cardRadius, padding: COMMENTS.cardPad, gap: COMMENTS.cardGap };
-const DASHED = { borderStyle: 'dashed' as const };
-const RING = { borderWidth: 1.5, borderColor: colour.hot };
-const BODY = { gap: COMMENTS.cardGap };
-const HEAD = { gap: 8 };
-const HEART = { gap: 5 };
-const PIN_ROW = { gap: 6 };
-const PIN_WORDS = { ...drawnType.trackPin, ...LINE_PIN };
-const HOST = { flexShrink: 0, minHeight: COMMENTS.hostTag.height, paddingHorizontal: COMMENTS.hostTag.pad, borderRadius: COMMENTS.hostTag.radius, overflow: 'hidden' as const, textAlignVertical: 'center' as const };
-const NODE = { gap: COMMENTS.nodeInner };
-const SLOP_MORE = { top: 12, bottom: 12, left: 8, right: 8 };

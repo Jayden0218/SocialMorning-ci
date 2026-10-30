@@ -491,29 +491,6 @@
     "status": "CAPTURE"
   },
   {
-    "name": "me--sign-out-dialog",
-    "area": "tabs",
-    "kind": "dialog",
-    "covers": [
-      "src/ui/me/SignOut.tsx::dialog::Sign out?"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "open": "/me"
-      },
-      {
-        "tap": "Sign out"
-      },
-      {
-        "see": "Sign out?"
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "The kit Dialog: \"Your downloads stay on this phone. Unsent comment drafts are cleared.\" with Stay signed in / Sign out."
-  },
-  {
     "name": "chat--screen",
     "area": "tabs",
     "kind": "screen",
@@ -647,7 +624,7 @@
     "area": "discover",
     "kind": "empty",
     "covers": [
-      "src/ui/search/SearchResults.tsx::empty::search",
+      "src/ui/search/SearchPage.tsx::empty::search",
       "packages/social-core/src/empty.ts::surface::search"
     ],
     "as": "listener",
@@ -699,42 +676,6 @@
     "status": "CAPTURE"
   },
   {
-    "name": "search--moments-error",
-    "area": "discover",
-    "kind": "error",
-    "covers": [
-      "src/ui/search/MomentResults.tsx::empty::search"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "fault": {
-          "path": "/v1/discover/moments",
-          "mode": "fail"
-        }
-      },
-      {
-        "open": "/search"
-      },
-      {
-        "type": "Search podcasts",
-        "text": "zzzqqqxx"
-      },
-      {
-        "key": "Enter"
-      },
-      {
-        "tap": "Moments"
-      },
-      {
-        "see": "Couldn't load this. Check the connection and try again."
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "The Moments tab reads the Moments feed list; when that call fails with nothing cached it draws the shared failed block with Retry. Clear the fault afterwards."
-  },
-  {
     "name": "categories--screen",
     "area": "discover",
     "kind": "screen",
@@ -778,8 +719,7 @@
     "area": "discover",
     "kind": "sheet",
     "covers": [
-      "app/category/[id].tsx::route::route",
-      "src/ui/discover/CategoryParts.tsx::sheet::#1"
+      "app/category/[id].tsx::route::route"
     ],
     "as": "listener",
     "steps": [
@@ -1520,8 +1460,8 @@
     "area": "toasts",
     "kind": "toast",
     "covers": [
-      "src/ui/discover/useDiscoverPage.ts::toast::Couldn't hide that — try again.",
-      "src/ui/discover/useDiscoverPage.ts::toast::Couldn't undo — try again in Settings."
+      "app/(tabs)/index.tsx::toast::Couldn't hide that — try again.",
+      "app/(tabs)/index.tsx::toast::Couldn't undo — try again in Settings."
     ],
     "as": "listener",
     "steps": [
@@ -1546,65 +1486,6 @@
     ],
     "design": "Toast-B",
     "status": "CAPTURE"
-  },
-  {
-    "name": "toast--moment-actions",
-    "area": "toasts",
-    "kind": "toast",
-    "covers": [
-      "src/ui/discover/useMomentActions.ts::toast::<dynamic>#1",
-      "src/ui/discover/useMomentActions.ts::toast::<dynamic>#2",
-      "src/ui/discover/useMomentActions.ts::toast::<dynamic>#3",
-      "src/ui/discover/useMomentActions.ts::toast::Not downloaded, and playing on mobile data is off. Use Wi-Fi, download it, or allow mobile data in Settings › More.",
-      "src/ui/discover/useMomentActions.ts::toast::Couldn't react just now — try again."
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "fault": {
-          "path": "/v1/social",
-          "mode": "fail"
-        }
-      },
-      {
-        "open": "/"
-      },
-      {
-        "tap": "Moments"
-      },
-      {
-        "tap": "React at 0:00"
-      },
-      {
-        "see": "Couldn't react just now — try again."
-      }
-    ],
-    "design": "Toast-B",
-    "status": "CAPTURE",
-    "note": "Triggered: \"Couldn't react just now — try again.\" (the reaction call fails). The three dynamic messages are the reasons a moment cannot play (episode missing from the phone, feed unreachable); the mobile-data message needs a cellular connection. Clear the fault afterwards. The Moments feed has the same actions as the old stage; the fault path and the tap labels follow MomentCard.tsx and may need the capture lane to adjust."
-  },
-  {
-    "name": "moments-feed--switch-dialog",
-    "area": "discover",
-    "kind": "dialog",
-    "covers": [
-      "src/ui/discover/MomentsFeed.tsx::dialog::Switch to this moment?"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "open": "/"
-      },
-      {
-        "tap": "Play from 0:00"
-      },
-      {
-        "see": "Switch to this moment?"
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "Needs something else playing first (play an episode, then tap Play from on a moment): \"Something else is playing. This moment will play instead.\""
   },
   {
     "note": "Triggered: \"Added to the queue.\" Others: Already in the queue., The queue is full (300)., Already downloaded., Downloading., Marked as played., Removed from Updates..., Starred..., Unstarred.",
@@ -1750,11 +1631,7 @@
       "src/ui/me/EpisodeExtras.tsx::toast::Added to ${p.title}.",
       "src/ui/me/EpisodeExtras.tsx::toast::Made ${p.title} and added the episode.",
       "src/ui/me/EpisodeExtras.tsx::toast::Saved the moment at ${mmss(at)}.",
-      "src/ui/me/EpisodeExtras.tsx::toast::Sign in to make playlists.",
-      "src/ui/episode/MorePanels.tsx::toast::<dynamic>#1",
-      "src/ui/episode/MorePanels.tsx::toast::Added to ${p.title}.",
-      "src/ui/episode/MorePanels.tsx::toast::Made ${p.title} and added the episode.",
-      "src/ui/episode/MorePanels.tsx::toast::Saved the moment at ${mmss(props.atMs)}."
+      "src/ui/me/EpisodeExtras.tsx::toast::Sign in to make playlists."
     ],
     "as": "listener",
     "steps": [

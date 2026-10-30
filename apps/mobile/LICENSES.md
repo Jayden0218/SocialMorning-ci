@@ -41,11 +41,8 @@ Checked with `npm view <pkg> license` on 2026-09-21 (constitution, Principle III
 | @legendapp/motion | 2.5.3 | MIT | M9 (Actionsheet animation) |
 | expo-splash-screen | 58.0.x | MIT | M9 iOS i5: the launch screen shows the icon; since 2026-09-29 the only one, held until the first page is drawn |
 | expo-font | 58.0.x | MIT | M17: loads the Editorial fonts at start-up (was only a transitive dependency of expo) |
-| ~~@expo-google-fonts/lora~~ | 0.4.2 | MIT (package) + OFL-1.1 (font files) | REMOVED 2026-10-28 (M31, constitution v4.0.0): the Editorial serif; nothing asks for it any more (Unbounded replaced it) |
-| ~~@expo-google-fonts/manrope~~ | 0.4.2 | MIT (package) + OFL-1.1 (font files) | REMOVED 2026-10-28 (M31, constitution v4.0.0): the Editorial sans; Geist replaced it |
-| @expo-google-fonts/unbounded | 0.4.1 | MIT (package) + OFL-1.1 (font files, © 2022 The Unbounded Project Authors) | M31: the Pulse display face; licence read in the package's LICENSE_FONT, 2026-10-27 |
-| @expo-google-fonts/geist | 0.4.2 | MIT (package) + OFL-1.1 (font files, © 2024 The Geist Project Authors) | M31: the Pulse body face; LICENSE_FONT read 2026-10-27 |
-| @expo-google-fonts/geist-mono | 0.4.3 | MIT (package) + OFL-1.1 (font files, © 2024 The Geist Project Authors) | M31: the Pulse numerals and timestamps; LICENSE_FONT read 2026-10-27 |
+| @expo-google-fonts/lora | 0.4.2 | MIT (package) + OFL-1.1 (font files, © 2011 The Lora Project Authors, Reserved Font Name "Lora" — used unmodified) | The Editorial display serif since 2026-10-04 (owner; replaced Fraunces); licence read in the package's LICENSE_FONT, 2026-10-04 |
+| @expo-google-fonts/manrope | 0.4.2 | MIT (package) + OFL-1.1 (font files, © 2018 The Manrope Project Authors) | M17: the Editorial body sans; licence read at github.com/google/fonts ofl/manrope/OFL.txt, 2026-10-03 |
 | react-native-svg | 15.15.5 | MIT | M9 (Icon, Badge) — native |
 | react-native-safe-area-context | 5.10.0 (^5.9.1) | MIT | M9 (direct; one copy, shared with expo-router) |
 | react-aria / react-stately | per @gluestack-ui/core | Apache-2.0 | M9 (transitive) |

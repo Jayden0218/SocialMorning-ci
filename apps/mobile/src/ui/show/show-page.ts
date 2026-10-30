@@ -26,13 +26,6 @@ export function subscriberLine(n: number | undefined): string | undefined {
   return `${compactNumber(n)} subscribers`;
 }
 
-/** The thumb zone's short form: "8.1k subs"; "New here" under 10 (M31 W3-A2, design-pulse2 `212 eps · 8.1k subs`). */
-export function subsShort(n: number | undefined): string | undefined {
-  if (n === undefined) return undefined;
-  if (n < NEW_HERE_BELOW) return 'New here';
-  return `${compactNumber(n)} subs`;
-}
-
 export function hostPicksOf<T extends { id: string }>(episodes: readonly T[], picks: readonly string[] | undefined): T[] {
   if (!picks || picks.length === 0) return [];
   const byId = new Map(episodes.map((e) => [e.id, e]));

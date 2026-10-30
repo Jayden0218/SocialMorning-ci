@@ -23,8 +23,6 @@ on:
     - cron: '17 * * * *'
   workflow_dispatch:
 
-permissions:
-  contents: read
 jobs:
   rebuild:
     runs-on: ubuntu-latest

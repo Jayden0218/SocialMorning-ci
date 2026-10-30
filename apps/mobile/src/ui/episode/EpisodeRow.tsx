@@ -8,7 +8,7 @@
  */
 import { Artwork } from '@/ui/kit/Artwork';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/kit/Text';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import type { EpisodeCard } from '@/social/api';
 import { mmss } from '@/ui/kit/format';
@@ -21,7 +21,7 @@ export function EpisodeRow(props: { card: EpisodeCard; line?: string; onPress: (
     <Pressable className="flex-row gap-row py-row border-b-hairline border-separator" onPress={props.onPress} {...(props.onLongPress ? { onLongPress: props.onLongPress, accessibilityHint: 'Long-press for more actions' } : {})} disabled={props.disabled} accessibilityRole="button" accessibilityLabel={props.label ?? `${card.title}, ${card.showTitle}`}>
       {/* M12 B5: through Artwork, so Next up gets the initial, the fade and the token radius. */}
       <Artwork url={card.imageUrl} size={56} name={card.showTitle} />
-      <Box className="flex-1 gap-hair">
+      <Box className="flex-1 gap-0.5">
         <Text className="text-body font-bold text-text" numberOfLines={3}>{card.title}</Text>
         <Text className="text-muted text-xs" numberOfLines={1}>{meta}</Text>
         {props.line ? <Text className="text-text text-body" numberOfLines={2}>{props.line}</Text> : null}

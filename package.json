@@ -2,9 +2,6 @@
   "name": "socialmorning",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": "22.x"
-  },
   "description": "A functional clone of 小宇宙 (Xiaoyuzhou FM): a podcast client whose reason to exist is the social layer over listening.",
   "workspaces": [
     "apps/*",
@@ -14,7 +11,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "postinstall": "if [ -x node_modules/.bin/patch-package ]; then patch-package; else echo 'postinstall: patch-package not installed (production install) — skipped'; fi",
-    "lint": "eslint ."
+    "check:health": "knip --include files,dependencies,devDependencies,unlisted,unresolved,binaries,duplicates --max-issues 90 --no-progress && depcruise apps packages --config .dependency-cruiser.cjs --ignore-known --output-type err && jscpd apps packages --silent --threshold 0.6 --format \"typescript,tsx,javascript,jsx\" --ignore \"**/*.test.ts,**/*.test.tsx,**/*.json,**/ios/**,**/android/**,**/node_modules/**,**/dist/**,**/*.d.ts,**/__mocks__/**,**/*.generated.*\" --min-tokens 70"
   },
   "overrides": {
     "react": "19.2.3",
@@ -25,19 +22,12 @@
     },
     "react-native-android-widget": {
       "expo": "58.0.0-preview.3"
-    },
-    "@vercel/cli-config": {
-      "zod": "4.6.7"
     }
   },
   "devDependencies": {
-    "@eslint/js": "9.39.5",
-    "eslint": "9.39.5",
-    "eslint-plugin-jsx-a11y": "6.10.2",
-    "eslint-plugin-react-hooks": "7.1.1",
-    "globals": "17.13.0",
-    "patch-package": "8.0.1",
-    "prettier": "3.9.10",
-    "typescript-eslint": "8.72.1"
+    "dependency-cruiser": "18.7.0",
+    "jscpd": "4.3.0",
+    "knip": "6.44.0",
+    "patch-package": "8.0.1"
   }
 }

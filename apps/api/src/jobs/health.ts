@@ -9,7 +9,6 @@ import type { Mailer } from '../mail/mailer.ts';
 import { health as healthKey, OUTBOX_SHARDS } from '../db/ddb/keys.ts';
 import { countAll } from '../db/ddb/paginate.ts';
 import { get, isoNow, queryPage, update, type Store } from '../db/ddb/store.ts';
-import { swallow } from '../log.ts';
 
 export const HEALTH_MAX_AGE_MS = 15 * 60_000;
 export const HEALTH_RUNBOOK = 'docs/runbooks/alarms.md#outbox-health';
@@ -58,7 +57,7 @@ export async function checkOutboxHealth(store: Store, deps: { mailer?: Mailer | 
       result.emailed = 1;
     } catch {
       // The email did not go: hand the transition back so the next run tries again.
-      await update(store, 'main', key, { update: 'SET #s = :from', condition: '#s = :s', names: { '#s': 'state' }, values: { ':from': current, ':s': want } }).catch(swallow('outbox_health_state_update_failed'));
+      await update(store, 'main', key, { update: 'SET #s = :from', condition: '#s = :s', names: { '#s': 'state' }, values: { ':from': current, ':s': want } }).catch(() => undefined);
       log('health: error mail');
       return { ...result, state: current };
     }

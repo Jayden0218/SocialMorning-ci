@@ -1,80 +1,84 @@
-// Shows you follow: starred shows first, then all shows, with sort and search.
+// Shows you follow: starred strip on top, then all shows with sort and search.
 /**
  * My subscriptions (M10): the shows you follow — the list the Library tab used to be,
  * opened from the Updates tab's "My subscriptions" button. Refreshes in the background;
  * a feed that fails keeps its cached copy and says so (Principle IV).
  *
- * M12 FR-081: a search box, three sorts, a Starred section on top, each show's newest episode, and a menu per row with Star / Unstar and
- * Unsubscribe. A star is stamped and synced (guards G-ST1, G-ST2).
+ * M12 FR-081: a search box, three sorts, a Starred section on top, 56 pt artwork, each
+ * show's newest episode, and a ⋮ per row with Star / Unstar and Unsubscribe. A star is
+ * stamped and synced (guards G-ST1, G-ST2).
  *
- * M21 US8 (FR-072): a "Default" sort (my own order, set on `/subscriptions/manage` and synced), a grid / list switch (the grid is 3 covers
- * a row) and Share — a link to my public list (`socialmorning://profile/<id>/subscriptions`).
+ * M17 (`Subscriptions-B`): the 32 pt serif title; starred shows become a sideways strip of
+ * white cards (artwork, serif name, newest episode, ⋮ on the artwork) under a serif "Starred";
+ * then "All shows", the three sorts as a pill track (inline, so the inventory keeps them here),
+ * the pill search box, and the rows split by hairlines. Same actions, same sheet, same names.
  *
- * M31 D-A (T031; design-pulse2 `listen.html#subscriptions--screen`, `--grid`, `--empty`, `--show-menu`, `toast--subscriptions`; layout pattern
- * Mosaic): a pushed page with the title bar low — "My subscriptions", "38 shows", the grid / list circle and the share circle (Share my list).
- * Above it, a row of chips: the four sorts (Default · Updated · A–Z · Added; each keeps its spoken "Sort: Recently updated"), the search
- * chip (opens the field), Manage order, and Share some shows (a fourth chip: the drawing's action map puts it on the share circle, which
- * already shares the list). The starred shows are 1 x 2 cover tiles under the edge label "Starred", the rest 2 x 1 tiles under "All shows"
- * (cover 56, title, "Updated 2d ago", ···). The grid is 3 columns of covers with a warn star on the starred ones. The ··· (or a long press)
- * opens the show menu: the show's head, Star / Unstar, Unsubscribe, a quiet Cancel. Not drawn, so gone: the hosts' faces on a row.
+ * M21 US8 (FR-072): a "Default" sort (my own order, set on `/subscriptions/manage` and synced),
+ * a grid / list switch (the grid is 3 covers a row), host faces on rows (from the show extras,
+ * first 20 shows), and Share — a link to my public list (`socialmorning://profile/<id>/subscriptions`).
  */
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Share, useWindowDimensions } from 'react-native';
 import { FlatList } from '@/ui/lib/flat-list';
 import { ScrollView } from '@/ui/lib/scroll-view';
+import { Pressable } from '@/ui/lib/pressable';
+import { Segmented } from '@/ui/kit/Segmented';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { refreshFeeds } from '@/feeds/refresh-service';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { PER_FEED_TIMEOUT_MS, refreshAll } from '@/feeds/refresh-all';
 import { visibleEpisodes } from '@/feeds/hidden';
 import { useSafety } from '@/safety/context';
 import { arrangeSubscriptions, SUB_SORTS, type SubRow, type SubSort } from '@/me/subscriptions';
 import { readOrder, syncOrder } from '@/me/subscription-order';
 import { useUs8Api } from '@/social/us8-api';
 import { useSocial } from '@/social/context';
+import { Avatar } from '@/ui/kit/Avatar';
+import { BarButton } from '@/ui/kit/TopBar';
+import { Artwork } from '@/ui/kit/Artwork';
 import { EmptyState } from '@/ui/kit/EmptyState';
-import { EndOfList } from '@/ui/kit/EndOfList';
-import { ActionSheet } from '@/ui/kit/ActionSheet';
-import { Chip } from '@/ui/kit/Chip';
-import { PanelRow } from '@/ui/kit/PanelRow';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
-import { Type } from '@/ui/kit/Type';
-import { ago } from '@/ui/kit/format';
-import { PanelGroup } from '@/ui/me/Panel';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
-import { DRAWN, PageEmpty, SearchField, emptyTop, LIST } from '@/ui/me/lists';
-import { Cover } from '@/ui/library/parts';
-import { GridTile, ShowTile, StarredTile } from '@/ui/library/ShowTiles';
-import { LIB_TYPE, SUBS } from '@/ui/library/measures';
+import { FilterBar } from '@/ui/me/FilterBar';
+import { EmptyPicture } from '@/ui/me/parts';
+import { SheetRow } from '@/ui/kit/SheetRow';
+import { Icon } from '@/ui/kit/Icon';
+import { shortDate } from '@/ui/kit/format';
 import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
-import { bars, spacing } from '@/design';
-import { plural } from '@socialmorning/social-core';
-import { columnWidth } from '@/ui/discover/Mosaic';
+import { useColours } from '@/ui/kit/useColours';
+import { hit, spacing } from '@/design';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { EndOfList } from '@/ui/kit/EndOfList';
 
-/** M24: one-line words for the four sorts (each is a chip). */
+const TAP = { minHeight: hit.min, minWidth: hit.min };
+/** M24: one-line words for the four sorts (each choice is a quarter of the width). */
 const SHORT_SORT: Partial<Record<SubSort, string>> = { updated: 'Updated', added: 'Added' };
+/** M17 (`Subscriptions-B`): a starred card is 220 pt wide; its artwork fills it inside 10 pt padding and the border. */
+const CARD = { width: 220 };
+const CARD_ART = 220 - 2 * 10 - 2;
+/** M21 US8: the grid's covers — three a row inside the screen padding. */
+const GRID_COLS = 3;
 const VIEW_KEY = 'subscriptions.view';
+type Host = { id: string; name: string; avatarUrl: string | null };
 type Row = SubRow & { imageUrl?: string; latestTitle?: string; stale: boolean };
 
 export default function SubscriptionsScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const router = useRouter();
   const toast = useToast();
   const sync = useSubscriptionSync();
   const { safety, hiddenFeeds } = useSafety();
   const [rows, setRows] = useState<Row[]>([]);
   const [term, setTerm] = useState('');
-  const [searching, setSearching] = useState(false);
   const [sort, setSort] = useState<SubSort>('default');
-  // M21 US8: my order (Default) and grid or list.
+  // M21 US8: my order (Default), grid or list, and the hosts of the first shows.
   const us8 = useUs8Api();
   const { api, listener } = useSocial();
   const [order, setOrder] = useState<string[]>(() => readOrder(stores.settings));
   const [grid, setGrid] = useState(() => stores.settings.get(VIEW_KEY) === 'grid');
+  const [hosts, setHosts] = useState<Record<string, Host[]>>({});
   const { width } = useWindowDimensions();
-  const col = columnWidth(width);
-  const gridSize = Math.floor((width - ME_MOSAIC.lane - ME_MOSAIC.right - (SUBS.grid.cols - 1) * SUBS.grid.gap) / SUBS.grid.cols);
+  const gridArt = Math.floor((width - 2 * spacing.screenX - (GRID_COLS - 1) * spacing.row) / GRID_COLS);
   const [menu, setMenu] = useState<Row | undefined>();
   const [staleSet, setStaleSet] = useState<Set<string>>(new Set());
 
@@ -94,16 +98,35 @@ export default function SubscriptionsScreen(): React.ReactElement {
   useFocusEffect(useCallback(() => {
     let live = true;
     setRows(read(staleSet));
-    void refreshFeeds(stores, { hiddenOf: api?.hiddenEpisodes }).then((r) => { if (!live) return; const s = new Set(r.stale); setStaleSet(s); setRows(read(s)); });
+    void refreshAll(stores, Date.now(), PER_FEED_TIMEOUT_MS, api?.hiddenEpisodes).then((r) => { if (!live) return; const s = new Set(r.stale); setStaleSet(s); setRows(read(s)); });
     setOrder(readOrder(stores.settings));
     if (listener) void syncOrder(stores.settings, us8).then((o) => { if (live) setOrder(o); });
     return () => { live = false; };
   }, [read, stores, listener, us8, api]));
+  const feedKey = rows.slice(0, 20).map((r) => r.feedUrl).join('\n');
+  useEffect(() => {
+    if (feedKey === '') return;
+    let live = true;
+    void Promise.all(feedKey.split('\n').map(async (f) => [f, (await api.showExtras(f).catch(() => undefined))?.hosts ?? []] as const))
+      .then((pairs) => { if (live) setHosts(Object.fromEntries(pairs)); });
+    return () => { live = false; };
+  }, [api, feedKey]);
   const toggleView = () => { const next = !grid; setGrid(next); stores.settings.set(VIEW_KEY, next ? 'grid' : 'list'); };
   const share = () => {
     if (!listener) { toast('Sign in to share your list.'); return; }
     const titles = rows.filter((r) => !safety.isHidden('show', r.feedUrl)).slice(0, 10).map((r) => `• ${r.title}`).join('\n');
     void Share.share({ message: `My podcasts on SocialMorning:\n${titles}\n\nsocialmorning://profile/${listener.listenerId}/subscriptions` }).catch(() => undefined);
+  };
+  /** Faces of a show's hosts, up to three, overlapping. Decoration: the row's label names the show. */
+  const faces = (feedUrl: string) => {
+    const h = hosts[feedUrl] ?? [];
+    if (h.length === 0) return null;
+    return (
+      <Box className="flex-row items-center mt-1" accessible={false}>
+        {h.slice(0, 3).map((x, i) => <Avatar key={x.id} url={x.avatarUrl} name={x.name} size={18} className={i > 0 ? '-ml-1.5' : ''} />)}
+        <Text className="text-muted text-xs ml-1.5" numberOfLines={1}>{`${h[0]!.name}${h.length > 1 ? ` +${h.length - 1}` : ''}`}</Text>
+      </Box>
+    );
   };
 
   const star = (r: Row) => {
@@ -121,117 +144,139 @@ export default function SubscriptionsScreen(): React.ReactElement {
   };
 
   const { starred, rest } = arrangeSubscriptions(rows, term, sort, order);
-  // The grid lays every show out three a line, the starred first: chunk them so the FlatList stays one column.
+  // The grid lays the rows out three a line: chunk them so the FlatList stays one column.
   const gridRows: Row[][] = [];
-  const all = [...starred, ...rest];
-  for (let i = 0; i < all.length; i += SUBS.grid.cols) gridRows.push(all.slice(i, i + SUBS.grid.cols));
+  for (let i = 0; i < rest.length; i += GRID_COLS) gridRows.push(rest.slice(i, i + GRID_COLS));
 
   /** The spoken and printed lines a show carries, wherever it is drawn. */
-  const linesOf = (item: Row): { extra: string; line: string; label: string; printed: string } => {
-    const extra = [item.stale ? 'offline copy' : undefined,
-      safety.isHidden('show', item.feedUrl) ? 'reported' : hiddenFeeds.has(item.feedUrl) ? 'hidden from discovery' : undefined].filter(Boolean).join(' · ');
-    const line = item.latestTitle ? `${item.latestAt !== undefined ? `${new Date(item.latestAt).toISOString().slice(0, 10)} · ` : ''}${item.latestTitle}` : 'No episodes yet';
-    const updated = item.latestAt !== undefined ? `Updated ${ago(item.latestAt, Date.now())}` : 'No episodes yet';
-    return { extra, line, label: `${item.title}${item.starred ? ', starred' : ''}. Newest: ${line}${extra ? `. ${extra}` : ''}`, printed: extra ? `${updated} · ${extra}` : updated };
-  };
-  const open = (item: Row) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } });
+  const linesOf = (item: Row): { extra: string; line: string } => ({
+    extra: [item.stale ? 'offline copy' : undefined,
+      safety.isHidden('show', item.feedUrl) ? 'reported' : hiddenFeeds.has(item.feedUrl) ? 'hidden from discovery' : undefined].filter(Boolean).join(' · '),
+    line: item.latestTitle ? `${item.latestAt !== undefined ? `${shortDate(item.latestAt)} · ` : ''}${item.latestTitle}` : 'No episodes yet',
+  });
 
-  // The chips above the title bar: sorts, search, Manage order, Share some shows. The field opens above them.
-  const chips = (
-    <Box className="gap-gap">
-      {searching ? <SearchField value={term} onChange={setTerm} placeholder="Search your shows" autoFocus /> : null}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: spacing.gap - 2 }}>
-        {SUB_SORTS.map((s) => <Chip key={s.key} label={SHORT_SORT[s.key] ?? s.label} accessibilityLabel={`Sort: ${s.label}`} chosen={sort === s.key} onPress={() => setSort(s.key)} />)}
-        <Chip label="" icon="search-outline" accessibilityLabel="Search your shows" chosen={searching || term !== ''} onPress={() => { if (searching) setTerm(''); setSearching(!searching); }} />
-        <Chip label="Manage order" onPress={() => router.push('/subscriptions/manage')} />
-        {/* M22 US17 item 5: pick some shows, give them a title, share one link. */}
-        <Chip label="Share some shows" onPress={() => router.push('/lists/new')} />
-      </ScrollView>
-    </Box>
-  );
-  const extraAbove = bars.chip + (searching ? spacing.gap + LIST.field : 0);
+  /** M17: a starred show is a 220 pt card in the strip on top — artwork, serif name, newest episode, ⋮ on the artwork. */
+  const starredCard = (item: Row) => {
+    const { extra, line } = linesOf(item);
+    return (
+      <Box key={item.feedUrl} className="bg-surface border border-border rounded-row p-2.5" style={CARD}>
+        <Pressable
+          onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })}
+          className="gap-1"
+          accessibilityRole="button"
+          accessibilityLabel={`${item.title}${item.starred ? ', starred' : ''}. Newest: ${line}${extra ? `. ${extra}` : ''}`}
+        >
+          <Artwork url={item.imageUrl} size={CARD_ART} name={item.title} />
+          <Text className="text-text text-title font-display mt-1.5" numberOfLines={1}>{item.title}</Text>
+          <Text className="text-muted text-xs" numberOfLines={2}>{line}</Text>
+          {extra ? <Text className="text-muted text-xs">{extra}</Text> : null}
+        </Pressable>
+        <Pressable onPress={() => setMenu(item)} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} className="absolute top-4 right-4 items-center justify-center rounded-pill bg-veil" style={TAP}>
+          <Icon name="ellipsis-vertical" size={20} color={c.text} />
+        </Pressable>
+      </Box>
+    );
+  };
 
   return (
     <>
-      <PushedPage
-        title="My subscriptions"
-        size={26}
-        {...(rows.length > 0 ? { subtitle: plural(rows.length, 'show') } : {})}
-        actions={[
-          { icon: grid ? 'list-outline' : 'grid-outline', label: grid ? 'Show as a list' : 'Show as a grid', onPress: toggleView },
-          { icon: 'share-outline', label: 'Share my list', onPress: share },
-        ]}
-        {...(rows.length > 0 ? { extra: chips, extraAbove } : {})}
-      >
-        {(layout) => {
-          const top = layout.top + (SUBS.top - DRAWN.status);
-          if (rows.length === 0) {
-            return <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}><Box style={{ marginTop: emptyTop(240) }}><EmptyState surface="library" page /></Box></Box>;
-          }
-          if (all.length === 0) {
-            return <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}><PageEmpty top={emptyTop(240)} title="No shows match" /></Box>;
-          }
-          const side = { marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right };
-          if (grid) {
+    <PageHeader
+      title="My subscriptions"
+      right={
+        <Box className="flex-row">
+          <BarButton label={grid ? 'Show as a list' : 'Show as a grid'} onPress={toggleView}><Icon name={grid ? 'list-outline' : 'grid-outline'} size={22} color={c.text} /></BarButton>
+          <BarButton label="Manage order" onPress={() => router.push('/subscriptions/manage')}><Icon name="swap-vertical-outline" size={22} color={c.text} /></BarButton>
+          <BarButton label="Share my list" onPress={share}><Icon name="share-outline" size={22} color={c.text} /></BarButton>
+          {/* M22 US17 item 5: pick some shows, give them a title, share one link. */}
+          <BarButton label="Share some shows" onPress={() => router.push('/lists/new')}><Icon name="albums-outline" size={22} color={c.text} /></BarButton>
+        </Box>
+      }
+    />
+    <Box className="flex-1 bg-background">
+      <FlatList<Row | Row[]>
+        data={grid ? gridRows : rest}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
+        key={grid ? 'grid' : 'list'}
+        keyExtractor={(r) => (Array.isArray(r) ? r.map((x) => x.feedUrl).join('|') : r.feedUrl)}
+        contentContainerClassName="px-screen-x pb-24 flex-grow"
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={rows.length === 0 ? undefined : (
+          <Box>
+            {starred.length > 0 ? (
+              <>
+                <Text className="text-text text-base font-display-semibold mb-2.5" accessibilityRole="header">Starred</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mr-screen-x" contentContainerClassName="gap-row pr-screen-x">
+                  {starred.map(starredCard)}
+                </ScrollView>
+                <Text className="text-text text-base font-display-semibold mt-5 mb-2" accessibilityRole="header">All shows</Text>
+              </>
+            ) : null}
+            {/* M24 US20 (`Subscriptions-B`): the kit's beige Segmented, same sorts, same handler. Its
+                choices are one line, so four sorts show a short word; the spoken name stays whole. */}
+            <Segmented className="mb-section" items={SUB_SORTS.map((s) => ({ value: s.key, label: SHORT_SORT[s.key] ?? s.label, accessibilityLabel: `Sort: ${s.label}` }))} value={sort} onChange={setSort} />
+            <FilterBar term={term} onTerm={setTerm} placeholder="Search your shows" />
+          </Box>
+        )}
+        ListEmptyComponent={rows.length === 0 ? <EmptyState surface="library" page /> : starred.length === 0 ? <EmptyPicture icon="search" line="No shows match" /> : undefined}
+        renderItem={({ item: it }) => {
+          if (Array.isArray(it)) {
+            // M21 US8: the grid — a cover and a name per show; long-press for the same sheet as ⋮.
             return (
-              <FlatList<Row[]>
-                data={gridRows}
-                key="grid"
-                keyExtractor={(r) => r.map((x) => x.feedUrl).join('|')}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingTop: top, paddingBottom: layout.reserve }}
-                ItemSeparatorComponent={() => <Box style={{ height: SUBS.grid.gap }} />}
-                ListFooterComponent={<EndOfList />}
-                renderItem={({ item: line }) => (
-                  <Box className="flex-row" style={{ ...side, gap: SUBS.grid.gap }}>
-                    {line.map((item) => <GridTile key={item.feedUrl} item={item} size={gridSize} label={`${item.title}${item.starred ? ', starred' : ''}. Long-press for more`} onOpen={() => open(item)} onMenu={() => setMenu(item)} />)}
-                  </Box>
-                )}
-              />
+              <Box className="flex-row gap-row mb-section">
+                {it.map((item) => (
+                  <Pressable key={item.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })} onLongPress={() => setMenu(item)}
+                    accessibilityRole="button" accessibilityLabel={`${item.title}${item.starred ? ', starred' : ''}. Long-press for more`} className="flex-1">
+                    <Artwork url={item.imageUrl} size={gridArt} name={item.title} />
+                    <Text className="text-text text-xs font-bold mt-1" numberOfLines={2}>{item.title}</Text>
+                  </Pressable>
+                ))}
+                {Array.from({ length: GRID_COLS - it.length }, (_, i) => <Box key={`pad${i}`} className="flex-1" />)}
+              </Box>
             );
           }
+          const item = it;
+          const { extra, line } = linesOf(item);
           return (
-            <FlatList<Row>
-              data={rest}
-              key="list"
-              keyExtractor={(r) => r.feedUrl}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingTop: top, paddingBottom: layout.reserve }}
-              ItemSeparatorComponent={() => <Box style={{ height: ME_MOSAIC.gap }} />}
-              ListHeaderComponent={starred.length > 0 ? (
-                <Box testID="starred-tiles" style={{ ...side, marginBottom: ME_MOSAIC.gap }}>
-                  <EdgeLabel label="Starred" top={10} left={-(ME_MOSAIC.lane - 6)} />
-                  <Box className="flex-row flex-wrap" style={{ gap: ME_MOSAIC.gap }}>
-                    {starred.map((item) => <StarredTile key={item.feedUrl} item={item} width={col} label={linesOf(item).label} onOpen={() => open(item)} onMenu={() => setMenu(item)} />)}
-                  </Box>
+            <Box className="flex-row items-center gap-2 py-2.5 border-b-hairline border-separator">
+              <Pressable
+                onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } })}
+                className="flex-row gap-row items-center flex-1"
+                accessibilityRole="button"
+                accessibilityLabel={`${item.title}${item.starred ? ', starred' : ''}. Newest: ${line}${extra ? `. ${extra}` : ''}`}
+              >
+                <Artwork url={item.imageUrl} size={56} name={item.title} />
+                <Box className="flex-1">
+                  <Text className="text-text text-sm font-bold" numberOfLines={1}>{item.title}</Text>
+                  <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{line}</Text>
+                  {extra ? <Text className="text-muted text-xs">{extra}</Text> : null}
+                  {faces(item.feedUrl)}
                 </Box>
-              ) : undefined}
-              ListFooterComponent={<EndOfList />}
-              renderItem={({ item, index }) => (
-                <Box style={side}>
-                  {index === 0 ? <EdgeLabel label="All shows" top={0} left={-(ME_MOSAIC.lane - 6)} /> : null}
-                  <ShowTile item={item} line={linesOf(item).printed} label={linesOf(item).label} onOpen={() => open(item)} onMenu={() => setMenu(item)} />
-                </Box>
-              )}
-            />
+              </Pressable>
+              <Pressable onPress={() => setMenu(item)} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} className="items-center justify-center" style={TAP}>
+                <Icon name="ellipsis-vertical" size={20} color={c.muted} />
+              </Pressable>
+            </Box>
           );
         }}
-      </PushedPage>
-      <ActionSheet open={menu !== undefined} onClose={() => setMenu(undefined)} label="Show menu">
-        {menu ? (
-          <>
-            <Box className="flex-row items-center" style={{ gap: spacing.row }}>
-              <Cover url={menu.imageUrl} name={menu.title} size={SUBS.menuCover} radius={SUBS.coverRadius} />
-              <Type step="lede" className="text-text font-bold flex-1" style={LIB_TYPE.menuTitle} numberOfLines={2}>{menu.title}</Type>
-            </Box>
-            <PanelGroup>
-              <PanelRow icon={menu.starred ? 'star' : 'star-outline'} label={menu.starred ? 'Unstar' : 'Star'} detail="Starred shows sit first" onPress={() => star(menu)} />
-              <PanelRow icon="ban-outline" label="Unsubscribe" onPress={() => unsubscribe(menu)} />
-            </PanelGroup>
-            <PulseButton label="Cancel" kind="quiet" onPress={() => setMenu(undefined)} full />
-          </>
-        ) : null}
-      </ActionSheet>
+      />
+      <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
+        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+        <ActionsheetContent className="px-screen-x pt-row items-stretch">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          {menu ? (
+            <>
+              <Text className="text-sm font-bold text-text py-row" numberOfLines={2}>{menu.title}</Text>
+              <SheetRow icon={menu.starred ? 'star' : 'star-outline'} label={menu.starred ? 'Unstar' : 'Star'} iconColour={c.accent} onPress={() => star(menu)} />
+              <SheetRow icon="remove-circle-outline" label="Unsubscribe" iconColour={c.muted} onPress={() => unsubscribe(menu)} />
+            </>
+          ) : null}
+          <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
+            <Text className="text-accent text-sm font-bold">Cancel</Text>
+          </Pressable>
+        </ActionsheetContent>
+      </Actionsheet>
+    </Box>
     </>
   );
 }

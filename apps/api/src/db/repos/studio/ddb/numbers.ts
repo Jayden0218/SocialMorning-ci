@@ -17,7 +17,6 @@
 import { completionRate, isComplete, type Range } from '@socialmorning/social-core';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
-import { queryDay } from '../../../ddb/day-index.ts';
 import { get, type Item, type Store } from '../../../ddb/store.ts';
 import { heatCurve } from '../../../../heat/ddb.ts';
 import { subscriptionItems } from '../../library/ddb/subscriptions.ts';
@@ -354,7 +353,7 @@ export async function sharesOnDays(store: Store, days: readonly string[]): Promi
   const from = days[0]; const to = days[days.length - 1];
   if (!from || !to) return [];
   for (const d of [addDays(from, -1), ...days, addDays(to, 1)]) {
-    const items = await queryDay(store, d, { condition: 'begins_with(E1SK, :p)', values: { ':p': 'st#' } });
+    const { items } = await queryAll(store, 'events', { IndexName: K.INDEX.E1, KeyConditionExpression: 'E1PK = :d AND begins_with(E1SK, :p)', ExpressionAttributeValues: { ':d': `DAY#${d}`, ':p': 'st#' } });
     for (const i of items) {
       if (!String(i['SK']).startsWith('S#')) continue;
       const kl = new Date(Date.parse(String(i['SK']).slice(2, 26)) + 8 * 3_600_000).toISOString().slice(0, 10);

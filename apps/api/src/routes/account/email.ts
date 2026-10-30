@@ -27,7 +27,6 @@ import { CODE_TTL_MS, MAX_ATTEMPTS, RESEND_AFTER_MS, codeHash, newCode } from '.
 import { HOUR_MS, limit, limitCodeRequest } from '../../auth/rate.ts';
 import { emailTaken } from '../../db/repos/admin/admin-accounts.ts';
 import { deleteEmailChange, pendingEmailChangeRows, saveEmailChange, switchEmail, takeEmailChangeTry } from '../../db/repos/account/email-change.ts';
-import { log } from '../../log.ts';
 
 export const EMAIL_CHANGES_PER_HOUR = 5;
 
@@ -110,7 +109,7 @@ emailChange.post('/confirm', requireAuth, json(z.object({ code: sixDigits, oldCo
       text: `Your SocialNet account now signs in with ${maskEmail(to)}.\n\nIf you did not do this, write to us${c.get('safety')?.appealsEmail ? ` at ${c.get('safety')!.appealsEmail}` : ''} right away.`,
     });
   } catch (e) {
-    log.error('email_change_notice_failed', { error: e });
+    console.error('email change notice failed', e instanceof Error ? e.message : String(e));
   }
   return c.json({ email: to, signedOut: switched.signedOut });
 });

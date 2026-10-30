@@ -11,15 +11,13 @@
  * the pager can show whole-width pages and be moved by buttons as well as by a swipe; the
  * search box gains the thin card border. Accessible names and handlers are unchanged.
  */
-import { compactCount, pluralCompact } from '@/ui/kit/format';
 import { useEffect, useRef, type ComponentRef } from 'react';
 import { useWindowDimensions, type View } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/kit/Text';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { bars, hit, radius, spacing } from '@/design';
-import { Type } from '@/ui/kit/Type';
+import { hit } from '@/design';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
@@ -28,8 +26,6 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { useSectionTitle } from '@/config/store'; // M25 A7: the admin may rename Discover's sections
 
 const TAP = { minHeight: hit.min, minWidth: hit.min };
-/** The play triangle sits 2 pt right of centre so it looks centred in its disc. */
-const PLAY_NUDGE = { paddingLeft: 2 };
 
 /**
  * A section's serif title with an optional "label →" link on the right. `size: 'page'` is the
@@ -45,7 +41,7 @@ export function SectionTitle(props: { title: string; action?: { label: string; o
           {title}
         </Text>
         {props.badge !== undefined ? (
-          <Box className="bg-primary rounded-pill px-gap py-hair"><Text className="text-onPrimary text-xs font-bold">{props.badge}</Text></Box>
+          <Box className="bg-primary rounded-pill px-2 py-0.5"><Text className="text-onPrimary text-xs font-bold">{props.badge}</Text></Box>
         ) : null}
       </Box>
       {props.action ? (
@@ -68,7 +64,7 @@ export function PlayButton(props: { title: string; onPress: () => void }): React
   const c = useColours(stores.settings);
   return (
     <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} className="items-center justify-center" style={TAP}>
-      <Box className="w-10 h-10 rounded-pill bg-playDisc items-center justify-center" style={PLAY_NUDGE}>
+      <Box className="w-10 h-10 rounded-pill bg-playDisc items-center justify-center pl-0.5">
         <Icon name="play" size={16} color={c.playGlyph} />
       </Box>
     </Pressable>
@@ -98,12 +94,12 @@ export function StatsLine(props: { stats: RowStats; className?: string }): React
   const c = useColours(stores.settings);
   const { listeners, comments } = props.stats;
   return (
-    <Box className={`flex-row items-center gap-hair ${props.className ?? ''}`} accessible accessibilityLabel={`${listeners} listened, ${comments} ${comments === 1 ? 'comment' : 'comments'}`}>
+    <Box className={`flex-row items-center gap-1 ${props.className ?? ''}`} accessible accessibilityLabel={`${listeners} listened, ${comments} ${comments === 1 ? 'comment' : 'comments'}`}>
       <Icon name="headset-outline" size={13} color={c.muted} />
-      <Text className="text-muted text-xs">{`${compactCount(listeners)} listened`}</Text>
+      <Text className="text-muted text-xs">{`${listeners} listened`}</Text>
       <Text className="text-muted text-xs">·</Text>
       <Icon name="chatbubble-outline" size={12} color={c.muted} />
-      <Text className="text-muted text-xs">{pluralCompact(comments, 'comment')}</Text>
+      <Text className="text-muted text-xs">{`${comments} ${comments === 1 ? 'comment' : 'comments'}`}</Text>
     </Box>
   );
 }
@@ -139,15 +135,15 @@ export function EpisodeLine(props: {
     : props.rankTone === 'accent'
     ? 'text-accent text-lg font-display w-8 text-center'
     : `${props.rank === 1 ? 'text-text' : 'text-muted'} text-display font-display w-9 text-center`;
-  const gap = 'gap-row';
+  const gap = dense ? 'gap-2.5' : 'gap-row';
   if (dense) {
     const meta = [card.showTitle, props.line].filter(Boolean).join(' · ');
     return (
-      <Box className={`flex-row items-center ${gap} py-gap ${props.divided ? 'border-t-hairline border-separator' : ''}`}>
+      <Box className={`flex-row items-center ${gap} py-1.5 ${props.divided ? 'border-t-hairline border-separator' : ''}`}>
         <Pressable onPress={props.onOpen} accessibilityRole="button" accessibilityLabel={props.label ?? `${card.title}, ${card.showTitle}`} className={`flex-row items-center ${gap} flex-1`} style={TAP}>
           {ranked ? <Text className={rankClass} numberOfLines={1} maxFontSizeMultiplier={1.3}>{props.rank}</Text> : null}
           <Artwork url={card.imageUrl} size={size} name={card.showTitle} />
-          <Box className="flex-1 gap-hair min-w-0">
+          <Box className="flex-1 gap-0.5 min-w-0">
             <Text className="text-text text-body font-bold" numberOfLines={1}>{card.title}</Text>
             <Text className="text-muted text-xs" numberOfLines={1}>{meta}</Text>
           </Box>
@@ -167,7 +163,7 @@ export function EpisodeLine(props: {
         {/* Owner, 2026-10-04: one line, so "10" is not stacked as 1 over 0. */}
         {ranked ? <Text className={rankClass} numberOfLines={1} maxFontSizeMultiplier={1.3}>{props.rank}</Text> : null}
         <Artwork url={card.imageUrl} size={size} name={card.showTitle} />
-        <Box className="flex-1 gap-hair">
+        <Box className="flex-1 gap-0.5">
           {!ranked ? <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text> : null}
           <Text className="text-text text-body font-bold" numberOfLines={2}>{card.title}</Text>
           {ranked && props.hideShow !== true ? <Text className="text-muted text-xs" numberOfLines={1}>{card.showTitle}</Text> : null}
@@ -219,16 +215,13 @@ export function Pager(props: { count: number; children: (index: number, width: n
 }
 
 /**
- * A search field that is a button: tapping it opens Search, where typing happens. Its middle
+ * A search box that is a button: tapping it opens Search, where typing happens. Its middle
  * shows what is trending (owner, 2026-09-27; `src/discover/trending.ts`); the icon on the
  * right scans a QR code.
- *
- * M31 T025 (design-pulse2 `discover--screen`, rule 4 "Search is low"): 48 tall, radius 18, the raise2
- * fill with a 1 px line, the search icon (20, text3), the hint in Geist 500 15 text3, the scan icon
- * (22) on the right; the words are the drawn "Trending: morning routines" (the hint alone had hidden what the line is). It sits in the bottom zone, just above the Moments | Discover switch.
  */
 export function SearchBar(props: { hint?: string; onPress: (fromY: number) => void; onScan?: () => void }): React.ReactElement {
-  const c = useColours();
+  const stores = useStores();
+  const c = useColours(stores.settings);
   // Owner, 2026-10-01: Search opens by moving this box to the top, so it needs to know
   // where the box is on the screen when tapped.
   const box = useRef<ComponentRef<typeof View>>(null);
@@ -237,19 +230,19 @@ export function SearchBar(props: { hint?: string; onPress: (fromY: number) => vo
     box.current.measureInWindow((_x, y) => props.onPress(y));
   };
   return (
-    <Box ref={box} collapsable={false} className="flex-row items-center bg-raise2 border border-line" style={{ height: bars.field, borderRadius: radius.input }}>
+    <Box ref={box} collapsable={false} className="mx-screen-x flex-row items-center bg-surface border border-border rounded-pill">
       <Pressable
         onPress={press}
         accessibilityRole="search"
         accessibilityLabel={props.hint ? `Search. Trending: ${props.hint}` : 'Search shows and episodes'}
-        className="flex-1 flex-row items-center"
-        style={{ minHeight: hit.min, paddingLeft: spacing.row + 2, gap: spacing.row - 2 }}
+        className="flex-1 flex-row items-center gap-2 pl-section pr-row"
+        style={TAP}
       >
-        <Icon name="search-outline" size={20} color={c.text3} />
-        <Type step="row" className="text-text3 flex-1 font-medium" numberOfLines={1}>{props.hint ? `Trending: ${props.hint}` : 'Search shows and episodes'}</Type>
+        <Icon name="search-outline" size={18} color={c.muted} />
+        <Text className="text-muted text-body flex-1 text-center" numberOfLines={1}>{props.hint ?? 'Search shows and episodes'}</Text>
       </Pressable>
       {props.onScan ? (
-        <Pressable onPress={props.onScan} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center" style={{ minHeight: hit.min, minWidth: hit.min }}>
+        <Pressable onPress={props.onScan} accessibilityRole="button" accessibilityLabel="Scan a QR code" className="items-center justify-center pr-row" style={TAP}>
           <Icon name="scan-outline" size={22} color={c.text} />
         </Pressable>
       ) : null}

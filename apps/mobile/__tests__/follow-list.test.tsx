@@ -18,9 +18,8 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockFollowers: () => Promise<{ listeners: { id: string; displayName: string | null }[]; next?: string }> = () => Promise.resolve({ listeners: [] });
 jest.mock('expo-router', () => ({ router: { push: jest.fn() }, Link: ({ children }: { children: React.ReactNode }) => children }));
-jest.mock('@/design/tailwind', () => ({ ...jest.requireActual('@/design/tailwind'), Link: ({ children }: { children: React.ReactNode }) => children }));
-jest.mock('@/ui/shell/toastPlacement', () => ({ useToastPlacement: () => ({ tabs: false, now: false, player: false }) }));
-jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }), useToast: () => jest.fn() }));
+jest.mock('@/design/tailwind', () => ({ Link: ({ children }: { children: React.ReactNode }) => children }));
+jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null }));
 // One api object for every render, as the real context gives: a new object per render re-ran the
 // page's load effect forever (gate 36950442286 ran out of memory here).
 const mockApi = { followers: () => mockFollowers(), following: () => mockFollowers() };
@@ -28,6 +27,7 @@ jest.mock('@/social/context', () => ({
   useSocial: () => ({ api: mockApi, listener: { listenerId: 'me' } }),
 }));
 jest.mock('@/safety/context', () => ({ useSafety: () => ({ listeners: (l: unknown[]) => l }) }));
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
 
 import { FollowList, followEmptyLine } from '@/ui/social/FollowList';
 

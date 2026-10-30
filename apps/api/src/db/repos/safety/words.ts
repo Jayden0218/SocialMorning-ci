@@ -9,7 +9,6 @@ import { findBlockedWord } from '@socialmorning/social-core';
 import type { Db } from '../../db.ts';
 import { ApiError } from '../../../errors.ts';
 import { viaStore } from '../../backend.ts';
-import { log } from '../../../log.ts';
 
 const MEMO_MS = 30_000;
 const memo = new WeakMap<Db, { at: number; words: string[] }>();
@@ -23,7 +22,7 @@ export async function blockedWords(db: Db): Promise<string[]> {
   if (hit && Date.now() - hit.at < MEMO_MS) return hit.words;
   // A read that fails checks nothing rather than refusing every write.
   const words = await wordRows(db)
-    .catch((e: unknown) => { log.warn('words_read_failed', { error: e }); return [] as string[]; });
+    .catch((e: unknown) => { console.warn('[words] read failed', e instanceof Error ? e.message : e); return [] as string[]; });
   memo.set(db, { at: Date.now(), words });
   return words;
 }

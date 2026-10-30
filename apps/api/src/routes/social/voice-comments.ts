@@ -14,7 +14,6 @@ import { postVoiceCommentInTx, recentCommentRows } from '../../db/repos/social/c
 import { isBlockedBy } from '../../db/repos/safety/blocks.ts';
 import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
 import { requireOpenForVoice } from '../../db/repos/studio/comment-policy.ts';
-import { log } from '../../log.ts';
 
 /**
  * M19 US6 (constitution v3.1.0) — mounted at /v1/episodes: POST /:id/comments/voice. The body is
@@ -81,7 +80,7 @@ voiceComments.post('/:id/comments/voice', requireAuth, async (c) => {
   try {
     stored = await storage.put(path, bytes, type);
   } catch (e) {
-    log.error('voice_comment_put_failed', { requestId: c.get('requestId'), error: e });
+    console.error(c.get('requestId'), 'voice comment put', e);
     throw new ApiError('unavailable', "Couldn't save the recording. Try again.");
   }
   const ms = Math.min(VOICE_MAX_MS, Math.max(1, measured));

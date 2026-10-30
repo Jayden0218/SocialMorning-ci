@@ -9,29 +9,17 @@
  * M22 US14 (FR-042): "Gift this series" buys the same price level as a gift (`gift_tier_n`); the
  * server verifies it with Google and answers a link, which opens the share sheet. Android only, like
  * every purchase here (the server cannot verify an Apple purchase); claiming works on both phones.
- *
- * M31 W3-A (T040; design-pulse2 `show--paid-episodes-and-tips`, "About view tile → its sheet"): on the show page this is one Panel tile,
- * "Support {show}", that opens a sheet titled the same: the cap "PAID EPISODES" and a Deck of 220 wide cards (cover 90 with a lock
- * until bought; the title in Geist 600 13; "Preview" (quiet) where the creator set one, "Play" (light) once bought), "Buy all paid
- * episodes · price" (light), "Gift this series · price" (quiet), the cap "TIP THE HOST", three tip chips and the line "Through Google Play.
- * The show stays free for everyone." Names, handlers and toasts are the old ones. A price per card is not in the app's data (one price for
- * the series), so a card has no price button. NOT VERIFIED on a phone (Google Play billing only).
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Share } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { ActionSheet } from '@/ui/kit/ActionSheet';
-import { Artwork } from '@/ui/kit/Artwork';
+import { Button } from '@/ui/kit/Button';
 import { Icon } from '@/ui/kit/Icon';
-import { PanelRow } from '@/ui/kit/PanelRow';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { Type } from '@/ui/kit/Type';
-import { PanelGroup } from '@/ui/me/Panel';
-import { Cap } from '@/ui/player/Cap';
-import { bars, colour, hit } from '@/design';
+import { hit } from '@/design';
 import { mmss } from '@/ui/kit/format';
+import { useColours } from '@/ui/kit/useColours';
 import { usePlayer } from '@/playback/store';
 import { startPreview } from '@/playback/preview';
 import { useStores, useToast } from '@/ui/shell/providers';
@@ -41,19 +29,17 @@ import { usePurchaseApi, type PaidList } from '@/billing/purchase-api';
 import { usePlayStore } from '@/billing/play';
 import { giftProductFor, TIP_LABELS, TIPS } from '@/billing/products';
 import { fnv1a64 } from '@socialmorning/social-core';
-import { EPISODE } from '@/ui/episode/measures';
 
-/** The deck's card: 220 wide, radius 20, the cover 90 tall; its buttons 36 tall. */
-const CARD = { width: 220, radius: 20, cover: 90, button: bars.chip } as const;
+const TAP = { minHeight: hit.min };
 
 export function ShowSales(props: { feedUrl: string; showTitle: string; artworkUrl?: string; tipsEnabled: boolean }): React.ReactElement | null {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const toast = useToast();
   const player = usePlayer();
   const api = usePurchaseApi();
   const play = usePlayStore(api, { serverReady: readStoreReady(stores.settings), teen: getPref(stores.settings, 'hideExplicit') });
   const [paid, setPaid] = useState<PaidList | undefined>(undefined);
-  const [open, setOpen] = useState(false);
   const load = useCallback(() => { api.paid(props.feedUrl).then(setPaid, () => setPaid(undefined)); }, [api, props.feedUrl]);
   useEffect(() => { if (play.ready) load(); }, [play.ready, load, play.granted]);
   useEffect(() => { if (play.error) toast(play.error); }, [play.error, toast]);
@@ -83,69 +69,52 @@ export function ShowSales(props: { feedUrl: string; showTitle: string; artworkUr
     }
   };
   const showPrice = paid?.productId ? play.price(paid.productId) : undefined;
-  const forSale = paid?.forSale === true && paid.items.length > 0;
-  if (!forSale && !props.tipsEnabled) return null;
-  const detail = [forSale ? 'Paid episodes' : '', props.tipsEnabled ? 'Tip the host' : ''].filter((x) => x !== '').join(' · ');
   return (
-    <>
-      <PanelGroup>
-        <PanelRow icon="lock-closed-outline" label={`Support ${props.showTitle}`} detail={detail} onPress={() => setOpen(true)} />
-      </PanelGroup>
-      <ActionSheet open={open} onClose={() => setOpen(false)} label={`Support ${props.showTitle}`} title={`Support ${props.showTitle}`}>
-        {paid && forSale ? (
-          <>
-            <Cap accessibilityRole="header">{paid.bought ? 'Paid episodes — yours' : 'Paid episodes'}</Cap>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="-mr-screen-x" contentContainerStyle={{ gap: EPISODE.tileGap, paddingRight: EPISODE.side }}>
-              {paid.items.map((it) => (
-                <Pressable key={it.id} disabled={!paid.bought} onPress={() => void listen(it)} accessibilityRole="button"
-                  accessibilityLabel={paid.bought ? `Play ${it.title}` : `${it.title}, paid episode`} className="bg-raise2 overflow-hidden" style={{ width: CARD.width, borderRadius: CARD.radius }}>
-                  <Box className="overflow-hidden bg-raise" style={{ height: CARD.cover }} accessible={false} importantForAccessibility="no-hide-descendants">
-                    <Box style={{ marginTop: -(CARD.width - CARD.cover) / 2 }}><Artwork url={it.coverUrl ?? props.artworkUrl ?? null} size={CARD.width} name={props.showTitle} /></Box>
-                    {paid.bought ? null : <Box className="absolute" style={{ left: EPISODE.tileGap, top: EPISODE.tileGap }}><Icon name="lock-closed-outline" size={18} color={colour.text} /></Box>}
-                  </Box>
-                  <Box className="p-row gap-gap">
-                    <Type step="caption" className="text-text font-semibold" numberOfLines={2}>{it.title}</Type>
-                    {it.durationMs ? <Type step="tag" className="text-text3">{mmss(it.durationMs)}</Type> : null}
-                    {paid.bought ? (
-                      <Box className="flex-row items-center justify-center bg-text rounded-pill gap-hair" style={{ height: CARD.button }} accessible={false} importantForAccessibility="no-hide-descendants">
-                        <Icon name="play" size={12} color={colour.void} />
-                        <Type step="caption" className="text-void font-semibold">Play</Type>
-                      </Box>
-                    ) : it.preview ? (
-                      <Pressable onPress={() => void tryPreview(it)} accessibilityRole="button" accessibilityLabel={`Play the free preview of ${it.title}`} className="items-center justify-center bg-raise rounded-pill" style={{ height: CARD.button, minWidth: hit.min }} hitSlop={(hit.min - CARD.button) / 2}>
-                        <Type step="caption" className="text-text font-semibold">Preview</Type>
-                      </Pressable>
-                    ) : null}
-                  </Box>
+    <Box className="gap-row">
+      {paid?.forSale && paid.items.length > 0 ? (
+        <Box className="bg-surface border border-border rounded-row px-section py-row gap-row">
+          <Box className="flex-row items-center gap-gap">
+            <Icon name="lock-closed-outline" size={18} color={c.accent} />
+            <Text className="flex-1 text-text text-body font-bold">{paid.bought ? 'Paid episodes — yours' : 'Paid episodes'}</Text>
+          </Box>
+          {paid.items.map((it) => (
+            <Pressable key={it.id} disabled={!paid.bought} onPress={() => void listen(it)} accessibilityRole="button"
+              accessibilityLabel={paid.bought ? `Play ${it.title}` : `${it.title}, paid episode`} className="flex-row items-center gap-gap" style={TAP}>
+              <Icon name={paid.bought ? 'play-circle-outline' : 'lock-closed-outline'} size={22} color={paid.bought ? c.accent : c.muted} />
+              <Text className="flex-1 text-text text-sm" numberOfLines={2}>{it.title}</Text>
+              {it.durationMs ? <Text className="text-muted text-xs">{mmss(it.durationMs)}</Text> : null}
+              {!paid.bought && it.preview ? (
+                <Pressable onPress={() => void tryPreview(it)} accessibilityRole="button" accessibilityLabel={`Play the free preview of ${it.title}`} className="justify-center px-row" style={TAP}>
+                  <Text className="text-accent text-xs font-bold">Preview</Text>
                 </Pressable>
-              ))}
-            </ScrollView>
-            {!paid.bought && paid.productId ? (
-              <PulseButton kind="light" full label={showPrice ? `Buy all paid episodes · ${showPrice}` : 'Buy all paid episodes'} onPress={() => void play.buy(paid.productId!, { feedUrl: props.feedUrl, ...(paid.profileId ? { profileId: paid.profileId } : {}) })} />
-            ) : null}
-            {paid.productId && giftProductFor(paid.productId) ? (
-              <PulseButton kind="quiet" full icon="gift-outline" label={play.price(giftProductFor(paid.productId)!) ? `Gift this series · ${play.price(giftProductFor(paid.productId)!)}` : 'Gift this series'}
-                accessibilityLabel="Gift this series to someone"
-                onPress={() => void play.buy(giftProductFor(paid.productId!)!, { feedUrl: props.feedUrl, ...(paid.profileId ? { profileId: paid.profileId } : {}) })} />
-            ) : null}
-            {giftUrl ? <Type step="caption" className="text-text2">{`Gift link: ${giftUrl}`}</Type> : null}
-          </>
-        ) : null}
-        {props.tipsEnabled ? (
-          <>
-            <Cap accessibilityRole="header">Tip the host</Cap>
-            <Box className="flex-row gap-gap">
-              {TIPS.map((id) => (
-                <Pressable key={id} onPress={() => void play.buy(id, { feedUrl: props.feedUrl, profileId: fnv1a64(props.feedUrl) })} accessibilityRole="button"
-                  accessibilityLabel={`${TIP_LABELS[id]}${play.price(id) ? `, ${play.price(id)}` : ''}`} className="flex-1 items-center justify-center rounded-pill border border-line bg-raise" style={{ height: bars.chip }} hitSlop={(hit.min - bars.chip) / 2}>
-                  <Type step="chip" className="text-text" numberOfLines={1}>{play.price(id) ? `${TIP_LABELS[id]} · ${play.price(id)}` : TIP_LABELS[id]}</Type>
-                </Pressable>
-              ))}
-            </Box>
-            <Type step="chip" className="text-text3 font-medium">Through Google Play. The show stays free for everyone.</Type>
-          </>
-        ) : null}
-      </ActionSheet>
-    </>
+              ) : null}
+            </Pressable>
+          ))}
+          {!paid.bought && paid.productId ? (
+            <Button label={showPrice ? `Buy all paid episodes · ${showPrice}` : 'Buy all paid episodes'} onPress={() => void play.buy(paid.productId!, { feedUrl: props.feedUrl, ...(paid.profileId ? { profileId: paid.profileId } : {}) })} />
+          ) : null}
+          {paid.productId && giftProductFor(paid.productId) ? (
+            <Button kind="secondary" label={play.price(giftProductFor(paid.productId)!) ? `Gift this series · ${play.price(giftProductFor(paid.productId)!)}` : 'Gift this series'}
+              accessibilityLabel="Gift this series to someone"
+              onPress={() => void play.buy(giftProductFor(paid.productId!)!, { feedUrl: props.feedUrl, ...(paid.profileId ? { profileId: paid.profileId } : {}) })} />
+          ) : null}
+          {giftUrl ? <Text className="text-muted text-xs">{`Gift link: ${giftUrl}`}</Text> : null}
+        </Box>
+      ) : null}
+      {props.tipsEnabled ? (
+        <Box className="bg-surface border border-border rounded-row px-section py-row gap-row">
+          <Text className="text-text text-body font-bold">Tip the host</Text>
+          <Text className="text-muted text-xs">Through Google Play. The show stays free for everyone.</Text>
+          <Box className="flex-row flex-wrap gap-gap">
+            {TIPS.map((id) => (
+              <Pressable key={id} onPress={() => void play.buy(id, { feedUrl: props.feedUrl, profileId: fnv1a64(props.feedUrl) })} accessibilityRole="button"
+                accessibilityLabel={`${TIP_LABELS[id]}${play.price(id) ? `, ${play.price(id)}` : ''}`} className="justify-center px-section rounded-pill border border-border bg-background" style={TAP}>
+                <Text className="text-text text-sm font-bold">{play.price(id) ? `${TIP_LABELS[id]} · ${play.price(id)}` : TIP_LABELS[id]}</Text>
+              </Pressable>
+            ))}
+          </Box>
+        </Box>
+      ) : null}
+    </Box>
   );
 }

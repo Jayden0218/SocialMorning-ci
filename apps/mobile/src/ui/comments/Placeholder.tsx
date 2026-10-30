@@ -1,6 +1,6 @@
 // Short text shown instead of a deleted, removed, blocked or reported comment.
-/** M6: the four placeholders a comment or clip can become — the same shape, one word each. M31 W2-B: Caption in text3, italic. */
-import { Type } from '@/ui/kit/Type';
+/** M6: the four placeholders a comment or clip can become — the same shape, one word each. */
+import { Text } from '@/ui/lib/text';
 import type { Comment } from '@/social/api';
 
 export type PlaceholderKind = 'deleted' | 'removed' | 'removed_mine' | 'blocked' | 'reported' | 'hidden_by_host';
@@ -26,5 +26,5 @@ export function placeholderFor(c: Pick<Comment, 'deleted' | 'removed' | 'blocked
 }
 
 export function Placeholder(props: { kind: PlaceholderKind; className?: string }): React.ReactElement {
-  return <Type step="caption" className={`text-text3 italic ${props.className ?? ''}`} accessibilityRole="text">{PLACEHOLDER_TEXT[props.kind]}</Type>;
+  return <Text className={`text-muted text-[13px] italic ${props.className ?? ''}`} accessibilityRole="text">{PLACEHOLDER_TEXT[props.kind]}</Text>;
 }

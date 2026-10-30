@@ -54,15 +54,6 @@ export function createFeed(deps: FeedDeps) {
       const raw = deps.settings.get(FEED_LAST_OPENED_KEY);
       return unreadCount(items.map((i) => ({ createdAt: Date.parse(i.createdAt) })), raw === undefined ? undefined : Number(raw));
     },
-    /** When the screen was last opened (undefined: never). Read before `markOpened`, so a visit can count what was new when it began. */
-    lastOpened(): number | undefined {
-      const raw = deps.settings.get(FEED_LAST_OPENED_KEY);
-      return raw === undefined ? undefined : Number(raw);
-    },
-    /** The items newer than `since` (undefined: all of them): the count a visit shows, from items that arrive after it began. */
-    unreadSince(items: readonly FeedItem[], since: number | undefined): number {
-      return unreadCount(items.map((i) => ({ createdAt: Date.parse(i.createdAt) })), since);
-    },
     markOpened(): void { deps.settings.set(FEED_LAST_OPENED_KEY, String(deps.now())); },
   };
 }

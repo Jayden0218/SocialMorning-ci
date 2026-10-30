@@ -21,11 +21,6 @@
  *     the listener types the right words; it reaches the show's host in the Studio.
  *     Without `onReport` a long-press starts picking at once, as before.
  *
- * M31 T024 (design-pulse2 `player--transcript-pane`, "Layout: Thread"): each line hangs from a time
- * spine (2 wide, hot → violet → line) with its timestamp chip; the live line is a solid hot chip and
- * 18/26 semibold text, the others 16/24 in text3; "Back to now" is a light pill (40). Same names,
- * handlers and picking as before; the pills of the menus and bars are the kit's quiet / light / hot.
- *
  * M22 US9 (FR-028, FR-029): with `selectable` (the full transcript page only) a long-press starts
  * a selection and taps move its nearer end, so it is always one unbroken run of lines
  * (`extendRange`, src/graph/transcript-select). The bar offers Clip (`onClip`; disabled with the
@@ -37,24 +32,16 @@ import { currentLine, type Transcript, type TranscriptLine } from '@socialmornin
 import { plural } from '@socialmorning/social-core';
 import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { LinearGradient } from '@/design/tailwind';
-import { TimestampChip } from '@/ui/kit/TimestampChip';
-import { Type } from '@/ui/kit/Type';
 import { mmss } from '@/ui/kit/format';
-import { colour, hit } from '@/design';
+import { hit, tabular } from '@/design';
 import { pickableLines, QUOTE_CARD_MAX, quoteOf, toggleLine, type Quote } from '@/graph/quote';
 import { clipCheck, extendRange, rangeLines, type LineRange } from '@/graph/transcript-select';
-import { drawnType } from '@/design/type-px';
 
-const BOX = 'w-full max-h-[260px]';
+const BOX = 'w-full max-h-[260px] border-hairline border-separator rounded-lg p-2';
 const BOX_FILL = 'w-full flex-1';
 const TAP = { minHeight: hit.min };
-/** The spine runs down the middle of the chips' column (46 wide). */
-const SPINE = { left: 22, width: 2, top: 0, bottom: 0 };
-const SPINE_COLOURS = [colour.hot, colour.violet, colour.line] as const;
-/** The quiet pill the menus and bars use. */
-const QUIET = 'px-section justify-center rounded-pill bg-raise';
 
 /** The line playing now and the one after it; `undefined` before the first line. */
 export function nowAndNext(lines: readonly TranscriptLine[], positionMs: number): { now?: TranscriptLine; next?: TranscriptLine } {
@@ -109,19 +96,16 @@ export function TranscriptPane(props: {
   if (!timed && !props.onShareImage && !props.onReport && !props.selectable) {
     return (
       <ScrollView className={box} nestedScrollEnabled>
-        <Type step="body" className="text-text2">{'text' in props.transcript ? props.transcript.text : ''}</Type>
+        <Text className="text-[14px] leading-[20px] text-text">{'text' in props.transcript ? props.transcript.text : ''}</Text>
       </ScrollView>
     );
   }
   return (
-    <Box className={props.fill ? 'w-full flex-1 gap-gap' : 'w-full gap-gap'}>
+    <Box className={props.fill ? 'w-full flex-1 gap-2' : 'w-full gap-2'}>
       <ScrollView ref={scroller} className={box} nestedScrollEnabled onScrollBeginDrag={() => { if (timed) setAway(true); }}>
-        <Box className="gap-row">
-          {/* The spine: one line behind all the chips. */}
-          {timed ? <LinearGradient colors={SPINE_COLOURS} className="absolute" style={SPINE} pointerEvents="none" accessible={false} /> : null}
+        <Box className="gap-1">
           {lines.map((l, i) => {
             const on = chosen?.includes(i) === true;
-            const live = i === current;
             return (
               <Pressable key={`${l.startMs}-${i}`} testID={`transcript-line-${i}`}
                 onLayout={(e) => { offsets.current[i] = e.nativeEvent.layout.y; }}
@@ -130,34 +114,34 @@ export function TranscriptPane(props: {
                 accessibilityRole="button"
                 accessibilityState={picking ? { selected: on } : undefined}
                 accessibilityHint={selecting ? 'Extends or shrinks the selected lines to here' : picking ? 'Adds or removes this line' : props.selectable ? 'Long-press to select lines' : props.onReport && timed ? 'Long-press to share or report this line' : props.onShareImage ? 'Long-press to pick lines to share' : undefined}
-                className={`flex-row items-start gap-row rounded-small ${on || menu === i ? 'bg-hotSoft' : ''}`} style={{ minHeight: 24 }}>
-                {timed ? <Box className="items-start" style={{ width: 46 }}><TimestampChip text={mmss(l.startMs)} solid={live || on} /></Box> : null}
-                <Type step="body" className={`flex-1 ${live || on ? 'text-text font-semibold' : 'text-text3'}`} style={live || on ? drawnType.transcriptLive : drawnType.transcript}>
-                  {l.speaker ? <Type step="body" className="text-text2 font-semibold">{l.speaker}: </Type> : null}{l.text}
-                </Type>
+                className={`flex-row gap-2 py-[3px] px-1 rounded-sm ${on || menu === i ? 'bg-accentTint' : i === current ? 'bg-surface' : ''}`}>
+                {timed ? <Text className="text-muted w-[52px] text-xs pt-0.5" style={tabular}>{mmss(l.startMs)}</Text> : null}
+                <Text className={`text-[14px] leading-[20px] text-text flex-1 ${i === current || on ? 'font-semibold' : ''}`}>
+                  {l.speaker ? <Text className="text-muted font-semibold">{l.speaker}: </Text> : null}{l.text}
+                </Text>
               </Pressable>
             );
           })}
         </Box>
       </ScrollView>
       {away && !picking && current !== undefined ? (
-        <Pressable onPress={() => { setAway(false); followNow(true); }} accessibilityRole="button" accessibilityLabel="Back to now" className="self-start flex-row items-center gap-hair px-section rounded-pill bg-text justify-center" style={{ height: 40 }}>
-          <Type step="row" className="text-void">Back to now</Type>
+        <Pressable onPress={() => { setAway(false); followNow(true); }} accessibilityRole="button" accessibilityLabel="Back to now" className="self-center flex-row items-center gap-1 px-section rounded-pill bg-primary justify-center" style={TAP}>
+          <Text className="text-sm font-bold text-onPrimary">Back to now</Text>
         </Pressable>
       ) : null}
       {menu !== undefined && !picking ? (
-        <Box className="flex-row items-center gap-gap flex-wrap">
-          <Type step="caption" className="flex-1 text-text3" numberOfLines={1}>{timed ? `Line at ${mmss(lines[menu]?.startMs ?? 0)}` : 'This paragraph'}</Type>
-          <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="px-section justify-center rounded-pill bg-raise" style={TAP}>
-            <Type step="row" className="text-text">Cancel</Type>
+        <Box className="flex-row items-center gap-2 flex-wrap">
+          <Text className="flex-1 text-xs text-muted" numberOfLines={1}>{timed ? `Line at ${mmss(lines[menu]?.startMs ?? 0)}` : 'This paragraph'}</Text>
+          <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" accessibilityLabel="Cancel" className="px-section justify-center rounded-pill border border-border" style={TAP}>
+            <Text className="text-sm font-semibold text-text">Cancel</Text>
           </Pressable>
           {props.onShareImage ? (
-            <Pressable onPress={() => { setPicked([menu]); setMenu(undefined); }} accessibilityRole="button" accessibilityLabel="Share lines" className="px-section justify-center rounded-pill bg-raise" style={TAP}>
-              <Type step="row" className="text-text">Share lines</Type>
+            <Pressable onPress={() => { setPicked([menu]); setMenu(undefined); }} accessibilityRole="button" accessibilityLabel="Share lines" className="px-section justify-center rounded-pill border border-border" style={TAP}>
+              <Text className="text-sm font-semibold text-text">Share lines</Text>
             </Pressable>
           ) : null}
-          <Pressable onPress={() => { const l = lines[menu]; setMenu(undefined); if (l) props.onReport?.(l); }} accessibilityRole="button" accessibilityLabel="Report a mistake" className="px-section justify-center rounded-pill bg-hot" style={TAP}>
-            <Type step="row" className="text-void">Report a mistake</Type>
+          <Pressable onPress={() => { const l = lines[menu]; setMenu(undefined); if (l) props.onReport?.(l); }} accessibilityRole="button" accessibilityLabel="Report a mistake" className="px-section justify-center rounded-pill bg-primary" style={TAP}>
+            <Text className="text-sm font-bold text-onPrimary">Report a mistake</Text>
           </Pressable>
         </Box>
       ) : null}
@@ -173,28 +157,28 @@ export function TranscriptPane(props: {
         />
       ) : null}
       {picking && !selecting ? (
-        <Box className="flex-row items-center gap-gap">
-          <Type step="caption" className="flex-1 text-text3">
+        <Box className="flex-row items-center gap-2">
+          <Text className="flex-1 text-xs text-muted">
             {quote === undefined ? 'Tap lines to pick them' : quote.tooLong ? `Too long for a picture — up to ${QUOTE_CARD_MAX} characters` : props.onShareVideo && timed && !quote.video ? 'Videos are 60 s or less' : `${quote.text.length} of ${QUOTE_CARD_MAX} characters`}
-          </Type>
-          <Pressable onPress={() => setPicked(undefined)} accessibilityRole="button" accessibilityLabel="Cancel picking lines" className="px-section justify-center rounded-pill bg-raise" style={TAP}>
-            <Type step="row" className="text-text">Cancel</Type>
+          </Text>
+          <Pressable onPress={() => setPicked(undefined)} accessibilityRole="button" accessibilityLabel="Cancel picking lines" className="px-section justify-center rounded-pill border border-border" style={TAP}>
+            <Text className="text-sm font-semibold text-text">Cancel</Text>
           </Pressable>
           {props.onShareVideo && timed ? (
             <Pressable disabled={quote === undefined || !quote.video}
               onPress={() => { if (quote?.video) { props.onShareVideo?.(quote); setPicked(undefined); } }}
               accessibilityRole="button" accessibilityLabel="Share the picked lines as a video"
               accessibilityState={{ disabled: quote === undefined || !quote.video }}
-              className={`px-section justify-center rounded-pill bg-raise ${quote === undefined || !quote.video ? 'opacity-50' : ''}`} style={TAP}>
-              <Type step="row" className="text-text">Video</Type>
+              className={`px-section justify-center rounded-pill border border-border ${quote === undefined || !quote.video ? 'opacity-50' : ''}`} style={TAP}>
+              <Text className="text-sm font-semibold text-text">Video</Text>
             </Pressable>
           ) : null}
           <Pressable disabled={quote === undefined || quote.tooLong}
             onPress={() => { if (quote && !quote.tooLong) { props.onShareImage?.(quote); setPicked(undefined); } }}
             accessibilityRole="button" accessibilityLabel="Share the picked lines as an image"
             accessibilityState={{ disabled: quote === undefined || quote.tooLong }}
-            className={`px-section justify-center rounded-pill bg-hot ${quote === undefined || quote.tooLong ? 'opacity-50' : ''}`} style={TAP}>
-            <Type step="row" className="text-void">Share as image</Type>
+            className={`px-section justify-center rounded-pill bg-primary ${quote === undefined || quote.tooLong ? 'opacity-50' : ''}`} style={TAP}>
+            <Text className="text-sm font-bold text-onPrimary">Share as image</Text>
           </Pressable>
         </Box>
       ) : null}
@@ -218,32 +202,32 @@ function SelectBar(props: {
   const note = props.onClip && !clip.ok ? clip.reason
     : q?.tooLong ? `Too long for a picture — up to ${QUOTE_CARD_MAX} characters`
     : `${plural(props.count, 'line')} selected`;
-  const chip = (on: boolean) => `${QUIET} ${on ? '' : 'opacity-50'}`;
+  const chip = (on: boolean) => `px-section justify-center rounded-pill border border-border ${on ? '' : 'opacity-50'}`;
   return (
-    <Box className="gap-gap">
-      <Type step="caption" className="text-text3" accessibilityLiveRegion="polite">{note}</Type>
-      <Box className="flex-row items-center gap-gap flex-wrap">
+    <Box className="gap-2">
+      <Text className="text-xs text-muted" accessibilityLiveRegion="polite">{note}</Text>
+      <Box className="flex-row items-center gap-2 flex-wrap">
         <Pressable onPress={props.onCancel} accessibilityRole="button" accessibilityLabel="Cancel selecting lines" className={chip(true)} style={TAP}>
-          <Type step="row" className="text-text">Cancel</Type>
+          <Text className="text-sm font-semibold text-text">Cancel</Text>
         </Pressable>
         {props.onCopy ? (
           <Pressable disabled={q === undefined} onPress={() => { if (q) props.onCopy?.(q.text); }} accessibilityRole="button" accessibilityLabel="Copy the selected lines" accessibilityState={{ disabled: q === undefined }} className={chip(q !== undefined)} style={TAP}>
-            <Type step="row" className="text-text">Copy</Type>
+            <Text className="text-sm font-semibold text-text">Copy</Text>
           </Pressable>
         ) : null}
         {props.onShareImage ? (
           <Pressable disabled={!imageOk} onPress={() => { if (q && imageOk) props.onShareImage?.(q); }} accessibilityRole="button" accessibilityLabel="Share the selected lines as an image" accessibilityState={{ disabled: !imageOk }} className={chip(imageOk)} style={TAP}>
-            <Type step="row" className="text-text">Share as image</Type>
+            <Text className="text-sm font-semibold text-text">Share as image</Text>
           </Pressable>
         ) : null}
         {props.onReport ? (
           <Pressable onPress={props.onReport} accessibilityRole="button" accessibilityLabel="Report a mistake" className={chip(true)} style={TAP}>
-            <Type step="row" className="text-text">Report</Type>
+            <Text className="text-sm font-semibold text-text">Report</Text>
           </Pressable>
         ) : null}
         {props.onClip ? (
-          <Pressable disabled={!clip.ok} onPress={() => { if (q && clip.ok) props.onClip?.(q); }} accessibilityRole="button" accessibilityLabel="Clip the selected lines" accessibilityHint={clip.ok ? undefined : clip.reason} accessibilityState={{ disabled: !clip.ok }} className={`px-section justify-center rounded-pill bg-hot ${clip.ok ? '' : 'opacity-50'}`} style={TAP}>
-            <Type step="row" className="text-void">Clip</Type>
+          <Pressable disabled={!clip.ok} onPress={() => { if (q && clip.ok) props.onClip?.(q); }} accessibilityRole="button" accessibilityLabel="Clip the selected lines" accessibilityHint={clip.ok ? undefined : clip.reason} accessibilityState={{ disabled: !clip.ok }} className={`px-section justify-center rounded-pill bg-primary ${clip.ok ? '' : 'opacity-50'}`} style={TAP}>
+            <Text className="text-sm font-bold text-onPrimary">Clip</Text>
           </Pressable>
         ) : null}
       </Box>

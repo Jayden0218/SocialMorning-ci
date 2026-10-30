@@ -6,7 +6,7 @@
     "version": "0.1.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "app.socialmorning.mobile",
@@ -42,7 +42,7 @@
     "android": {
       "package": "app.socialmorning.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#060608",
+        "backgroundColor": "#FDC621",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -91,10 +91,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-ring.png",
-          "imageWidth": 200,
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 192,
           "resizeMode": "contain",
-          "backgroundColor": "#060608"
+          "backgroundColor": "#fbf8f1"
         }
       ],
       [

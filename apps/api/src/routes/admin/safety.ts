@@ -28,7 +28,6 @@ import { discardParked, parkedOutbox, retryParked } from '../../jobs/outbox.ts';
 import { addWords, dropWordsMemo, listWords, removeWord } from '../../db/repos/safety/words.ts';
 import { activeMaintenance, dropMaintenanceMemo, MAINTENANCE_MESSAGE_MAX, setMaintenance, storedMaintenance } from '../../db/repos/safety/maintenance.ts';
 import { broadcastNotices, deleteNotice, insertNotice, NOTICE_BODY_MAX, NOTICE_TITLE_MAX, pushNotice } from '../../db/repos/social/system-notices.ts';
-import { log } from '../../log.ts';
 
 /** An in-app path the phone may open: "/x…", no scheme, no "//", no spaces (the phone's `systemAction` rule). */
 const ROUTE = /^\/(?!\/)[^\s\\:]{1,199}$/;
@@ -120,7 +119,7 @@ export function registerSafety(admin: Hono<AdminEnv>): void {
     let pushed: { sent: number; dropped: number } | undefined;
     if (b.push) {
       try { pushed = await pushNotice(db, c.get('catalog').pushFetch, { title: b.title, body: b.body, listenerId: null }); }
-      catch (e) { log.error('notice_push_failed', { requestId: c.get('requestId'), error: e }); pushed = { sent: 0, dropped: 0 }; }
+      catch (e) { console.error(c.get('requestId'), 'notice push', e); pushed = { sent: 0, dropped: 0 }; }
     }
     return c.json({ notice, ...(pushed ? { pushed } : {}) }, 201);
   });

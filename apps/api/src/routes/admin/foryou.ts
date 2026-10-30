@@ -27,7 +27,6 @@ import { similarityAgeHours, SIMILARITY_STALE_HOURS } from '../../db/repos/disco
 import { feedbackImage, recentFeedback } from '../../db/repos/account/feedback.ts';
 import { recentSearchRequests } from '../discover/search-requests.ts';
 import { feedUrl, version } from './common.ts';
-import { swallow } from '../../log.ts';
 
 export function registerForYou(admin: Hono<AdminEnv>): void {
   const weightShape = z.object(Object.fromEntries(WEIGHT_KEYS.map((k) => [k, z.number().min(WEIGHT_BOUNDS[k][0]).max(WEIGHT_BOUNDS[k][1])])) as Record<(typeof WEIGHT_KEYS)[number], z.ZodNumber>);
@@ -83,7 +82,7 @@ export function registerForYou(admin: Hono<AdminEnv>): void {
   admin.get('/feedback/:id/:n', async (c) => {
     const n = Number(c.req.param('n'));
     if (!Number.isInteger(n) || n < 1 || n > 3) throw new ApiError('not_found', 'No such image.');
-    const img = await feedbackImage(c.get('db'), c.req.param('id'), n).catch(swallow('feedback_image_read_failed'));
+    const img = await feedbackImage(c.get('db'), c.req.param('id'), n).catch(() => undefined);
     if (!img) throw new ApiError('not_found', 'No such image.');
     c.header('content-type', img.mime);
     return c.body(img.bytes as unknown as ArrayBuffer);

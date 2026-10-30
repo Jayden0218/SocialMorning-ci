@@ -12,23 +12,16 @@
  *
  * expo-intent-launcher is native; it is loaded lazily, and a build without it shows a line
  * pointing to Settings › Apps instead of the buttons.
- *
- * M31 S-A (T060; design-pulse2 `settings-background--screen`, drawn for iPhone and Android; Panel): iPhone — one tile 200 down the page: a moon in hot-text and the
- * line in 16 / 23. Android — the lede (14, text-2), the four steps in one tile (numbers in mono 13 hot-text, text 14 / 20), and the page's two buttons
- * **Open battery optimisation** (light) and **Open SocialNet's app settings** (quiet) in the content; if the phone cannot open a page, the fallback
- * line (12, text-2) appears under them. Title "Playing with the screen off" (Unbounded 24–26, up to two lines), back in the bottom bar.
  */
 import { useState } from 'react';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
-import { Icon } from '@/ui/kit/Icon';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { Type } from '@/ui/kit/Type';
-import { Lede, Note, Sec, SetCard, SetPage } from '@/ui/settings/hub-parts';
-import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { Card } from '@/ui/kit/Card';
+import { Button } from '@/ui/kit/Button';
 
 type IntentLauncher = { startActivityAsync(action: string, params?: { data?: string }): Promise<unknown> };
 
@@ -44,8 +37,6 @@ const STEPS = [
   'Some phones also have "Sleeping apps" or "Auto-launch" lists: keep SocialNet out of sleeping apps.',
   'Start an episode again and lock the screen.',
 ];
-/** The iPhone page leaves 200 above its one tile (`bgPage(false)`). */
-const IPHONE_TOP = 200;
 
 export default function BackgroundScreen(): React.ReactElement {
   const [failed, setFailed] = useState(false);
@@ -56,39 +47,33 @@ export default function BackgroundScreen(): React.ReactElement {
   };
   if (Platform.OS !== 'android') {
     return (
-      <PushedPage title="Playing with the screen off" size={26}>
-        {(layout) => (
-          <SetPage layout={layout}>
-            <Box style={{ height: IPHONE_TOP }} />
-            <SetCard testID="iphone-card" gap={SET.rowGap}>
-              <Icon name="moon-outline" size={28} color={colour.hotText} />
-              <Type step="body" className="text-text font-medium" style={SET_TYPE.lead16}>On iPhone, SocialNet keeps playing with the screen off. Nothing to set.</Type>
-            </SetCard>
-          </SetPage>
-        )}
-      </PushedPage>
+      <>
+      <PageHeader title="Playing with the screen off" />
+      <Box className="flex-1 bg-background px-screen-x pt-section">
+        <Text className="text-muted text-body">On iPhone, SocialNet keeps playing with the screen off. Nothing to set.</Text>
+      </Box>
+      </>
     );
   }
   return (
-    <PushedPage title="Playing with the screen off" size={24}>
-      {(layout) => (
-        <SetPage layout={layout}>
-          <Lede small>If an episode stops a few minutes after the screen goes off, your phone is saving battery by stopping SocialNet. You can let it keep playing.</Lede>
-          <Sec label="Steps">
-            <SetCard gap={SET.rowGap}>
-              {STEPS.map((step, i) => (
-                <Box key={step} className="flex-row" style={{ gap: SET.rowGap }}>
-                  <Type step="mono" className="text-hotText" style={[SET_TYPE.mono13, { width: 16 }]}>{`${i + 1}`}</Type>
-                  <Type step="note" className="text-text flex-1">{step}</Type>
-                </Box>
-              ))}
-            </SetCard>
-          </Sec>
-          <PulseButton label="Open battery optimisation" onPress={() => open('android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS')} full />
-          <PulseButton label="Open SocialNet's app settings" kind="quiet" onPress={() => open('android.settings.APPLICATION_DETAILS_SETTINGS', `package:${PACKAGE}`)} full />
-          {failed ? <Note>This phone did not open that page. Go to Settings › Apps › SocialNet › Battery instead.</Note> : null}
-        </SetPage>
-      )}
-    </PushedPage>
+    <>
+    <PageHeader title="Playing with the screen off" />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-2 pb-24 gap-row">
+      <Text className="text-text text-body">If an episode stops a few minutes after the screen goes off, your phone is saving battery by stopping SocialNet. You can let it keep playing.</Text>
+      <Card className="py-1">
+        {STEPS.map((step, i) => (
+          <Box key={step}>
+            <Box className="flex-row gap-row py-row">
+              <Text className="text-accent text-body font-bold">{`${i + 1}`}</Text>
+              <Text className="text-text text-body flex-1">{step}</Text>
+            </Box>
+          </Box>
+        ))}
+      </Card>
+      <Button label="Open battery optimisation" onPress={() => open('android.settings.IGNORE_BATTERY_OPTIMIZATION_SETTINGS')} />
+      <Button label="Open SocialNet's app settings" kind="secondary" onPress={() => open('android.settings.APPLICATION_DETAILS_SETTINGS', `package:${PACKAGE}`)} />
+      {failed ? <Text className="text-muted text-body">This phone did not open that page. Go to Settings › Apps › SocialNet › Battery instead.</Text> : null}
+    </ScrollView>
+    </>
   );
 }

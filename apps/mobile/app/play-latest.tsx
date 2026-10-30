@@ -4,30 +4,34 @@
  * opens: the first unfinished episode in the queue, else the newest in Updates. It plays and
  * goes to the player; with nothing to play it says so.
  *
- * M31 W5-D (T064; design-pulse2 `discover.html` `play-latest--screen`, layout pattern Stage): a pushed page with the title bar low
- * ("Play latest"), a grey glow behind, and in the page's middle (240 from the top) a flat curve (30 bars, 30 tall, 200 wide, the line
- * colour), "Nothing new to play" in Unbounded 800 34 and "Follow a show or add to your queue." in Geist 500 17/24, text2. With
- * something to play the page shows "Starting…" and the player opens; back leaves. Behaviour unchanged.
+ * M17 T054 (`PlayLatest-B`): the back row alone (no big page title), then a picture of three
+ * fanned tiles with a play disc, and the app's own sentence split into a serif headline and a
+ * muted line under it. Behaviour unchanged.
  */
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Curve } from '@/ui/kit/Curve';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { Type } from '@/ui/kit/Type';
+import { Icon } from '@/ui/kit/Icon';
 import { latestToPlay } from '@/outside/now-playing';
 import { usePlayer } from '@/playback/store';
 import { useSafety } from '@/safety/context';
 import { toPlayable } from '@/storage/playable';
 import { useStores } from '@/ui/shell/providers';
-import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
-import { bodyTop } from '@/ui/discover/page-parts';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
+import { useColours } from '@/ui/kit/useColours';
+import { PageHeader } from '@/ui/kit/PageHeader';
 
-const NONE: readonly number[] = [];
+/** The picture's tiles: size, place and tilt are layout, so they stay styles. */
+const TILE = 170;
+const BACK = { width: TILE, height: TILE, left: 30, top: 30, transform: [{ rotate: '-8deg' }] };
+const MIDDLE = { width: TILE, height: TILE, left: 70, top: 44, transform: [{ rotate: '4deg' }] };
+const FRONT = { width: TILE, height: TILE, left: 48, top: 58, transform: [{ rotate: '-2deg' }] };
+const DISC = { width: 64, height: 64, left: 48 + TILE / 2 - 32, top: 58 + TILE / 2 - 32 };
+const PICTURE = { width: 290, height: 270 };
 
 export default function PlayLatest(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const player = usePlayer();
   const { hiddenFeeds } = useSafety();
   const [nothing, setNothing] = useState(false);
@@ -39,18 +43,27 @@ export default function PlayLatest(): React.ReactElement {
     router.replace('/player');
   }, [stores, player, hiddenFeeds]);
   return (
-    <PushedPage title="Play latest" tone="grey">
-      {(layout) => (
-        <Box className="flex-1" style={{ paddingTop: bodyTop(layout, PAGE.playLatestTop) }}>
-          {nothing ? (
-            <Box testID="play-latest-nothing" style={{ paddingHorizontal: ME_MOSAIC.lane, gap: PAGE.pad }} accessible accessibilityLiveRegion="polite" accessibilityLabel="Nothing new to play — follow a show or add to your queue">
-              <Box style={{ width: 200 }} accessible={false} importantForAccessibility="no-hide-descendants"><Curve data={NONE} count={30} height={30} min={30} flat /></Box>
-              <Type step="hero" className="text-text" style={PAGE_TYPE.title34} accessibilityRole="header">Nothing new to play</Type>
-              <Type step="note" className="text-text2" style={PAGE_TYPE.line17}>Follow a show or add to your queue.</Type>
+    <>
+    {/* B draws no page title here: an empty `middle` keeps the back row and drops the title. */}
+    <PageHeader title="Play latest" middle={<Box />} />
+    <Box className="flex-1 bg-background px-7">
+      {nothing ? (
+        <>
+          <Box className="self-center mt-5 mb-2.5" style={PICTURE} accessible={false}>
+            <Box className="absolute rounded-artwork-lg bg-primary opacity-30" style={BACK} />
+            <Box className="absolute rounded-artwork-lg bg-track" style={MIDDLE} />
+            <Box className="absolute rounded-artwork-lg bg-accentTint border border-border" style={FRONT} />
+            <Box className="absolute rounded-pill bg-surface border border-border items-center justify-center" style={DISC}>
+              <Icon name="play" size={26} color={c.muted} />
             </Box>
-          ) : <Type step="note" className="text-text2" style={{ paddingHorizontal: ME_MOSAIC.lane }}>Starting…</Type>}
-        </Box>
-      )}
-    </PushedPage>
+          </Box>
+          <Box accessible accessibilityLiveRegion="polite" accessibilityLabel="Nothing new to play — follow a show or add to your queue">
+            <Text className="text-text text-display font-display" accessibilityRole="header">Nothing new to play</Text>
+            <Text className="text-muted text-title mt-3.5">Follow a show or add to your queue.</Text>
+          </Box>
+        </>
+      ) : <Text className="text-muted text-sm py-section">Starting…</Text>}
+    </Box>
+    </>
   );
 }

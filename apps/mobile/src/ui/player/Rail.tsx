@@ -7,7 +7,7 @@
  */
 import { useMemo } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/kit/Text';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { mmss } from '@/ui/kit/format';
 import type { Comment } from '@/social/api';
@@ -57,9 +57,9 @@ export function Rail(props: {
           accessibilityLabel={markerLabel(m)}
           hitSlop={8}
           onPress={() => props.onTap(m)}
-          className="absolute top-0 w-3 h-[14px] items-center justify-end"
+          className="absolute top-0 -ml-1.5 w-3 h-[14px] items-center justify-end"
           // The position is offset / duration, known only at runtime.
-          style={{ left: `${Math.min(100, (m.offsetMs / props.durationMs!) * 100)}%`, marginLeft: -6 }}
+          style={{ left: `${Math.min(100, (m.offsetMs / props.durationMs!) * 100)}%` }}
         >
           <Box className={`bg-accent ${m.comments.length > 1 ? 'w-2.5 h-2.5 rounded-[5px]' : 'w-2 h-2 rounded-sm'}`} />
         </Pressable>

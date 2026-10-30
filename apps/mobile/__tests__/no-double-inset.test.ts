@@ -46,8 +46,5 @@ it('a page\'s SafeAreaView, rendered: the top inset as padding, no bottom; `edge
 // the player" half is rendered in root-layout.test.tsx.
 it('the player pads its own bar by the bottom inset (owner, 2026-10-06)', () => {
   const player = readFileSync(join(__dirname, '../app/player.tsx'), 'utf8');
-  // Round 2: the page's bottom parts are placed by `playerLayout(window, insets)` (src/ui/player/measures.ts), which keeps
-  // the tray 6 above the inset (40 on the drawn 34) — tested with numbers in m31-l8-drawing.test.tsx.
-  expect(player).toMatch(/playerLayout\(window, insets\)/);
-  expect(readFileSync(join(__dirname, '../src/ui/player/measures.ts'), 'utf8')).toMatch(/insets\.bottom - player\.homeInset/);
+  expect(player).toMatch(/paddingBottom: insets\.bottom/);
 });

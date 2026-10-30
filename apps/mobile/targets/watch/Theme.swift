@@ -1,6 +1,6 @@
 // M21 US12 — our colours and words on the Watch (owner, G0: SwiftUI on the Watch only, styled as ours).
 // Every hex below is the value of the same-named token in apps/mobile/src/design/tokens.ts;
-// __tests__/m21-watch.test.ts reads this file and fails if one drifts. Dark Pulse palette (constitution v4.0.0).
+// __tests__/m21-watch.test.ts reads this file and fails if one drifts. Light only (constitution v3.0.0).
 // NOT YET COMPILED here — the cloud ios.yml run with extras on is the first compile.
 import SwiftUI
 
@@ -16,24 +16,24 @@ extension Color {
 }
 
 enum Theme {
-  // token: background #060608
-  static let background = Color(hex: 0x060608)
-  // token: surface #111116
-  static let surface = Color(hex: 0x111116)
-  // token: text #f4f2ee
-  static let text = Color(hex: 0xF4F2EE)
-  // token: muted #a3a1ab
-  static let muted = Color(hex: 0xA3A1AB)
-  // token: primary #ff4d6d
-  static let primary = Color(hex: 0xFF4D6D)
-  // token: onPrimary #060608
-  static let onPrimary = Color(hex: 0x060608)
-  // token: accent #ff8095
-  static let accent = Color(hex: 0xFF8095)
-  // token: playDisc #f4f2ee
-  static let playDisc = Color(hex: 0xF4F2EE)
-  // token: playGlyph #060608
-  static let playGlyph = Color(hex: 0x060608)
+  // token: background #fbf8f1
+  static let background = Color(hex: 0xFBF8F1)
+  // token: surface #ffffff
+  static let surface = Color(hex: 0xFFFFFF)
+  // token: text #16130d
+  static let text = Color(hex: 0x16130D)
+  // token: muted #5c5546
+  static let muted = Color(hex: 0x5C5546)
+  // token: primary #fcc522
+  static let primary = Color(hex: 0xFCC522)
+  // token: onPrimary #111114
+  static let onPrimary = Color(hex: 0x111114)
+  // token: accent #8a5a00
+  static let accent = Color(hex: 0x8A5A00)
+  // token: playDisc #feeba5
+  static let playDisc = Color(hex: 0xFEEBA5)
+  // token: playGlyph #8a5a00
+  static let playGlyph = Color(hex: 0x8A5A00)
 }
 
 /// Every word the Watch shows, in one place (English only).

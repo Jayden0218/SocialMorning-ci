@@ -30,7 +30,6 @@ import { DEFAULT_TZ, DIGEST_KEEP_DAYS, isoWeek, localClock, validTz, type Digest
 import type { NotifyShowRow } from '../notify-shows.ts';
 import { adel, aput, DAY_MS, getListener, iso, klDay, nowMs, partitionItems, queueBefore, txa, unlessCondition, upd, type Ctx, dbOf } from './common.ts';
 import { digestPick, episodesByIds, liveSubscribers, liveSubscriptionsWithTitles, plusMembers, pushRelations, statusFollowers } from './foreign.ts';
-import { log } from '../../../../log.ts';
 
 const BATCH = 100;
 const PREF_KEYS = ['newEpisodes', 'popular', 'replies', 'likes', 'follows', 'mentions', 'statuses', 'digest', 'system'] as const;
@@ -188,7 +187,7 @@ export async function pushFor(h: Ctx, n: SocialNotice, now = Date.now()): Promis
     }));
     return (await sendExpo(h, socialPushFetch(), messages)).sent;
   } catch (e) {
-    log.warn('push_social_skipped', { error: e });
+    console.warn(`[push] social push skipped: ${e instanceof Error ? e.message : String(e)}`);
     return 0;
   }
 }
@@ -203,7 +202,7 @@ export async function pushNewStatus(h: Ctx, authorId: string, postId: string, is
     enqueue(t.raw, h.store, { kind: 'push:status', payload: { authorId, postId, isVoice } });
     await t.commit();
   } catch (e) {
-    log.warn('push_status_skipped', { error: e });
+    console.warn(`[push] status push skipped: ${e instanceof Error ? e.message : String(e)}`);
   }
   return 0;
 }
@@ -228,7 +227,7 @@ export async function statusPushHandler(store: Store, entry: OutboxEntry): Promi
       data: { kind: 'status_new', href }, channelId: 'social', tag: `status_new:${authorId}`, threadId: `status_new:${authorId}`,
     }));
   } catch (e) {
-    log.warn('push_status_skipped', { error: e });
+    console.warn(`[push] status push skipped: ${e instanceof Error ? e.message : String(e)}`);
   }
 }
 registerHandler('push:status', statusPushHandler);
@@ -267,7 +266,7 @@ export async function runDigests(h: Ctx, pushFetch: typeof fetch, now: Date = ne
         to, title: 'Your weekly catch-up', body: `${n} new ${n === 1 ? 'episode' : 'episodes'} from your shows last week`,
         data: { kind: 'digest', href: `/digest/${week}` }, sound: 'default', channelId: 'social', tag: `digest:${week}`, threadId: 'digest',
       }))).sent;
-    } catch (e) { log.error('push_digest_failed', { error: e }); }
+    } catch (e) { console.error('digest push failed; the digest page still has it', e instanceof Error ? e.message : String(e)); }
   }
   return { made, pushed, swept };
 }

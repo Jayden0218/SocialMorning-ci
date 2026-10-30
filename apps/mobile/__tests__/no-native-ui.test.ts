@@ -2,8 +2,8 @@
 /**
  * M16a guard G-N1 (FR-012, FR-013, FR-016; owner 2026-10-02, said twice): no iOS-native chrome.
  *  - the root stack hides the native header for every screen, and no screen turns it back on;
- *  - every page in the stack draws the app's own bar (PageHeader, TopBar, the Pulse bottom TitleBar, the comments pages'
- *    ZoneTitle, or FollowList, which draws a PageHeader), except the pages listed in OWN_BAR, which draw their own top;
+ *  - every page in the stack draws the app's own bar (PageHeader, TopBar or FollowList, which
+ *    draws a PageHeader), except the pages listed in OWN_BAR, which draw their own top;
  *  - no code calls the native alert (`Alert.alert`) — confirmations use src/ui/kit/confirm.tsx;
  *  - no file outside src/ui/lib uses the native switch — on/off is src/ui/kit/Toggle.tsx.
  *
@@ -90,8 +90,8 @@ const walk = (dir: string, out: string[] = []): string[] => {
 };
 const rel = (p: string): string => relative(ROOT, p).split(sep).join('/');
 
-/** Pages that draw their own top: the tab screens, Search, the scanner, the sign-in pages, the player (M31: its own PlayerTopBar, checked below) and the Show screen (M31 W3-A2: the art stage, glass circles and a thumb zone with Back — checked in m31-w3a2-show.test.tsx) and the maintenance page (M31 W6-B: no title bar by design, a back circle in its bottom row — checked in m31-w6b-shell.test.tsx). */
-const OWN_BAR = ['app/search.tsx', 'app/scan.tsx', 'app/auth/sign-in.tsx', 'app/auth/sign-up.tsx', 'app/auth/email.tsx', 'app/player.tsx', 'app/show/[feedUrl].tsx', 'app/maintenance.tsx'];
+/** Pages that draw their own top: the tab screens, Search, the scanner and the sign-in pages. */
+const OWN_BAR = ['app/search.tsx', 'app/scan.tsx', 'app/auth/sign-in.tsx', 'app/auth/sign-up.tsx', 'app/auth/email.tsx'];
 const routes = walk(APP).map(rel).filter((f) => !f.endsWith('_layout.tsx') && !f.startsWith('app/(tabs)/') && !OWN_BAR.includes(f));
 
 it('the root stack hides the native header for every screen, and none of its screens turns it back on (rendered)', () => {
@@ -108,17 +108,9 @@ it('no file in app/ turns the native header back on (source scan: nested layouts
 
 it('every page in the stack draws the app\'s own bar', () => {
   expect(routes.length).toBeGreaterThanOrEqual(40); // the scan found the pages — otherwise this proves nothing
-  // M31 W3: `PushedPage` (src/ui/kit/PushedPage.tsx) is the Pulse pages' bar — the title bar low, by the thumb.
-  // The chat thread's bar is the thumb zone (`BottomZone`: back, avatar, name, box; M31 W4-C).
   // A page that only redirects (`/inbox` → Updates, owner 2026-10-04) draws nothing, so needs no bar.
-  // M31 S-C: `OverlayPage` (src/ui/kit/OverlayPage.tsx) is the same bar for a page that cannot ask the router (onboarding); `RecFeedbackForm` draws the whole "Not liking these?" page in it. M31 S-B: `SettingsPage` (src/ui/settings/panel.tsx) is a `PushedPage` with the settings body.
-  const bare = routes.filter((f) => !/<(PageHeader|TopBar|TitleBar|PushedPage|ZoneTitle|BottomZone|FollowList|Redirect|OverlayPage|RecFeedbackForm|SettingsPage)\b/.test(readFileSync(join(ROOT, f), 'utf8')));
+  const bare = routes.filter((f) => !/<(PageHeader|TopBar|FollowList|Redirect)\b/.test(readFileSync(join(ROOT, f), 'utf8')));
   expect(bare).toEqual([]);
-});
-
-it('M31: the player draws its own top row (close · hot pill · More), and the empty player has it too', () => {
-  const src = readFileSync(join(APP, 'player.tsx'), 'utf8');
-  expect((src.match(/<PlayerTopBar\b/g) ?? []).length).toBeGreaterThanOrEqual(2); // the page, and nothing-playing
 });
 
 it('no code calls the native alert', () => {
@@ -159,10 +151,8 @@ it('G-M21-11: the player slides up as a push; its own top-bar pan closes it, not
   // drag after ~10 pt, so the swipe up to the playlist never arrived. It is off on the player.
   expect(player!.gestureEnabled).toBe(false);
   expect(player!.presentation).toBeUndefined();
-  // Source check: the player page needs the whole player, queue and gesture stack to render. M31: the swipe is
-  // made by the page's hook (src/ui/player/usePlayerScreen.ts) and spread on the top row by the page.
-  expect(readFileSync(join(ROOT, 'src/ui/player/usePlayerScreen.ts'), 'utf8')).toMatch(/useSwipeDownToClose\(close\)/);
-  expect(readFileSync(join(APP, 'player.tsx'), 'utf8')).toMatch(/\{\.\.\.s\.swipeDown\}/);
+  // Source check: the player page needs the whole player, queue and gesture stack to render.
+  expect(readFileSync(join(APP, 'player.tsx'), 'utf8')).toMatch(/useSwipeDownToClose\(close\)/);
 });
 
 it('no file outside src/ui/lib uses the native switch', () => {

@@ -530,54 +530,6 @@ export function usePlayerSelector<T>(sel: (s: PlayerState) => T, eq: (a: T, b: T
   return useSyncExternalStore(runtime.subscribe, read, read);
 }
 
-// ---------------------------------------------------------------------------
-// Selectors (M31 T024, review C4): what a screen reads from the player state, so a position TICK
-// re-renders only the parts that draw the position. Pass these to `usePlayerSelector`.
-// ---------------------------------------------------------------------------
-
-/** What a screen needs to decide WHICH page to draw — never the position. */
-export type PlayerHead = { kind: PlayerState['kind']; episodeId: string | undefined; message: string | undefined; by: string | undefined };
-
-export function selectHead(s: PlayerState): PlayerHead {
-  return {
-    kind: s.kind,
-    episodeId: s.kind === 'idle' ? undefined : s.episodeId,
-    message: s.kind === 'error' ? s.message : undefined,
-    by: s.kind === 'paused' ? s.by : undefined,
-  };
-}
-
-export const sameHead = (a: PlayerHead, b: PlayerHead): boolean =>
-  a.kind === b.kind && a.episodeId === b.episodeId && a.message === b.message && a.by === b.by;
-
-/** The episode loaded, if any. */
-export const selectEpisodeId = (s: PlayerState): string | undefined => (s.kind === 'idle' ? undefined : s.episodeId);
-
-/** Playing or buffering: the sound is (meant to be) running. */
-export const selectIsPlaying = (s: PlayerState): boolean => s.kind === 'playing' || s.kind === 'buffering';
-
-/** Nothing loaded. */
-export const selectIdle = (s: PlayerState): boolean => s.kind === 'idle';
-
-/** The position to show: at the end it is the length; before anything is known, 0. */
-export function playerPositionMs(s: PlayerState): Ms {
-  if (s.kind === 'ended') return s.durationMs ?? 0;
-  return 'positionMs' in s && typeof s.positionMs === 'number' ? s.positionMs : 0;
-}
-
-/** The length the player measured, when it has. */
-export const playerDurationMs = (s: PlayerState): Ms | undefined => ('durationMs' in s ? s.durationMs : undefined);
-
-/** The position and length rounded DOWN to the whole second — equal while the clock face would not change. */
-export type PlayerClock = { positionMs: Ms; durationMs: Ms | undefined };
-
-export function selectClock(s: PlayerState): PlayerClock {
-  const d = playerDurationMs(s);
-  return { positionMs: Math.floor(playerPositionMs(s) / 1000) * 1000, durationMs: d };
-}
-
-export const sameClock = (a: PlayerClock, b: PlayerClock): boolean => a.positionMs === b.positionMs && a.durationMs === b.durationMs;
-
 /** M23 US7: what an episode's page needs from the player — no position while it plays. */
 export type EpisodePlayView = { loaded: boolean; playing: boolean; positionMs: Ms | undefined };
 

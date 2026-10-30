@@ -44,7 +44,7 @@ import type { EpisodeStorage } from '../src/storage/episodes-blob.ts';
 export const E2E_STORE = process.env['E2E_STORE_BASE'] ?? 'https://e2estore.public.blob.vercel-storage.com/';
 const SERVED_STORE = '/__e2e/store/';
 const AUDIO = readFileSync(fileURLToPath(new URL('./fixtures/journey.mp3', import.meta.url)));
-const DUMMY_RW = 'vercel_blob_rw' + '_e2estore_notarealsecretnotarealsecret00';
+const DUMMY_RW = 'vercel_blob_rw_e2estore_notarealsecretnotarealsecret00';
 const removed: string[] = [];
 /** Files the test published (seen through `head` at publish), so the media library has something to list. */
 const seen = new Map<string, { url: string; pathname: string; size: number; contentType: string }>();

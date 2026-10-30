@@ -21,7 +21,7 @@ import type { Downloader, Network } from './types';
 import type { DownloadRow, Stores } from '@/storage/types';
 import { isFavourite } from '@/me/favourites';
 
-export const DEFAULT_BUDGET_BYTES = 2_000_000_000; // "2.0 GB" in the decimal units the drawings use (M31 F8)
+export const DEFAULT_BUDGET_BYTES = 2 * 1024 ** 3;
 export const SETTING_BUDGET = 'downloads.budgetBytes';
 export const SETTING_ALLOW_MOBILE = 'downloads.allowMobile';
 /** M22 US17 (data-model "New settings keys"): '1' = on; off by default. */

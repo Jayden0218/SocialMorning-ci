@@ -58,7 +58,7 @@ test('G-D1 (server): settings that cannot be read → today\'s Discover, no layo
   // M26 lane DV: on DynamoDB "cannot be read" is the settings item failing — every GetCommand on
   // CFG#discover-settings throws, on a second app over the same table set.
   try {
-    const [{ withStore }, { withFaults }] = await Promise.all([import('../src/db/backend-ddb.ts'), import('./ddb-wrappers.ts')]);
+    const [{ withStore }, { withFaults }] = await Promise.all([import('../src/db/backend-ddb.ts'), import('../src/db/ddb/test-wrappers.ts')]);
     const broken = createApp({
       db: withStore(t.db, withFaults(t.store, [{ command: 'GetCommand', prefix: 'CFG#discover-settings' }])),
       pepper: TEST_PEPPER, catalogFetch: catalogFetch(), picksRaw: [], today: () => TODAY, collectionsRaw: [],

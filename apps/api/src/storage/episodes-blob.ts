@@ -8,7 +8,6 @@
  * good for ONE path, the allowed types and a size limit, for 1 hour; the browser uploads
  * straight to the store; publishing then reads the file's real size and type back with `head`.
  */
-import { episodesBlobToken } from '../config.ts';
 import { del, head, list } from '@vercel/blob';
 import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
 
@@ -50,15 +49,10 @@ export function launchUploadToken(storage: EpisodeStorage, pathname: string, siz
   return storage.uploadToken(pathname, { maxBytes: MAX_LAUNCH_IMAGE_BYTES, types: LAUNCH_IMAGE_TYPES });
 }
 
-/** A token, or a function that returns the current one (M32 D11: read at each use, so a rotated secret applies without a restart). */
-export type TokenSource = string | undefined | (() => string | undefined);
-export const tokenOf = (t: TokenSource): string | undefined => (typeof t === 'function' ? t() : t);
-
-export function blobStorage(source: TokenSource = episodesBlobToken): EpisodeStorage {
+export function blobStorage(token: string | undefined): EpisodeStorage {
   return {
-    get ready() { return Boolean(tokenOf(source)); },
+    ready: Boolean(token),
     uploadToken: async (pathname, o) => {
-      const token = tokenOf(source);
       if (!token) throw new Error('episode store not connected');
       // 2.8.0 takes ONE object; vercel.com's SDK page still shows an older 3-argument form (read from the package's own .d.ts).
       return generateClientTokenFromReadWriteToken({
@@ -66,7 +60,6 @@ export function blobStorage(source: TokenSource = episodesBlobToken): EpisodeSto
       });
     },
     head: async (url) => {
-      const token = tokenOf(source);
       if (!token) return undefined;
       try {
         const h = await head(url, { token });
@@ -76,11 +69,9 @@ export function blobStorage(source: TokenSource = episodesBlobToken): EpisodeSto
       }
     },
     remove: async (url) => {
-      const token = tokenOf(source);
       if (token) await del(url, { token });
     },
     list: async (prefix) => {
-      const token = tokenOf(source);
       if (!token) return [];
       const out: StoredFile[] = [];
       let cursor: string | undefined;

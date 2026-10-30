@@ -23,24 +23,18 @@
  * now" sits under the title (src/social/live.ts, shown at 2 or more); a tap on a comment opens the
  * same menu as the long-press, which adds Share (the episode link at the comment's moment, with
  * its words) and Mute (others' comments — hidden for me only, the writer is never told).
- *
- * M31 W2-B (T032; `design-pulse2/social.html#comments--screen` and `index.html#comments--screen`): the Pulse Thread. The episode
- * strip (cover, title, "12:32 / 48:10", Pause) and the 26-tall map of the whole episode sit at the top; under them the time
- * spine — in By moment every moment is a solid chip with "n reacted" and its comments hang to the right; in the other orders
- * each comment carries its own chip. The thumb zone holds the close circle with "Comments 14", the order capsule (Newest · Most
- * liked · By moment) with the options circle (Smart order, Reverse order), and the composer (the moment chip follows the
- * playhead; mic records a voice comment; image adds a picture). Where the two drawings differ (index: one "By moment ▾" chip,
- * no strip; social: the capsule and the strip) this follows social.html, whose action map is the superset — the strip keeps
- * "Episode title → player · Play/Pause" and the capsule keeps the three orders on the page.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Clipboard } from 'react-native';
-import type { FlatList as RNFlatList } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Clipboard, Platform, Share } from 'react-native';
+import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
 import { router, useLocalSearchParams } from 'expo-router';
-import { GIVE_UP_AFTER_MS, defaultDir, orderComments, type CommentDir, type CommentOrder } from '@socialmorning/social-core';
-import { Share } from 'react-native';
+import { defaultDir, orderComments, type CommentDir, type CommentOrder } from '@socialmorning/social-core';
 import { FlatList } from '@/ui/lib/flat-list';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
+import { hit } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import { useSocial } from '@/social/context';
 import { usePoll } from '@/social/usePoll';
@@ -49,19 +43,20 @@ import type { Comment } from '@/social/api';
 import { useM12Api } from '@/social/m12-api';
 import type { ComposerState } from '@/social/composer';
 import { ComposerSheet } from '@/ui/comments/Composer';
-import { CommentRow, type LikeView } from '@/ui/comments/CommentRow';
-import { CommentMenu, type MenuItem } from '@/ui/comments/CommentMenu';
+import { CommentRow, initialsFor, type LikeView } from '@/ui/comments/CommentRow';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { EmptyState } from '@/ui/kit/EmptyState';
-import { ActionSheet } from '@/ui/kit/ActionSheet';
-import { Fade } from '@/ui/kit/Fade';
-import { Type } from '@/ui/kit/Type';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { episodePlayView, livePositionMs, usePlayer } from '@/playback/store';
+import { useColours } from '@/ui/kit/useColours';
+import { episodePlayView, livePositionMs, usePlayer, usePlayerSelector } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 import { isFavComment, toggleFavComment } from '@/me/fav-comments';
 import { EpisodeCard } from '@/ui/comments/EpisodeCard';
-import { goBack } from '@/ui/kit/PageHeader';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { Segmented } from '@/ui/kit/Segmented';
+import { SheetRow } from '@/ui/kit/SheetRow';
+import { Icon, type IconName } from '@/ui/kit/Icon';
+import { EndOfList } from '@/ui/kit/EndOfList';
 import { extrasOf, replyCountOf, useCommentExtrasApi } from '@/social/comment-extras-api';
 import { VoiceComposer } from '@/ui/comments/VoiceRecord';
 import { useM22Api } from '@/social/api-m22-server';
@@ -69,45 +64,58 @@ import { playVoice } from '@/playback/expo-audio-adapter';
 import { getPref } from '@/settings/prefs';
 import { liveLabel, useListeningNow } from '@/social/live';
 import { useM22SocialApi } from '@/social/api-m22-social';
-import { BottomZone, Capsule, ComposerBar, SignInBar, ZoneTitle } from '@/ui/comments/CommentsBottom';
-import { IconButton } from '@/ui/kit/PulseButton';
-import { CommentsMap } from '@/ui/comments/CommentsMap';
-import { GhostRows, SpineLine, SpineNode, Tick } from '@/ui/comments/Spine';
-import { buildNodes, nearestNode, type Node } from '@/ui/comments/nodes';
-import { MenuRow } from '@/ui/comments/MenuRows';
-import { COMMENTS, ZONE_BOTTOM, belowStatus } from '@/ui/comments/measures';
-import { usePlayheadMs } from '@/ui/comments/usePlayhead';
-import { useInsets } from '@/ui/comments/useInsets';
 
-// M24 US20 (`Comments-B`): the capsule shows the three orders. The fourth, M19 FR-042's "Smart" (likes + 2 × replies − hours
-// old / 12, social-core `smartScore`), lives in the "Order options" sheet beside the capsule with the M21 reverse switch.
+const TAB = { minHeight: hit.min };
+const ARROW = { width: hit.min, height: hit.min };
+const WRITE = { minHeight: 52 };
+const ME = { width: 36, height: 36 };
+/** M17 T104: the comment menu's avatar (28 pt) and icon square (40 pt, as in `CommentMenu-B`). */
+const AVATAR = { width: 28, height: 28 };
+const ICON_BOX = { width: 40, height: 40 };
+function menuIcon(label: string): IconName {
+  if (label === 'Reply') return 'arrow-undo-outline';
+  if (label === 'Copy') return 'copy-outline';
+  if (label === 'Save') return 'bookmark-outline';
+  if (label === 'Remove from saved') return 'bookmark';
+  if (label === 'Delete') return 'trash-outline';
+  if (label === 'Pin') return 'pin-outline';
+  if (label === 'Unpin') return 'pin';
+  if (label === 'Pin to bottom') return 'arrow-down-outline';
+  if (label === 'Unpin from bottom') return 'arrow-up-outline';
+  if (label === 'Mark as unfriendly') return 'eye-off-outline';
+  if (label === 'Unmark') return 'eye-outline';
+  if (label === 'Share') return 'share-outline';
+  if (label === 'Mute') return 'volume-mute-outline';
+  if (label === 'Stop like notices') return 'notifications-off-outline'; // M22 US3
+  if (label === 'Turn like notices back on') return 'notifications-outline';
+  return 'flag-outline';
+}
+// M24 US20 (`Comments-B`): the track shows the design's three orders, full width. The fourth,
+// M19 FR-042's "Smart" (likes + 2 × replies − hours old / 12, social-core `smartScore`), moved
+// into the "Order options" sheet beside the track, with the M21 reverse switch — nothing lost.
 const ORDERS: { value: CommentOrder; label: string }[] = [
   { value: 'newest', label: 'Newest' },
   { value: 'liked', label: 'Most liked' },
   { value: 'byMoment', label: 'By moment' },
 ];
 
-/** Only the moment chip in the composer follows the playhead (M23 US7): it re-renders once per whole second. */
-function Playhead(props: { episodeId: string | undefined; at: () => number | undefined; children: (atMs: number | undefined) => React.ReactElement }): React.ReactElement {
-  usePlayheadMs(props.episodeId);
+/**
+ * M23 US7: the one part of this page that follows the playhead (the "at 12:34" pill), so a TICK
+ * re-renders this box and not the comment list. It re-renders once per whole second.
+ */
+function FollowPlayhead(props: { episodeId: string | undefined; at: () => number | undefined; children: (atMs: number | undefined) => React.ReactElement }): React.ReactElement {
+  usePlayerSelector((s) => { const v = episodePlayView(s, props.episodeId); return !v.loaded ? -2 : 'positionMs' in s && typeof s.positionMs === 'number' ? Math.floor(s.positionMs / 1000) : -1; });
   return props.children(props.at());
-}
-
-/** The map follows the playhead on its own, so the list below does not re-render with it. */
-function MapHost(props: { episodeId: string | undefined; heat: readonly number[] | undefined; durationMs: number | undefined; fallbackMs: number | undefined; listening: number | undefined; onJump: (fraction: number) => void }): React.ReactElement {
-  const head = usePlayheadMs(props.episodeId) ?? props.fallbackMs;
-  const played = props.durationMs && head !== undefined ? Math.min(1, Math.max(0, head / props.durationMs)) : 0;
-  return <CommentsMap heat={props.heat} played={played} onJump={props.onJump} listening={props.listening} />;
 }
 
 export default function CommentsScreen(): React.ReactElement {
   const { episodeId, at } = useLocalSearchParams<{ episodeId: string; at?: string }>();
   const stores = useStores();
+  const c = useColours(stores.settings);
   const toast = useToast();
   const m12 = useM12Api();
   const extras = useCommentExtrasApi();
   const player = usePlayer();
-  const insets = useInsets();
   const { api, composer, listener, useEpisodeSocial, refresh, bump } = useSocial();
   const safety = useSafety();
   usePoll(episodeId);
@@ -122,24 +130,18 @@ export default function CommentsScreen(): React.ReactElement {
   const [menu, setMenu] = useState<Comment | undefined>();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
   const [composing, setComposing] = useState<ComposerState | undefined>();
-  const [pictureFirst, setPictureFirst] = useState(false);
   const [, rerender] = useState(0);
   const [isHost, setIsHost] = useState(false);
   const [marked, setMarked] = useState<Record<string, true>>({});
-  const [imagesOn, setImagesOn] = useState(false);
-  const [zone, setZone] = useState(0);
-  const list = useRef<RNFlatList<Node>>(null);
 
   // FR-040: Pin shows only for the show's proven host (the claim the server checks too).
   const feedUrl = episode?.feedUrl;
   useEffect(() => {
     if (!listener || !feedUrl) { setIsHost(false); return undefined; }
     let live = true;
-    api.creatorClaims().then((r) => { if (live) setIsHost(Array.isArray(r) && r.some((x) => x.status === 'proven' && x.feedUrl === feedUrl)); }, () => undefined);
+    api.creatorClaims().then((r) => { if (live) setIsHost(r.some((x) => x.status === 'proven' && x.feedUrl === feedUrl)); }, () => undefined);
     return () => { live = false; };
   }, [api, listener, feedUrl]);
-  // The picture button shows only where the server has pictures on (the composer sheet's own gate).
-  useEffect(() => { let live = true; void extras.imagesOn().then((on) => { if (live) setImagesOn(on); }, () => undefined); return () => { live = false; }; }, [extras]);
 
   // The moment the listener came from (the player's position), else where they are in this episode.
   // M23 US7: read live when needed; only the small write box below follows the playhead.
@@ -152,19 +154,14 @@ export default function CommentsScreen(): React.ReactElement {
     () => orderComments(visible.map((x) => ({ ...x, createdAt: new Date(x.createdAt).getTime(), likeCount: likes[x.id]?.count ?? x.likeCount ?? 0, replyCount: replyCountOf(x), pinned: extrasOf(x).pinned === true, pinnedBottom: (x as Comment & { pinnedBottom?: true }).pinnedBottom === true, raw: x })), order, Date.now(), dir).map((o) => o.raw),
     [visible, order, dir, likes],
   );
+  // M21 US6: "N listening now" under the title — read only here (the player sends the heartbeat).
+  const listening = liveLabel(useListeningNow(episodeId, false));
   const likeOf = useCallback((x: Comment): LikeView => likes[x.id] ?? { count: x.likeCount ?? 0, liked: x.likedByMe ?? false }, [likes]);
-  const nodes = useMemo(() => buildNodes(ordered, order === 'byMoment', (c) => likeOf(c).count), [ordered, order, likeOf]);
-  // M21 US6: "N listening now" — read only here (the player sends the heartbeat); the map draws it at its right end.
-  const listeningCount = useListeningNow(episodeId, false);
-  const listening = liveLabel(listeningCount) !== undefined ? listeningCount : undefined;
-  const heat = cached?.social.heat.available ? cached.social.heat.buckets : undefined;
-  const durationMs = episode?.durationMs ?? cached?.social.episode.durationMs ?? undefined;
 
   const needSignIn = () => router.push('/auth/sign-in');
-  const compose = (parentId?: string, withPicture = false) => {
+  const compose = (parentId?: string) => {
     if (!listener) { needSignIn(); return; }
     if (!episodeId) return;
-    setPictureFirst(withPicture);
     setComposing(composer.open({ episodeId, offsetMs: atNow() ?? 0, ...(episode?.durationMs !== undefined ? { durationMs: episode.durationMs } : {}) }, parentId));
   };
   const seek = (offsetMs: number) => {
@@ -173,12 +170,6 @@ export default function CommentsScreen(): React.ReactElement {
     const playable = toPlayable(stores, episodeId);
     if (playable) { player.load(playable, 'play'); player.seek(offsetMs); }
   };
-  // The map: a touch asks for that share of the episode; the thread scrolls to the moment nearest it.
-  const jump = useCallback((fraction: number) => {
-    if (!durationMs) return;
-    const i = nearestNode(nodes, fraction * durationMs);
-    if (i >= 0) list.current?.scrollToIndex({ index: i, animated: true, viewPosition: 0 });
-  }, [durationMs, nodes]);
   // FR-023: public likes, shown at once and put back if the server says no.
   const like = async (x: Comment) => {
     if (!listener) { needSignIn(); return; }
@@ -259,9 +250,8 @@ export default function CommentsScreen(): React.ReactElement {
     }, () => toast("Couldn't change that — try again."));
   };
 
-  // The drawing's visitor menu has no Reply (the card's own "Reply" sends them to sign-in); Mute and Mark need an account.
-  const menuItems = (x: Comment): MenuItem[] => [
-    ...(x.parentId === null && listener ? [{ label: 'Reply', run: () => compose(x.id) }] : []),
+  const menuItems = (x: Comment) => [
+    ...(x.parentId === null ? [{ label: 'Reply', run: () => compose(x.id) }] : []),
     { label: 'Share', run: () => shareComment(x) },
     ...(x.body ? [{ label: 'Copy', run: () => { Clipboard.setString(x.body ?? ''); toast('Copied.'); } }] : []),
     ...(x.body && episodeId ? [{
@@ -278,133 +268,137 @@ export default function CommentsScreen(): React.ReactElement {
       : { label: 'Report', run: () => setReporting({ kind: 'comment', id: x.id, authorId: x.authorId, label: 'comment' }) },
   ];
 
-  const serverTime = cached?.social.serverTime ?? new Date().toISOString();
-  const top = (drawn: number) => belowStatus(insets.top, drawn);
-  // First load: the ghost rows, until the page has waited as long as the shared empty states do (10 s) or the server said no.
-  const [waited, setWaited] = useState(0);
-  useEffect(() => {
-    if (cached !== undefined) return undefined;
-    const t0 = Date.now();
-    const timer = setInterval(() => setWaited(Date.now() - t0), 1000);
-    return () => clearInterval(timer);
-  }, [cached]);
-  const loading = cached === undefined && !stale && waited < GIVE_UP_AFTER_MS;
-  const failedLoad = cached === undefined && !loading;
-  const empty = cached !== undefined && nodes.length === 0;
-  const smartOn = order === 'smart';
-  const reversed = dir !== defaultDir(order);
-
   return (
-    <Box className="flex-1 bg-void">
-      {/* Top: the episode strip, then the map of the whole episode with who is listening now. */}
-      <Box className="absolute left-0 right-0" style={{ top: top(56), zIndex: 5 }} testID="comments-strip">
-        {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
+    <>
+    <PageHeader title={count > 0 ? `Comments ${count}` : 'Comments'} {...(listening ? { subtitle: listening } : {})} />
+    {/* iPhone walk 2026-10-06: the keyboard covered the voice review's text box — the page now lifts. */}
+    <KeyboardAvoidingView className="flex-1 bg-background" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {/* Owner, 2026-10-01: the episode, with its own play/pause, at the top of the page. */}
+      {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
+      <Box className="flex-row items-center gap-gap mx-screen-x mt-row">
+        <Segmented items={ORDERS} value={order} onChange={setOrder} className="flex-1" tone="dark" />
+        {/* M24 US20: "Smart" order and M21 US6's reverse switch live in this small sheet. */}
+        <Pressable
+          onPress={() => setOrderMenu(true)}
+          accessibilityRole="button"
+          accessibilityLabel={order === 'smart' ? 'Order options, Smart order on' : 'Order options'}
+          accessibilityState={{ selected: order === 'smart' || dir !== defaultDir(order) }}
+          className={`items-center justify-center rounded-pill border border-border ${order === 'smart' ? 'bg-text' : 'bg-surface'}`}
+          style={ARROW}
+        >
+          <Icon name="options-outline" size={18} color={order === 'smart' ? c.background : c.accent} />
+        </Pressable>
       </Box>
-      <Box className="absolute" style={{ left: COMMENTS.gutter, right: COMMENTS.gutter, top: top(102), zIndex: 5 }} testID="comments-map-row">
-        <MapHost episodeId={episodeId} heat={heat} durationMs={durationMs} fallbackMs={stores.positions.get(episodeId ?? '')?.offsetMs} listening={listening} onJump={jump} />
-      </Box>
-      {stale ? <Type step="tag" className="absolute text-text3" style={{ left: COMMENTS.gutter, top: top(102) + COMMENTS.mapHeight + 2, zIndex: 5 }}>Couldn't refresh — showing the last copy</Type> : null}
-      {/* The spine and the thread. */}
-      <Box className="absolute left-0 right-0 bottom-0 overflow-hidden" style={{ top: top(140), zIndex: 3 }} testID="comments-thread">
-        {failedLoad ? (
-          // Nothing cached and the server did not answer: the shared offline / error block, with Retry.
-          <Box className="absolute left-0 right-0" style={{ top: 0, bottom: zone }}>
-            <EmptyState surface="comments" page failed onRetry={() => { if (episodeId) void refresh(episodeId); }} />
-          </Box>
-        ) : empty ? (
-          <Box className="absolute" style={{ left: 24, right: 24, top: 110 }}>
-            <EmptyState surface="comments" page action={{ label: 'Comment here', onPress: () => compose() }} />
-          </Box>
-        ) : loading ? (
-          <Box style={{ paddingTop: COMMENTS.listTop, paddingRight: COMMENTS.listRight }}><GhostRows /></Box>
-        ) : (
-          <>
-            <SpineLine />
-            <FlatList
-              ref={list}
-              data={nodes}
-              keyExtractor={(n) => n.key}
-              contentContainerStyle={{ paddingTop: COMMENTS.listTop, paddingLeft: COMMENTS.listLeft, paddingRight: COMMENTS.listRight, paddingBottom: zone + 24, gap: COMMENTS.nodeGap }}
-              // Owner, 2026-10-05: the bottom of a fetched list says so ("That's all", a tick on the spine).
-              ListFooterComponent={<Box className="flex-row items-center" style={{ width: COMMENTS.chipColumn, justifyContent: 'center' }}><Tick text="That's all" /></Box>}
-              onScrollToIndexFailed={(info) => { list.current?.scrollToOffset({ offset: Math.max(0, info.averageItemLength * info.index), animated: true }); }}
-              renderItem={({ item }) => (
-                <SpineNode momentMs={item.momentMs} reacted={item.reacted} onSeek={seek}>
-                  {item.comments.map((c) => (
-                    <CommentRow
-                      key={c.id}
-                      c={c}
-                      serverTime={serverTime}
-                      likeOf={likeOf}
-                      onSeek={seek}
-                      onLike={(x) => void like(x)}
-                      onMenu={setMenu}
-                      onReply={(x) => compose(x.id)}
-                      playVoice={playVoice}
-                      teenMode={getPref(stores.settings, 'hideExplicit')}
-                      ringed={composing?.parentId === c.id}
-                      onOpenThread={(x) => router.push({ pathname: '/comments/thread/[commentId]', params: { commentId: x.id, episodeId: episodeId ?? '' } })}
-                    />
-                  ))}
-                </SpineNode>
-              )}
-            />
-          </>
+      <Actionsheet isOpen={orderMenu} onClose={() => setOrderMenu(false)}>
+        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+        <ActionsheetContent className="px-screen-x items-stretch">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          <Text className="text-text text-title font-display mt-gap mb-row" accessibilityRole="header">Order</Text>
+          <SheetRow
+            icon="sparkles-outline"
+            iconColour={c.accent}
+            label="Smart order"
+            detail={order === 'smart' ? 'On' : 'Likes, replies, new'}
+            selected={order === 'smart'}
+            onPress={() => { setOrder(order === 'smart' ? 'newest' : 'smart'); setOrderMenu(false); }}
+          />
+          <SheetRow
+            icon={dir === 'asc' ? 'arrow-up' : 'arrow-down'}
+            iconColour={c.accent}
+            label="Reverse order"
+            detail={dir !== defaultDir(order) ? 'On' : 'Off'}
+            selected={dir !== defaultDir(order)}
+            onPress={() => { setDir((d) => (d === 'asc' ? 'desc' : 'asc')); setOrderMenu(false); }}
+          />
+          <Box className="pb-section" />
+        </ActionsheetContent>
+      </Actionsheet>
+      {stale ? <Text className="text-muted text-xs px-screen-x pt-2">Couldn't refresh — showing the last copy</Text> : null}
+      <FlatList
+        className="flex-1"
+        data={ordered}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={ordered.length > 0 ? <EndOfList /> : undefined}
+        keyExtractor={(x) => x.id}
+        contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow"
+        ListEmptyComponent={<EmptyState surface="comments" page action={{ label: 'Comment here', onPress: () => compose() }} />}
+        renderItem={({ item }) => (
+          <CommentRow
+            c={item}
+            serverTime={cached?.social.serverTime ?? new Date().toISOString()}
+            likeOf={likeOf}
+            iconColour={{ muted: c.muted, accent: c.accent }}
+            onSeek={seek}
+            onLike={(x) => void like(x)}
+            onMenu={setMenu}
+            playVoice={playVoice}
+            teenMode={getPref(stores.settings, 'hideExplicit')}
+            onOpenThread={(x) => router.push({ pathname: '/comments/thread/[commentId]', params: { commentId: x.id, episodeId: episodeId ?? '' } })}
+          />
         )}
-      </Box>
-      <Fade bottom={0} height={COMMENTS.fullHeight + 90} />
-      {/* The thumb zone: close and the title, the order capsule, the composer. FR-021: it stays at the bottom and carries the moment. */}
-      <BottomZone bottom={ZONE_BOTTOM}>
-        <Box onLayout={(e) => setZone(e.nativeEvent.layout.height + ZONE_BOTTOM)}>
-          <Box style={{ gap: COMMENTS.zoneGap }}>
-            <ZoneTitle title="Comments" count={count} back={{ icon: 'chevron-down', label: 'Close', onPress: goBack }} />
-            <Box className="flex-row items-center" style={{ gap: 8, paddingHorizontal: COMMENTS.titleRowPad }}>
-              <Capsule items={ORDERS} value={order === 'smart' ? 'newest' : order} onChange={setOrder} />
-              {/* M24 US20: "Smart" order and M21 US6's reverse switch live in the small sheet this opens. */}
-              <IconButton icon="options-outline" label={order === 'smart' ? 'Order options, Smart order on' : 'Order options'} onPress={() => setOrderMenu(true)} fill selected={smartOn || reversed} size={18} diameter={COMMENTS.optionsCircle} />
-            </Box>
-            {listener ? (
-              // M19 FR-044: the mic inside the bar records a voice comment at the same moment.
-              <VoiceComposer episodeId={episodeId ?? ''} offsetMs={() => livePositionMs(player, episodeId)} onPosted={() => { if (episodeId) void refresh(episodeId); }}>
-                {(mic) => (
-                  <Playhead episodeId={episodeId} at={atNow}>{(atMs) => (
-                    <ComposerBar
-                      {...(atMs !== undefined ? { moment: mmss(atMs) } : {})}
-                      placeholder="Say something about this episode…"
-                      accessibilityLabel={`Write a comment${atMs !== undefined ? ` at ${mmss(atMs)}` : ''}`}
-                      onOpen={() => compose()}
-                      mic={mic}
-                      {...(imagesOn ? { onImage: () => compose(undefined, true) } : {})}
-                    />
-                  )}</Playhead>
-                )}
-              </VoiceComposer>
-            ) : <SignInBar label="Sign in to join the conversation" onPress={needSignIn} />}
+      />
+      {/* FR-021: the write box stays at the bottom and already carries the moment.
+          M19 FR-044: the mic beside it records a voice comment at the same moment. */}
+      <Box className="mx-screen-x my-2">
+      <VoiceComposer
+        episodeId={episodeId ?? ''}
+        offsetMs={() => livePositionMs(player, episodeId)}
+        onPosted={() => { if (episodeId) void refresh(episodeId); }}
+      >
+      <FollowPlayhead episodeId={episodeId} at={atNow}>{(atMs) => (
+      <Pressable onPress={() => compose()} accessibilityRole="button" accessibilityLabel={listener ? `Write a comment${atMs !== undefined ? ` at ${mmss(atMs)}` : ''}` : 'Sign in to join the conversation'} className="flex-row items-center gap-2.5 px-2 bg-surface border-2 border-primary rounded-pill" style={WRITE}>
+        {listener ? (
+          <Box className="rounded-pill bg-accentTint items-center justify-center" style={ME} accessible={false}>
+            <Text className="text-text text-xs font-bold">{initialsFor({ displayName: listener.displayName })}</Text>
           </Box>
-        </Box>
-      </BottomZone>
-      <ActionSheet open={orderMenu} onClose={() => setOrderMenu(false)} label="Order" title="Order">
-        {/* Drawn (`social.html` `comments--order-options-sheet`): the two rows and a 6 tall spacer are direct children of the sheet,
-            so the sheet's 14 gap falls between the rows and above the foot (the wave-2 capture: 225 built vs 259 drawn). */}
-        <MenuRow
-          icon="sparkles-outline"
-          label="Smart order"
-          detail={smartOn ? 'On' : 'Likes, replies, new'}
-          on={smartOn}
-          onPress={() => { setOrder(smartOn ? 'newest' : 'smart'); setOrderMenu(false); }}
-        />
-        <MenuRow
-          icon={dir === 'asc' ? 'arrow-up-outline' : 'arrow-down-outline'}
-          label="Reverse order"
-          detail={reversed ? 'On' : 'Off'}
-          on={reversed}
-          onPress={() => { setDir((d) => (d === 'asc' ? 'desc' : 'asc')); setOrderMenu(false); }}
-        />
-        <Box testID="order-sheet-foot" style={{ height: COMMENTS.orderFoot }} />
-      </ActionSheet>
-      <CommentMenu comment={menu} items={menu ? menuItems(menu) : []} onClose={() => setMenu(undefined)} />
+        ) : null}
+        <Text className={listener ? 'text-muted text-body flex-1' : 'text-muted text-body flex-1 pl-2'} numberOfLines={1}>{listener ? 'Say something about this episode…' : 'Sign in to join the conversation'}</Text>
+        {listener && atMs !== undefined ? <Text className="text-onPrimary text-xs font-bold bg-primary rounded-pill px-2.5 py-1.5">{`at ${mmss(atMs)}`}</Text> : null}
+      </Pressable>
+      )}</FollowPlayhead>
+      </VoiceComposer>
+      </Box>
+      <Actionsheet isOpen={menu !== undefined} onClose={() => setMenu(undefined)}>
+        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+        <ActionsheetContent className="px-screen-x items-stretch">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          {/* M17 (`CommentMenu-B`, T104): the comment itself on a white card, then one row per action
+              with its icon in a bordered square; Delete / Report sit under a rule; Cancel is a pill. */}
+          {menu ? (
+            <Box className="bg-surface border border-border rounded-row p-row mt-gap mb-row" accessible accessibilityLabel={`${menu.displayName ?? 'A listener'}${menu.offsetMs !== null ? ` at ${mmss(menu.offsetMs)}` : ''}: ${menu.body ?? ''}`}>
+              <Box className="flex-row items-center gap-gap">
+                <Box className="rounded-pill bg-accentTint items-center justify-center" style={AVATAR}>
+                  <Text className="text-text text-micro font-bold">{initialsFor(menu)}</Text>
+                </Box>
+                <Text className="text-text text-meta font-bold flex-1" numberOfLines={1}>{menu.displayName ?? 'A listener'}</Text>
+                {menu.offsetMs !== null ? <Text className="text-accent text-xs font-bold">{mmss(menu.offsetMs)}</Text> : null}
+              </Box>
+              {menu.body ? <Text className="text-text text-title font-display-semibold mt-gap" numberOfLines={4}>{menu.body}</Text> : null}
+            </Box>
+          ) : null}
+          {menu ? menuItems(menu).map((item) => {
+            const strong = item.label === 'Delete' || item.label === 'Report';
+            return (
+              <Box key={item.label}>
+                {strong ? <Box className="border-b-hairline border-separator my-gap" /> : null}
+                <Pressable onPress={() => { setMenu(undefined); item.run(); }} accessibilityRole="button" className="flex-row items-center gap-section" style={TAB}>
+                  <Box className="rounded-row bg-surface border border-border items-center justify-center" style={ICON_BOX}>
+                    <Icon name={menuIcon(item.label)} size={18} color={c.accent} />
+                  </Box>
+                  <Text className={strong ? 'text-accent text-sm font-semibold' : 'text-text text-sm font-semibold'}>{item.label}</Text>
+                </Pressable>
+              </Box>
+            );
+          }) : null}
+          <Pressable onPress={() => setMenu(undefined)} accessibilityRole="button" className="justify-center items-center rounded-pill border border-border mt-row" style={TAB}>
+            <Text className="text-accent text-body font-bold">Cancel</Text>
+          </Pressable>
+        </ActionsheetContent>
+      </Actionsheet>
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
-      {composing ? <ComposerSheet initial={composing} pickPicture={pictureFirst} onClose={() => setComposing(undefined)} onPosted={() => { if (episodeId) void refresh(episodeId); }} /> : null}
-    </Box>
+      {composing ? <ComposerSheet initial={composing} onClose={() => setComposing(undefined)} onPosted={() => { if (episodeId) void refresh(episodeId); }} /> : null}
+    </KeyboardAvoidingView>
+    </>
   );
 }
+

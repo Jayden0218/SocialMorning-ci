@@ -30,8 +30,7 @@ import { MarkdownBlocks } from '@/ui/content/Markdown';
 import { RATE_AT_KEY, RATE_KEY, shouldAskRating, storeUrlFor } from '@/ui/shell/RateSheet';
 import type { Fetched } from '@/config/api';
 
-// M31 L7: untouched, the tiles run in the drawing's order (`discover--screen`); an order the admin saved is kept as saved.
-const TODAY = ['Friends listening', 'Categories', 'Queue', 'Issues', 'Premium', 'Academy', 'Plaza', 'Talked about'];
+const TODAY = ['Categories', 'Queue', 'Issues', 'Friends listening', 'Academy', 'Premium', 'Plaza', 'Talked about'];
 const down = async (): Promise<never> => { throw new ApiError('network', "Couldn't reach the server.", 0); };
 const answer = (body: unknown, etag = 'W/"1"') => async (): Promise<Fetched<unknown>> => ({ status: 200, etag, body });
 const memory = () => {

@@ -31,10 +31,7 @@ it('picks a reason, sends with the note, closes; Send is disabled until a reason
   const onReported = jest.fn();
   let r!: ReactTestRenderer;
   act(() => { r = create(createElement(GluestackUIProvider, null, createElement(ReportSheet, { target: { kind: 'comment', id: 'c1', authorId: 'them', label: 'comment' }, onClose, onReported }))); });
-  // M31 W2-B: Send is the kit's PulseButton — disabled it has no onPress and says `disabled` in its state.
-  const sendNow = r.root.find((n) => n.props['accessibilityLabel'] === 'Send report' && n.props['accessibilityState'] !== undefined);
-  expect(sendNow.props['accessibilityState']).toMatchObject({ disabled: true });
-  expect(sendNow.props['onPress']).toBeUndefined();
+  expect(byLabel(r, 'Send report').props['accessibilityState']).toEqual({ disabled: true });
   act(() => { byLabel(r, 'Harassment').props['onPress'](); });
   expect(byLabel(r, 'Harassment').props['accessibilityState']).toEqual({ checked: true });
   act(() => { r.root.find((n) => n.props['accessibilityLabel'] === 'Note, optional').props['onChangeText']('  see it  '); });

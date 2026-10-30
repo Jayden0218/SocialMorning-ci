@@ -14,40 +14,31 @@
  * passcode?" emails a 6-digit code to the account (POST /v1/me/teen-reset/start); the right code
  * (…/check) turns the mode off and clears the passcode. A mode turned on before M19 has no
  * passcode, so it turns off as before.
- *
- * M31 S-A (T060; design-pulse2 `settings-minor--screen`, `--set-passcode`, `--confirm-passcode`, `--turn-off-prompt`, `--forgot-passcode`, `toast--settings-minor`; Stage + Panel): a 112 disc
- * (hot-text to hot to violet, a moon 48 in void, a hot glow) centred at the top with the line under it in 14 / 20; **Hide explicit episodes** as one large switch tile (Unbounded 17, its state
- * "On / Off" in mono 12; on = the tinted wash with a hot ring and "· Locked with a passcode"); the note "This relies on each publisher…" (12, centred) closes the page. Turning it on asks for a
- * passcode (set, then confirm), turning it off asks for it (with **Forgot passcode?** by email code); the switch is disabled while a passcode is being typed. Then the disc shrinks to 72 and a
- * tile ringed in hot asks the question: four 18 dots fill as digits arrive (or six cells for the emailed code); a wrong try says how many are left; locked says until when, in place of the dots.
- * The number pad is the page's own hidden field (so the keyboard, the spoken name "Passcode" and secure entry are the real ones); **Cancel** (quiet) and **Forgot passcode?** (ring) sit in the tile.
  */
 import { useState } from 'react';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Input, InputField } from '@/ui/lib/input';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { LinearGradient } from '@/design/tailwind';
-import { colour, glow } from '@/design';
+import { hit, size } from '@/design';
 import { getPref, setPref } from '@/settings/prefs';
 import { checkPasscode, clearPasscode, hasPasscode, isPasscode, lockedUntil, PASSCODE_LENGTH, setPasscode } from '@/settings/teen-passcode';
 import { useSocial } from '@/social/context';
 import { ApiError } from '@/social/api';
 import { useM19Api } from '@/social/m19-api';
 import { useStores, useToast } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { Toggle } from '@/ui/kit/Toggle';
-import { Type } from '@/ui/kit/Type';
-import { KeyboardPage } from '@/ui/me/lists';
-import { settingsColour } from '@/design/tokens';
-import { Note, Sec, SetCard, SetPage } from '@/ui/settings/hub-parts';
-import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
+import { Card } from '@/ui/kit/Card';
+import { PageHeader } from '@/ui/kit/PageHeader';
 
-/** The disc is 112 (72 while a passcode is typed); its moon is 48 (32). */
-const DISC = { big: 112, small: 72, moonBig: 48, moonSmall: 32 } as const;
-const DOT = 18;
-const CELL = 58;
+const TAP = { minHeight: size.row };
+const DISC = { width: 112, height: 112 };
+const BUTTON = { minHeight: hit.min };
 
+/** What the passcode box is asking for, if anything. */
 type Step = { kind: 'none' } | { kind: 'set' } | { kind: 'confirm'; first: string } | { kind: 'off' } | { kind: 'code' };
 
 const PROMPT: Record<Exclude<Step['kind'], 'none'>, string> = {
@@ -61,6 +52,7 @@ const clock = (ms: number) => new Date(ms).toLocaleTimeString([], { hour: '2-dig
 
 export default function MinorMode(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const [on, setOn] = useState(() => getPref(stores.settings, 'hideExplicit'));
   const toast = useToast();
   const { listener } = useSocial();
@@ -119,81 +111,68 @@ export default function MinorMode(): React.ReactElement {
   const typing = step.kind !== 'none';
   const length = step.kind === 'code' ? 6 : PASSCODE_LENGTH;
   const blocked = step.kind === 'off' && locked !== undefined;
-  const disc = typing ? DISC.small : DISC.big;
   return (
-    <KeyboardPage>
-      <PushedPage title="Minor mode">
-        {(layout) => (
-          <SetPage layout={layout}>
-            <Box className="items-center" style={{ gap: SET.gap, paddingTop: typing ? 0 : 20, paddingHorizontal: 10 }}>
-              <Box testID="minor-disc" className="overflow-hidden items-center justify-center" style={{ width: disc, height: disc, borderRadius: disc / 2, shadowColor: glow.cover.color, shadowOpacity: glow.cover.opacity, shadowRadius: glow.cover.radius, shadowOffset: { width: 0, height: 0 } }}>
-                <LinearGradient colors={[colour.hotText, colour.hot, colour.violet]} locations={[0, 0.55, 1]} start={{ x: 0.3, y: 0.25 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
-                <Icon name="moon-outline" size={typing ? DISC.moonSmall : DISC.moonBig} color={colour.void} />
-              </Box>
-              <Type step="note" className="text-text2 text-center">Episodes their publisher marks explicit are not listed in Updates, show pages or the inbox.</Type>
-            </Box>
-            <Sec label="Switch">
-              <Box testID="minor-switch" className="flex-row items-center" style={{ gap: SET.rowGap, padding: SET.tilePad, borderRadius: SET.radius, ...(on ? { backgroundColor: settingsColour.wash, borderWidth: 1, borderColor: settingsColour.ring } : { backgroundColor: colour.raise }) }}>
-                <Box className="flex-1">
-                  <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>Hide explicit episodes</Type>
-                  <Type step="mono" className={on ? 'text-hotText' : 'text-text3'} style={[SET_TYPE.mono12, { marginTop: 4 }]}>{`${on ? 'On' : 'Off'}${on && hasPasscode(stores.settings) && !typing ? ' · Locked with a passcode' : ''}`}</Type>
-                </Box>
-                {/* M16a T004: the app's own toggle, not the iOS switch. */}
-                {/* M19 T090: on asks for a new passcode; off asks for it (the pref changes only after). */}
-                <Toggle value={on} onChange={onToggle} label="Hide explicit episodes" disabled={typing} />
-              </Box>
-            </Sec>
-            {typing ? (
-              <SetCard testID="passcode-card" wash gap={SET.rowGap}>
-                <Type step="row" className="text-text" style={SET_TYPE.field15}>{PROMPT[step.kind]}</Type>
-                {blocked ? (
-                  <Type step="caption" className="text-hotText" style={SET_TYPE.line13}>{`Too many wrong tries. Try again after ${clock(locked ?? 0)}.`}</Type>
-                ) : (
-                  <Box style={{ paddingVertical: step.kind === 'code' ? 0 : SET.gap }}>
-                    {step.kind === 'code' ? (
-                      <Box testID="code-cells" className="flex-row" style={{ gap: SET.gap }} accessible={false} importantForAccessibility="no-hide-descendants">
-                        {Array.from({ length }, (_, k) => (
-                          <Box key={k} className="flex-1 bg-raise2 items-center justify-center" style={{ height: CELL, borderRadius: 16, ...(k === entry.length ? { borderWidth: 1.5, borderColor: colour.hot } : null) }}>
-                            <Type step="lede" className="text-text font-bold" style={SET_TYPE.cell26}>{entry[k] ?? ''}</Type>
-                          </Box>
-                        ))}
-                      </Box>
-                    ) : (
-                      <Box testID="passcode-dots" className="flex-row justify-center" style={{ gap: 14 }} accessible={false} importantForAccessibility="no-hide-descendants">
-                        {Array.from({ length }, (_, k) => (
-                          <Box key={k} style={{ width: DOT, height: DOT, borderRadius: DOT / 2, ...(k < entry.length ? { backgroundColor: colour.text } : { borderWidth: 2, borderColor: colour.idle }) }} />
-                        ))}
-                      </Box>
-                    )}
-                    {/* The number pad: a real field laid over the dots, drawn invisible, so the keyboard, secure entry and the spoken name are the phone's. */}
-                    <Input className="absolute border-0 bg-transparent" style={{ left: 0, right: 0, top: 0, bottom: 0, opacity: 0 }}>
-                      <InputField
-                        key={step.kind}
-                        value={entry}
-                        onChangeText={(t) => { const d = t.replace(/\D/g, '').slice(0, length); setEntry(d); if (d.length === length) submit(d); }}
-                        keyboardType="number-pad"
-                        secureTextEntry={step.kind !== 'code'}
-                        maxLength={length}
-                        autoFocus
-                        placeholder={step.kind === 'code' ? '6-digit code' : '4 digits'}
-                        placeholderTextColor={colour.text3}
-                        accessibilityLabel={step.kind === 'code' ? 'Emailed code' : step.kind === 'confirm' ? 'Passcode again' : 'Passcode'}
-                        className="text-text"
-                      />
-                    </Input>
-                  </Box>
-                )}
-                {problem ? <Type step="caption" className="text-hotText" style={SET_TYPE.line13} accessibilityLiveRegion="polite">{problem}</Type> : null}
-                <Box className="flex-row" style={{ gap: SET.tileGap }}>
-                  <Box className="flex-1"><PulseButton kind="quiet2" label="Cancel" onPress={() => go({ kind: 'none' })} full /></Box>
-                  {step.kind === 'off' ? <Box className="flex-1"><PulseButton kind="ring" label="Forgot passcode?" onPress={forgot} disabled={busy} full /></Box> : null}
-                </Box>
-              </SetCard>
+    <>
+    {/* M17: an empty middle — the title is drawn centred under the disc instead. */}
+    <PageHeader middle={<Box />} />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-row pb-24">
+      <Box className="items-center">
+        <Box className="bg-primary rounded-pill items-center justify-center" style={DISC}>
+          <Icon name="umbrella-outline" size={48} color={c.onPrimary} />
+        </Box>
+        <Text className="text-text text-display font-display text-center mt-section" accessibilityRole="header">Minor mode</Text>
+        <Text className="text-muted text-body text-center mt-gap leading-[22px]">Episodes their publisher marks explicit are not listed in Updates, show pages or the inbox.</Text>
+      </Box>
+      <Card className="mt-section py-row">
+        <Box className="flex-row items-center gap-section" style={TAP}>
+          <Box className="flex-1">
+            <Text className="text-text text-body font-bold">Hide explicit episodes</Text>
+            <Text className="text-accent text-xs font-bold mt-0.5">{on ? 'On' : 'Off'}</Text>
+          </Box>
+          {/* M16a T004: the app's own toggle, not the iOS switch. */}
+          {/* M19 T090: on asks for a new passcode; off asks for it (the pref changes only after). */}
+          <Toggle value={on} onChange={onToggle} label="Hide explicit episodes" disabled={typing} />
+        </Box>
+        {on && hasPasscode(stores.settings) && !typing ? <Text className="text-muted text-xs mt-gap">Locked with a passcode</Text> : null}
+      </Card>
+      {typing ? (
+        <Card className="mt-row py-row gap-row">
+          <Text className="text-text text-body font-bold">{PROMPT[step.kind]}</Text>
+          {blocked ? (
+            <Text className="text-accent text-body">{`Too many wrong tries. Try again after ${clock(locked ?? 0)}.`}</Text>
+          ) : (
+            <Input className="bg-background border border-border rounded-row h-auto px-0">
+              <InputField
+                key={step.kind}
+                value={entry}
+                onChangeText={(t) => { const d = t.replace(/\D/g, '').slice(0, length); setEntry(d); if (d.length === length) submit(d); }}
+                keyboardType="number-pad"
+                secureTextEntry={step.kind !== 'code'}
+                maxLength={length}
+                autoFocus
+                placeholder={step.kind === 'code' ? '6-digit code' : '4 digits'}
+                placeholderTextColor={c.muted}
+                accessibilityLabel={step.kind === 'code' ? 'Emailed code' : step.kind === 'confirm' ? 'Passcode again' : 'Passcode'}
+                className="p-row text-text text-lg text-center"
+              />
+            </Input>
+          )}
+          {problem ? <Text className="text-accent text-meta">{problem}</Text> : null}
+          <Box className="flex-row justify-between items-center">
+            <Pressable onPress={() => go({ kind: 'none' })} accessibilityRole="button" accessibilityLabel="Cancel" className="justify-center" style={BUTTON}>
+              <Text className="text-accent text-body font-bold">Cancel</Text>
+            </Pressable>
+            {step.kind === 'off' ? (
+              <Pressable onPress={forgot} disabled={busy} accessibilityRole="button" accessibilityLabel="Forgot passcode?" className="justify-center" style={BUTTON}>
+                <Text className="text-accent text-body font-semibold">Forgot passcode?</Text>
+              </Pressable>
             ) : null}
-            <Note centre>This relies on each publisher marking its episodes. SocialNet does not check the audio itself.</Note>
-          </SetPage>
-        )}
-      </PushedPage>
-    </KeyboardPage>
+          </Box>
+        </Card>
+      ) : null}
+      <Box className="border-b-hairline border-separator mt-section mx-1" />
+      <Text className="text-muted text-xs mt-row mx-1">This relies on each publisher marking its episodes. SocialNet does not check the audio itself.</Text>
+    </ScrollView>
+    </>
   );
 }

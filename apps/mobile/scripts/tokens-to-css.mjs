@@ -60,13 +60,12 @@ export function channels(value) {
  * two of them (accent, muted) already mean something else in this app (data-model §1).
  */
 export function renderBlock(tokens = loadTokens()) {
-  const { colour, fontSize, lineHeight, spacing, radius, size } = tokens;
+  const { colour, fontSize, spacing, radius, size } = tokens;
   const lines = [BEGIN];
-  // M31 (constitution v4.0.0): dark only. UniWind always builds a `light` AND a `dark` theme
+  // M17 (constitution v3.0.0): light only. UniWind always builds a `light` AND a `dark` theme
   // (bundler/config.js hard-codes both and refuses themes whose variables differ — seen on the
-  // first device bundle, 2026-10-03), and follows the phone's scheme. So both are written as the
-  // same Pulse palette: a phone set to Light still draws the dark Pulse look. (Since M17 the two
-  // were a copy of the Editorial light palette; the variant names stay because UniWind needs them.)
+  // first device bundle, 2026-10-03), and follows the phone's scheme. So `dark` is written as an
+  // exact copy of the light palette: a phone set to Dark still draws the light Editorial look.
   lines.push('@layer theme {', '  :root {');
   for (const [name, palette] of [['light', colour], ['dark', colour]]) {
     lines.push(`    @variant ${name} {`);
@@ -88,23 +87,17 @@ export function renderBlock(tokens = loadTokens()) {
   // Font sizes REPLACE the default scale, as in v3; no line-height is set, as in v3.
   lines.push('  --text-*: initial;');
   for (const [k, v] of Object.entries(fontSize)) lines.push(`  --text-${k}: ${v}px;`);
-  // M31: the Pulse steps carry their line height, as Tailwind v4's `text-*` utilities read it.
-  for (const [k, v] of Object.entries(lineHeight ?? {})) lines.push(`  --text-${k}--line-height: ${v}px;`);
   // gluestack's size props ask for 2xs…6xl; M7's type scale has four steps, so the extra
   // names land on the nearest one instead of silently falling back to the default size.
-  const alias = { '2xs': 'xs', xl: 'lg', '2xl': 'lg', '3xl': 'lg', '4xl': 'lg', '5xl': 'lg', '6xl': 'lg' };
+  const alias = { '2xs': 'xs', md: 'base', xl: 'lg', '2xl': 'lg', '3xl': 'lg', '4xl': 'lg', '5xl': 'lg', '6xl': 'lg' };
   for (const [k, to] of Object.entries(alias)) lines.push(`  --text-${k}: ${fontSize[to]}px;`);
-  // M31: the spacing scale 4 · 8 · 12 · 16 · 20 · 24 · 32 · 48 by name (`p-gap`, `gap-block`), so a class never carries a bare number.
   lines.push(`  --spacing-screen-x: ${spacing.screenX}px;`, `  --spacing-row: ${spacing.row}px;`, `  --spacing-gap: ${spacing.gap}px;`, `  --spacing-section: ${spacing.section}px;`);
-  for (const k of ['hair', 'block', 'group', 'region']) if (spacing[k] !== undefined) lines.push(`  --spacing-${k}: ${spacing[k]}px;`);
   // M12 FR-050: `min-h-row-h` — a list row's height (not `row`, which is the 12 pt padding).
   if (size) lines.push(`  --spacing-row-h: ${size.row}px;`);
   lines.push(`  --radius-row: ${radius.row}px;`, `  --radius-artwork: ${radius.artwork}px;`, `  --radius-pill: ${radius.pill}px;`);
   if (radius.artworkLarge) lines.push(`  --radius-artwork-lg: ${radius.artworkLarge}px;`);
   // M24 US18: `rounded-t-sheet`, the 24 pt top corners of every sheet.
   if (radius.sheet) lines.push(`  --radius-sheet: ${radius.sheet}px;`);
-  // M31: chip 7, small 12, bar 18, input 18, card 24, cover 24, dialog 28, button 24.
-  for (const k of ['chip', 'small', 'bar', 'input', 'card', 'cover', 'dialog', 'button', 'toast', 'tick']) if (radius[k] !== undefined) lines.push(`  --radius-${k}: ${radius[k]}px;`);
   lines.push('}');
   // `StyleSheet.hairlineWidth` as utilities (v3 had `borderWidth.hairline` in the config).
   for (const [cls, prop] of [['border-hairline', 'border-width'], ['border-t-hairline', 'border-top-width'], ['border-b-hairline', 'border-bottom-width'], ['border-l-hairline', 'border-left-width'], ['border-r-hairline', 'border-right-width']]) {

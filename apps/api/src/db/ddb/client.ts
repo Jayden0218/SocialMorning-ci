@@ -17,7 +17,6 @@
  */
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { awsRegionEnv, ddbEndpointEnv } from '../../config.ts';
 
 export type DdbClientOptions = {
   /** e.g. `http://localhost:8000` (DynamoDB Local). Taken from `DDB_ENDPOINT` when not given. */
@@ -39,8 +38,8 @@ export function isLocalEndpoint(endpoint: string): boolean {
 export type Clients = { raw: DynamoDBClient; doc: DynamoDBDocumentClient };
 
 export function createDdbClients(opts: DdbClientOptions = {}): Clients {
-  const endpoint = opts.endpoint ?? ddbEndpointEnv();
-  const region = opts.region ?? awsRegionEnv() ?? DEFAULT_REGION;
+  const endpoint = opts.endpoint ?? process.env['DDB_ENDPOINT'];
+  const region = opts.region ?? process.env['AWS_REGION'] ?? DEFAULT_REGION;
   if (endpoint && !isLocalEndpoint(endpoint) && !opts.allowAws) {
     throw new Error('DynamoDB endpoint is not local and allowAws is not set (no AWS account is approved yet)');
   }

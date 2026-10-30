@@ -7,28 +7,23 @@
  */
 import { useState } from 'react';
 import { Box } from '@/ui/lib/box';
-import { StickerDisc } from '@/ui/profile/StickerDisc';
-import { PROFILE } from '@/ui/profile/measures';
+import { Icon } from '@/ui/kit/Icon';
+import { useColours } from '@/ui/kit/useColours';
 import { STICKER_LOOK } from '@/me/stickers';
 import { ASPECT, box, type Placement } from '@/me/sticker-layout';
 
-const OUTLINE_OFFSET = 4;
-
-/**
- * One sticker: the premium-tint disc with a hot ring and its mark in hot-text, centred on its place and turned
- * (M31 W4-A, design-pulse2 `stk()`); the one being edited gets a dashed hot outline 4 outside it (decorate--chosen).
- */
+/** One sticker: a yellow disc with a white rim and its icon, centred on its place and turned. */
 export function StickerFace(props: { placement: Placement; width: number; selected?: boolean }): React.ReactElement | null {
+  const c = useColours();
   const look = STICKER_LOOK[props.placement.stickerId];
   if (!look) return null;
   const b = box(props.placement, props.width);
   return (
     <Box
-      className="absolute items-center justify-center"
+      className={`absolute rounded-pill bg-primary items-center justify-center border-2 ${props.selected ? 'border-accent' : 'border-surface'}`}
       style={{ left: b.cx - b.side / 2, top: b.cy - b.side / 2, width: b.side, height: b.side, zIndex: props.placement.z, transform: [{ rotate: `${props.placement.rot}rad` }] }}
     >
-      <StickerDisc icon={look.icon} size={b.side} testID="sticker-face" />
-      {props.selected ? <Box testID="sticker-outline" pointerEvents="none" className="absolute border-hot" style={{ left: -OUTLINE_OFFSET, top: -OUTLINE_OFFSET, right: -OUTLINE_OFFSET, bottom: -OUTLINE_OFFSET, borderWidth: PROFILE.circleRing, borderStyle: 'dashed', borderRadius: PROFILE.nudgeRadius }} /> : null}
+      <Icon name={look.icon} size={Math.max(8, b.side * 0.5)} color={c.onPrimary} />
     </Box>
   );
 }

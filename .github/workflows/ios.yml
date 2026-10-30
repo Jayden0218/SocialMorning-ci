@@ -24,8 +24,6 @@ on:
         type: choice
         options: [prod, dev]
         default: prod
-permissions:
-  contents: read
 jobs:
   ios:
     # Release = the app as users get it. Debug = loads its code from the owner's `expo start`
@@ -40,8 +38,8 @@ jobs:
       SOCIALNET_IOS_EXTRAS: ${{ inputs.extras && '1' || '' }}
       APP_VARIANT: ${{ inputs.variant == 'dev' && 'dev' || 'prod' }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
@@ -68,7 +66,7 @@ jobs:
           du -sh "$APP"
           mkdir -p "$RUNNER_TEMP/out"
           (cd "$(dirname "$APP")" && ditto -c -k --sequesterRsrc --keepParent "$(basename "$APP")" "$RUNNER_TEMP/out/unsigned-app.zip")
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@v4
         with:
           name: unsigned-ios-app-${{ matrix.configuration }}
           path: ${{ runner.temp }}/out/unsigned-app.zip

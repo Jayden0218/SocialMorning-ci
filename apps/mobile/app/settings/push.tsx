@@ -18,20 +18,13 @@
  *
  * M24 fix F-P (US3): "System notices" (server key `system`, on by default) in its own card under
  * "From SocialNet" — the notices the admin sends no longer ride on "Popular content".
- *
- * M31 W6-B (`shell.html` `permission--notifications`): while the permission is off the tile is the tinted pre-prompt banner (hot at 16 %, not the raise fill) — it says "Notifications are off" and its tap asks the phone's settings.
- *
- * M31 S-B (T060 part 2; design-pulse2 `settings-push--screen`, `--signed-out`, `--open-settings`; layout Panel + Mosaic): on top the phone's state in a
- * tile (the bell in hot-text, "Notifications are allowed / are off / Not available in this build", "Set in your phone’s settings", and
- * "Open ↗" in hot-text; the whole tile opens the phone's settings); under MAIN the two large switch tiles (New episodes, Popular content, their
- * lines in mono under the names); under PEOPLE one group of six switch rows; under SOCIALNET the System notices row; under SHOWS the cover
- * tiles (`NotifyShows`). Signed out the switches are dimmed and "Sign in to receive notifications." is a tile where the shows would be.
- * Same prefs, API calls and handlers as before.
  */
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Linking } from 'react-native';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
 import { useSocial } from '@/social/context';
@@ -42,14 +35,17 @@ import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { NotifyShows } from '@/ui/settings/NotifyShows';
 import { useM12Api } from '@/social/m12-api';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { Card } from '@/ui/kit/Card';
 import { Icon, type IconName } from '@/ui/kit/Icon';
-import { Type } from '@/ui/kit/Type';
-import { PanelGroup } from '@/ui/me/Panel';
-import { hit } from '@/design';
+import { Toggle } from '@/ui/kit/Toggle';
+import { hit, size } from '@/design';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { useM22SocialApi, type PushSwitch } from '@/social/api-m22-social';
 import type { PrefName } from '@/settings/prefs';
-import { BigGrid, BigSwitch, Line, Section, SettingsPage, SwitchRow, Tile } from '@/ui/settings/panel';
-import { SET } from '@/ui/settings/measures';
+
+const TAP = { minHeight: hit.min };
+const ROW = { minHeight: size.row };
 
 /** M22: the six people-and-status switches — the server's key, this phone's pref, and the words. */
 const PEOPLE: readonly { key: PushSwitch; pref: PrefName; label: string; line: string }[] = [
@@ -66,20 +62,37 @@ const SYSTEM: typeof PEOPLE = [
 ];
 const SWITCHES = [...PEOPLE, ...SYSTEM];
 
-/** A group of switch rows (label, line, switch), a hairline between them. */
+/** A card of switch rows (label, line, toggle), a hairline between them. */
 function SwitchRows(props: { rows: typeof PEOPLE; values: Record<PushSwitch, boolean>; onFlip: (p: (typeof PEOPLE)[number], v: boolean) => void; disabled: boolean }): React.ReactElement {
   return (
-    <PanelGroup>
-      {props.rows.map((p) => (
-        <SwitchRow key={p.key} label={p.label} line={p.line} value={props.values[p.key]} onChange={(v) => props.onFlip(p, v)} disabled={props.disabled} />
+    <Card padded={false} className="px-section">
+      {props.rows.map((p, i) => (
+        <Box key={p.key} className={`flex-row items-center gap-row py-2 ${i < props.rows.length - 1 ? 'border-b-hairline border-separator' : ''}`} style={ROW}>
+          <Box className="flex-1">
+            <Text className="text-text text-body font-semibold">{p.label}</Text>
+            <Text className="text-muted text-xs mt-0.5">{p.line}</Text>
+          </Box>
+          <Toggle value={props.values[p.key]} onChange={(v) => props.onFlip(p, v)} label={p.label} disabled={props.disabled} />
+        </Box>
       ))}
-    </PanelGroup>
+    </Card>
   );
 }
 
-/** One of the two large switch tiles: the icon and switch on top, the name and a mono line under. */
+/** One of the two switches, as a card: icon and toggle on top, the serif title and line under. */
 function SwitchCard(props: { icon: IconName; label: string; line: string; value: boolean; onChange: (v: boolean) => void }): React.ReactElement {
-  return <BigSwitch icon={props.icon} label={props.label} state={props.line} on={props.value} onChange={props.onChange} />;
+  const stores = useStores();
+  const c = useColours(stores.settings);
+  return (
+    <Card className="flex-1 py-row gap-1">
+      <Box className="flex-row items-center justify-between">
+        <Icon name={props.icon} size={22} color={c.accent} />
+        <Toggle value={props.value} onChange={props.onChange} label={props.label} />
+      </Box>
+      <Text className="text-text text-title font-display">{props.label}</Text>
+      <Text className="text-muted text-xs pb-1">{props.line}</Text>
+    </Card>
+  );
 }
 
 export default function PushSettings(): React.ReactElement {
@@ -128,43 +141,44 @@ export default function PushSettings(): React.ReactElement {
   const unavailable = status === 'unavailable';
   const state = unavailable ? 'Not available in this build' : status === 'granted' ? 'Notifications are allowed' : 'Notifications are off';
   return (
-    <SettingsPage title="Notifications">
-      {/* The phone's own permission: only the system can change it, so the tile opens its settings. */}
-      <Section>
-        <Pressable
-          onPress={() => { void Linking.openSettings(); }}
-          disabled={unavailable}
-          accessibilityRole="button"
-          accessibilityLabel="Allow notifications"
-          accessibilityValue={{ text: state }}
-          accessibilityHint="Opens your phone’s settings"
-          accessibilityState={{ disabled: unavailable }}
-          className={`${status === 'granted' || unavailable ? 'bg-raise' : 'bg-hotSoft'} flex-row items-center`}
-          style={{ minHeight: hit.min, borderRadius: SET.radius, paddingVertical: SET.bigPad, paddingHorizontal: SET.tilePad, gap: SET.rowGap }}
-        >
-          <Icon name="notifications-outline" size={SET.rowIcon} color={c.hotText} />
-          <Box className="flex-1">
-            <Type step="row" className="text-text">{state}</Type>
-            <Line>{unavailable ? 'Your phone’s settings can’t be opened from here' : 'Set in your phone’s settings'}</Line>
+    <>
+    <PageHeader title="Notifications" />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-row">
+      {/* The phone's own permission: only the system can change it, so the banner opens its settings. */}
+      <Pressable
+        onPress={() => { void Linking.openSettings(); }}
+        disabled={unavailable}
+        accessibilityRole="button"
+        accessibilityLabel="Allow notifications"
+        accessibilityValue={{ text: state }}
+        accessibilityHint="Opens your phone’s settings"
+        accessibilityState={{ disabled: unavailable }}
+        className="bg-accentTint rounded-row flex-row items-center gap-row px-section py-row"
+        style={TAP}
+      >
+        <Icon name="phone-portrait-outline" size={22} color={c.accent} />
+        <Box className="flex-1">
+          <Text className="text-text text-body font-bold">{state}</Text>
+          <Text className="text-muted text-xs mt-0.5">{unavailable ? 'Your phone’s settings can’t be opened from here' : 'Set in your phone’s settings'}</Text>
+        </Box>
+        {unavailable ? null : (
+          <Box className="flex-row items-center gap-1">
+            <Text className="text-accent text-meta font-bold">Open</Text>
+            <Icon name="open-outline" size={14} color={c.accent} />
           </Box>
-          {unavailable ? null : (
-            <Box className="flex-row items-center" style={{ gap: SET.openGap }}>
-              <Type step="caption" className="text-hotText font-semibold">Open</Type>
-              <Icon name="open-outline" size={SET.openIcon} color={c.hotText} />
-            </Box>
-          )}
-        </Pressable>
-      </Section>
-      <Section label="Main">
-        <BigGrid testID="push-main">
-          <SwitchCard icon="albums-outline" label="New episodes" line="When a show you follow publishes" value={episodes} onChange={(v) => { setEpisodes(v); save({ newEpisodes: v, popular }); }} />
-          <SwitchCard icon="notifications-outline" label="Popular content" line="The day's pick, at most once a day" value={popular} onChange={(v) => { setPopular(v); save({ newEpisodes: episodes, popular: v }); }} />
-        </BigGrid>
-      </Section>
-      <Section label="People"><SwitchRows rows={PEOPLE} values={people} onFlip={flip} disabled={!listener} /></Section>
-      <Section label="SocialNet"><SwitchRows rows={SYSTEM} values={people} onFlip={flip} disabled={!listener} /></Section>
+        )}
+      </Pressable>
+      <Box className="flex-row gap-row">
+        <SwitchCard icon="albums-outline" label="New episodes" line="When a show you follow publishes" value={episodes} onChange={(v) => { setEpisodes(v); save({ newEpisodes: v, popular }); }} />
+        <SwitchCard icon="notifications-outline" label="Popular content" line="The day's pick, at most once a day" value={popular} onChange={(v) => { setPopular(v); save({ newEpisodes: episodes, popular: v }); }} />
+      </Box>
+      <Eyebrow className="mt-row">People and statuses</Eyebrow>
+      <SwitchRows rows={PEOPLE} values={people} onFlip={flip} disabled={!listener} />
+      <Eyebrow className="mt-row">From SocialNet</Eyebrow>
+      <SwitchRows rows={SYSTEM} values={people} onFlip={flip} disabled={!listener} />
       {listener ? <NotifyShows load={loadShows} save={m12.setNotifyShow} titleOf={(f) => stores.feeds.getShow(f)?.title} artOf={(f) => stores.feeds.getShow(f)?.imageUrl} disabled={!episodes} /> : null}
-      {!listener ? <Section><Tile><Type step="body" className="text-text font-medium">Sign in to receive notifications.</Type></Tile></Section> : null}
-    </SettingsPage>
+      {!listener ? <Text className="text-muted text-xs mt-row">Sign in to receive notifications.</Text> : null}
+    </ScrollView>
+    </>
   );
 }

@@ -163,7 +163,7 @@ it('budget: a request that would not fit is refused before it starts; the in-fli
   expect(r).toEqual({ kind: 'budget', usedBytes: 200, budgetBytes: 250 });
   expect(stores.downloads.get(id('c'))).toBeUndefined();
   expect(manager.budgetBytes()).toBe(250);
-  expect(DEFAULT_BUDGET_BYTES).toBe(2_000_000_000);
+  expect(DEFAULT_BUDGET_BYTES).toBe(2 * 1024 ** 3);
 });
 
 // Gap 5 (D7 on build 3, 2026-09-21): Casey's feed said length="0", the pre-check saw 186 of

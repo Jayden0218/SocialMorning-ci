@@ -10,8 +10,6 @@ import { ApiError } from '../../errors.ts';
 import { genreIdFor } from '../../catalog/genres.ts';
 import { findEpisodeInFeed, registerCard } from '../../catalog/feed.ts';
 import { HOUR_MS, limit } from '../../auth/rate.ts';
-import { BlockedFetchError } from '../../net/safe-fetch.ts';
-import { log } from '../../log.ts';
 
 /** M25 S8: new episodes one account may bring to the server an hour (each one reads a feed). */
 export const NEW_EPISODES_PER_ACCOUNT_HOUR = 120;
@@ -73,13 +71,7 @@ episodes.put('/:id', requireAuth, json(episodeBody), async (c) => {
   const db = c.get('db');
   if (!(await getEpisode(db, id))) {
     await limit(db, `episode-new:l:${c.get('listener')!.id}`, HOUR_MS, NEW_EPISODES_PER_ACCOUNT_HOUR, 'Too many new episodes in an hour. Try again later.');
-    // A7: a feed that cannot be read (timeout, DNS, too big) is not the same as an episode the feed does not list.
-    const card = await findEpisodeInFeed(db, c.get('catalog').fetch, body.feedUrl, body.guid).catch((err: unknown) => {
-      // A feed address the server refuses to fetch (private, loopback, metadata) is answered like "not in the feed": no hint about why (M25 S7).
-      if (err instanceof BlockedFetchError) return undefined;
-      log.warn('feed_unavailable', { requestId: c.get('requestId'), feedUrl: body.feedUrl, error: err });
-      throw new ApiError('feed_unavailable', 'The show\'s feed could not be read right now. Try again in a moment.');
-    });
+    const card = await findEpisodeInFeed(db, c.get('catalog').fetch, body.feedUrl, body.guid).catch(() => undefined);
     if (!card) throw new ApiError('not_found', 'This episode is not in its show\'s feed right now, so it cannot be added.');
     await registerCard(db, card);
     // Only the measured duration comes from the phone, and only while the feed gave none.

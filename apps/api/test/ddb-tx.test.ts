@@ -14,7 +14,7 @@ if (!ON) {
   const { tx, MAX_TX_ITEMS, TxTooLargeError, TxCancelled, TxDuplicateKeyError } = await import('../src/db/ddb/tx.ts');
   const { claimUnique, uniqueOwner, moveUnique } = await import('../src/db/ddb/unique.ts');
   const { withRetry, isConflict, isConditionFailed, withVersionRetry } = await import('../src/db/ddb/retry.ts');
-  const { withConflicts } = await import('./ddb-wrappers.ts');
+  const { withConflicts } = await import('../src/db/ddb/test-wrappers.ts');
   const { nextSeq, readSeq, seqTxUpdate } = await import('../src/db/ddb/seq.ts');
   const { queryAll } = await import('../src/db/ddb/paginate.ts');
 

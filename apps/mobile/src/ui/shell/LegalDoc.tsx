@@ -4,68 +4,88 @@
  * sheet and drawn inside the same overlay, so reading a document never gets anyone past
  * the sheet. Back — the button or Android's — returns to the sheet.
  *
- * Drawn over the stack, outside the root layout's bottom inset, so it pads the home strip itself (`OverlayPage` `inset`); the
- * top padding comes from the safe-area context, known before the first frame (owner, 2026-10-03: no jump during the modal's zoom).
+ * Drawn over the stack, outside the root layout's bottom inset — so this pads all four edges
+ * (M12). The padding comes from `useSafeAreaInsets`, not a SafeAreaView: the document opens
+ * inside the Modal's ZoomIn (scale 0.9 → 1), and the native SafeAreaView measures the inset
+ * from its on-screen frame, so it drew no top padding during the zoom and then jumped to the
+ * full inset when the zoom ended (owner, 2026-10-03). The hook's insets are the screen's,
+ * known before the first frame.
  *
- * M31 S-C (T061; design-pulse2 `settings.html` `legalPage`, entries `terms--full-document`, `auth-sign-in--legal-document`, layout
- * Panel): no glow; the content is the eyebrow "SocialNet · legal" (mono 12, hot-text), the document's title in Unbounded 800 28,
- * the dates in mono 12 on two lines, a Contents tile (radius 22) with a hot number and the name of every part — each a jump —
- * and the text in Geist 15 on 26 in text-2 under it. The bar is low: Back (a 44 circle) and a short title ("Service
- * Agreement", `name`) with the "Last updated" date under it. Every Contents row stays (B showed five and "and 3 more"; each row is
- * a jump, so none is hidden). The Contents rows are 48 tall (the drawn 29 is under the touch floor).
+ * M17 (`LegalDoc-B`): the title and the section headings are the Editorial serif (34 pt and
+ * 22 pt), the dates one muted line under the title as the document writes them (they were two
+ * boxes), and Contents a white card with serif accent numbers and hairlines between its rows.
+ * Body text 15 pt on 26 pt lines in muted, as B. Every Contents row stays — B shows five and
+ * "and 3 more", but each row is a jump, so none is hidden.
  */
-import { useContext, useMemo, useRef, type ComponentRef } from 'react';
-import { useWindowDimensions } from 'react-native';
-import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { useMemo, useRef, type ComponentRef } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { gutter, hit, spacing } from '@/design';
-import { OverlayPage } from '@/ui/kit/OverlayPage';
-import { Type } from '@/ui/kit/Type';
-import { AUTH, AUTH_TYPE } from '@/ui/auth/measures';
-import { parseLegal, titleOf, type Block } from '@/legal/markdown';
+import { hit } from '@/design';
+import { parseLegal, titleOf, type Block, type BlockKind } from '@/legal/markdown';
+
+/**
+ * Owner, 2026-09-27: plain weight for the body, looser lines (16 px type on 26 px lines),
+ * and **one grey for all body text** — `**…**` spans are no longer darker (the owner:
+ * "i want all same grey for the content"). Headings keep `text`.
+ */
+const KIND: Record<BlockKind, string> = {
+  title: 'text-text text-lg font-semibold',
+  heading: 'text-text font-display text-[22px] leading-[29px] mt-5',
+  subheading: 'text-text text-sm font-semibold leading-[26px] mt-row',
+  paragraph: 'text-muted text-[15px] leading-[26px]',
+  item: 'text-muted text-[15px] leading-[26px] flex-1',
+  note: 'text-muted text-xs leading-[20px] italic',
+  row: 'text-muted text-xs leading-[20px]',
+};
+
+/** iOS's scroll bar sits 3 pt inside the right edge by default; this puts it on the edge. */
+export const EDGE = { right: -3 } as const;
 
 /** Kept as a style: the tap target is asserted on the Pressable's own `style` elsewhere. */
-const ROW = { minHeight: hit.min };
+const TAP = { minHeight: hit.min, minWidth: hit.min };
 
-function Spans(props: { block: Block }): string {
-  return props.block.spans.map((s) => s.text).join('');
+function Spans(props: { block: Block }): React.ReactElement {
+  return <>{props.block.spans.map((s) => s.text).join('')}</>;
 }
 
-/** One block of the text: a heading, a hanging list item, a note or a paragraph (Geist 15 on 26 in text-2, one grey for all of it). */
 function BlockText(props: { block: Block }): React.ReactElement {
   const { block } = props;
-  const text = Spans({ block });
   // A list item hangs: its bullet or number ("•", "(1)", "2.8.1") has its own column,
   // so the second and later lines start under the words, never under the marker.
   if (block.kind === 'item') {
     return (
-      <Box className="flex-row" style={{ gap: spacing.gap }}>
-        <Type step="body" className="text-text2 font-normal" style={{ ...AUTH_TYPE.legalBody, minWidth: spacing.block }}>{block.marker ?? '•'}</Type>
-        <Type step="body" className="text-text2 font-normal flex-1" style={AUTH_TYPE.legalBody}>{text}</Type>
+      <Box className="flex-row mb-row">
+        <Text className="text-muted text-[15px] leading-[26px] min-w-5 pr-2">{block.marker ?? '•'}</Text>
+        <Text className={KIND.item}><Spans block={block} /></Text>
       </Box>
     );
   }
-  if (block.kind === 'heading') return <Type step="heading" className="text-text" accessibilityRole="header" style={{ marginTop: spacing.section }}>{text}</Type>;
-  if (block.kind === 'subheading') return <Type step="row" className="text-text" style={{ marginTop: spacing.gap }}>{text}</Type>;
-  if (block.kind === 'note') return <Type step="caption" className="text-text2 italic">{text}</Type>;
-  if (block.kind === 'row') return <Type step="caption" className="text-text2">{text}</Type>;
-  return <Type step="body" className="text-text2 font-normal" style={AUTH_TYPE.legalBody}>{text}</Type>;
+  return (
+    <Text className={`${KIND[block.kind]} mb-row`} accessibilityRole={block.kind === 'heading' ? 'header' : undefined}>
+      <Spans block={block} />
+    </Text>
+  );
+}
+
+/** A chevron drawn from two borders, so no icon font is added for one glyph. */
+function Chevron(): React.ReactElement {
+  return <Box className="w-3 h-3 border-l-2 border-b-2 border-text rotate-45 ml-1" />;
 }
 
 /** The "Last updated: …" / "Effective from: …" lines, lifted out of the body and shown under the title, one per row. */
 const DATE_LINE = /^(Last updated|Effective from):\s*(.+)$/;
 
-/** "1. Scope" → 1 + Scope; "Part 2 — Personal…" → 2 + Personal…; an unnumbered heading shows its place in the list. */
+/** "1. Scope" → 1 + Scope; "Part 2 — Personal…" → 2 + Personal…; "Introduction" → no number (Contents shows it as 0). */
 const NUMBER = /^(?:Part\s+)?(\d+)(?:\.|\s+—)\s+/;
 type Entry = { index: number; number?: string; label: string };
 
-/** `name` is the short title on the bar ("Service Agreement"); left out, the document's own title without "SocialNet ". */
-export function LegalDoc(props: { text: string; onClose: () => void; name?: string }): React.ReactElement {
+export function LegalDoc(props: { text: string; onClose: () => void }): React.ReactElement {
   // Owner, 2026-10-03: "Privacy Policy", not "SocialNet Privacy Policy".
   const title = useMemo(() => titleOf(props.text).replace(/^SocialNet\s+/, ''), [props.text]);
-  // The title is drawn once, above the body; the date lines become mono lines under it.
+  // The title is drawn once, above the body; the date lines become boxes under it.
   const { body, dates } = useMemo(() => {
     const all = parseLegal(props.text).filter((b) => b.kind !== 'title');
     const found: string[] = [];
@@ -74,7 +94,9 @@ export function LegalDoc(props: { text: string; onClose: () => void; name?: stri
       if (m?.[1] && m[2]) { found.push(`${m[1]}: ${m[2]}`); return false; }
       return true;
     });
-    // M31 F8 (wave-5 defect 10; the drawing): the lead-in paragraphs stay plain text under the Contents tile — no "Introduction" heading, no "0" row.
+    // A document that opens with plain paragraphs gets an "Introduction" heading, so the
+    // Contents card and the text both start with a named section (owner, 2026-10-03).
+    if (rest.length > 0 && rest[0]?.kind !== 'heading') rest.unshift({ kind: 'heading', spans: [{ text: 'Introduction', bold: false }] });
     return { body: rest, dates: found };
   }, [props.text]);
   const contents = useMemo<Entry[]>(() => body.flatMap((b, index) => {
@@ -85,47 +107,52 @@ export function LegalDoc(props: { text: string; onClose: () => void; name?: stri
   }), [body]);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const tops = useRef<Record<number, number>>({});
-  const bodyAt = useRef(0);
-  const { width } = useWindowDimensions();
-  const insets = useContext(SafeAreaInsetsContext);
+  const insets = useSafeAreaInsets();
+  const pad = { paddingTop: insets.top, paddingBottom: insets.bottom, paddingLeft: insets.left, paddingRight: insets.right };
   return (
-    <Box className="absolute inset-0 bg-void">
-      <OverlayPage title={props.name ?? title} {...(dates[0] ? { subtitle: dates[0] } : {})} size={AUTH_TYPE.cardTitle.fontSize} onBack={props.onClose} tone="none" inset={insets?.bottom ?? 0}>
-        {(l) => (
-          <ScrollView ref={scroll} className="flex-1" contentContainerStyle={{ paddingTop: l.top + AUTH.bodyTop, paddingBottom: l.reserve, paddingHorizontal: gutter(width) }}>
-            <Box style={{ gap: AUTH.bodyGap }}>
-              <Type step="mono" className="text-hotText" style={AUTH_TYPE.eyebrow}>SocialNet · legal</Type>
-              <Type step="hero" className="text-text" style={AUTH_TYPE.sheetTitle} accessibilityRole="header">{title}</Type>
-              <Box>{dates.map((d) => <Type key={d} step="mono" className="text-text2">{d}</Type>)}</Box>
-              {contents.length > 1 ? (
-                <Box className="bg-raise" style={{ borderRadius: AUTH.tile.radius, padding: AUTH.tile.pad }}>
-                  <Type step="mono" className="text-text3" style={AUTH_TYPE.fieldLabel}>Contents</Type>
-                  {contents.map((e) => (
-                    <Pressable
-                      key={e.index}
-                      onPress={() => scroll.current?.scrollTo({ y: Math.max(0, l.top + AUTH.bodyTop + bodyAt.current + (tops.current[e.index] ?? 0)), animated: true })}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Go to ${e.label}`}
-                      className="flex-row items-center"
-                      style={{ ...ROW, gap: spacing.row }}
-                    >
-                      <Type step="body" className="text-hotText font-bold" style={{ ...AUTH_TYPE.contentsNumber, width: spacing.section + 2 }}>{e.number ?? String(contents.indexOf(e) + 1)}</Type>
-                      <Type step="note" className="text-text flex-1">{e.label}</Type>
-                    </Pressable>
-                  ))}
-                </Box>
-              ) : null}
-              <Box style={{ gap: spacing.row }} onLayout={(ev) => { bodyAt.current = ev.nativeEvent.layout.y; }}>
-                {body.map((b, i) => (
-                  b.kind === 'heading'
-                    ? <Box key={i} onLayout={(ev) => { tops.current[i] = ev.nativeEvent.layout.y; }}><BlockText block={b} /></Box>
-                    : <BlockText key={i} block={b} />
-                ))}
-              </Box>
+    <Box className="absolute inset-0 bg-background" style={pad}>
+      {/* Owner, 2026-09-27: the bar holds only the chevron; the title sits below it. */}
+      <Box className="flex-row items-center pt-section px-2">
+        <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Back" className="justify-center items-center" style={TAP}>
+          <Chevron />
+        </Pressable>
+      </Box>
+      {/* The ScrollView spans the full width, so its scroll bar sits on the screen's edge;
+          the side margin is on the inner View, so the bar never lies over the words.
+          iOS still draws its bar ~3 pt in from the edge; the owner wants it on the edge
+          (2026-09-27), so the inset is pulled out by that much. Android draws it on the edge. */}
+      <ScrollView ref={scroll} className="flex-1" automaticallyAdjustsScrollIndicatorInsets={false} scrollIndicatorInsets={EDGE}>
+        <Box className="px-screen-x pt-2 pb-section">
+          {/* Owner, 2026-10-03: the editorial layout — a large title, the dates in boxes,
+              then a Contents card listing every section, each a jump to it. */}
+          <Text className="text-text font-display text-[34px] leading-[44px] mt-1" accessibilityRole="header">{title}</Text>
+          {/* Owner, 2026-10-04: "Last updated" and "Effective from" on two rows, not one. */}
+          {dates.map((d, i) => <Text key={d} className={`text-muted text-xs ${i === 0 ? 'mt-1.5' : 'mt-0.5'}`}>{d}</Text>)}
+          {contents.length > 1 ? (
+            <Box className="mt-section mb-1 px-[14px] pt-[10px] pb-1 rounded-row border border-border bg-surface">
+              <Text className="text-muted text-micro font-extrabold tracking-widest">CONTENTS</Text>
+              {contents.map((e, i) => (
+                <Pressable
+                  key={e.index}
+                  onPress={() => scroll.current?.scrollTo({ y: tops.current[e.index] ?? 0, animated: true })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Go to ${e.label}`}
+                  className={`flex-row items-center gap-[10px] ${i > 0 ? 'border-t border-separator' : ''}`}
+                  style={{ minHeight: hit.min }}
+                >
+                  <Text className="text-accent font-display text-body w-[18px]">{e.number ?? '0'}</Text>
+                  <Text className="text-text text-body flex-1">{e.label}</Text>
+                </Pressable>
+              ))}
             </Box>
-          </ScrollView>
-        )}
-      </OverlayPage>
+          ) : null}
+          {body.map((b, i) => (
+            b.kind === 'heading'
+              ? <Box key={i} onLayout={(ev) => { tops.current[i] = ev.nativeEvent.layout.y; }}><BlockText block={b} /></Box>
+              : <BlockText key={i} block={b} />
+          ))}
+        </Box>
+      </ScrollView>
     </Box>
   );
 }

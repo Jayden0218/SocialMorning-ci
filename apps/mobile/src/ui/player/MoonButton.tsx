@@ -1,32 +1,21 @@
 // The player's moon button: opens the sleep timer and shows its time left.
 /**
  * M21 US1 (FR-001, SC-002): the sleep timer is one tap from the player, not behind the speed
- * pill. M31 T024 (design-pulse2 `player--screen`, `player--sleep-timer-sheet`): a 44 button at the right
- * of the controls — the moon (24, always the outline glyph as drawn), text colour when off, hot-text when armed — and, while a timer runs,
- * the time left in mono 11 under it ("24:12", or "End" when only End of episode is on; nothing when off). The
- * spoken name still says what is armed. Its sheet is the `ActionSheet` titled "Sleep": the clock
- * (`SleepTimerControl` in its full layout), then Done.
- *
- * The one-second clock runs only while a minutes timer is armed (`useSleep`).
+ * pill. The button reads "Sleep" when nothing is armed, the time left (m:ss) while a minutes
+ * timer runs, or "End" when only End of episode is on. Its sheet holds SleepTimerControl.
  */
 import { useState } from 'react';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
 import { Pressable } from '@/ui/lib/pressable';
-import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
+import { Text } from '@/ui/lib/text';
 import { Icon } from '@/ui/kit/Icon';
-import { Type } from '@/ui/kit/Type';
-import { ActionSheet } from '@/ui/kit/ActionSheet';
-import { useColours } from '@/ui/kit/useColours';
+import { TAP } from '@/ui/kit/TopBar';
 import { mmss } from '@/ui/kit/format';
-import { SleepTimerControl } from '@/ui/player/SleepTimerControl';
-import { useSleep } from '@/ui/player/useRuntime';
-import { PLAYER } from '@/ui/player/measures';
-
-/** The drawn circle is 44; the finger gets 48. */
-const MOON_SLOP = (hit.min - PLAYER.moon) / 2;
+import { usePlayer } from '@/playback/store';
+import { SleepTimerControl, useSecondTick } from '@/ui/player/SleepTimerControl';
 import { isTimerOff, type SleepTimer } from '@socialmorning/player-core';
 
-/** What the button says: nothing armed → "Sleep" (not drawn since M31); a deadline → m:ss; End of episode alone → "End". */
+/** What the button says: nothing armed → "Sleep"; a deadline → m:ss; End of episode alone → "End". */
 export function moonLabel(timer: SleepTimer, remainingMs: number | undefined): string {
   if (remainingMs !== undefined) return mmss(remainingMs);
   return timer.endOfEpisode ? 'End' : 'Sleep';
@@ -39,23 +28,30 @@ export function moonA11y(timer: SleepTimer, remainingMs: number | undefined): st
   return 'Sleep timer, stops at the end of this episode';
 }
 
-export function MoonButton(): React.ReactElement {
-  const c = useColours();
+export function MoonButton(props: { className: string; colour: string; activeColour: string }): React.ReactElement {
+  const player = usePlayer();
+  useSecondTick();
   const [open, setOpen] = useState(false);
-  const { timer, remainingMs: remaining, armed } = useSleep();
-  const label = moonLabel(timer, remaining);
+  const timer = player.sleepTimer();
+  const remaining = player.sleepRemainingMs();
+  const armed = !isTimerOff(timer);
   return (
     <>
-      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={moonA11y(timer, remaining)} className="items-center justify-center" hitSlop={MOON_SLOP} style={{ height: PLAYER.moon, width: PLAYER.moon }}>
-        <Icon name="moon-outline" size={PLAYER.moonGlyph} color={armed ? c.hotText : c.text} />
-        {armed ? <Box className="absolute" style={{ bottom: 0 }}><Type step="badge" className="text-hotText" style={{ fontSize: PLAYER.tileDetail, lineHeight: PLAYER.tileDetailLine }}>{label}</Type></Box> : null}
+      <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={moonA11y(timer, remaining)} className={props.className} style={{ minHeight: TAP.minHeight }}>
+        <Icon name={armed ? 'moon' : 'moon-outline'} size={22} color={armed ? props.activeColour : props.colour} />
+        {/* Same look as the bar's other labels (player.tsx BAR_LABEL). */}
+        <Text className="text-xs font-semibold text-text">{moonLabel(timer, remaining)}</Text>
       </Pressable>
-      <ActionSheet open={open} onClose={() => setOpen(false)} label="Sleep" title="Sleep">
-        <SleepTimerControl />
-        <Pressable onPress={() => setOpen(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center rounded-pill bg-text" style={{ height: hit.min }}>
-          <Type step="row" className="text-void">Done</Type>
-        </Pressable>
-      </ActionSheet>
+      <Actionsheet isOpen={open} onClose={() => setOpen(false)}>
+        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+        <ActionsheetContent className="bg-surface rounded-t-row px-screen-x pt-row gap-row items-stretch">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          <SleepTimerControl />
+          <Pressable onPress={() => setOpen(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center rounded-pill bg-primary mt-1" style={{ minHeight: TAP.minHeight }}>
+            <Text className="text-sm font-bold text-onPrimary">Done</Text>
+          </Pressable>
+        </ActionsheetContent>
+      </Actionsheet>
     </>
   );
 }

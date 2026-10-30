@@ -40,10 +40,8 @@ export type DiscoverModel = {
 // M25 A5 (lane AL): one id per thing drawn. Split out of a bundle: `theirLikes` (from `picks`),
 // `pickedShows` (from `forYou`), `categories` (the strip, from `chart`), `premium` (from `shows`),
 // `hunt` (from `newShows`, which is New arrivals alone now). `followedHere` drew nothing: gone.
-// M31 F2a (design-pulse2 discover.html `home--fold-a`/`-b`): the drawn order is Picks, For you, Their likes, Charts |
-// Genres, Shows (picked for you, then popular), Premium, Video, Lists, Said, New, Hunt.
 export const SECTION_IDS = [
-  'picks', 'forYou', 'theirLikes', 'chart', 'categories', 'pickedShows', 'shows', 'premium',
+  'picks', 'theirLikes', 'forYou', 'pickedShows', 'chart', 'categories', 'shows', 'premium',
   'video', 'collections', 'said', 'newShows', 'hunt',
 ] as const;
 export type SectionId = (typeof SECTION_IDS)[number];

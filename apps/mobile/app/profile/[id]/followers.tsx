@@ -1,6 +1,6 @@
 // List of people who follow this listener.
 /** A paged list of followers (M4 FR-007). M16a bug 2: one component for both lists — src/ui/social/FollowList.tsx.
- * M31 W4-A: the profile also passes `count`, written as "Rui Costa · 1.2k" under the title (design-pulse2 `profile-followers--screen`). */
+ * M17 (`Followers-B` / `FollowingList-B`): the profile also passes `count`, shown as the eyebrow. */
 import { useLocalSearchParams } from 'expo-router';
 import { FollowList } from '@/ui/social/FollowList';
 

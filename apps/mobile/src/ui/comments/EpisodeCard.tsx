@@ -1,51 +1,41 @@
-// The episode strip at the top of the comments page: cover, title, "show · 12:32 / 48:10", Play or Pause.
+// The episode with play/pause at the top of the comments page.
 /**
- * Owner, 2026-10-01 (the 小宇宙 comments page): the episode, with its own play/pause, at the top of the page; a tap on it
- * opens the player when this episode is loaded, else the episode page.
+ * The episode at the top of the comments page (Owner, 2026-10-01, after the 小宇宙 comments
+ * page): artwork 48, the title on up to two lines, "show · length", and a play/pause button
+ * wired to the player. Tapping the card opens the player when this episode is the one loaded.
  *
- * M31 W2-B (`social.html` `commentsBase`, the strip at top 56): a 36 cover (radius 10), the title in Geist 600 14/18 on one
- * line, the show and the playhead in mono 11 (text2) — "Morning Notes · 12:32 / 48:10" — and a 36 light circle with a void
- * pause or play glyph (a 48 tap by hitSlop). The playhead is the player's when this episode is loaded, else where the phone
- * last left it; with neither, the show and the length.
+ * M17 (`Comments-B`): no card box any more — the episode sits on the page under the serif
+ * title: artwork 40 with Editorial corners, the title in bold on one line, "show · length"
+ * under it, and the play/pause as a round yellow button with dark glyph. Same actions.
  */
 import { router } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { hit } from '@/design';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
-import { Type } from '@/ui/kit/Type';
-import { minutesLabel, mmss } from '@/ui/kit/format';
-import { colour, gutter } from '@/design';
-import { useWindowDimensions } from 'react-native';
+import { minutesLabel } from '@/ui/kit/format';
 import { useStores } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
 import { episodePlayView, sameEpisodePlayView, usePlayer, usePlayerSelector } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
-import { COMMENTS } from './measures';
-import { usePlayheadMs } from './usePlayhead';
 
-export const CARD_ARTWORK = COMMENTS.stripCover;
-const ROUND = { width: COMMENTS.pause, height: COMMENTS.pause };
-const SLOP = { top: 6, bottom: 6, left: 6, right: 6 };
+export const CARD_ARTWORK = 40;
+const ROUND = { width: hit.min, height: hit.min, minWidth: hit.min, minHeight: hit.min };
 
 /** "Show · 69 min", leaving out whichever part is unknown. */
 export function cardSubtitle(showTitle: string | undefined, durationMs: number | undefined): string {
   return [showTitle ?? '', minutesLabel(durationMs)].filter((x) => x !== '').join(' · ');
 }
 
-/** "Show · 12:32 / 48:10" when the playhead is known, else "Show · 69 min". */
-export function stripSubtitle(showTitle: string | undefined, positionMs: number | undefined, durationMs: number | undefined): string {
-  if (positionMs === undefined || durationMs === undefined) return cardSubtitle(showTitle, durationMs);
-  return [showTitle ?? '', `${mmss(positionMs)} / ${mmss(durationMs)}`].filter((x) => x !== '').join(' · ');
-}
-
 export function EpisodeCard(props: { episodeId: string }): React.ReactElement | null {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const player = usePlayer();
-  const { width } = useWindowDimensions();
   // The lag audit (2026-10-04, branch perf): only "is this episode loaded / playing" — this card
   // re-rendered (and re-read the episode) on every player tick with usePlayerState.
   const { loaded, playing } = usePlayerSelector((s) => episodePlayView(s, props.episodeId), sameEpisodePlayView);
-  const head = usePlayheadMs(props.episodeId);
   const episode = stores.feeds.getEpisode(props.episodeId);
   if (!episode) return null;
   const show = stores.feeds.getShow(episode.feedUrl);
@@ -57,23 +47,21 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
     if (loaded) { player.play(); return; }
     if (playable) player.load(playable, 'play');
   };
-  const at = head ?? stores.positions.get(props.episodeId)?.offsetMs;
-  const subtitle = stripSubtitle(show?.title, at, episode.durationMs);
+  const subtitle = cardSubtitle(show?.title, episode.durationMs);
 
   return (
-    <Box className="flex-row items-center" style={{ marginHorizontal: gutter(width), gap: COMMENTS.stripGap }}>
+    <Box className="flex-row items-center gap-row mx-screen-x">
       <Pressable
         onPress={() => (loaded ? router.push('/player') : router.push({ pathname: '/episode/[id]', params: { id: props.episodeId } }))}
         accessibilityRole="link"
         accessibilityLabel={`${episode.title}${subtitle ? `. ${subtitle}` : ''}`}
-        className="flex-1 flex-row items-center"
-        style={{ gap: COMMENTS.stripGap, minHeight: COMMENTS.stripCover }}
-        hitSlop={{ top: 6, bottom: 6 }}
+        className="flex-1 flex-row items-center gap-row"
+        style={{ minHeight: hit.min }}
       >
         <Artwork url={episode.imageUrl ?? show?.imageUrl} size={CARD_ARTWORK} name={show?.title} />
         <Box className="flex-1">
-          <Type step="compact" className="text-text" numberOfLines={1}>{episode.title}</Type>
-          {subtitle ? <Type step="tag" className="text-text2" numberOfLines={1}>{subtitle}</Type> : null}
+          <Text className="text-text text-meta font-bold" numberOfLines={1}>{episode.title}</Text>
+          {subtitle ? <Text className="text-muted text-xs" numberOfLines={1}>{subtitle}</Text> : null}
         </Box>
       </Pressable>
       {canPlay ? (
@@ -82,11 +70,10 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
           accessibilityRole="button"
           accessibilityLabel={playing ? 'Pause' : 'Play'}
           accessibilityState={{ selected: playing }}
-          hitSlop={SLOP}
-          className="rounded-pill bg-text items-center justify-center"
+          className="rounded-pill bg-playDisc items-center justify-center"
           style={ROUND}
         >
-          <Icon name={playing ? 'pause' : 'play'} size={14} color={colour.void} />
+          <Icon name={playing ? 'pause' : 'play'} size={20} color={c.playGlyph} />
         </Pressable>
       ) : null}
     </Box>

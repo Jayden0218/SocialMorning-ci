@@ -20,7 +20,6 @@ import type { Db } from '../db/db.ts';
 import type { StudioShow } from '../db/repos/studio/studio-roles.ts';
 import { deleteSessionByHash, studioSessionRows, touchSessionLastSeen } from '../db/repos/account/sessions.ts';
 import { actAsCookie, actingTarget } from './admin.ts';
-import { swallow } from '../log.ts';
 
 /** The Studio's routes see everything the API's do, plus the show the request is about. */
 export type StudioEnv = { Variables: AuthEnv['Variables'] & { show: StudioShow;
@@ -52,12 +51,6 @@ export async function studioListener(db: Db, pepper: string, token: string, pepp
   }
   await touchSessionLastSeen(db, hash);
   return row;
-}
-
-/** M32 B2: is this a live Studio session? Read-only — no re-key, no `last_seen` touch, no delete of an idle-expired row, so `studioAuth` still sees (and reports) `session_expired` afterwards. */
-export async function studioSessionLive(db: Db, pepper: string, token: string): Promise<boolean> {
-  const [row] = await studioSessionRows(db, tokenHash(token, pepper), STUDIO_LABEL);
-  return Boolean(row) && Date.now() - new Date(row!.last_seen_at).getTime() <= STUDIO_IDLE_MS;
 }
 
 export const studioCsrf: MiddlewareHandler<StudioEnv> = async (c, next) => {
@@ -92,7 +85,7 @@ export const studioAuth: MiddlewareHandler<StudioEnv> = async (c, next) => {
  */
 export async function rotateStudioCookie(c: Context, token: string): Promise<void> {
   if (c.res.status >= 400) return;
-  const fresh = await rotateSession(c.get('db'), token, c.get('pepper')).catch(swallow('studio_session_rotate_failed'));
+  const fresh = await rotateSession(c.get('db'), token, c.get('pepper')).catch(() => undefined);
   if (!fresh) return;
   setCookie(c, STUDIO_COOKIE, fresh, { httpOnly: true, secure: new URL(c.req.url).protocol === 'https:', sameSite: 'Strict', path: '/', maxAge: STUDIO_IDLE_MS / 1000 });
 }

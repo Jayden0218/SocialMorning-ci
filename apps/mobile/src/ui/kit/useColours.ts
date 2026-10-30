@@ -1,8 +1,8 @@
 // Gives the app's colour values to code that needs a colour, not a class.
 /**
  * The palette for code that needs a colour value rather than a class (placeholderTextColor,
- * an Icon's colour, a Switch track). Since M31 (constitution v4.0.0) the app is dark only:
- * this is the Pulse palette with the listener's accent theme swapped in (its `hot` and `hotText` too). The class side
+ * an Icon's colour, a Switch track). Since M17 (constitution v3.0.0) the app is light only:
+ * this is the Editorial palette with the listener's accent theme swapped in. The class side
  * (every `bg-background`, `text-text` …) is generated from the same object into `global.css`.
  */
 import { useSyncExternalStore } from 'react';

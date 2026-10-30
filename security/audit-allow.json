@@ -118,13 +118,5 @@
     "scope": "mobile",
     "reason": "Expo 58 pin, T057 (build tooling)",
     "expires": "2027-01-31"
-  },
-  {
-    "ghsa": "GHSA-mrhx-c7xc-m3w5",
-    "package": "zod",
-    "severity": "high",
-    "scope": "mobile",
-    "reason": "zod 3.25 only in build/lint tooling (@expo/cli 58.0.3, eslint-plugin-react-hooks); the app bundle does not import zod; no zod 4 build of @expo/cli on the pinned preview, T057",
-    "expires": "2027-01-31"
   }
 ]

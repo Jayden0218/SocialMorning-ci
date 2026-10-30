@@ -1,22 +1,17 @@
-// One of a person's recent public actions on their profile: a raise card with the show's cover.
+// One of a person's recent public actions on their profile: a white card with the show's cover.
 /**
  * M24 US20 (`Profile-B`): someone else's "Recent" rows are white cards (16 pt corners, 12 pt
  * padding): the 52 pt show cover, a small muted line "Mira commented at 42:15 · Oct 1", the
  * episode's title in the serif and the show's name. The tap and the spoken sentence are the ones
  * `FeedItem` had (`describe`), so a screen reader hears the same thing as before.
- *
- * M31 W4-A (T050; design-pulse2 social.html `profile--screen`: "Recent (a Thread of what they did)"): the raise thread card (radius 18, padding 12) —
- * the cover 44, the line "Mira commented at 42:15 · Oct 1" in mono 11 text3, the episode's title in Geist 600 14/18, the show in text2.
  */
 import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import type { FeedItem as Item } from '@/social/api';
 import { Artwork } from '@/ui/kit/Artwork';
 import { mmss } from '@/ui/kit/format';
 import { hit } from '@/design';
-import { Type } from '@/ui/kit/Type';
-import { LIST, ThreadCard } from '@/ui/me/lists';
-import { ME_TYPE } from '@/ui/me/measures';
 import { describe } from './FeedItem';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -44,18 +39,15 @@ export function RecentCard(props: { item: Item; onOpen: (item: Item) => void }):
       onPress={() => props.onOpen(item)}
       accessibilityRole="button"
       accessibilityLabel={`${item.actor.displayName ?? 'Someone'} ${describe(item)}`}
+      className="flex-row gap-row items-center bg-surface border border-border rounded-row p-row"
       style={ROW}
     >
-      <ThreadCard testID="recent-card">
-        <Box className="flex-row items-center" style={{ gap: LIST.headGap }}>
-          <Artwork url={item.episode.imageUrl} size={LIST.cover} name={item.episode.showTitle ?? undefined} />
-          <Box className="flex-1 min-w-0">
-            <Type step="tag" className="text-text3" style={ME_TYPE.mono11} numberOfLines={1}>{recentLine(item)}</Type>
-            <Type step="compact" className="text-text" numberOfLines={2}>{item.episode.title}</Type>
-            {item.episode.showTitle ? <Type step="caption" className="text-text2" style={ME_TYPE.show11} numberOfLines={1}>{item.episode.showTitle}</Type> : null}
-          </Box>
-        </Box>
-      </ThreadCard>
+      <Artwork url={item.episode.imageUrl} size={52} name={item.episode.showTitle ?? undefined} />
+      <Box className="flex-1 gap-0.5 min-w-0">
+        <Text className="text-muted text-xs" numberOfLines={1}>{recentLine(item)}</Text>
+        <Text className="text-text text-sm font-display" numberOfLines={2}>{item.episode.title}</Text>
+        {item.episode.showTitle ? <Text className="text-muted text-xs" numberOfLines={1}>{item.episode.showTitle}</Text> : null}
+      </Box>
     </Pressable>
   );
 }

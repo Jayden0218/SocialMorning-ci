@@ -4,7 +4,7 @@
  * parameters and return type; only its first parameter changes from `Db` to `Store`.
  *
  * Every request goes through `store.send` — the one interception point the test wrappers use
- * (GSI lag, transaction conflicts, fault injection by key prefix: test/ddb-wrappers.ts). Repos call the
+ * (GSI lag, transaction conflicts, fault injection by key prefix: test-wrappers.ts). Repos call the
  * typed helpers below (`get`, `put`, `update`, `del`, `query`) or `tx.ts` / `paginate.ts` / `batch.ts`,
  * never the SDK client directly.
  *

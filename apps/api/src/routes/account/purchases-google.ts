@@ -14,7 +14,6 @@ import { ApiError } from '../../errors.ts';
 import { grantGoogle } from '../../db/repos/account/purchases.ts';
 import { GooglePlayError } from '../../billing/google-play.ts';
 import { giftUrl } from '../../db/repos/account/gifts.ts';
-import { log } from '../../log.ts';
 
 export const purchasesGoogle = new Hono<AuthEnv>();
 
@@ -37,7 +36,7 @@ purchasesGoogle.post('/purchases/google', requireAuth, json(body), async (c) => 
     if (e instanceof GooglePlayError) {
       // 404/410 from Google: no such purchase. Anything else: Google is not answering now.
       if (e.status === 404 || e.status === 410 || e.status === 400) throw new ApiError('not_paid', 'Google does not know this purchase.');
-      log.error('google_play_failed', { requestId: c.get('requestId'), error: e.message });
+      console.error(c.get('requestId'), 'google play', e.message);
       throw new ApiError('unavailable', "Couldn't reach Google Play. Try again.");
     }
     throw e;

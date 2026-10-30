@@ -31,10 +31,7 @@ import { studioSweep } from '../jobs/studio-nightly.ts';
 // M28 US3: the hourly outbox health check.
 import { checkOutboxHealth } from '../jobs/health.ts';
 import { ATTACHED } from '../db/backend.ts';
-import { warmDiscoverPool } from '../db/repos/discover/ddb/pool.ts';
 import { listenerEmailRows } from '../db/repos/account/profile.ts';
-import { alertEmail, groqApiKey } from '../config.ts';
-import { log } from '../log.ts';
 
 /**
  * Mounted at /v1/internal (M8, research R4/R5). The scheduled workflow in the public CI
@@ -98,7 +95,7 @@ export async function refreshOne(db: Db, cat: Catalog, feedUrl: string, counts: 
 export function createInternalRoute(jobTokenOrGetter: string | undefined | (() => string | undefined), m22: { groq?: Groq } = {}) {
   const internal = new Hono<AuthEnv>();
   // M22 US13: Groq's free tier, only from the `translate` step (no key → jobs stay queued).
-  const groq = m22.groq ?? groqClient(groqApiKey());
+  const groq = m22.groq ?? groqClient(process.env['GROQ_API_KEY']);
 
   internal.post('/rebuild', json(body), async (c) => {
     const started = Date.now();
@@ -116,7 +113,7 @@ export function createInternalRoute(jobTokenOrGetter: string | undefined | (() =
     if (step === 'health') {
       const on = ATTACHED.get(db);
       if (!on) return c.json({ done: true, counts: { oldestAgeMs: 0, parked: 0, state: 'ok', emailed: 0 }, ms: Date.now() - started });
-      let to = alertEmail();
+      let to = process.env['ALERT_EMAIL'] || undefined;
       const owner = c.get('safety')?.ownerListenerId;
       if (!to && owner) { try { to = (await listenerEmailRows(db, owner))[0]?.email; } catch { /* no recipient: the check says so in the log */ } }
       const r = await checkOutboxHealth(on.store, { mailer: c.get('mailer'), to });
@@ -145,7 +142,7 @@ export function createInternalRoute(jobTokenOrGetter: string | undefined | (() =
           try { await recordSync(db, group[k]!.feed_url, why === null, why); } catch (e) { failed.push(`feed_sync: ${e instanceof Error ? e.message : String(e)}`); }
         }
       }
-      if (failed.length > 0) log.warn('rebuild_feeds_failed', { failed });
+      if (failed.length > 0) console.warn(`[rebuild feeds] ${failed.join(' | ')}`);
       const done = rows.length <= FEEDS_PER_CALL;
       return c.json({
         done, ...(done ? {} : { next: String(offset + batch.length) }),
@@ -158,7 +155,7 @@ export function createInternalRoute(jobTokenOrGetter: string | undefined | (() =
     if (step === 'sweep') {
       const failed: string[] = [];
       const cat = c.get('catalog');
-      const counts = { milestones: 0, popular: 0, voiceDeleted: 0, activeDeleted: 0, cacheDeleted: 0, pushSentDeleted: 0, recEventsDeleted: 0, errorsDeleted: 0, dashFixed: 0, poolWarmed: 0 };
+      const counts = { milestones: 0, popular: 0, voiceDeleted: 0, activeDeleted: 0, cacheDeleted: 0, pushSentDeleted: 0, recEventsDeleted: 0, errorsDeleted: 0, dashFixed: 0 };
       // M18 FR-015: a day of app use is kept 400 days, then deleted (research R8).
       try { counts.activeDeleted = await sweepDailyActive(db); }
       catch (e) { failed.push(`daily_active: ${e instanceof Error ? e.message : String(e)}`); }
@@ -223,12 +220,7 @@ export function createInternalRoute(jobTokenOrGetter: string | undefined | (() =
       try { counts.milestones = await sendMilestones(db); } catch (e) { failed.push(`milestones: ${e instanceof Error ? e.message : String(e)}`); }
       // M26 lane ST: scheduled Studio episodes go live; once a day the Studio rollups are checked (DynamoDB only).
       try { await studioSweep(db); } catch (e) { failed.push(`studio: ${e instanceof Error ? e.message : String(e)}`); }
-      // M32 lane FA: build the Discover pool (hunt, plaza, video) here so the first request after the job does not pay for it.
-      try {
-        const on = ATTACHED.get(db);
-        if (on) { const w = await warmDiscoverPool(on.store); counts.poolWarmed = w.snapshot === 'failed' ? 0 : 1; if (w.snapshot === 'failed') failed.push('discover pool: snapshot not stored'); }
-      } catch (e) { failed.push(`discover pool: ${e instanceof Error ? e.message : String(e)}`); }
-      if (failed.length > 0) log.warn('rebuild_sweep_failed', { failed });
+      if (failed.length > 0) console.warn(`[rebuild sweep] ${failed.join(' | ')}`);
       return c.json({ done: true, counts: { ...counts, failed: failed.length }, ms: Date.now() - started });
     }
 

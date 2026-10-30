@@ -5,32 +5,32 @@
  * without a network call. `icon` is the tile's one-colour picture (Ionicons; owner 2026-09-27:
  * one-colour icons across the app, no colour emoji).
  */
-import { categoryName, orderedVisible, type GenreSetting } from '@socialmorning/social-core';
+import { orderedVisible, type GenreSetting } from '@socialmorning/social-core';
 import type { IconName } from '@/ui/kit/Icon';
 
 export type Genre = { id: number; name: string; icon: IconName };
 
 /** The bundled list, in the bundled order, with Apple's names (what `genreOf` matches feeds against). */
 export const BUNDLED_GENRES: readonly Genre[] = [
-  { id: 1321, name: categoryName(1321)!, icon: 'briefcase-outline' },
-  { id: 1324, name: categoryName(1324)!, icon: 'earth-outline' },
-  { id: 1304, name: categoryName(1304)!, icon: 'school-outline' },
-  { id: 1303, name: categoryName(1303)!, icon: 'happy-outline' },
-  { id: 1489, name: categoryName(1489)!, icon: 'newspaper-outline' },
-  { id: 1318, name: categoryName(1318)!, icon: 'hardware-chip-outline' },
-  { id: 1533, name: categoryName(1533)!, icon: 'flask-outline' },
-  { id: 1512, name: categoryName(1512)!, icon: 'fitness-outline' },
-  { id: 1487, name: categoryName(1487)!, icon: 'hourglass-outline' },
-  { id: 1301, name: categoryName(1301)!, icon: 'color-palette-outline' },
-  { id: 1488, name: categoryName(1488)!, icon: 'finger-print-outline' },
-  { id: 1483, name: categoryName(1483)!, icon: 'book-outline' },
-  { id: 1309, name: categoryName(1309)!, icon: 'film-outline' },
-  { id: 1310, name: categoryName(1310)!, icon: 'musical-notes-outline' },
-  { id: 1545, name: categoryName(1545)!, icon: 'football-outline' },
-  { id: 1502, name: categoryName(1502)!, icon: 'game-controller-outline' },
-  { id: 1305, name: categoryName(1305)!, icon: 'balloon-outline' },
-  { id: 1314, name: categoryName(1314)!, icon: 'sparkles-outline' },
-  { id: 1511, name: categoryName(1511)!, icon: 'business-outline' },
+  { id: 1321, name: 'Business', icon: 'briefcase-outline' },
+  { id: 1324, name: 'Society & Culture', icon: 'earth-outline' },
+  { id: 1304, name: 'Education', icon: 'school-outline' },
+  { id: 1303, name: 'Comedy', icon: 'happy-outline' },
+  { id: 1489, name: 'News', icon: 'newspaper-outline' },
+  { id: 1318, name: 'Technology', icon: 'hardware-chip-outline' },
+  { id: 1533, name: 'Science', icon: 'flask-outline' },
+  { id: 1512, name: 'Health & Fitness', icon: 'fitness-outline' },
+  { id: 1487, name: 'History', icon: 'hourglass-outline' },
+  { id: 1301, name: 'Arts', icon: 'color-palette-outline' },
+  { id: 1488, name: 'True Crime', icon: 'finger-print-outline' },
+  { id: 1483, name: 'Fiction', icon: 'book-outline' },
+  { id: 1309, name: 'TV & Film', icon: 'film-outline' },
+  { id: 1310, name: 'Music', icon: 'musical-notes-outline' },
+  { id: 1545, name: 'Sports', icon: 'football-outline' },
+  { id: 1502, name: 'Leisure', icon: 'game-controller-outline' },
+  { id: 1305, name: 'Kids & Family', icon: 'balloon-outline' },
+  { id: 1314, name: 'Religion & Spirituality', icon: 'sparkles-outline' },
+  { id: 1511, name: 'Government', icon: 'business-outline' },
 ];
 
 /** Every genre with the admin's name (M25 A7), hidden or not — for looking one up by id. */

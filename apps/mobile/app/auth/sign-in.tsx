@@ -1,45 +1,58 @@
-// Sign-in start page: the wall of tiles, the app's name, Continue with email, the other ways when built, and the consent box.
+// Sign-in start page: app name, moving word tiles, ways to sign in, consent box.
 /**
- * The sign-in landing page (owner's reference screenshots, 2026-09-27 and 2026-10-03): the icon, the app's name, the ways in
- * and the consent box — each way in opening its own page. The layout follows the reference; nothing of the reference's own
- * (logo, covers, words) is used.
+ * The sign-in landing page (owner's reference screenshots, 2026-09-27 and 2026-10-03): the
+ * icon, the app's name, a moving row of word tiles (covers until 2026-10-04), then the ways in and the consent box —
+ * each way in opening its own page. The layout follows the reference; nothing of the
+ * reference's own (logo, covers, words) is used.
  *
- * Signing in is required (owner, 2026-09-27): no close button, no swipe back (the stack option), and Android's back does
- * nothing here.
+ * Signing in is required (owner, 2026-09-27): no close button, no swipe back (the stack
+ * option), and Android's back does nothing here.
  *
- * M31 S-C (T061; design-pulse2 `settings.html` `signInPage`, `auth-sign-in--screen`, layout Stage): the wall of tiles fills the top
- * 430 and fades to the page; the bottom zone sits by the thumb, 24 from the sides and 6 above the edge, 14 between its parts —
- * the app icon (48) beside "SocialNet" in Unbounded 800 40, then Continue with email (light, 56, the mail mark 20 from the left),
- * then the consent row. Google and Facebook are not drawn until they are built (M25 L3c): `<OtherWays>` renders nothing while no
- * method is ready, and then sits as ring pills under the email button. Continuing without the tick opens "Before you continue".
+ * M17 T070 (`SignIn-B`): the name in 56 pt serif (Lora since 2026-10-04) with tight spacing, covers at 22 pt corners
+ * with a soft shadow, a 60 pt yellow "Continue with email" and Google / Facebook as white 56 pt
+ * pills with the card border. The icon (72) and the gap above the covers (64) keep the owner's
+ * own sizes from 2026-10-03 rather than B's 44 / 56. Ways in, consent and the guards unchanged.
+ *
+ * M25 L3c (App Review 2.1): Google and Facebook are not drawn until they are built — the row is
+ * `<OtherWays>`, which renders nothing while no method is ready (was: buttons that opened Coming soon).
  */
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { BackHandler } from 'react-native';
-import { Image } from '@/ui/lib/image';
-import { Box } from '@/ui/lib/box';
-import { bars } from '@/design';
-import { Type } from '@/ui/kit/Type';
-import { askForNotifications } from '@/notify/permission';
-import { expoNotify } from '@/notify/expo';
-import { signInPage } from '@/ui/shell/launch';
-import { AuthButton } from '@/ui/auth/AuthShell';
-import { ArtWall, WallFade } from '@/ui/auth/ArtWall';
-import { ConsentDialog, ConsentRow, useLegalOverlay } from '@/ui/auth/Consent';
-import { AUTH, AUTH_TYPE } from '@/ui/auth/measures';
-import { submitAction } from '@/ui/auth/rules';
-import { type OtherMethod } from '@/ui/auth/methods';
-import { OtherWays } from '@/ui/auth/OtherWays';
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import { BackHandler } from "react-native";
+import { Image } from "@/ui/lib/image";
+import { SafeAreaView } from "@/ui/lib/safe-area-view";
+import { Text } from "@/ui/lib/text";
+import { Box } from "@/ui/lib/box";
+import { useStores } from "@/ui/shell/providers";
+import { useColours } from "@/ui/kit/useColours";
+import { askForNotifications } from "@/notify/permission";
+import { expoNotify } from "@/notify/expo";
+import { signInPage } from "@/ui/shell/launch";
+import { AuthButton } from "@/ui/auth/AuthShell";
+import { ArtWall } from "@/ui/auth/ArtWall";
+import { LANDING_TILES } from "@/ui/auth/art";
+import { display } from "@/ui/auth/display";
+import { ConsentDialog, ConsentRow, useLegalOverlay } from "@/ui/auth/Consent";
+import { submitAction } from "@/ui/auth/rules";
+import { type OtherMethod } from "@/ui/auth/methods";
+import { OtherWays } from "@/ui/auth/OtherWays";
 
-type Way = 'email' | OtherMethod;
+/** Owner, 2026-10-03: larger (was 48), and the covers lower down (was 40 below the name). */
+const LOGO = { width: 72, height: 72 };
+const ROW_TOP = { marginTop: 64 };
+
+type Way = "email" | OtherMethod;
 
 export default function SignInScreen(): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const legal = useLegalOverlay();
   const [agreed, setAgreed] = useState(false);
-  // Which way in is waiting on the consent sheet.
+  // Which way in is waiting on the consent dialog.
   const [asking, setAsking] = useState<Way | undefined>(undefined);
-  // The page appears whole, once its wall is in (owner, 2026-09-27): whatever is over the app (the launch screen, or the Terms
-  // right after Agree) lifts only then — never a splash of this page's own (owner, 2026-09-29).
+  // The page appears whole, once its covers are in (owner, 2026-09-27): whatever is over the
+  // app (the launch screen, or the Terms right after Agree) lifts only then — never a splash
+  // of this page's own (owner, 2026-09-29: Agree → splash → sign-in read as a step too many).
   useEffect(() => () => signInPage.setWhole(false), []);
 
   // Owner, 2026-09-27: the OS asks for notification permission when this page opens.
@@ -47,34 +60,70 @@ export default function SignInScreen(): React.ReactElement {
     void askForNotifications(expoNotify);
   }, []);
   useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => true);
     return () => sub.remove();
   }, []);
 
   function go(way: Way): void {
-    if (way === 'email') {
-      router.push({ pathname: '/auth/email', params: { agreed: '1' } });
+    if (way === "email") {
+      router.push({ pathname: "/auth/email", params: { agreed: "1" } });
       return;
     }
     // M25 L3c: only a ready method is drawn (none today); its own sign-in flow goes here when built.
   }
   const choose = (way: Way): void => {
-    if (submitAction({ valid: true, agreed, busy: false }) === 'ask') setAsking(way);
+    if (submitAction({ valid: true, agreed, busy: false }) === "ask")
+      setAsking(way);
     else go(way);
   };
 
   return (
-    <Box className="flex-1 bg-void">
-      <ArtWall onReady={() => signInPage.setWhole(true)} />
-      <WallFade />
-      <Box testID="sign-in-zone" className="absolute" style={{ left: AUTH.zone.side, right: AUTH.zone.side, bottom: bars.pushedGap, gap: AUTH.zone.gap, zIndex: 5 }}>
-        <Box className="flex-row items-center" style={{ gap: AUTH.zone.iconGap }}>
-          <Image source={require('../../assets/app-icon.png')} style={{ width: AUTH.zone.icon, height: AUTH.zone.icon, borderRadius: AUTH.zone.iconRadius }} accessibilityIgnoresInvertColors />
-          <Type step="hero" className="text-text flex-1" style={AUTH_TYPE.wordmark} accessibilityRole="header" numberOfLines={1} adjustsFontSizeToFit>SocialNet</Type>
-        </Box>
-        <AuthButton mark={{ icon: 'mail-outline' }} label="Continue with email" text="Continue with email" disabled={false} onPress={() => choose('email')} />
+    <SafeAreaView className="flex-1 bg-background">
+      {/* Owner, 2026-10-03: the icon on top, the name under it, then a row of tiles (words only since 2026-10-04) that
+          moves on every second; the ways in at the bottom — email full width, Google and
+          Facebook side by side. */}
+      <Box className="px-screen-x pt-section">
+        <Image
+          source={require("../../assets/app-icon.png")}
+          style={LOGO}
+          className="rounded-[16px]"
+          accessibilityIgnoresInvertColors
+        />
+
+        <Text
+          style={display(48, c.text, { tracking: -1.5, leading: 58 })}
+          className="text-text mt-section pt-2"
+          accessibilityRole="header"
+        >
+          SocialNet
+        </Text>
+      </Box>
+      {/* Owner, 2026-10-03: room above the covers. */}
+      <Box style={ROW_TOP}>
+        <ArtWall
+          tiles={LANDING_TILES}
+          onReady={() => signInPage.setWhole(true)}
+        />
+      </Box>
+      <Box className="flex-1" />
+      <Box className="px-screen-x pb-section">
+        <AuthButton
+          mark={{ icon: "mail-outline" }}
+          label="Continue with email"
+          text="Continue with email"
+          className="rounded-pill"
+          tall
+          bold
+          disabled={false}
+          onPress={() => choose("email")}
+        />
         <OtherWays onChoose={(id) => choose(id)} />
-        <ConsentRow agreed={agreed} onToggle={() => setAgreed((a) => !a)} open={legal.open} />
+        {/* Owner, 2026-09-27: the consent box sits under the ways in. */}
+        <ConsentRow
+          agreed={agreed}
+          onToggle={() => setAgreed((a) => !a)}
+          open={legal.open}
+        />
       </Box>
       <ConsentDialog
         visible={asking !== undefined}
@@ -89,6 +138,6 @@ export default function SignInScreen(): React.ReactElement {
         }}
       />
       {legal.overlay}
-    </Box>
+    </SafeAreaView>
   );
 }

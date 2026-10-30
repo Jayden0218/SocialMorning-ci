@@ -11,20 +11,7 @@
  * and Verify pills); the explanation; "Claim a show" as a serif heading over a row of show cards
  * that scrolls sideways (artwork, name, "Claim" in the accent); the feed address in a pill field;
  * Get my code; and the Creator academy link as a card at the end. Same actions, same handlers.
- *
- * M31 W6-A (T070 part 1; design-pulse2 `shell.html` `creator--screen`, `--signed-out`, `--host-proven`, `--code-pending`, `--code-not-found`, `--share-code-panel`; layout Deck): a pushed
- * page, the violet-first glow. The stage is the glowing curve of 48 bars (a picture, no data), "Claim the show you publish" in Unbounded 800 26 and today's explanation (14, text-2);
- * under it the "Claim" deck — the shows you subscribe to and have not claimed, up to 5, cards 132 wide (cover, name 13, "Claim" in hot-text) sliding sideways from the 28 lane —
- * and the Creator academy card (62, light, a cap in the dark accent). A claim replaces the stage with its card (pending: the steps and the code; proven: the numbers). The foot is
- * the title bar ("Creator centre" at 26, back) with the feed field (48, globe) and, under it, Get my code (light) — or, while a code is waiting, Share code (ring) and Verify
- * (light), which act on the waiting claim; type in the field and Get my code takes their place. The answer to a bad address or a failed list sits in hot-text above the field; the
- * answer to Verify sits inside the waiting card. Signed out: a 120 mic tile and "Sign in to claim your show". Same calls, names and words.
- *
- * Not as drawn: the drawing's waiting-code page has no feed field in its foot; this one keeps it (a waiting claim never expires, so without it a creator could not claim another feed
- * by address); with more than one waiting code the other cards are tappable ("Use the code for …") to choose which one Share code and Verify act on; the deck follows a claim card 32
- * under it (the drawing places it at a fixed top).
  */
-
 import { Icon } from '@/ui/kit/Icon';
 import { Link } from '@/design/tailwind';
 import { Artwork } from '@/ui/kit/Artwork';
@@ -34,42 +21,41 @@ import { Share } from 'react-native';
 import { Input, InputField } from '@/ui/lib/input';
 import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Text } from '@/ui/kit/Text';
-import { colour, hit } from '@/design';
+import { hit } from '@/design';
 import type { CreatorClaim, ShowStats } from '@/social/api';
 import { useSocial } from '@/social/context';
-import { Curve } from '@/ui/kit/Curve';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
-import { PageGlow } from '@/ui/kit/PageGlow';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { Type } from '@/ui/kit/Type';
-import { drawnType } from '@/design/type-px';
+import { Button } from '@/ui/kit/Button';
+import { Card } from '@/ui/kit/Card';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { mmss } from '@/ui/kit/format';
+import { EmptyPicture } from '@/ui/me/parts';
 import { useStores } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
+import { plural } from '@socialmorning/social-core';
+import { PageHeader } from '@/ui/kit/PageHeader';
 import { useSharePanel } from '@/ui/clips/ShareChooser';
-import { GlowTile } from '@/ui/me/lists';
-import { ClaimCard } from '@/ui/creator/parts';
-import { CREATOR, STAGE_CURVE } from '@/ui/creator/measures';
-import { Big, Line } from '@/ui/wallet/stage';
 
-/** The academy card's second line: Geist 500 12 / 16 at 75 % (a style object, not an array: it sits under `Link asChild`). */
-const ACADEMY_NOTE = { ...drawnType.tileNote, opacity: 0.75 };
+const TAP = { minHeight: hit.min };
+/** A show card in the sideways "Claim a show" row. */
+const SHOW_ART = 132;
+const SHOW_CARD = { width: SHOW_ART, minHeight: hit.min };
 
-/** The answer to Verify belongs to the claim that was checked; any other answer sits above the field. */
-type Note = { text: string; claimId?: string };
+/** `Creator-B`: the page's name small and centred in the bar, not the big serif title. */
+function Title(): React.ReactElement {
+  return <Text className="flex-1 text-center text-text text-sm font-bold" accessibilityRole="header">Creator centre</Text>;
+}
 
 export default function CreatorScreen(): React.ReactElement {
   const stores = useStores();
+  const c = useColours(stores.settings);
   const { api, listener } = useSocial();
   const [claims, setClaims] = useState<CreatorClaim[] | undefined>();
   const [feedUrl, setFeedUrl] = useState('');
-  const [note, setNote] = useState<Note | undefined>();
+  const [note, setNote] = useState<string | undefined>();
   const [stats, setStats] = useState<Record<string, ShowStats>>({});
   const [busy, setBusy] = useState(false);
-  const [activeId, setActiveId] = useState<string | undefined>();
-  // The foot grows by the answer line above the field, so the title bar is lifted by what is measured.
-  const [foot, setFoot] = useState<number>(CREATOR.field + CREATOR.footGap + hit.min);
   // M16a T005 (FR-015): the app's share panel first; the system sheet behind "More".
   const [share, sharePanel] = useSharePanel();
 
@@ -82,143 +68,118 @@ export default function CreatorScreen(): React.ReactElement {
       for (const cl of r.filter((x) => x.status === 'proven')) {
         void api.creatorStats(cl.feedUrl).then((s) => { if (live) setStats((cur) => ({ ...cur, [cl.feedUrl]: s })); }, () => undefined);
       }
-    }, () => { if (live) { setClaims([]); setNote({ text: "Couldn't load your shows" }); } });
+    }, () => { if (live) { setClaims([]); setNote("Couldn't load your shows"); } });
     return () => { live = false; };
   }, [api, listener]);
   useFocusEffect(load);
 
-  if (!listener) {
-    return (
-      <PushedPage title="Creator centre" size={CREATOR.titleSize} tone="none">
-        {(layout) => (
-          <>
-            <PageGlow flip top={CREATOR.outGlowTop} strength={CREATOR.glowStrength} />
-            <Box testID="creator-out-tile" className="absolute left-0 right-0 items-center" pointerEvents="none" style={{ top: layout.top + CREATOR.outTileTop }}><GlowTile icon="mic-outline" size={CREATOR.outTile} rotate={-6} /></Box>
-            <Box testID="creator-out-words" className="absolute" style={{ left: CREATOR.outSide, right: CREATOR.outSide, top: layout.top + CREATOR.outTextTop }}><Big size="big28">Sign in to claim your show</Big></Box>
-          </>
-        )}
-      </PushedPage>
-    );
-  }
+  if (!listener) return <><PageHeader middle={<Title />} /><Box className="flex-1 bg-background"><EmptyPicture icon="mic-outline" line="Sign in to claim your show" /></Box></>;
 
   const claim = async (url: string) => {
     setBusy(true); setNote(undefined);
     try {
       const made = await api.creatorClaim(url.trim());
       setClaims((cur) => [made, ...(cur ?? []).filter((x) => x.id !== made.id)]);
-      setActiveId(made.id);
       setFeedUrl('');
-    } catch { setNote({ text: 'That is not a feed address (it starts with https://).' }); }
+    } catch { setNote('That is not a feed address (it starts with https://).'); }
     setBusy(false);
   };
   const verify = async (cl: CreatorClaim) => {
     setBusy(true); setNote(undefined);
     try {
       const r = await api.creatorVerify(cl.id);
-      if (r === 'taken') setNote({ text: 'Someone else has already proven this show.', claimId: cl.id });
-      else if (r.status === 'pending') setNote({ text: 'The code is not in your feed yet. Feeds can take a few minutes to update — try again soon.', claimId: cl.id });
+      if (r === 'taken') setNote('Someone else has already proven this show.');
+      else if (r.status === 'pending') setNote('The code is not in your feed yet. Feeds can take a few minutes to update — try again soon.');
       else load();
-    } catch { setNote({ text: "Couldn't reach your feed. Try again.", claimId: cl.id }); }
+    } catch { setNote("Couldn't reach your feed. Try again."); }
     setBusy(false);
   };
 
   const subscribed = stores.subscriptions.list().map((s) => stores.feeds.getShow(s.feedUrl)).filter((s) => s !== undefined)
     .filter((s) => !(claims ?? []).some((cl) => cl.feedUrl === s.feedUrl)).slice(0, 5);
-  const waiting = (claims ?? []).filter((cl) => cl.status === 'pending');
-  const active = waiting.find((cl) => cl.id === activeId) ?? waiting[0];
-  const typing = feedUrl.trim() !== '';
-  const pageNote = note && note.claimId === undefined ? note.text : undefined;
-  const hasClaims = (claims ?? []).length > 0;
 
   return (
     <>
-    <PushedPage
-      title="Creator centre"
-      size={CREATOR.titleSize}
-      tone="none"
-      belowHeight={foot}
-      below={(
-        <Box testID="creator-foot" style={{ gap: CREATOR.footGap }} onLayout={(e) => { const h = Math.round(e.nativeEvent.layout.height); if (h !== foot) setFoot(h); }}>
-          {pageNote ? <Line size="line14" tone="hot" live>{pageNote}</Line> : null}
-          <Input className="bg-raise2 flex-row items-center border border-line" style={{ height: CREATOR.field, borderRadius: CREATOR.fieldRadius, paddingHorizontal: CREATOR.fieldPad, gap: CREATOR.fieldGap }}>
-            <Icon name="globe-outline" size={20} color={colour.text3} />
-            <InputField value={feedUrl} onChangeText={setFeedUrl} placeholder="Or paste your feed address (RSS)" placeholderTextColor={colour.text3}
-              autoCapitalize="none" autoCorrect={false} keyboardType="url" inputMode="url" style={{ minHeight: hit.min }} accessibilityLabel="Your feed address" className="flex-1 text-text font-medium text-pulse-body" />
-          </Input>
-          {active && !typing ? (
-            <Box testID="creator-buttons" className="flex-row" style={{ gap: CREATOR.footGap - 2 }}>
-              <PulseButton kind="ring" icon="share-outline" label="Share code" onPress={() => share({ heading: 'Share your code', more: { detail: 'other apps', run: () => void Share.share({ message: active.code }) } })} className="flex-1" />
-              <PulseButton label="Verify" icon="checkmark" onPress={() => void verify(active)} disabled={busy} className="flex-1" />
-            </Box>
+    <PageHeader middle={<Title />} />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="pt-row pb-24 gap-section" keyboardShouldPersistTaps="handled">
+      {(claims ?? []).map((cl) => (
+        <Card key={cl.id} className="mx-screen-x py-section gap-row">
+          {/* M12 FR-098: the claimed show as a card — its artwork beside its name. */}
+          <Box className="flex-row items-end gap-row">
+            <Artwork url={stores.feeds.getShow(cl.feedUrl)?.imageUrl} size={96} name={stores.feeds.getShow(cl.feedUrl)?.title} />
+            <Text className="text-text text-lg font-display flex-1" numberOfLines={3}>{stores.feeds.getShow(cl.feedUrl)?.title ?? cl.feedUrl}</Text>
+          </Box>
+          {cl.status === 'proven' ? (
+            <ProvenStats stats={stats[cl.feedUrl]} />
           ) : (
-            <PulseButton label="Get my code" onPress={() => void claim(feedUrl)} disabled={busy || !/^https?:\/\/\S+$/.test(feedUrl.trim())} full />
+            <>
+              <Text className="text-muted text-meta">1. Copy this code. 2. Put it anywhere in your show description, in your hosting service. 3. Tap Verify.</Text>
+              <Text selectable className="text-text text-display font-display" accessibilityLabel={`Your code: ${cl.code}`}>{cl.code}</Text>
+              <Box className="flex-row gap-row">
+                <Button kind="secondary" label="Share code" onPress={() => share({ heading: 'Share your code', more: { detail: 'other apps', run: () => void Share.share({ message: cl.code }) } })} className="flex-1" />
+                <Button label="Verify" onPress={() => void verify(cl)} disabled={busy} className="flex-1" />
+              </Box>
+            </>
           )}
-        </Box>
-      )}
-    >
-      {(layout) => (
-        <>
-          <PageGlow flip top={CREATOR.glowTop} strength={CREATOR.glowStrength} />
-          <ScrollView testID="creator-scroll" className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: layout.top + CREATOR.top, paddingBottom: layout.reserve }}>
-            {hasClaims ? (
-              <Box testID="creator-claims" style={{ paddingHorizontal: CREATOR.side, gap: CREATOR.gap }}>
-                {(claims ?? []).map((cl) => {
-                  const show = stores.feeds.getShow(cl.feedUrl);
-                  return (
-                    <ClaimCard
-                      key={cl.id}
-                      status={cl.status === 'proven' ? 'proven' : 'pending'}
-                      title={show?.title ?? cl.feedUrl}
-                      imageUrl={show?.imageUrl}
-                      code={cl.code}
-                      note={note?.claimId === cl.id ? note.text : undefined}
-                      stats={stats[cl.feedUrl]}
-                      {...(waiting.length > 1 && cl.status === 'pending' ? { active: cl.id === active?.id, onUse: () => setActiveId(cl.id) } : {})}
-                    />
-                  );
-                })}
-              </Box>
-            ) : (
-              <Box testID="creator-stage" style={{ paddingHorizontal: CREATOR.side, gap: CREATOR.gap }}>
-                <Box accessible={false} importantForAccessibility="no-hide-descendants"><Curve data={STAGE_CURVE} count={CREATOR.curveBars} height={CREATOR.curveHeight} played={1} glow min={3} /></Box>
-                <Big size="big26">Claim the show you publish</Big>
-                <Line size="line14">We never host your audio — you keep your own feed. Once you prove it is yours, you see your show’s numbers and your comments carry a Host mark.</Line>
-              </Box>
-            )}
+        </Card>
+      ))}
 
-            {subscribed.length > 0 ? (
-              <Box testID="creator-deck" className="relative" style={{ marginTop: hasClaims ? CREATOR.deckGapCard : CREATOR.deckGapStage }}>
-                <EdgeLabel label="Claim" spoken="Claim a show" top={CREATOR.deckEdgeTop} />
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: CREATOR.lane, paddingRight: CREATOR.side, gap: CREATOR.deckGap }}>
-                  {subscribed.map((s) => (
-                    <Pressable key={s.feedUrl} onPress={() => void claim(s.feedUrl)} disabled={busy} accessibilityRole="button" accessibilityLabel={`Claim ${s.title}`} style={{ width: CREATOR.deckCard, minHeight: hit.min, gap: CREATOR.deckNameGap }}>
-                      <Box className="overflow-hidden" style={{ width: CREATOR.deckCard, height: CREATOR.deckCard, borderRadius: CREATOR.deckCardRadius }}><Artwork url={s.imageUrl} size={CREATOR.deckCard} name={s.title} /></Box>
-                      <Type step="caption" className="text-text font-semibold" numberOfLines={2}>{s.title}</Type>
-                      <Type step="chip" className="text-hotText font-bold">Claim</Type>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </Box>
-            ) : null}
+      {note ? <Text className="px-screen-x text-accent text-body" accessibilityLiveRegion="polite">{note}</Text> : null}
 
-            {/* M12 FR-103: the Creator academy link — a light card above the foot. */}
-            <Box style={{ paddingHorizontal: CREATOR.side, marginTop: CREATOR.academyGap }}>
-              <Link href="/academy" asChild>
-                <Pressable accessibilityRole="link" accessibilityLabel="Creator academy: how claiming, numbers, comments, clips and the Studio work" testID="creator-academy" className="bg-text flex-row items-center" style={{ minHeight: CREATOR.academyHeight, borderRadius: CREATOR.academyRadius, paddingHorizontal: CREATOR.academyPad, gap: CREATOR.academyGapInside }}>
-                  <Icon name="school-outline" size={CREATOR.academyIcon} color={colour.toastAction} />
-                  <Box className="flex-1">
-                    <Text className="text-void font-display" style={drawnType.unbounded[15]}>Creator academy</Text>
-                    <Type step="caption" className="text-void" style={ACADEMY_NOTE}>Claiming, numbers, comments, clips, the Studio</Type>
-                  </Box>
-                  <Icon name="chevron-forward" size={CREATOR.academyChevron} color={colour.void} />
-                </Pressable>
-              </Link>
-            </Box>
+      <Text className="px-screen-x text-muted text-body">Claim the show you publish. We never host your audio — you keep your own feed. Once you prove it is yours, you see your show's numbers and your comments carry a Host mark.</Text>
+
+      <Box className="gap-row">
+        <Text className="px-screen-x text-text text-base font-display" accessibilityRole="header">Claim a show</Text>
+        {subscribed.length > 0 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-screen-x gap-row">
+            {subscribed.map((s) => (
+              <Pressable key={s.feedUrl} onPress={() => void claim(s.feedUrl)} disabled={busy} accessibilityRole="button" accessibilityLabel={`Claim ${s.title}`} className="gap-1" style={SHOW_CARD}>
+                <Artwork url={s.imageUrl} size={SHOW_ART} name={s.title} />
+                <Text className="text-text text-meta font-bold mt-1" numberOfLines={2}>{s.title}</Text>
+                <Text className="text-accent text-xs font-bold">Claim</Text>
+              </Pressable>
+            ))}
           </ScrollView>
-        </>
-      )}
-    </PushedPage>
+        ) : null}
+        <Box className="px-screen-x gap-row">
+          <Input className="bg-surface border border-border rounded-pill h-auto px-0">
+            <InputField value={feedUrl} onChangeText={setFeedUrl} placeholder="Or paste your feed address (RSS)" placeholderTextColor={c.muted}
+            autoCapitalize="none" autoCorrect={false} keyboardType="url" inputMode="url" style={TAP} accessibilityLabel="Your feed address"  className="px-section text-text text-body" />
+          </Input>
+          <Button label="Get my code" onPress={() => void claim(feedUrl)} disabled={busy || !/^https?:\/\/\S+$/.test(feedUrl.trim())} />
+        </Box>
+      </Box>
+
+      {/* M12 FR-103: the Creator academy link — at the end of the page in `Creator-B`, as a card
+          like the claimed shows above. */}
+      <Link href="/academy" asChild>
+        {/* M24 US20 (`Creator-B`): the academy card is dark with paper words and a yellow icon. */}
+        <Pressable accessibilityRole="link" accessibilityLabel="Creator academy: how claiming, numbers, comments, clips and the Studio work" className="mx-screen-x bg-text rounded-row px-5 py-[18px] flex-row items-center gap-row" style={TAP}>
+          <Icon name="school-outline" size={24} color={c.primary} />
+          <Box className="flex-1">
+            <Text className="text-background text-title font-display-semibold">Creator academy</Text>
+            <Text className="text-background text-meta opacity-80">Claiming, numbers, comments, clips, the Studio</Text>
+          </Box>
+          <Icon name="chevron-forward" size={18} color={c.background} />
+        </Pressable>
+      </Link>
+    </ScrollView>
     {sharePanel}
     </>
+  );
+}
+
+function ProvenStats(props: { stats: ShowStats | undefined }): React.ReactElement {
+  const s = props.stats;
+  if (!s) return <Text className="text-muted text-body">Proven — loading your numbers…</Text>;
+  return (
+    <Box className="gap-1">
+      <Eyebrow accent>Proven — you are the host</Eyebrow>
+      <Text className="text-text text-body font-semibold">{`${s.listeners} listened · ${plural(s.comments, 'comment')} · ${plural(s.episodes, 'episode')}`}</Text>
+      {s.topMoments.length > 0 ? <Text className="text-muted text-meta mt-1">Where people talk most</Text> : null}
+      {s.topMoments.map((m) => (
+        <Text key={m.episodeId + m.offsetMs} className="text-text text-body" numberOfLines={1}>{`${mmss(m.offsetMs)} · ${m.title} · ${m.comments}`}</Text>
+      ))}
+    </Box>
   );
 }

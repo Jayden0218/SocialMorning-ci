@@ -7,9 +7,7 @@
  * adapter, and it does both exactly once for the app's life.
  */
 import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { AppState, Platform } from 'react-native';
-import { openSystem } from '@/ui/kit/openLink';
-import { ToastContext } from '@/ui/shell/toast-context';
+import { AppState, Linking, Platform } from 'react-native';
 import Constants from 'expo-constants';
 import { createExpoAudioAdapter } from '@/playback/expo-audio-adapter';
 import { PlayerProvider, createPlayerRuntime, type PlayerRuntime } from '@/playback/store';
@@ -49,7 +47,7 @@ import { applyAccent, readAccent } from '@/design/accent';
 import { loadFonts } from '@/design/fonts';
 import * as SplashScreen from 'expo-splash-screen';
 import { Terms } from './Terms';
-import { PlacedToastHost } from '@/ui/shell/toastPlacement';
+import { ToastHost } from '@/ui/kit/ToastHost';
 import { accept, consentGiven } from './consent';
 import { HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
 import { router, usePathname, type Href } from 'expo-router';
@@ -61,6 +59,7 @@ import { createLaunchFiles } from '@/launch/launch-files';
 import { syncLaunch } from '@/launch/sync';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
+const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
 /** True while something covers the app at start (not ready, the launch promotion, the terms). */
 const CoveredContext = createContext(false);
 /** Sheets that must not open over the start-up cover (the rate sheet) read this. */
@@ -114,7 +113,6 @@ export function useToast(): (message: string) => void {
   if (toast === undefined) throw new Error('useToast must be used inside <AppProviders>');
   return toast;
 }
-
 
 export function AppProviders(props: { children?: ReactNode }): ReactNode {
   const [message, setMessage] = useState<string | undefined>(undefined);
@@ -202,14 +200,13 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   }), [stores]);
   useEffect(() => {
     const run = () => { void queueSync.sync().catch(reportAndDrop('sync.queue')); };
-    let live = true; // M32 T090: a late device id after unmount must not start a sync
-    void deviceId().then(() => { if (live) run(); });
+    void deviceId().then(run);
     let timer: ReturnType<typeof setInterval> | undefined = setInterval(run, QUEUE_SYNC_EVERY_MS);
     const sub = AppState.addEventListener('change', (st) => {
       if (st === 'active') { run(); if (timer === undefined) timer = setInterval(run, QUEUE_SYNC_EVERY_MS); return; }
       if (timer !== undefined) { clearInterval(timer); timer = undefined; }
     });
-    return () => { live = false; sub.remove(); if (timer !== undefined) clearInterval(timer); };
+    return () => { sub.remove(); if (timer !== undefined) clearInterval(timer); };
   }, [queueSync]);
 
   // M2 (US1): the download manager. One per app life; recovers interrupted rows at start.
@@ -508,7 +505,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
               onTap={() => {
                 void launchApi.event(launchPick.promotion.id, 'tap').catch(reportAndDrop('launch.event'));
                 const to = resolveTarget(launchPick.promotion, (path) => knownRoute(path));
-                if (to.kind === 'url') void openSystem(to.url).catch(() => undefined);
+                if (to.kind === 'url') void Linking.openURL(to.url).catch(() => undefined);
                 else if (to.path !== '/') router.push(to.path as never);
               }}
               onDone={() => setLaunchPick(undefined)}
@@ -516,7 +513,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
           ) : null}
           {keepTerms({ ready, accepted, launched, cover }) ? <Terms settings={stores.settings} onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {/* M16a T015: the toast host — spoken on iOS too, and drawn above native modals. */}
-          <PlacedToastHost message={message} />
+          <ToastHost message={message} />
           {/* M22 US4: "Which playlist do you want to keep?" — over every page, until answered. */}
           <QueueChooserHost sync={queueSync} feeds={stores.feeds} onError={show.current} />
         </PlayerProvider>

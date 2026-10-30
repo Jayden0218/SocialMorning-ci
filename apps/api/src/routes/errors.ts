@@ -17,8 +17,6 @@ import { recordErrors, recordServerError } from '../db/repos/account/error-repor
 import { listenerEmailRows } from '../db/repos/account/profile.ts';
 import type { Db } from '../db/db.ts';
 import type { Mailer } from '../mail/mailer.ts';
-import { alertEmail } from '../config.ts';
-import { log } from '../log.ts';
 
 /**
  * M25 S11: what an error's text may say about a person is removed before it is kept — email
@@ -50,7 +48,7 @@ export async function reportServerError(db: Db, err: unknown, where: { method: s
     const stack = err instanceof Error && err.stack ? scrubError(err.stack) : undefined;
     const fresh = await recordServerError(db, { message, ...(stack ? { stack } : {}) });
     if (!fresh || !alert.mailer) return;
-    const to = alertEmail() || (alert.ownerListenerId
+    const to = process.env['ALERT_EMAIL'] || (alert.ownerListenerId
       ? (await listenerEmailRows(db, alert.ownerListenerId))[0]?.email
       : undefined);
     if (!to) return;
@@ -61,7 +59,7 @@ export async function reportServerError(db: Db, err: unknown, where: { method: s
       text: `A server error was seen for the first time:\n\n${message}\n\nEvery server error is listed on /mod/errors (scope "server"). At most one of these emails is sent an hour.`,
     });
   } catch (e) {
-    log.error('server_error_not_recorded', { error: e });
+    console.error('[errors] could not record a server error', e instanceof Error ? e.message : String(e));
   }
 }
 

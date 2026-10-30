@@ -78,7 +78,3 @@ export { CONFIG_KEYS, CONFIG_DEFAULTS, SHORTCUT_IDS, SHORTCUT_LABELS, DEFAULT_GE
 export { SAFE_LINK, parseInline, parseMarkdown, plainText, sectionsOf, type MdInline, type MdBlock, type MdSection } from './markdown';
 // M25 lane SB — personal metadata (EXIF GPS, XMP, IPTC, text) out of uploaded pictures
 export { imageFormat, imageMetadata, orientationSegment, readExif, stripImageMetadata, type ImageFormat } from './image-meta';
-// M32 D10 — one category list and one mm:ss
-export type { AppleCategoryName } from './categories';
-export { APPLE_CATEGORIES, CATEGORY_NAMES, categoryName, categoryId } from './categories';
-export { mmss } from './time-format';

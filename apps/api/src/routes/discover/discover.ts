@@ -15,7 +15,6 @@ import { ApiError } from '../../errors.ts';
 import type { DiscoverItem } from '../../db/repos/discover/discover.ts';
 import { getLayout } from '../../db/repos/discover/discover-settings.ts';
 import { episodeFor } from './issues.ts';
-import { log } from '../../log.ts';
 
 /** Mounted at /v1/discover — public; ETag/304; `stale` when the catalogue could not be refreshed. */
 export const discover = new Hono<AuthEnv>();
@@ -82,7 +81,7 @@ discover.get('/', optionalAuth, async (c) => {
   if (c.req.header('if-none-match') === etag) return c.body(null, 304);
   c.header('ETag', etag);
   const all = [...warnings, ...extraWarnings];
-  if (all.length > 0) log.warn('discover_warnings', { warnings: all });
+  if (all.length > 0) console.warn(`[discover] ${all.join(' | ')}`);
   return c.json({
     ...pub, picks, trending, talkedAbout,
     ...(newShows ? { newShows } : {}),

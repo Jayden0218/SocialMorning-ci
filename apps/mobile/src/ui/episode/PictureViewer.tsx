@@ -12,10 +12,7 @@
  * whose "Save image" stores it on iPhone; on Android the sheet offers the gallery and file apps.
  * Saving to Photos is NOT VERIFIED on a phone.
  *
- * M31 W3-A (T040; design-pulse2 `episode--picture-viewer`, layout Stage): the page is the near-black void (the drawing's pure black is not
- * a token), the picture fitted with its alt text under it (text2, 13), and the bottom zone is ours — Close (the 44 raise circle,
- * "Close the picture"), "2 of 3" in mono between, and Save (the light pill, "Save the picture") — over a 200 tall fade. A failed
- * load reads "This picture didn't load." No native viewer chrome.
+ * Our own top bar (✕, "2 of 3", Save) over the dark page — no native viewer chrome.
  * New-architecture support of the zoom library is NOT CONFIRMED until the cloud build and a phone.
  */
 import { useState } from 'react';
@@ -26,21 +23,22 @@ import { File, Paths } from 'expo-file-system';
 import { requireOptionalNativeModule } from 'expo';
 import { Image } from '@/ui/lib/image';
 import { Box } from '@/ui/lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { Fade } from '@/ui/kit/Fade';
-import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
-import { Type } from '@/ui/kit/Type';
-import { useToast } from '@/ui/shell/providers';
+import { hit } from '@/design';
+import { Icon } from '@/ui/kit/Icon';
+import { useColours } from '@/ui/kit/useColours';
+import { useStores, useToast } from '@/ui/shell/providers';
 
+const TAP = { minWidth: hit.min, minHeight: hit.min };
 export const VIEWER_MAX_SCALE = 4;
-/** The drawing's bottom zone: the bar 40 up (6 over the inset the safe area adds), the fade 200, the alt line above the bar. */
-export const VIEWER = { barBelow: 6, fade: 200, altBottom: 120 } as const;
 
 /** One picture, fitted to the screen once its size is known; a broken one shows a plain line. */
 function ViewerImage(props: { uri: string }): React.ReactElement {
   const { width, height } = useWindowDimensions();
   const { resolution, error } = useImageResolution({ uri: props.uri });
-  if (error) return <Type step="body" className="text-text2">This picture didn't load.</Type>;
+  if (error) return <Text className="text-surface text-body">This picture didn't load.</Text>;
   if (!resolution) return <Box style={{ width, height }} />;
   const size = fitContainer(resolution.width / Math.max(1, resolution.height), { width, height });
   return <Image source={{ uri: props.uri }} style={size} resizeMode="contain" resizeMethod="resize" accessibilityIgnoresInvertColors />;
@@ -62,7 +60,9 @@ function photoLibrary(): MediaLibrary | null {
   return mediaLibrary;
 }
 
-export function PictureViewer(props: { images: readonly string[]; /** Each picture's alt text, in the same order (shown under it). */ alts?: readonly string[]; index: number | undefined; onClose: () => void }): React.ReactElement | null {
+export function PictureViewer(props: { images: readonly string[]; index: number | undefined; onClose: () => void }): React.ReactElement | null {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const toast = useToast();
   const [at, setAt] = useState(props.index ?? 0);
   const [saving, setSaving] = useState(false);
@@ -86,12 +86,10 @@ export function PictureViewer(props: { images: readonly string[]; /** Each pictu
       setSaving(false);
     }
   };
-  const shown = Math.min(at, props.images.length - 1);
-  const alt = props.alts?.[shown]?.trim() ?? '';
   return (
     <Modal visible transparent animationType="fade" onRequestClose={props.onClose} statusBarTranslucent>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <Box className="flex-1 bg-void" accessibilityViewIsModal>
+        <Box className="flex-1 bg-text" accessibilityViewIsModal>
           <Gallery
             data={[...props.images]}
             initialIndex={props.index}
@@ -101,21 +99,17 @@ export function PictureViewer(props: { images: readonly string[]; /** Each pictu
             onIndexChange={setAt}
             onSwipe={(direction) => { if (direction === 'down') props.onClose(); }}
           />
-          {/* The alt text under the picture (design-pulse2 `episode--picture-viewer`: text2, 13). */}
-          {alt !== '' ? (
-            <Box testID="picture-alt" pointerEvents="none" className="absolute px-screen-x" style={{ left: 0, right: 0, bottom: VIEWER.altBottom }}>
-              <Type step="caption" className="text-text2" accessibilityLiveRegion="polite">{alt}</Type>
-            </Box>
-          ) : null}
-          <Fade bottom={0} height={VIEWER.fade} />
-          {/* The bottom zone: Close (the 44 circle) and Save (the light pill), the counter between them. */}
-          <SafeAreaView edges={['bottom']} className="absolute left-0 right-0 bottom-0" style={{ zIndex: 20 }}>
-            <Box testID="picture-bar" className="flex-row items-center px-screen-x gap-row" style={{ paddingBottom: VIEWER.barBelow }}>
-              <IconButton icon="close" label="Close the picture" onPress={props.onClose} fill size={22} />
-              <Type step="mono" className="flex-1 text-text2 text-center" accessibilityLiveRegion="polite">
-                {props.images.length > 1 ? `${shown + 1} of ${props.images.length}` : ''}
-              </Type>
-              <PulseButton label="Save" accessibilityLabel="Save the picture" icon="download-outline" kind="light" busy={saving} onPress={() => void save()} />
+          <SafeAreaView edges={['top']} className="absolute top-0 left-0 right-0">
+            <Box className="flex-row items-center justify-between px-row">
+              <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Close the picture" className="items-center justify-center" style={TAP}>
+                <Icon name="close" size={26} color={c.surface} />
+              </Pressable>
+              <Text className="text-surface text-meta font-semibold" accessibilityLiveRegion="polite">
+                {props.images.length > 1 ? `${Math.min(at, props.images.length - 1) + 1} of ${props.images.length}` : ''}
+              </Text>
+              <Pressable onPress={() => void save()} disabled={saving} accessibilityRole="button" accessibilityLabel="Save the picture" accessibilityState={{ disabled: saving, busy: saving }} className="items-center justify-center" style={TAP}>
+                <Icon name="download-outline" size={24} color={c.surface} />
+              </Pressable>
             </Box>
           </SafeAreaView>
         </Box>

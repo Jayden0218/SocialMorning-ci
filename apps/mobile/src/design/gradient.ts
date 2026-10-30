@@ -34,9 +34,9 @@ export function gradientFor(tint?: string | null): Gradient {
 /**
  * M21 US4/US5 (research R6, guard G-M21-5): the episode and show pages' cover tint. The server
  * sends the cover's average colour (`tint`, worked out there — still no native module); here it
- * is laid over the near-black page at the strongest of these mixes where the body text, the
+ * is laid over the paper page at the strongest of these mixes where the body text, the
  * secondary text, the brand accent and every accent passed in all stay at 4.5:1 or more on it.
- * None passes → the plain page.
+ * None passes → plain paper.
  *
  * `accents` defaults to every accent theme (`ACCENTS`), the strict reading of R6: the tint is
  * then safe whichever theme is on. A screen passes the listener's own accent
@@ -55,7 +55,7 @@ function rgbOf(hex: string): [number, number, number] | undefined {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-/** `hex` laid over the page at `strength` (0–1), as a six-digit hex; undefined if `hex` is not one. */
+/** `hex` laid over the paper page at `strength` (0–1), as a six-digit hex; undefined if `hex` is not one. */
 export function mixOverPage(hex: string, strength: number): string | undefined {
   const top = rgbOf(hex);
   const base = rgbOf(colour.background);
@@ -68,7 +68,7 @@ export function wordsReadOn(bg: string, accents: readonly string[] = ALL_ACCENTS
   return [colour.text, colour.muted, colour.accent, ...accents].every((fg) => contrastRatio(fg, bg) >= BODY_MIN);
 }
 
-/** The page colour for a cover tint: the strongest readable mix, or the plain page. */
+/** The page colour for a cover tint: the strongest readable mix, or the paper page. */
 export function tintFor(hex: string | null | undefined, accents: readonly string[] = ALL_ACCENTS): string {
   if (!hex) return colour.background;
   for (const m of TINT_MIXES) {

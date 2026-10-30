@@ -7,63 +7,65 @@
  * an empty list is a tilted yellow tile with the heart, "No tips yet" as a large serif headline
  * and, while the store is not set up, the same "not available yet" sentence under it. Real tips
  * (none today) are white cards. Loading, the error line and the data are unchanged.
- *
- * M31 W6-A (T070 part 1; design-pulse2 `shell.html` `tips--screen`; layout Stage): the glow behind (hot first, 50 %); a faint wall of 60 bars; a 160 heart tile
- * (hot to violet, tilted 6 degrees left, glowing) 100 under the status bar; "No tips yet" in Unbounded 800 40 and, while the store is not set up, the
- * not-available sentence (15, text-2) low on the page, 110 over the title bar; the title bar is low with "Tips I gave" at 20 (the headline already says what the
- * page is) and back only. Tips, when there are any, are 64 tiles (show, date, amount in mono) ending with the end-of-list mark, with the not-available caption
- * above them while the store is not set up; loading is ghost rows; a load error is the line "Couldn't load your tips right now.". Same call, names and words.
  */
 import { useLoad } from '@/ui/kit/useLoad';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList } from '@/ui/lib/flat-list';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { size } from '@/design';
+import { Loader } from '@/ui/kit/Loader';
+import { Icon } from '@/ui/kit/Icon';
+import { useStores } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
+import { shortDate } from '@/ui/kit/format';
+import { moneyLabel } from '@/me/money';
+import { useM12Api, type Tip } from '@/social/m12-api';
+import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
-import { PageGlow } from '@/ui/kit/PageGlow';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { useM12Api } from '@/social/m12-api';
-import { GlowTile } from '@/ui/me/lists';
-import { InfoGhost } from '@/ui/show/InfoGroup';
-import { TipsWall, TipTile, TIPS_SIDE } from '@/ui/tips/parts';
-import { TIPS } from '@/ui/wallet/measures';
-import { Big, Line } from '@/ui/wallet/stage';
 
+const ROW = { minHeight: size.row };
+/** `Tips-B`: the tile leans 6° to the left. */
+const TILT = { transform: [{ rotate: '-6deg' }] };
 const NOT_READY = 'Tipping is not available yet. When it is, tips are paid through the App Store or Google Play.';
+type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Tip[]; storeReady: boolean };
 
 export default function TipsScreen(): React.ReactElement {
   const m12 = useM12Api();
+  const stores = useStores();
+  const c = useColours(stores.settings);
   // M23 US9: cancelled on unmount.
   const [state] = useLoad(() => m12.tips(), [m12], 'tips.load');
   const notReady = state.kind === 'ok' && !state.storeReady;
-  const empty = state.kind === 'ok' && state.items.length === 0;
   return (
-    <PushedPage title="Tips I gave" size={TIPS.titleSize} tone="none">
-      {(layout) => (
-        <>
-          <PageGlow top={TIPS.glowTop} strength={TIPS.glowStrength} />
-          {empty ? (
-            <>
-              <TipsWall top={layout.top + TIPS.wallTop} />
-              <Box testID="tips-tile" className="absolute left-0 right-0 items-center" pointerEvents="none" style={{ top: layout.top + TIPS.tileTop }}><GlowTile icon="heart-outline" size={TIPS.tile} rotate={TIPS.tileRotate} /></Box>
-              <Box testID="tips-words" className="absolute" style={{ left: TIPS_SIDE, right: TIPS_SIDE, bottom: layout.titleBottom + TIPS.wordsAbove, gap: TIPS.wordsGap }} accessible accessibilityLabel={notReady ? `No tips yet. ${NOT_READY}` : 'No tips yet'}>
-                <Big size="big40">No tips yet</Big>
-                {notReady ? <Line size="line15">{NOT_READY}</Line> : null}
-              </Box>
-            </>
-          ) : (
-            <FlatList
-              className="flex-1"
-              data={state.kind === 'ok' ? state.items : []}
-              // Owner, 2026-10-05: the bottom of a fetched list says so.
-              ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : undefined}
-              keyExtractor={(t) => t.id}
-              contentContainerStyle={{ paddingTop: layout.top + TIPS.listTop, paddingHorizontal: TIPS_SIDE, paddingBottom: layout.reserve, flexGrow: 1 }}
-              ListHeaderComponent={state.kind === 'ok' && !state.storeReady && state.items.length > 0 ? <Box style={{ marginBottom: TIPS.listGap }}><Line size="line13" tone="text3">{NOT_READY}</Line></Box> : undefined}
-              ListEmptyComponent={state.kind === 'loading' ? <Box testID="tips-loading" style={{ opacity: 0.55 }}><InfoGhost rows={5} /></Box> : state.kind === 'error' ? <Line size="line14">Couldn't load your tips right now.</Line> : undefined}
-              renderItem={({ item }) => <TipTile tip={item} />}
-            />
-          )}
-        </>
+    <>
+    {/* M24 US20 (`Tips-B`): the name small and centred in the bar (14 pt bold muted), no big title. */}
+    <PageHeader middle={<Text className="flex-1 text-center text-muted text-body font-bold" accessibilityRole="header" numberOfLines={1}>Tips I gave</Text>} />
+    <FlatList
+      className="flex-1 bg-background"
+      data={state.kind === 'ok' ? state.items : []}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : undefined}
+      keyExtractor={(t) => t.id}
+      contentContainerClassName="px-screen-x py-row pb-24 flex-grow"
+      ListHeaderComponent={state.kind === 'ok' && !state.storeReady && state.items.length > 0 ? <Text className="text-muted text-xs mb-row">{NOT_READY}</Text> : undefined}
+      ListEmptyComponent={state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? <Text className="text-muted text-sm my-section">Couldn't load your tips right now.</Text> : (
+        <Box className="pt-8 gap-section" accessible accessibilityLabel={notReady ? `No tips yet. ${NOT_READY}` : 'No tips yet'}>
+          <Box className="w-36 h-36 rounded-artwork-lg bg-primary items-center justify-center ml-1" style={TILT}><Icon name="heart-outline" size={48} color={c.onPrimary} /></Box>
+          <Text className="text-text text-display font-display-semibold mt-row">No tips yet</Text>
+          {notReady ? <Text className="text-muted text-sm">{NOT_READY}</Text> : null}
+        </Box>
       )}
-    </PushedPage>
+      renderItem={({ item }) => (
+        <Box className="flex-row items-center gap-row bg-surface border border-border rounded-row px-section py-row mb-gap" style={ROW} accessible accessibilityLabel={`${item.showTitle ?? 'A show'}, ${moneyLabel(item.amountMicros, item.currency)}, ${shortDate(Date.parse(item.createdAt))}`}>
+          <Box className="flex-1">
+            <Text className="text-text text-body font-display-semibold" numberOfLines={1}>{item.showTitle ?? item.feedUrl}</Text>
+            <Text className="text-muted text-xs">{shortDate(Date.parse(item.createdAt))}</Text>
+          </Box>
+          <Text className="text-text text-body font-semibold">{moneyLabel(item.amountMicros, item.currency)}</Text>
+        </Box>
+      )}
+    />
+    </>
   );
 }

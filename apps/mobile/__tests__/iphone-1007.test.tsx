@@ -35,8 +35,7 @@ import { mayRun, OPEN_SETTLE_MS, panelStyle } from '@/ui/kit/SwipeRow';
 import { updatesSnapshot } from '@/me/updates';
 import { GenreTiles } from '@/ui/discover/RecFeedback';
 import { GENRES } from '@/discover/genres';
-import { CategoryStrip, gridRows } from '@/ui/discover/sections';
-import { DiscoverMosaic, MOSAIC } from '@/ui/discover/DiscoverMosaic';
+import { CategoryStrip, gridRows, Shortcuts } from '@/ui/discover/sections';
 import { shortcutTiles } from '@/ui/discover/DiscoverShortcuts';
 import { KEY_PICKED } from '@/discover/interests';
 import { getAppConfig } from '@/config/store';
@@ -116,14 +115,13 @@ describe('2. tiles and History select rows are accessible buttons with a selecte
     expect(tiles.find((t) => t.props['accessibilityLabel'] === GENRES[1]!.name)!.props['accessibilityState']).toEqual({ selected: false });
     act(() => r.unmount());
   });
-  // KEPT as a source check: the select row is drawn inline in app/history.tsx (many imports: ListDetail,
-  // the player, the episode sheet, confirm, the library API…); there is no row component to render alone.
+  // KEPT as a source check: the select row is drawn inline in app/history.tsx (27 imports: ListDetail,
+  // the player, FilterBar, confirm, the library API…); there is no row component to render alone.
   it('History select rows: role button + selected, and the circle cannot take the touch', () => {
     const src = read('app/history.tsx');
     expect(src).not.toMatch(/accessibilityRole="checkbox"/);
     expect(src).toMatch(/accessibilityRole="button" accessibilityState=\{\{ selected: chosen\.has/);
-    // M31 W3-C: the tick circle on the spine is drawn inside the same Pressable, under `pointerEvents="none"` (rendered in m31-w3c-history.test.tsx).
-    expect(src).toMatch(/<Box pointerEvents="none">\s*\{card\}\s*<Box\s+testID="history-tick"/);
+    expect(src).toMatch(/<Box pointerEvents="none"[^>]*>\s*<Icon name=\{chosen\.has/);
   });
 });
 
@@ -233,28 +231,20 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     act(() => r.unmount());
   });
   // KEPT as source checks: each page passes `solid={collapsed}` from its own scroll state —
-  // app/episode/[id].tsx (52 imports), app/show/[feedUrl].tsx (47), app/profile/[id].tsx (now `collapsed ? <CollapsedName`) and
+  // app/episode/[id].tsx (52 imports), app/show/[feedUrl].tsx (47), app/profile/[id].tsx and
   // Discover app/(tabs)/index.tsx (42); none can be rendered without stubbing most of the page.
-  it('6. the profile page hands the bar `solid`; the episode and show pages have no collapsing bar (W3-A, W3-A2); Discover has no fading bar', () => {
-    // M31 W3-A (T040): the Episode page's title block and tray are always on screen, so it has no bar to collapse.
-    expect(read('app/episode/[id].tsx')).not.toMatch(/solid=\{collapsed\}|TopBar/);
-    // M31 W3-A2 (T040): the Show screen's thumb zone (Subscribe, Share, the title) is always on screen, so the slim bar is gone too.
-    expect(read('app/show/[feedUrl].tsx')).not.toMatch(/solid=\{collapsed\}|TopBar|setCollapsed/);
-    expect(read('app/show/[feedUrl].tsx')).toMatch(/testID="show-thumb-zone"/);
-    // M31 D-C: the profile's collapsed name is the solid void strip (`CollapsedName`, rendered in m31-dc-profile.test.tsx), shown from the page's own scroll state.
-    expect(read('app/profile/[id].tsx')).toMatch(/collapsed \? <CollapsedName/);
-    expect(read('src/ui/profile/ProfilePage.tsx')).toMatch(/testID="collapsed-name" className="absolute left-0 right-0 top-0 bg-void/);
-    // M31 T025: Discover has no collapsing bar any more (the title is low and fades alone, the search field
-    // stays — design-pulse2 home--screen), so nothing can show through a half-faded bar.
-    const discover = read('src/ui/discover/DiscoverPage.tsx');
-    expect(discover).not.toMatch(/smallBar|BAR\b/);
-    expect(discover).toMatch(/interpolate\(scrollY\.value, \[COLLAPSE_FROM, COLLAPSE_TO\], \[1, 0\], Extrapolation\.CLAMP\)/);
+  it('6. the episode, show and profile pages hand the bar `solid`; Discover\'s bar never fades', () => {
+    expect(read('app/episode/[id].tsx')).toMatch(/solid=\{collapsed\}/);
+    expect(read('app/show/[feedUrl].tsx')).toMatch(/solid=\{collapsed\}/);
+    expect(read('app/profile/[id].tsx')).toMatch(/solid=\{collapsed\}/);
+    // Discover's bar is either absent or fully opaque — never a see-through fade.
+    const discover = read('app/(tabs)/index.tsx');
+    expect(discover).not.toMatch(/\[COLLAPSE_FROM, COLLAPSE_TO\], \[0, 1\]/);
+    expect(discover).toMatch(/withTiming\(scrollY\.value > COLLAPSE_TO - 8 \? 1 : 0/);
   });
-  // M31 W3-A (T040): the slim bar is gone; its show link, Subscribe and Play are in the title block, always on screen.
-  // Rendered in m31-w3a-episode.test.tsx ("Back goes back; the show link opens the show"); this keeps the wiring.
-  it('7. the episode page: the show name (always on screen) opens the show', () => {
-    expect(read('app/episode/[id].tsx')).toMatch(/onShow=\{show === undefined \? undefined : goShow\}/);
-    expect(read('src/ui/episode/EpisodeTitleBlock.tsx')).toMatch(/accessibilityRole="link" accessibilityLabel=\{`Show: \$\{props\.showTitle\}`\}/);
+  // KEPT as a source check: the slim bar's show link is built inline in app/episode/[id].tsx (52 imports).
+  it('7. the episode page slim bar: the show name opens the show', () => {
+    expect(read('app/episode/[id].tsx')).toMatch(/solid=\{collapsed\}[\s\S]*?accessibilityRole="link"\s+accessibilityLabel=\{`Show: \$\{show\?\.title/);
   });
   it('8–9. grids: even rows, no stretched last tile, one fixed tile height', () => {
     expect(gridRows([1, 2, 3, 4, 5, 6, 7], 4)).toEqual([[1, 2, 3, 4], [5, 6, 7, null]]);
@@ -262,81 +252,66 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     expect(gridRows([], 4)).toEqual([]);
     // Discover's shortcuts: eight tiles, two rows of four. M25 A7: they live in their own component
     // (the admin may change them); with nothing saved they are the same eight.
-    expect(shortcutTiles([]).map((t) => t.label)).toEqual(['Friends listening', 'Categories', 'Queue', 'Issues', 'Premium', 'Academy', 'Plaza', 'Talked about']); // M31 L7: the drawn order
+    expect(shortcutTiles([]).map((t) => t.label)).toEqual(['Categories', 'Queue', 'Issues', 'Friends listening', 'Academy', 'Premium', 'Plaza', 'Talked about']);
   });
-  it('8. rendered shortcuts, 7 tiles: rows of two cells, every tile the same minimum height, the gap kept by an empty cell', () => {
+  it('8. rendered shortcuts, 7 tiles: two rows of four cells, every tile the same fixed size, the gap kept by an empty cell', () => {
     const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-    const noop = () => undefined;
     let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(DiscoverMosaic, { pick: undefined, hot: undefined, offline: false, tiles: labels.map((label) => ({ label, icon: shortcutTiles([])[0]!.icon, onPress: noop })), actions: { onOpen: noop, onPlay: noop, onQueue: noop, onHot: noop } })); });
+    act(() => { r = create(createElement(Shortcuts, { items: labels.map((label) => ({ label, icon: shortcutTiles([])[0]!.icon, onPress: () => undefined })) })); });
     const tiles = hosts(r).filter((n) => labels.includes(n.props['accessibilityLabel'] as string));
     expect(tiles).toHaveLength(7);
-    const sizes = tiles.map((t) => { const s = styleOf(t); return [s['flex'], s['minHeight'], s['width']]; });
+    const sizes = tiles.map((t) => { const s = styleOf(t); return [s['flex'], s['height'], s['width']]; });
     // No grow on a tile: a stretched tile is what ran away on the iPhone.
     for (const t of tiles) expect(styleOf(t)['flexGrow']).toBeUndefined();
     for (const s of sizes) expect(s).toEqual(sizes[0]);
-    expect(styleOf(tiles[0]!)['minHeight']).toBe(MOSAIC.row); // F10: a minimum, so the words can grow the tile at 200 %
-    // The last tile's row has 2 cells: G and an empty one sharing the width.
-    let rowHost: ReactTestInstance | null = tiles[6]!.parent;
+    expect(styleOf(tiles[0]!)['height']).toBe(56);
+    // The last tile's row has 4 cells: G and the empty ones sharing the width.
+    const row = tiles[6]!.parent!;
+    let rowHost: ReactTestInstance | null = row;
     while (rowHost !== null && !(typeof rowHost.type === 'string' && rowHost.children.length > 1)) rowHost = rowHost.parent;
-    expect(rowHost!.children).toHaveLength(2);
+    expect(rowHost!.children).toHaveLength(4);
     for (const cell of rowHost!.children as ReactTestInstance[]) {
       const host = typeof cell.type === 'string' ? cell : cell.findAll((n) => typeof n.type === 'string')[0]!;
       expect(styleOf(host)['flex']).toBe(1);
       expect(styleOf(host)['flexGrow']).toBeUndefined();
     }
-    act(() => r.unmount());
   });
-  it('9. rendered genres (T030): one chip height (36), a name whole on one line, wrapping chips 8 apart, the cloud inside the lane', () => {
+  it('9. rendered categories: one fixed tile height, a name on one line that shrinks to fit', () => {
     let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(CategoryStrip, { onGenre: () => undefined, onAll: () => undefined, onHide: () => undefined })); });
+    act(() => { r = create(createElement(CategoryStrip, { onGenre: () => undefined, onAll: () => undefined })); });
     const shown = GENRES.filter((g) => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityLabel'] === g.name).length > 0);
     expect(shown.length).toBeGreaterThan(1);
     const heights = new Set<unknown>();
     for (const g of shown) {
       const name = r.root.findAll((n) => typeof n.type === 'string' && n.props['children'] === g.name)[0]!;
-      // The name is never shrunk to fit: the chip is as wide as the name, and the cloud wraps.
-      expect([g.name, name.props['numberOfLines'], name.props['adjustsFontSizeToFit']]).toEqual([g.name, 1, undefined]);
-      // The chip: the nearest host above the name with a fixed height.
-      let chip: ReactTestInstance | null = name.parent;
-      while (chip !== null && !(typeof chip.type === 'string' && styleOf(chip)['height'] !== undefined)) chip = chip.parent;
-      heights.add(styleOf(chip!)['height']);
-      // Its × hides it, under the old name.
-      expect(r.root.findAll((n) => n.props['accessibilityLabel'] === `Hide ${g.name}` && typeof n.props['onPress'] === 'function').length).toBeGreaterThan(0);
+      expect([g.name, name.props['numberOfLines'], name.props['adjustsFontSizeToFit'], name.props['minimumFontScale']]).toEqual([g.name, 1, true, 0.75]);
+      // The tile: the nearest host above the button with a fixed height.
+      let tile: ReactTestInstance | null = name.parent;
+      while (tile !== null && !(typeof tile.type === 'string' && styleOf(tile)['height'] !== undefined)) tile = tile.parent;
+      heights.add(styleOf(tile!)['height']);
     }
-    expect(heights).toEqual(new Set([36]));
-    // The cloud wraps, 8 apart, starting at the 28 lane.
-    const cloud = r.root.findAll((n) => typeof n.type === 'string' && styleOf(n)['flexWrap'] === 'wrap')[0]!;
-    expect([styleOf(cloud)['gap'], styleOf(cloud)['marginLeft']]).toEqual([8, 28]);
+    expect(heights.size).toBe(1);
     act(() => r.unmount());
   });
-  // KEPT as a source check: where Discover hands the mosaic its shortcut tiles is src/ui/discover/DiscoverPage.tsx.
-  it('8. Discover draws the shortcuts as mosaic tiles', () => {
-    const page = read('src/ui/discover/DiscoverPage.tsx');
-    expect(page).toMatch(/useShortcutTiles\(\{ onCategories: page\.allCategories, onPremium: toPremium \}\)/);
-    expect(page).toMatch(/<DiscoverMosaic[\s\S]*tiles=\{tiles\}/);
+  // KEPT as a source check: where Discover mounts the shortcuts is app/(tabs)/index.tsx (42 imports).
+  it('8. Discover draws the shortcuts component', () => {
+    expect(read('app/(tabs)/index.tsx')).toMatch(/<DiscoverShortcuts onCategories=\{allCategories\} onPremium=\{toPremium\} \/>/);
   });
   // KEPT as source checks: 10–12 are layouts inside app/(tabs)/me.tsx (23 imports), app/episode/[id].tsx
-  // (52) and app/player.tsx, with no smaller component that carries them.
+  // (52) and app/player.tsx (55), with no smaller component that carries them.
   it('10. Me: the ninth tile spans its row (no empty half beside Playlists)', () => {
     expect(read('app/(tabs)/me.tsx')).not.toMatch(/label="Playlists" \/><\/Link>\s*<Box className="flex-1" \/>/);
   });
-  it('11. the episode page comments item names itself (the tray says "Comments, n")', () => {
-    // M31 W3-A: the tray's item is a glyph and the count; its spoken name carries both (rendered in m31-w3a-episode.test.tsx).
-    expect(read('src/ui/episode/EpisodeTray.tsx')).toMatch(/accessibilityLabel=\{`Comments, \$\{props\.commentCount\}`\}/);
+  it('11. the episode page comments cell names itself', () => {
+    expect(read('app/episode/[id].tsx')).toMatch(/commentCount > 0 \? plural\(commentCount, 'comment'\) : 'Comments'/);
   });
-  it('12. player: the ring is centred in the room the page leaves, the controls and the tray stay at the foot, one kind of item each', () => {
+  it('12. player: the space is shared when there is no line, and the bottom bar items are one kind', () => {
     const p = read('app/player.tsx');
-    // M31 T024 (Pulse ring player): the ring + title scroll in the middle (centred), the controls and the tray
-    // sit below them; the old "groupClass my-auto" / bottom-bar items (About · Playlist · Comments) are gone.
-    // Round 2: every part is placed where the drawing puts it (`playerLayout`), nothing scrolls or centres.
-    expect(p).toMatch(/playerLayout\(window, insets\)/);
-    expect(p).not.toMatch(/MIDDLE/);
-    expect(p).toMatch(/<PlayerBottom /);
-    expect(p).toMatch(/<PlayerTray /);
-    const tray = read('src/ui/player/PlayerTray.tsx');
-    expect(tray).toMatch(/accessibilityLabel="Playlist"/);
-    expect((tray.match(/hitSlop=\{SLOP\}/g) ?? []).length).toBe(5); // five items, one touch size (48, from `hitSlop`)
+    // M24 US19 (iPhone, 04-player.png): sharing it ABOVE the hero left a ~140 pt band under the top
+    // bar. The hero now stays under the bar; on a bare page the card + controls centre in the rest.
+    expect(p).toMatch(/groupClass: 'my-auto'/);
+    expect(p).toMatch(/accessibilityLabel="About this episode" className=\{BAR_ITEM\}/);
+    expect(p).not.toMatch(/<BarButton label="About this episode"/);
   });
 
   /** The name's Text and the link around it: one line, and the link may shrink below its content. */

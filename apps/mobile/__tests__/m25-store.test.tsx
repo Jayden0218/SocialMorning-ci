@@ -32,25 +32,15 @@ jest.mock('expo-router', () => ({
   router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => false },
   useRouter: () => ({ push: jest.fn() }),
   useLocalSearchParams: () => ({ agreed: '1' }),
-  // expo-router's `<Link asChild>` hands its props (the label, the press) to its child: so does this one.
-  Link: ({ children, asChild: _a, href: _h, ...rest }: { children: React.ReactElement; asChild?: boolean; href?: unknown }) => require('react').cloneElement(children, rest),
+  Link: ({ children }: { children: React.ReactNode }) => children,
 }));
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined, set: () => undefined } }) }));
 jest.mock('@/social/context', () => ({ SUSPENDED_KEY: 'safety.suspendedMessage', useSocial: () => ({ auth: mockAuth, listener: undefined }) }));
 // Not what these guards are about: the page bar, the consent row and dialog, the art wall, the notification ask.
 jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null }));
-// M31 S-B: the Updates / Notifications pages sit in the settings page body (`PushedPage` under it needs the router's path); the bar is not what these guards are about.
-const mockBody = (c: unknown): unknown => (typeof c === 'function' ? (c as (layout: { top: number; titleBottom: number; reserve: number }) => unknown)({ top: 0, titleBottom: 0, reserve: 0 }) : c);
-// M31 S-A: a page with a bottom zone (Change email's button) passes it as `below`; draw it after the body.
-jest.mock('@/ui/kit/PushedPage', () => ({
-  PushedPage: (p: { children: unknown; below?: unknown }) => {
-    const { createElement, Fragment } = require('react');
-    return createElement(Fragment, null, mockBody(p.children), p.below ?? null);
-  },
-}));
 jest.mock('@/ui/auth/Consent', () => ({ ConsentRow: () => null, ConsentDialog: () => null, useLegalOverlay: () => ({ open: () => undefined, overlay: null }) }));
 jest.mock('@/ui/auth/navigate', () => ({ toApp: jest.fn(), toSignIn: jest.fn() }));
-jest.mock('@/ui/auth/ArtWall', () => ({ ArtWall: () => null, WallFade: () => null }));
+jest.mock('@/ui/auth/ArtWall', () => ({ ArtWall: () => null }));
 jest.mock('@/notify/permission', () => ({ askForNotifications: () => Promise.resolve() }));
 jest.mock('@/notify/expo', () => ({ expoNotify: {} }));
 jest.mock('@/ui/shell/launch', () => ({ signInPage: { setWhole: () => undefined } }));
@@ -78,7 +68,6 @@ import { OTHER_METHODS, readyMethods } from '@/ui/auth/methods';
 import { VERDICT_TEXT, distributionOf, findSha256, shaFromGetPage, shaFromNotes, updaterShown, verdict } from '@/ui/shell/updater';
 import { AGE_KEY, AGE_LINE, MIN_AGE, UNDER_AGE_TEXT, canCreate, confirmedAge, recordAgeConfirmed } from '@/ui/auth/age';
 import { RELEASES_LATEST } from '@/ui/shell/startupExtras';
-import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 import SignInScreen from '../app/auth/sign-in';
 import AccountSecurityScreen from '../app/settings/account';
 import AboutScreen from '../app/settings/about';
@@ -88,9 +77,6 @@ import EmailScreen from '../app/auth/email';
 const ROOT = join(__dirname, '..');
 const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
 const INSETS = { top: 47, bottom: 34, left: 0, right: 0 };
-// The title bar's slide is a timer; with Reduce Motion it does not run (and does not log after the test is over).
-beforeAll(() => setReducedMotionForTest(true));
-afterAll(() => setReducedMotionForTest(undefined));
 
 async function render(page: () => React.ReactElement | null): Promise<ReactTestRenderer> {
   let r!: ReactTestRenderer;
@@ -313,8 +299,7 @@ describe('G-LS3 (L3e): the age gate at sign-up', () => {
       if (!n) throw new Error(`no field "${label}"`);
       act(() => { n.props['onChangeText'](text); });
     };
-    // M31 S-C: a disabled pill takes no press handler at all (the kit PulseButton), so it is found by its state, not by `onPress`.
-    const create_ = () => r.root.findAll((x) => x.props['accessibilityLabel'] === 'Create account' && x.props['accessibilityState'] !== undefined)[0]!;
+    const create_ = () => pressable(r, 'Create account')!;
     type('Email', 'ana@example.com');
     await act(async () => { pressable(r, 'Send code')!.props['onPress'](); });
     type('Code', '123456');
@@ -325,7 +310,7 @@ describe('G-LS3 (L3e): the age gate at sign-up', () => {
     expect(create_().props['accessibilityState']).toMatchObject({ disabled: true });
     type('Display name', 'Ana');
     expect(create_().props['accessibilityState']).toMatchObject({ disabled: true });
-    await act(async () => { create_().props['onPress']?.(); });
+    await act(async () => { create_().props['onPress'](); });
     expect(mockAuth.signInWithCode).toHaveBeenCalledTimes(1);
     act(() => { pressable(r, AGE_LINE)!.props['onPress'](); });
     expect(create_().props['accessibilityState']).toMatchObject({ disabled: false });

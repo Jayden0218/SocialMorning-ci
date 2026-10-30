@@ -105,7 +105,7 @@
     "area": "social",
     "kind": "menu",
     "covers": [
-      "src/ui/comments/CommentMenu.tsx::sheet::#1"
+      "app/comments/[episodeId].tsx::sheet::#2"
     ],
     "as": "listener",
     "steps": [
@@ -128,7 +128,7 @@
     "area": "social",
     "kind": "menu",
     "covers": [
-      "src/ui/comments/CommentMenu.tsx::sheet::#1"
+      "app/comments/[episodeId].tsx::sheet::#2"
     ],
     "as": "host",
     "steps": [
@@ -151,7 +151,7 @@
     "area": "social",
     "kind": "menu",
     "covers": [
-      "src/ui/comments/CommentMenu.tsx::sheet::#1"
+      "app/comments/[episodeId].tsx::sheet::#2"
     ],
     "as": "visitor",
     "steps": [
@@ -193,41 +193,6 @@
     ],
     "design": "ReportSheet-B",
     "status": "CAPTURE"
-  },
-  {
-    "name": "comments--moment-like-toast",
-    "area": "toasts",
-    "kind": "toast",
-    "covers": [
-      "src/ui/comments/MomentSheet.tsx::toast::Couldn't save that like — try again."
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "fault": {
-          "path": "/v1/comments",
-          "mode": "fail"
-        }
-      },
-      {
-        "open": "/episode/{episode}"
-      },
-      {
-        "tap": "Play this episode"
-      },
-      {
-        "open": "/player"
-      },
-      {
-        "tap": "Like this comment"
-      },
-      {
-        "see": "Couldn't save that like — try again."
-      }
-    ],
-    "design": "Toast-B",
-    "status": "CAPTURE",
-    "note": "Raised by the player moment sheet when liking a comment fails. Needs a seeded comment at the playing position; the fault path and the like control label follow MomentSheet.tsx and may need the capture lane to adjust."
   },
   {
     "name": "comments--composer-sheet",
@@ -622,7 +587,7 @@
     "area": "social",
     "kind": "menu",
     "covers": [
-      "src/ui/comments/CommentMenu.tsx::sheet::#1"
+      "app/comments/thread/[commentId].tsx::sheet::#1"
     ],
     "as": "listener",
     "steps": [
@@ -1705,6 +1670,7 @@
     "area": "social",
     "kind": "empty",
     "covers": [
+      "src/ui/social/FollowList.tsx::empty::props.kind",
       "packages/social-core/src/empty.ts::surface::followers",
       "app/profile/[id]/followers.tsx::route::route"
     ],
@@ -1726,6 +1692,7 @@
     "area": "social",
     "kind": "empty",
     "covers": [
+      "src/ui/social/FollowList.tsx::empty::props.kind",
       "app/profile/[id]/followers.tsx::route::route"
     ],
     "as": "new",
@@ -1797,6 +1764,7 @@
     "area": "social",
     "kind": "empty",
     "covers": [
+      "src/ui/social/FollowList.tsx::empty::props.kind",
       "packages/social-core/src/empty.ts::surface::following",
       "app/profile/[id]/following.tsx::route::route"
     ],

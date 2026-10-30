@@ -18,7 +18,6 @@ import {
   listCollectionItemRows, listCollectionRows, listCuratedIssueItems, listCuratedIssues, listPickDays, listPickItems,
 } from '../db/repos/library/catalog.ts';
 import { MAX_COLLECTIONS, type CollectionIn } from './collections.ts';
-import { log } from '../log.ts';
 
 export const CATALOG_MEMO_MS = 60_000;
 
@@ -88,7 +87,7 @@ export async function liveCatalog(db: Db, file: Catalog, now: () => number = Dat
     memo.set(db, { at: now(), rows });
     return mergeCatalog(file, rows);
   } catch (e) {
-    log.warn('catalog_admin_tables_unreadable', { error: e });
+    console.warn(`[catalog] the admin tables could not be read; the files serve: ${e instanceof Error ? e.message : String(e)}`);
     return file;
   }
 }

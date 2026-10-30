@@ -9,8 +9,7 @@
  * `trigger` is a counter: each increase plays the burst once; 0 plays nothing.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet } from 'react-native';
-import { useReducedMotion } from '@/ui/kit/useReducedMotion';
+import { AccessibilityInfo, Animated, Easing, StyleSheet } from 'react-native';
 import { Icon } from '@/ui/kit/Icon';
 import { usePlayerPalette } from '@/ui/player/palette';
 
@@ -20,9 +19,15 @@ export const CLAP_PATHS: readonly (readonly [number, number])[] = [[-90, -150], 
 
 export function ClapBurst(props: { trigger: number }): React.ReactElement | null {
   const c = usePlayerPalette();
-  const still = useReducedMotion();
+  const [still, setStill] = useState(false);
   const [showing, setShowing] = useState(false);
   const t = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    let live = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then((v) => { if (live) setStill(v); }).catch(() => undefined);
+    return () => { live = false; };
+  }, []);
 
   useEffect(() => {
     if (props.trigger === 0 || still) return;

@@ -31,7 +31,7 @@ if (!ON) {
   const { putEpisode } = await import('./put-episode.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
   const { get, wrapStore } = await import('../src/db/ddb/store.ts');
-  const { withConflicts } = await import('./ddb-wrappers.ts');
+  const { withConflicts } = await import('../src/db/ddb/test-wrappers.ts');
   const { TransactWriteCommand } = await import('@aws-sdk/lib-dynamodb');
   const K = await import('../src/db/ddb/keys.ts');
   const { heatCurve } = await import('../src/heat/ddb.ts');
@@ -106,7 +106,6 @@ if (!ON) {
       const b = await signUp(t, 'b@example.com', 'Bea');
       const root = await createComment(t.db, { episodeId: EP, authorId: a.id, body: 'root', offsetMs: 500_000 });
       const reply = await createComment(t.db, { episodeId: EP, authorId: b.id, body: 'a reply', parentId: root.id });
-      await (await import('../src/jobs/outbox.ts')).drainOutbox(t.store); // M32 C6: drain the outbox, which moves the curve
       assert.equal((await heatCurve(t.store, EP))[50], 1);
       const deleted = await deleteComment(t.db, root.id).catch((e: unknown) => ({ failed: e instanceof Error ? e.message : String(e) }));
       assert.deepEqual(deleted, { placeholder: true, episodeId: EP }, 'a comment with a reply becomes a placeholder');
@@ -114,7 +113,6 @@ if (!ON) {
       assert.equal(top?.id, root.id, 'the placeholder is still the thread');
       assert.deepEqual([top!.deleted, top!.body, top!.authorId, top!.offsetMs, top!.displayName], [true, null, null, null, null]);
       assert.deepEqual(top!.replies!.map((r) => r.id), [reply.id], 'the reply keeps its context');
-      await (await import('../src/jobs/outbox.ts')).drainOutbox(t.store); // M32 C6: drain the outbox, which moves the curve
       assert.equal((await heatCurve(t.store, EP))[50], 0, 'the placeholder carries no heat');
       const again = await createComment(t.db, { episodeId: EP, authorId: b.id, body: 'still answering', parentId: root.id });
       assert.deepEqual((await listComments(t.db, EP))[0]!.replies!.map((r) => r.id), [reply.id, again.id]);

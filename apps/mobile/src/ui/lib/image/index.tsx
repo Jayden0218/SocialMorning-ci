@@ -43,12 +43,9 @@ const Image = React.forwardRef<
       // M9: upstream's @ts-expect-error was unused under our types (strict), so removed.
       // M9 (found on the iPhone): upstream set `undefined` here on native, AFTER the caller's
       // props, so every image sized by `style` drew at its full pixel size. Native keeps it.
-      // M31 (web build): the caller's own style goes AFTER the class-size reset. Before, the reset replaced it, so on web
-      // every image sized by `style` (Artwork, the Launch promotion, a Moments cover) lost its position and size and
-      // collapsed to 30 x 30 — found by the wave-1 capture; native is untouched.
       style={
         Platform.OS === 'web'
-          ? [{ height: 'revert-layer', width: 'revert-layer' }, props.style]
+          ? { height: 'revert-layer', width: 'revert-layer' }
           : props.style
       }
     />

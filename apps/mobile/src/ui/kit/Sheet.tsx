@@ -12,9 +12,9 @@
  *    the drag lives on the top only.
  *  - The backdrop, Android's back button and a screen reader's escape close it; the handle is
  *    also a button ("Make the sheet taller" / "shorter") for anyone who cannot drag.
- *  - Pulse (M31 T022, design-pulse2 `.sheet`): raise2 fill, 32 pt top corners, a 36 × 5 grabber
- *    (white at 20 %); the bottom clears the home bar with `pb-safe` (the root hands the insets to
- *    UniWind — guard G-S1). `ActionSheet` is the content-height sheet with the same look.
+ *  - Editorial (M24 US18, `QueueSheet-B`): the paper colour, 24 pt top corners, a 40 × 5 handle;
+ *    the bottom clears the home bar with `pb-safe` (the root hands the insets to UniWind — guard
+ *    G-S1).
  *
  * Built on React Native's PanResponder and Animated (as QueueList's drag and HeatScrubber):
  * Jest has no gesture-handler mocks, and the sheet's one gesture needs nothing more. Animated
@@ -25,10 +25,9 @@
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, BackHandler, PanResponder, useWindowDimensions } from 'react-native';
-import { useReducedMotion } from './useReducedMotion';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { bars, spacing } from '@/design';
+import { hit } from '@/design';
 
 /** Half the screen, then nearly all of it (the player's top edge stays in view). */
 export const SNAP_POINTS: readonly number[] = [0.5, 0.92];
@@ -37,10 +36,7 @@ export const CLOSE_SLACK = 48;
 /** How far ahead (ms) a flick's speed carries the release point. */
 const FLICK_MS = 150;
 
-/** Drawn: an 8 top padding, the 5 tall grabber, a 14 gap (design-pulse2 `.sheet` + `.grab`). The 44+ touch target is hitSlop, not height. */
-const HANDLE = { marginTop: spacing.gap, marginBottom: bars.sheetGap, height: bars.dot };
-export const GRAB_SLOP = { top: spacing.gap, bottom: 31, left: 20, right: 20 } as const;
-const GRAB = { width: bars.sheetGrab, height: bars.dot };
+const HANDLE = { minHeight: hit.min };
 
 /** The sheet's height while dragging: where it started minus the finger's travel, kept on screen. */
 export function dragHeight(start: number, dy: number, max: number): number {
@@ -80,7 +76,6 @@ export function Sheet(props: {
   const [shown, setShown] = useState(props.open);
   const [index, setIndex] = useState(0);
   const height = useRef(new Animated.Value(0)).current;
-  const still = useReducedMotion();
 
   // The handlers are made once; they read the latest values through refs.
   const live = useRef({ heights, onClose: props.onClose, start: 0 });
@@ -89,7 +84,6 @@ export function Sheet(props: {
 
   const snapTo = (i: number) => {
     setIndex(i);
-    if (still) { height.setValue(live.current.heights[i] ?? 0); return; }
     Animated.spring(height, { toValue: live.current.heights[i] ?? 0, useNativeDriver: false, bounciness: 0, speed: 16 }).start();
   };
   const snapRef = useRef(snapTo);
@@ -101,9 +95,8 @@ export function Sheet(props: {
       snapRef.current(0);
       return;
     }
-    if (still) { height.setValue(0); setShown(false); return; }
     Animated.timing(height, { toValue: 0, duration: 180, useNativeDriver: false }).start(({ finished }) => { if (finished) setShown(false); });
-  }, [props.open, height, still]);
+  }, [props.open, height]);
 
   // Android's back button closes the sheet, not the page under it.
   useEffect(() => {
@@ -135,7 +128,7 @@ export function Sheet(props: {
     <Box className="absolute inset-0 justify-end" pointerEvents={props.open ? 'box-none' : 'none'}>
       <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Close" className="absolute inset-0 bg-scrim" />
       <Animated.View
-        className="bg-raise2 rounded-t-sheet pb-safe overflow-hidden"
+        className="bg-background rounded-t-sheet pb-safe overflow-hidden"
         style={{ height }}
         accessibilityViewIsModal
         accessibilityLabel={props.label}
@@ -146,11 +139,10 @@ export function Sheet(props: {
             onPress={() => snapTo(tallest ? 0 : heights.length - 1)}
             accessibilityRole="button"
             accessibilityLabel={tallest ? 'Make the sheet shorter' : 'Make the sheet taller'}
-            hitSlop={GRAB_SLOP}
             className="items-center justify-center"
             style={HANDLE}
           >
-            <Box className="bg-grab rounded-pill" style={GRAB} />
+            <Box className="w-10 h-[5px] bg-handle rounded-pill" />
           </Pressable>
           {props.header}
         </Box>

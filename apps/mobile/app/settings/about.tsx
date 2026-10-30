@@ -8,107 +8,107 @@
  * the app's name beside its icon is the header), the app's line as a serif pull quote, then
  * "The documents" as three cards in a row, each with its icon tile, a serif name and "Read".
  * Each card opens its document exactly as the old rows did.
- *
- * M31 S-A (T060; design-pulse2 `settings-about--screen`, `--legal-sheet`; Mosaic + Panel): the app icon 64 (radius 18, a hot glow), "SocialNet" in Unbounded 26, "Version 0.1.0" in mono 12 with an amber
- * DEV chip on development builds; the quote in Unbounded 18 and "Audio always streams from its publisher." (13); **the documents** as three 1 x 1 tiles (112, radius 22): an icon in a 36 square,
- * the name 13 / 600, "Read ›" in mono hot-text — each opens the full document; then group rows Check for updates (Android GitHub copies only), Widgets, Open-source licences. The title
- * "About SocialNet" is in the bottom bar (before it had no title text). The full document is `LegalDoc` in a full-screen modal (the drawing's `legalPage`; its look belongs to the shell lane).
  */
 import Constants from 'expo-constants';
 import { Modal, ModalBackdrop, ModalContent } from '@/ui/lib/modal';
 import { Image } from '@/ui/lib/image';
 import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { useState } from 'react';
-import { Link } from 'expo-router';
 import { LEGAL_TEXT } from '@/legal/texts';
 import { LegalDoc } from '@/ui/shell/LegalDoc';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { Icon, type IconName } from '@/ui/kit/Icon';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { Type } from '@/ui/kit/Type';
-import { colour, glow } from '@/design';
+import { useStores } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
+import { hit } from '@/design';
 import { Platform } from 'react-native';
-import { PanelGroup } from '@/ui/me/Panel';
+import { Card } from '@/ui/kit/Card';
+import { LinkRow } from '@/ui/settings/rows';
 import { distributionOf, updaterShown } from '@/ui/shell/updater';
 import { appVariant } from '@/config/variant';
-import { Note, Sec, SetPage, SetRow } from '@/ui/settings/hub-parts';
-import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
 type Doc = keyof typeof LEGAL_TEXT;
-const ICON = 64;
-const TILE = 36;
+const ICON = { width: 64, height: 64 };
+const TILE = { width: 36, height: 36 };
+const CARD = { minHeight: hit.min };
 
 const DOCS: { doc: Doc; icon: IconName; label: string }[] = [
-  { doc: 'agreement', icon: 'document-text-outline', label: 'Service agreement' },
-  { doc: 'privacy', icon: 'lock-closed-outline', label: 'Privacy policy' },
+  { doc: 'agreement', icon: 'document-outline', label: 'Service agreement' },
+  { doc: 'privacy', icon: 'shield-checkmark-outline', label: 'Privacy policy' },
   { doc: 'community', icon: 'people-outline', label: 'Community guidelines' },
 ];
 
 export default function AboutScreen(): React.ReactElement {
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const [doc, setDoc] = useState<Doc | undefined>();
   return (
-    <PushedPage title="About SocialNet" size={28}>
-      {(layout) => (
-        <SetPage layout={layout}>
-          <Box className="flex-row items-center" style={{ gap: 14, paddingTop: SET.gap }}>
-            <Image source={require('../../assets/app-icon.png')} style={{ width: ICON, height: ICON, borderRadius: 18, shadowColor: glow.hot.color, shadowOpacity: glow.hot.opacity, shadowRadius: glow.hot.radius, shadowOffset: { width: 0, height: 0 } }} accessibilityLabel="SocialNet" />
-            <Box className="flex-1">
-              <Type step="hero" className="text-text" style={SET_TYPE.display26} accessibilityRole="header">SocialNet</Type>
-              <Box className="flex-row items-center" style={{ gap: 6, marginTop: 6 }}>
-                <Type step="mono" className="text-text2" style={SET_TYPE.mono12}>{`Version ${Constants.expoConfig?.version ?? '?'}`}</Type>
-                {/* Lane DP: the dev app (APP_VARIANT=dev) says so, beside its version. */}
-                {appVariant() === 'dev' ? (
-                  <Box className="bg-warn" style={{ borderRadius: 5, paddingHorizontal: 6, paddingVertical: 2 }} accessible accessibilityLabel="Development build">
-                    <Type step="badge" className="text-void" style={SET_TYPE.tag10}>DEV</Type>
-                  </Box>
-                ) : null}
+    <>
+    {/* M17: B draws no big title here — the name beside the icon is the page's header. */}
+    <PageHeader middle={<Box />} />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section">
+      <Box className="flex-row items-center gap-section mt-row">
+        <Image source={require('../../assets/app-icon.png')} style={ICON} className="rounded-[14px]" accessibilityLabel="SocialNet" />
+        <Box className="flex-1">
+          <Text className="text-text text-hero font-display" accessibilityRole="header">SocialNet</Text>
+          <Box className="flex-row items-center gap-gap mt-0.5">
+            <Text className="text-muted text-xs">Version {Constants.expoConfig?.version ?? '?'}</Text>
+            {/* Lane DP: the dev app (APP_VARIANT=dev) says so, beside its version. */}
+            {appVariant() === 'dev' ? (
+              <Box className="bg-text rounded-pill px-row py-0.5" accessible accessibilityLabel="Development build">
+                <Text className="text-background text-xs font-bold">DEV</Text>
               </Box>
-            </Box>
+            ) : null}
           </Box>
-          <Type step="lede" className="text-text">“Podcasts, with the people listening alongside you.”</Type>
-          <Note>Audio always streams from its publisher.</Note>
-          <Sec label="Documents">
-            <Box className="flex-row" style={{ gap: 8 }}>
-              {DOCS.map((d) => (
-                <Pressable
-                  key={d.doc}
-                  onPress={() => setDoc(d.doc)}
-                  accessibilityRole="button"
-                  accessibilityLabel={d.label}
-                  testID="doc-tile"
-                  className="bg-raise justify-between"
-                  style={{ flex: 1, minWidth: 0, minHeight: SET.bigMin, borderRadius: SET.radius, padding: SET.rowGap }}
-                >
-                  <Box className="bg-raise2 items-center justify-center" style={{ width: TILE, height: TILE, borderRadius: SET.rowGap }}>
-                    <Icon name={d.icon} size={18} color={colour.hotText} />
-                  </Box>
-                  <Type step="chip" className="text-text" style={SET_TYPE.doc13} numberOfLines={3}>{d.label}</Type>
-                  <Type step="tag" className="text-hotText">Read ›</Type>
-                </Pressable>
-              ))}
+        </Box>
+      </Box>
+      <Text className="text-text text-lg font-display mt-section">“Podcasts, with the people listening alongside you.”</Text>
+      <Text className="text-muted text-body mt-row">Audio always streams from its publisher.</Text>
+      <Eyebrow className="mt-section mb-row">The documents</Eyebrow>
+      <Box className="flex-row gap-gap">
+        {DOCS.map((d) => (
+          <Pressable
+            key={d.doc}
+            onPress={() => setDoc(d.doc)}
+            accessibilityRole="button"
+            accessibilityLabel={d.label}
+            className="flex-1 bg-surface border border-border rounded-row p-row gap-row"
+            style={CARD}
+          >
+            <Box className="bg-accentTint rounded-row items-center justify-center" style={TILE}>
+              <Icon name={d.icon} size={18} color={c.accent} />
             </Box>
-          </Sec>
-          {/* M22 US17 (T077, T078): updates (Android APK copies only) and the widget guide.
-              M25 L3d: "Check for updates" only on a build made for GitHub Releases, never a store build. */}
-          <Sec label="App">
-            <PanelGroup>
-              {updaterShown(Platform.OS, distributionOf(Constants.expoConfig?.extra)) ? (
-                <Link href="/settings/updates" asChild accessibilityLabel="Check for updates"><SetRow icon="download-outline" label="Check for updates" line="Android copies from GitHub only" /></Link>
-              ) : null}
-              <Link href="/settings/widgets" asChild accessibilityLabel="Widgets"><SetRow icon="grid-outline" label="Widgets" line="How to add SocialNet to your home screen" /></Link>
-              {/* M25 L2: the licence notices of every open-source package the app ships. */}
-              <Link href="/settings/licences" asChild accessibilityLabel="Open-source licences"><SetRow icon="star-outline" label="Open-source licences" /></Link>
-            </PanelGroup>
-          </Sec>
-          {/* M9: gluestack's Modal at full size, as Consent's documents. */}
-          <Modal isOpen={doc !== undefined} size="full" onClose={() => setDoc(undefined)}>
-            <ModalBackdrop />
-            <ModalContent className="w-full h-full rounded-none border-0 bg-background" style={{ padding: 0 }}>
-              {doc !== undefined ? <LegalDoc text={LEGAL_TEXT[doc]} onClose={() => setDoc(undefined)} /> : null}
-            </ModalContent>
-          </Modal>
-        </SetPage>
-      )}
-    </PushedPage>
+            <Text className="text-text text-title font-display" numberOfLines={2}>{d.label}</Text>
+            <Text className="text-accent text-xs font-bold">Read</Text>
+          </Pressable>
+        ))}
+      </Box>
+      {/* M22 US17 (T077, T078): updates (Android APK copies only) and the widget guide.
+          M25 L3d: "Check for updates" only on a build made for GitHub Releases, never a store build. */}
+      <Box className="mt-section">
+        <Card className="py-1">
+          {updaterShown(Platform.OS, distributionOf(Constants.expoConfig?.extra)) ? (
+            <>
+              <LinkRow href="/settings/updates" icon="cloud-download-outline" label="Check for updates" />
+            </>
+          ) : null}
+          <LinkRow href="/settings/widgets" icon="apps-outline" label="Widgets" line="How to add SocialNet to your home screen" />
+          {/* M25 L2: the licence notices of every open-source package the app ships. */}
+          <LinkRow href="/settings/licences" icon="ribbon-outline" label="Open-source licences" />
+        </Card>
+      </Box>
+      {/* M9: gluestack's Modal at full size, as Consent's documents. */}
+      <Modal isOpen={doc !== undefined} size="full" onClose={() => setDoc(undefined)}>
+        <ModalBackdrop />
+        <ModalContent className="w-full h-full p-0 rounded-none border-0 bg-background">
+          {doc !== undefined ? <LegalDoc text={LEGAL_TEXT[doc]} onClose={() => setDoc(undefined)} /> : null}
+        </ModalContent>
+      </Modal>
+    </ScrollView>
+    </>
   );
 }

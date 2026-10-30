@@ -20,7 +20,6 @@ import {
   avatarUrlOf, clearAvatar, clearBio, giftsOf, grantPlusByAdmin, openDeletionOf, openReportCount, plusEntitlements, profileExtras, purchasesOf,
   renameListener, reportsAgainst, revokeAllPlus, searchUsers, studioShowsOf, tipsSentBy, userRowById, type UserRow,
 } from '../../db/repos/admin/admin-users.ts';
-import { log } from '../../log.ts';
 
 /** M24 US5: the `entitlements.ref` of a PLUS the admin gave by hand. */
 export const PLUS_BY_ADMIN = 'admin';
@@ -119,7 +118,7 @@ export function registerUsers(admin: Hono<AdminEnv>): void {
     if (!r) throw new ApiError('not_found', 'No such account.');
     await adminWrite(db, auditCtx(c), { area: 'users', action: 'remove photo', target: id }, async (tx) => ({ avatarUrl: (await detail(tx, id))!.avatarUrl }),
       (tx) => clearAvatar(tx, id));
-    if (r.avatar_url) { try { await c.get('avatars').remove(r.avatar_url); } catch (e) { log.error('admin_avatar_not_removed', { error: e }); } }
+    if (r.avatar_url) { try { await c.get('avatars').remove(r.avatar_url); } catch (e) { console.error('avatar not removed', e); } }
     return c.json(await detail(db, id));
   });
 

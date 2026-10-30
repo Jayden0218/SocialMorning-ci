@@ -13,30 +13,30 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `_layout.tsx` | (wraps every screen) | No screen: starts the app, database and player; shows an error page if something breaks. |
 | `account.tsx` | `/account` | Settings: account card, everyday settings tiles, info pages, Sign out. From Me. |
 | `appeal.tsx` | `/appeal` | Appeal: the moderation actions against me (a removal or my suspension), each appealable once. |
-| `categories.tsx` | `/categories` | Every podcast category as a Mosaic of tiles of different sizes. |
+| `categories.tsx` | `/categories` | Every podcast category as a two-column grid of cards. |
 | `chart.tsx` | `/chart` | The charts: Talked about, New shows and Rising, swiped one to the next, with when each last updated. |
 | `chart-rules.tsx` | `/chart-rules` | How the three charts are ranked and how often they update, in plain words. |
 | `creator.tsx` | `/creator` | Creator centre: claim a show you publish with a code, then see its numbers. |
-| `downloads.tsx` | `/downloads` | Downloaded episodes as a mosaic: in progress, needs attention, downloaded; a settings panel; select to delete. |
-| `favourites.tsx` | `/favourites` | Starred episodes (a mosaic of covers) and starred comments (a thread), in two tabs, with search. |
+| `downloads.tsx` | `/downloads` | Downloaded episodes, space used, size limit and mobile-data switch. |
+| `favourites.tsx` | `/favourites` | Starred episodes and starred comments, in two tabs, with search. |
 | `friends-listening.tsx` | `/friends-listening` | Episodes people you follow played this week, with who and when. |
-| `history.tsx` | `/history` | Listening history by day on a spine, with where you stopped; filter to finished only, search, select and delete. |
+| `history.tsx` | `/history` | Listening history by day, with where you stopped; filter to finished only. |
 | `inbox.tsx` | `/inbox` | No screen: old link, sends you to Updates. |
 | `maintenance.tsx` | `/maintenance` | A calm page while the server is under maintenance: when it is expected back, and your downloads still play. |
 | `issues.tsx` | `/issues` | All curated issues, newest first; each opens its list of picks. |
-| `likes.tsx` | `/likes` | Likes: episodes people you follow liked, newest first, on a spine; tap a card to open the like, the circle to play. |
-| `moments.tsx` | `/moments` | Saved moments as a deck of cards; play from there, edit the note, delete. |
-| `my-comments.tsx` | `/my-comments` | Every comment you wrote, hung on a spine at its moment; tap to open the episode there. |
+| `likes.tsx` | `/likes` | Likes: episodes people you follow liked, newest first, with their notes; tap to open or play. |
+| `moments.tsx` | `/moments` | Saved moments as a timeline; tap to play from there, edit note, delete. |
+| `my-comments.tsx` | `/my-comments` | Every comment you wrote, with its episode and time; tap to open. |
 | `notifications.tsx` | `/notifications` | Notifications: Interactions aimed at you, People you follow; System and From hosts open their pages. |
 | `plaza.tsx` | `/plaza` | The new-shows plaza page: drag a wall of new shows' covers, Shuffle it, or read it as a list. |
 | `play-latest.tsx` | `/play-latest` | Plays your next queued or newest episode and opens the player. |
-| `player.tsx` | `/player` | The full player: the reaction ring, the title, the controls and a tray; sheets for More, Playback, sleep and share. |
-| `queue.tsx` | `/queue` | Your queue: a Deck of full-size episode cards, a strip of the rest, Edit to select and remove. |
+| `player.tsx` | `/player` | The full player: artwork, the heat curve as the seek bar, transcript lines, controls, and a settings panel. |
+| `queue.tsx` | `/queue` | Your queue: "Up next" card, then numbered episodes to reorder or remove. |
 | `redeem.tsx` | `/redeem` | Wallet › Redeem a code: type a code from SocialNet and get PLUS days or a paid series, free. |
 | `scan.tsx` | `/scan` | Camera window to scan a QR code; asks for camera permission first. |
 | `search.tsx` | `/search` | Search page for shows and episodes, opened from links or other screens. |
 | `stickers.tsx` | `/stickers` | Listening badges: earned ones with their date, the rest with progress; tap one for its card, Share, help and Decorate. |
-| `subscriptions.tsx` | `/subscriptions` | Shows you follow: starred shows first, then all shows, with sort and search. |
+| `subscriptions.tsx` | `/subscriptions` | Shows you follow: starred strip on top, then all shows with sort and search. |
 | `subscriptions/manage.tsx` | `/subscriptions/manage` | Manage my subscriptions: tap one cover, then another, to change their order; Save keeps it. |
 | `tips.tsx` | `/tips` | Tips you gave to shows; today says tipping is not available yet. |
 | `wallet.tsx` | `/wallet` | Your App Store / Google Play purchases, read only; link to manage them. |
@@ -45,27 +45,27 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `(tabs)/_layout.tsx` | (wraps the tabs) | The bottom bar: Discover, Updates, Chat, Me, with the now bar floating above it. |
-| `(tabs)/chat.tsx` | `/chat` | Chat tab: your conversations on a spine, newest first, with unread counts; start a new chat. |
+| `(tabs)/_layout.tsx` | (wraps the tabs) | The bottom bar: Discover, Updates, Chat, Me, with the mini player above it. |
+| `(tabs)/chat.tsx` | `/chat` | Chat tab: your conversations, newest first, with unread counts; start a new chat. |
 | `(tabs)/discover.tsx` | `/discover` | No screen: old link, sends you to Discover at `/`. |
 | `(tabs)/following.tsx` | `/following` | No screen: old link, sends you to Notifications. |
-| `(tabs)/index.tsx` | `/` | Home, the first screen: the Moments feed or Discover, behind one switch above the bars. |
+| `(tabs)/index.tsx` | `/` | Discover, the first screen: search box, shortcuts, picks, For You, charts, categories. |
 | `(tabs)/library.tsx` | `/library` | Updates tab: friends' voice posts, newest episodes from your shows. |
-| `(tabs)/me.tsx` | `/me` | Me tab: your picture, saved moments, menu tiles, a panel of four rows; your name sits low in the title bar. |
+| `(tabs)/me.tsx` | `/me` | Me tab: your picture and name, saved moments, menu tiles, Sign out. |
 
 ### `academy/`
 
 | File | Route | What the user sees |
 |---|---|---|
 | `academy/[slug].tsx` | `/academy/<slug>` | One help article for show owners, in numbered sections. |
-| `academy/index.tsx` | `/academy` | Creator academy: help articles for show owners, as a Mosaic. |
+| `academy/index.tsx` | `/academy` | Creator academy: list of help articles for show owners, as cards. |
 
 ### `auth/`
 
 | File | Route | What the user sees |
 |---|---|---|
 | `auth/email.tsx` | `/auth/email` | Sign in with email: enter email, then 6-digit code, then your name if new. |
-| `auth/sign-in.tsx` | `/auth/sign-in` | Sign-in start page: the wall of tiles, the app's name, Continue with email, the other ways when built, and the consent box. |
+| `auth/sign-in.tsx` | `/auth/sign-in` | Sign-in start page: app name, moving word tiles, ways to sign in, consent box. |
 | `auth/sign-up.tsx` | `/auth/sign-up` | No screen: old link, sends you to the email sign-in page. |
 
 ### `category/`
@@ -85,7 +85,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `clip/[id].tsx` | `/clip/<id>` | A shared clip opened from a link: the episode's art, a ring that plays it, the range, the author, play the episode, share. |
+| `clip/[id].tsx` | `/clip/<id>` | A shared clip opened from a link: quote card, play, open player, share. |
 | `clip/new.tsx` | `/clip/new` | Make a clip from the player: pick start and end, add caption, save. |
 
 ### `comments/`
@@ -111,7 +111,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `episode/[id].tsx` | `/episode/<id>` | One episode: the cover and its heat curve, the title, play and subscribe low by the thumb, notes, clips and related below. |
+| `episode/[id].tsx` | `/episode/<id>` | One episode: artwork, title, play, subscribe, queue, show notes with clickable times. |
 
 ### `issue/`
 
@@ -149,8 +149,8 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `playlists/[id].tsx` | `/playlists/<id>` | One playlist as a deck of numbered episode cards; Play all; yours can be renamed, reordered, made public or deleted. |
-| `playlists/index.tsx` | `/playlists` | Your playlists as a mosaic of covers, with their counts; name a new one in the foot of the page. |
+| `playlists/[id].tsx` | `/playlists/<id>` | One playlist: its episodes in order, Play all; yours can be renamed, reordered, made public or deleted. |
+| `playlists/index.tsx` | `/playlists` | Your playlists: each with its count and public or private; make a new one by name. |
 
 ### `profile/`
 
@@ -211,7 +211,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 
 | File | Route | What the user sees |
 |---|---|---|
-| `show/[feedUrl].tsx` | `/show/<feedUrl>` | One show: artwork stage, episodes as a mosaic, Hot moments, About, and the thumb zone with Subscribe. |
+| `show/[feedUrl].tsx` | `/show/<feedUrl>` | One show: artwork, title, Subscribe, episodes list and About tab with similar shows. |
 
 ### `transcript/`
 

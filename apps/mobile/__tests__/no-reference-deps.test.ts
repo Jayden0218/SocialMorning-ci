@@ -91,10 +91,8 @@ const FEEDBACK_ADDITIONS = ['expo-image-picker', 'expo-image-manipulator'];
 
 /** M10b US9: widgets (Android + iOS) and the iPhone live activity (research R11). MIT (LICENSES.md). */
 const OUTSIDE_ADDITIONS = ['react-native-android-widget', '@bacons/apple-targets', 'expo-live-activity'];
-/** M17 (research R5): fonts load through expo-font. Lora and Manrope (the Editorial faces) were removed in M31 (v4.0.0) once nothing asked for them by name. */
-const FONT_ADDITIONS = ['expo-font'];
-/** M31 T021 (research T020 §1): the Pulse fonts — Unbounded, Geist, Geist Mono (MIT package + OFL-1.1 font files; LICENSES.md). */
-const PULSE_FONT_ADDITIONS = ['@expo-google-fonts/unbounded', '@expo-google-fonts/geist', '@expo-google-fonts/geist-mono'];
+/** M17 (research R5): the Editorial fonts — Lora (was Fraunces until 2026-10-04) + Manrope (OFL-1.1), loaded through expo-font. */
+const FONT_ADDITIONS = ['expo-font', '@expo-google-fonts/lora', '@expo-google-fonts/manrope'];
 /** Owner, 2026-10-05: a light tick as the category row is swiped. Pinned at 58.0.2: 58.0.3+ drop the android publication version that autolinking 58.0.2 needs (Gradle: "Field 'version' is required", run 37245799305); MIT (LICENSES.md). */
 const HAPTICS_ADDITIONS = ['expo-haptics'];
 /**
@@ -127,17 +125,11 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS, ...PULSE_FONT_ADDITIONS, ...HAPTICS_ADDITIONS, ...M20_ADDITIONS, ...M21_ADDITIONS, ...M22_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS, ...HAPTICS_ADDITIONS, ...M20_ADDITIONS, ...M21_ADDITIONS, ...M22_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });
 
 it('M9: NativeWind is no longer a dependency, and UniWind is pinned exactly', () => {
   expect(pkg.dependencies['nativewind']).toBeUndefined();
   expect(pkg.dependencies['uniwind']).toMatch(/^\d+\.\d+\.\d+$/);
-});
-
-it('M31 (v4.0.0): the Editorial fonts Lora and Manrope are gone, the Pulse fonts are in', () => {
-  expect(pkg.dependencies['@expo-google-fonts/lora']).toBeUndefined();
-  expect(pkg.dependencies['@expo-google-fonts/manrope']).toBeUndefined();
-  for (const name of PULSE_FONT_ADDITIONS) expect(pkg.dependencies[name]).toBeDefined();
 });

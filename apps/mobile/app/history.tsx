@@ -1,61 +1,61 @@
-// Listening history by day on a spine, with where you stopped; filter to finished only, search, select and delete.
+// Listening history by day, with where you stopped; filter to finished only.
 /**
  * Listening history (收听历史, M10): what this phone played, most recent first, with where you stopped; search and "Only finished" as in the reference.
  *
- * M31 W3-C (T041; design-pulse2 `listen.html` `history--screen`, `history--empty`, `history--select-mode`,
- * `history--clear-dialog`, `history--episode-sheet`, `toast--history`; layout pattern Thread): the rows hang from the
- * spine at x 40 under light day tags (TODAY, YESTERDAY, EARLIER THIS WEEK, EARLIER). A row is a raise card (radius 18):
- * cover 44, title, show, and a 34 play dot — or "Finished" in green when it is done; an unfinished one shows its played
- * curve (40 bars) and "Stopped at m:ss". The title bar is low (rule 1) and 26 wide: "Listening history", "All · 42
- * episodes", a search circle and a select (check) circle; the chips "All" and "Only finished" sit above it. Tap a card =
- * play from where you stopped (a tablet opens it in the right pane); long-press = the shared episode sheet ("More for
- * …", also the card's `longpress` accessibility action) whose Details tile opens the episode page. Select mode turns
- * the title bar into "n selected" with Clear all, Delete (n) and Done, and a tick circle on the spine beside each card.
- * Same rows, same spoken names, same toasts.
+ * M17 (`History-B`): the 32 pt serif title, the pill search box with "All / Only finished" as a
+ * pill track under it, and the rows grouped by day under serif headings ("Today", "Yesterday",
+ * "Earlier this week", "Earlier"), each group in a white card. A row shows the show and the
+ * date, then a thin progress bar (yellow) with "Stopped at" / "Finished" beside it. Same rows,
+ * same links, same spoken names.
  *
  * M21 US4 (FR-035): a long-press on a row opens the shared episode sheet (`EpisodeRowSheet`).
- * M21 US10 (T110) / M24 US20: ▶ Play, Share and "View comments (N)" are in that sheet (ONE comment-counts call for the first 100 rows).
- * M22 US8 (FR-026): Select turns the rows into tick boxes; "Delete (N)" removes up to 100 at once and "Clear all" (one
- * confirm) empties history — on the account when signed in (`DELETE /v1/me/history`, positions only), and hidden on this
- * phone (`src/me/history.ts`). Opening the page also hides rows another phone deleted.
- * M22 US16: on a tablet (`useOpensInPane`) a row opens its episode in the right pane (src/ui/shell/ListDetail.tsx).
  *
- * Not as drawn: the rows show no per-episode heat (History keeps none), so the curve is an even meter; the spine is fixed
- * over the page, not part of the scrolling list (a long list is virtualised).
+ * M21 US10 (T110): ▶ Play, Share and the comment count (ONE comment-counts call for the first 100
+ * rows). M24 US20 (`History-B`, ~68 pt rows): they moved into the row's ⋯ sheet (Play, Share,
+ * "View comments (N)"); the two-line description is on the episode page the row opens.
+ *
+ * M22 US8 (FR-026): Select (top right) turns the rows into tick boxes; "Delete (N)" removes up to
+ * 100 at once and "Clear all" (one confirm) empties history — on the account when signed in
+ * (`DELETE /v1/me/history`, positions only: listening totals and stickers stay), and hidden on
+ * this phone (`src/me/history.ts`). Opening the page also hides rows another phone deleted.
+ *
+ * M22 US16: on a tablet (`useOpensInPane`) a row opens its episode in the right pane
+ * (src/ui/shell/ListDetail.tsx) instead of pushing the page; a phone is unchanged.
  */
-import { router, useFocusEffect } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HISTORY_DELETE_MAX, useM22LibraryApi } from '@/social/api-m22-library';
 import { useConfirm } from '@/ui/kit/confirm';
 import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { hideDeletedElsewhere, hideFromHistory, listeningHistory, matchesAll, type HistoryRow } from '@/me/history';
+import { FilterBar } from '@/ui/me/FilterBar';
 import { Artwork } from '@/ui/kit/Artwork';
-import { Chip } from '@/ui/kit/Chip';
-import { mmss } from '@/ui/kit/format';
-import { Icon } from '@/ui/kit/Icon';
-import { Type } from '@/ui/kit/Type';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { Card, CardDivider } from '@/ui/kit/Card';
+import { mmss, shortDate } from '@/ui/kit/format';
+import { EmptyPicture } from '@/ui/me/parts';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { colour, hit, spacing } from '@/design';
+import { hit, size } from '@/design';
+import { PageHeader } from '@/ui/kit/PageHeader';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
 import type { CachedEpisode } from '@/storage/types';
 import { toPlayable } from '@/storage/playable';
 import { usePlayer } from '@/playback/store';
 import { useM12Api } from '@/social/m12-api';
+import { Icon } from '@/ui/kit/Icon';
+import { useColours } from '@/ui/kit/useColours';
 import { plural } from '@socialmorning/social-core';
-import { ME_TYPE } from '@/ui/me/measures';
-import { DayTag, DRAWN, KeyboardPage, EmptySpine, LIST, PageEmpty, PlayDot, PlayedBars, SearchField, ThreadCard, ThreadNode, ThreadSpine, threadPad } from '@/ui/me/lists';
 
+const ROW = { minHeight: size.row };
+/** Select / Done and the row's ⋯: 48 pt targets. */
+const TAP = { minHeight: hit.min, minWidth: hit.min };
 const DAY = 24 * 60 * 60 * 1000;
+const PILL = { minHeight: hit.min };
 const NONE: ReadonlySet<string> = new Set();
-/** The chips row is 36; the search field above it 48; the select bar's buttons 48. */
-const CHIPS = 36;
-/** The words under the select bar ("You can delete up to 100 at a time."): one 13/18 line and its gap. */
-const LIMIT_LINE = 18 + spacing.gap;
 
 /** The day heading a row falls under, counted in calendar days on this phone. */
 function dayLabel(at: number, now: number): string {
@@ -83,7 +83,6 @@ function byDay(rows: readonly HistoryRow[], now: number): { label: string; rows:
 export default function HistoryScreen(): React.ReactElement {
   const stores = useStores();
   const [term, setTerm] = useState('');
-  const [searching, setSearching] = useState(false);
   const [finished, setFinished] = useState(false);
   const [menuFor, setMenuFor] = useState<CachedEpisode | undefined>();
   // M22 US8: select mode, the ticked rows, and a bump to re-read after a delete.
@@ -95,8 +94,7 @@ export default function HistoryScreen(): React.ReactElement {
   const m22 = useM22LibraryApi();
   const toast = useToast();
   const [confirm, dialog] = useConfirm();
-  // M32 T091: the sign-in and each row's show are read with the history (the `version` bump), not on every render.
-  const signedIn = useMemo(() => stores.auth.get() !== undefined, [stores, version]); // eslint-disable-line react-hooks/exhaustive-deps
+  const signedIn = stores.auth.get() !== undefined;
   // Rows deleted on another phone: synced here, gone from the account → hidden here too.
   useEffect(() => {
     if (!signedIn) return;
@@ -108,18 +106,18 @@ export default function HistoryScreen(): React.ReactElement {
   // on each key press — it re-read the whole history (and every show) on every letter typed.
   useFocusEffect(useCallback(() => { bump(); }, []));
   const all = useMemo(
-    () => listeningHistory(stores).map((r) => ({ r, show: stores.feeds.getShow(r.episode.feedUrl) })),
+    () => listeningHistory(stores).map((r) => ({ r, showTitle: stores.feeds.getShow(r.episode.feedUrl)?.title })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [stores, version],
   );
-  const showOf = useMemo(() => new Map(all.map(({ r, show }) => [r.episode.id, show])), [all]);
   const rows = useMemo(
-    () => all.filter(({ r, show }) => (!finished || r.finished) && matchesAll(term, [r.episode.title, show?.title])).map(({ r }) => r),
+    () => all.filter(({ r, showTitle }) => (!finished || r.finished) && matchesAll(term, [r.episode.title, showTitle])).map(({ r }) => r),
     [all, term, finished],
   );
   const groups = byDay(rows, Date.now());
   const player = usePlayer();
   const m12 = useM12Api();
+  const c = useColours(stores.settings);
   // M21 US10: one comment-counts call for the rows on screen (≤ 100); a failure leaves them out.
   const [comments, setComments] = useState<Record<string, number>>({});
   const ids = rows.slice(0, 100).map((r) => r.episode.id).join(',');
@@ -137,10 +135,10 @@ export default function HistoryScreen(): React.ReactElement {
     else next.add(id);
     setChosen(next);
   };
-  // M22 US16: on a tablet the episode shows in the right pane; a phone plays it from where it stopped.
+  // M22 US16: on a tablet the row's link is stopped and the episode shows in the right pane.
   const inPane = useOpensInPane();
   const [paneId, setPaneId] = useState<string | undefined>(undefined);
-  const openRow = (id: string) => { if (inPane) setPaneId(id); else play(id); };
+  const toPane = (id: string) => (e: { preventDefault: () => void }) => { if (!inPane) return; e.preventDefault(); setPaneId(id); };
   const leaveSelect = () => { setSelecting(false); setChosen(NONE); setOverLimit(false); };
   /** On the account first (when signed in), then hidden here; a failed call still hides it here. */
   const remove = async (what: { episodeIds: readonly string[] } | { all: true }, ids: readonly string[]) => {
@@ -158,157 +156,122 @@ export default function HistoryScreen(): React.ReactElement {
     action: 'Clear all',
     onConfirm: () => { void remove({ all: true }, stores.positions.all().map((p) => p.episodeId)); },
   });
-
-  const subtitle = `${finished ? 'Only finished' : 'All'} · ${plural(rows.length, 'episode')}`;
-  const actions = selecting ? [] : [
-    { icon: 'search-outline' as const, label: 'Search your history', onPress: () => { if (searching) setTerm(''); setSearching(!searching); } },
-    ...(rows.length > 0 ? [{ icon: 'checkmark' as const, label: 'Select', onPress: () => setSelecting(true) }] : []),
-  ];
-  const extra = selecting ? (
-    <Box style={{ gap: spacing.gap }}>
-      {overLimit ? <Type step="caption" className="text-text2" accessibilityLiveRegion="polite">{`You can delete up to ${HISTORY_DELETE_MAX} at a time.`}</Type> : null}
-      <Box className="flex-row" style={{ gap: spacing.row - 2 }}>
-        <Pressable onPress={clearAll} accessibilityRole="button" accessibilityLabel="Clear all" className="flex-1 bg-raise items-center justify-center rounded-pill" style={{ height: hit.min, paddingHorizontal: spacing.row - 2 }}>
-          <Type step="row" className="text-hotText" numberOfLines={1}>Clear all</Type>
-        </Pressable>
-        <Pressable
-          onPress={chosen.size > 0 ? deleteChosen : undefined}
-          disabled={chosen.size === 0}
-          accessibilityRole="button"
-          accessibilityLabel={`Delete (${chosen.size})`}
-          accessibilityState={{ disabled: chosen.size === 0 }}
-          className={`flex-1 bg-hot items-center justify-center rounded-pill ${chosen.size === 0 ? 'opacity-40' : ''}`}
-          style={{ height: hit.min, paddingHorizontal: spacing.row - 2 }}
-        >
-          <Type step="row" className="text-void" numberOfLines={1}>{`Delete (${chosen.size})`}</Type>
-        </Pressable>
-        <Pressable onPress={leaveSelect} accessibilityRole="button" accessibilityLabel="Done" className="bg-raise items-center justify-center rounded-pill" style={{ height: hit.min, paddingHorizontal: spacing.row + 2 }}>
-          <Type step="row" className="text-text" numberOfLines={1}>Done</Type>
-        </Pressable>
-      </Box>
-    </Box>
-  ) : (
-    <Box style={{ gap: spacing.gap }}>
-      {searching ? <SearchField value={term} onChange={setTerm} placeholder="Search your history" autoFocus /> : null}
-      <Box className="flex-row" style={{ gap: spacing.gap }}>
-        <Chip label="All" chosen={!finished} onPress={() => setFinished(false)} />
-        <Chip label="Only finished" chosen={finished} onPress={() => setFinished(true)} />
-      </Box>
-    </Box>
-  );
-  const extraAbove = selecting
-    ? hit.min + (overLimit ? LIMIT_LINE : 0) + spacing.gap
-    : CHIPS + (searching ? LIST.field + spacing.gap : 0) + spacing.gap;
-
   return (
-    <KeyboardPage>
-    <PushedPage
-      title={selecting ? `${chosen.size} selected` : 'Listening history'}
-      size={26}
-      {...(selecting ? {} : { subtitle })}
-      actions={actions}
-      onBack={selecting ? null : undefined}
-      extra={extra}
-      extraAbove={extraAbove}
-    >
-      {(layout) => (
-        <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}>
-          {groups.length === 0 ? <EmptySpine top={layout.top + (LIST.emptySpineTop - DRAWN.status)} /> : <ThreadSpine top={layout.top + (DRAWN.listTop - DRAWN.status)} />}
-          <ListDetail
-            placeholder="Choose an episode to see it here."
-            detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
-            list={
-              <FlatList
-                className="flex-1"
-                data={groups}
-                // Owner, 2026-10-05: the bottom of a fetched list says so.
-                ListFooterComponent={groups.length > 0 ? <EndOfList /> : undefined}
-                keyExtractor={(g) => g.label}
-                contentContainerStyle={{ ...threadPad(layout.reserve), flexGrow: 1 }}
-                keyboardShouldPersistTaps="handled"
-                ListEmptyComponent={
-                  <PageEmpty
-                    top={LIST.emptyBlockTop - DRAWN.listTop - LIST.top}
-                    title={term || finished ? 'Nothing matches' : 'Nothing played yet'}
-                    {...(term || finished ? {} : { line: 'Choose an episode to see it here.' })}
-                  />
-                }
-                ItemSeparatorComponent={() => <Box style={{ height: LIST.historyGap }} />}
-                renderItem={({ item: group }) => (
-                  <ThreadNode grow lead={<DayTag text={group.label} />}>
-                    <Box style={{ gap: spacing.row - 2 }}>
-                      {group.rows.map((item) => {
-                        const show = showOf.get(item.episode.id);
-                        const where = item.finished ? 'Finished' : `Stopped at ${mmss(item.offsetMs)}`;
-                        const duration = item.episode.durationMs;
-                        const done = item.finished ? 1 : duration !== undefined && duration > 0 ? Math.min(1, item.offsetMs / duration) : 0;
-                        const card = (
-                          <ThreadCard>
-                            <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
-                              <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={LIST.cover} name={show?.title} />
-                              <Box className="flex-1 min-w-0">
-                                <Type step="compact" className="text-text" numberOfLines={1}>{item.episode.title}</Type>
-                                <Type step="caption" className="text-text2" style={[ME_TYPE.show11, { marginTop: spacing.hair }]} numberOfLines={1}>{show?.title ?? ''}</Type>
-                              </Box>
-                              {item.finished ? <Type step="mono" className="text-ok" style={ME_TYPE.mono11}>Finished</Type> : <PlayDot size={LIST.playDot} />}
+    <>
+    <PageHeader
+      title="Listening history"
+      right={rows.length > 0 || selecting ? (
+        <Pressable onPress={selecting ? leaveSelect : () => setSelecting(true)} accessibilityRole="button" accessibilityLabel={selecting ? 'Done' : 'Select'} className="items-center justify-center px-2" style={TAP}>
+          <Text className="text-accent text-body font-bold">{selecting ? 'Done' : 'Select'}</Text>
+        </Pressable>
+      ) : undefined}
+    />
+    <ListDetail
+      placeholder="Choose an episode to see it here."
+      detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+      list={
+    <FlatList
+      className="flex-1 bg-background"
+      data={groups}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={groups.length > 0 ? <EndOfList /> : undefined}
+      keyExtractor={(g) => g.label}
+      contentContainerClassName="px-screen-x pb-24 flex-grow"
+      keyboardShouldPersistTaps="handled"
+      ListHeaderComponent={<FilterBar term={term} onTerm={setTerm} placeholder="Search your history" toggle={{ label: 'Only finished', value: finished, onChange: setFinished }} />}
+      ListEmptyComponent={<EmptyPicture icon="time-outline" line={term || finished ? 'Nothing matches' : 'Nothing played yet'} />}
+      renderItem={({ item: group }) => (
+        <Box className="mt-1 mb-row">
+          <Text className="text-text text-base font-display-semibold mb-2" accessibilityRole="header">{group.label}</Text>
+          <Card>
+            {group.rows.map((item, i) => {
+              const show = stores.feeds.getShow(item.episode.feedUrl);
+              const where = item.finished ? 'Finished' : `Stopped at ${mmss(item.offsetMs)}`;
+              const duration = item.episode.durationMs;
+              const done = item.finished ? 1 : duration !== undefined && duration > 0 ? Math.min(1, item.offsetMs / duration) : undefined;
+              return (
+                <Box key={item.episode.id}>
+                  {i > 0 ? <CardDivider /> : null}
+                  {selecting ? (
+                    // Defect 2 (2026-10-07): a button with the Selected trait ("checkbox" has no iOS
+                    // trait, so the rows were missing from the accessibility tree), and the whole row —
+                    // the tick circle too — is one touch target: nothing inside takes the touch.
+                    <Pressable onPress={() => toggle(item.episode.id)} accessibilityRole="button" accessibilityState={{ selected: chosen.has(item.episode.id) }} accessibilityLabel={`Select ${item.episode.title}`} className="flex-row py-2.5 items-center self-stretch" style={ROW} hitSlop={{ left: 8, right: 8 }}>
+                      <Box pointerEvents="none" className="flex-1 flex-row gap-row items-center">
+                        <Icon name={chosen.has(item.episode.id) ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={chosen.has(item.episode.id) ? c.accent : c.muted} />
+                        <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={48} name={show?.title} />
+                        <Box className="flex-1 min-w-0">
+                          <Text className="text-text text-body font-semibold" numberOfLines={1}>{item.episode.title}</Text>
+                          <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{[show?.title, where].filter(Boolean).join(' · ')}</Text>
+                        </Box>
+                      </Box>
+                    </Pressable>
+                  ) : (
+                  // M24 US20 (`History-B`): a ~68 pt row — cover, title, show · date, progress line.
+                  // M21 US10's extras moved, nothing lost: ▶ Play, Share and "View comments (N)" are in
+                  // the row's ⋯ sheet (the same sheet a long-press opens); the description is on the
+                  // episode page the row opens.
+                  <Box className="flex-row items-center">
+                  <Link href={{ pathname: '/episode/[id]', params: { id: item.episode.id } }} asChild onPress={toPane(item.episode.id)}>
+                    {/* M12 FR-050: a compact row (50 pt minimum); M17 adds the progress line. */}
+                    <Pressable className="flex-1 flex-row gap-row py-2.5 items-center" style={ROW} accessibilityRole="button" accessibilityLabel={`${item.episode.title}. ${where}`} onLongPress={() => setMenuFor(item.episode)} accessibilityHint="Long-press for more actions">
+                      <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={48} name={show?.title} />
+                      <Box className="flex-1 min-w-0">
+                        <Text className="text-text text-body font-semibold" numberOfLines={1}>{item.episode.title}</Text>
+                        <Text className="text-muted text-xs mt-0.5" numberOfLines={1}>{[show?.title, shortDate(item.updatedAt)].filter(Boolean).join(' · ')}</Text>
+                        <Box className="flex-row items-center gap-2 mt-1.5">
+                          {done !== undefined ? (
+                            <Box className="flex-1 h-1 rounded-pill bg-track overflow-hidden">
+                              <Box className="h-1 bg-primary" style={{ width: `${Math.round(done * 100)}%` }} />
                             </Box>
-                            {item.finished ? null : (
-                              <Box className="flex-row items-center" style={{ gap: spacing.gap }}>
-                                <Box className="flex-1"><PlayedBars share={done} /></Box>
-                                <Type step="mono" className="text-text3" style={ME_TYPE.mono11}>{where}</Type>
-                              </Box>
-                            )}
-                          </ThreadCard>
-                        );
-                        return selecting ? (
-                          // Defect 2 (2026-10-07): a button with the Selected trait ("checkbox" has no iOS
-                          // trait, so the rows were missing from the accessibility tree), and the whole row —
-                          // the tick on the spine too — is one touch target: nothing inside takes the touch.
-                          <Pressable key={item.episode.id} onPress={() => toggle(item.episode.id)} accessibilityRole="button" accessibilityState={{ selected: chosen.has(item.episode.id) }} accessibilityLabel={`Select ${item.episode.title}`} hitSlop={{ left: LIST.indent, top: 4, bottom: 4 }}>
-                            <Box pointerEvents="none">
-                              {card}
-                              <Box
-                                testID="history-tick"
-                                className={chosen.has(item.episode.id) ? 'absolute items-center justify-center bg-hot' : 'absolute bg-void border-2 border-text'}
-                                style={{ left: LIST.tickLeft, top: LIST.tickTop, width: LIST.tick, height: LIST.tick, borderRadius: LIST.tick / 2, zIndex: 3 }}
-                              >
-                                {chosen.has(item.episode.id) ? <Icon name="checkmark" size={14} color={colour.void} /> : null}
-                              </Box>
-                            </Box>
-                          </Pressable>
-                        ) : (
-                          // M24 US20 (`History-B`): the row's extras (▶ Play, Share, "View comments (N)", Details) are in the
-                          // shared episode sheet a long-press opens; "More for …" is also the card's `longpress` accessibility action.
-                          <Pressable
-                            key={item.episode.id}
-                            onPress={() => openRow(item.episode.id)}
-                            onLongPress={() => setMenuFor(item.episode)}
-                            accessibilityRole="button"
-                            accessibilityLabel={`${item.episode.title}. ${where}`}
-                            accessibilityHint="Long-press for more actions"
-                            accessibilityActions={[{ name: 'longpress', label: `More for ${item.episode.title}` }]}
-                            onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'longpress') setMenuFor(item.episode); }}
-                          >
-                            {card}
-                          </Pressable>
-                        );
-                      })}
-                    </Box>
-                  </ThreadNode>
-                )}
-              />
-            }
-          />
-          {dialog}
-          <EpisodeRowSheet
-            episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl: menuFor.feedUrl, imageUrl: menuFor.imageUrl ?? stores.feeds.getShow(menuFor.feedUrl)?.imageUrl } : undefined}
-            onClose={() => setMenuFor(undefined)}
-            comments={menuFor ? comments[menuFor.id] : undefined}
-            actions={menuFor ? [{ icon: 'play', label: 'Play', onPress: () => { const id = menuFor.id; setMenuFor(undefined); play(id); } }] : []}
-          />
+                          ) : <Box className="flex-1" />}
+                          <Text className="text-muted text-micro">{where}</Text>
+                        </Box>
+                      </Box>
+                    </Pressable>
+                  </Link>
+                  <Pressable onPress={() => setMenuFor(item.episode)} accessibilityRole="button" accessibilityLabel={`More for ${item.episode.title}`} className="items-center justify-center -mr-2" style={TAP}>
+                    <Icon name="ellipsis-horizontal" size={18} color={c.muted} />
+                  </Pressable>
+                  </Box>
+                  )}
+                </Box>
+              );
+            })}
+          </Card>
         </Box>
       )}
-    </PushedPage>
-    </KeyboardPage>
+    />
+      }
+    />
+    {selecting ? (
+      <Box className="px-screen-x pt-row pb-row gap-2 bg-background border-t-hairline border-separator">
+        {overLimit ? <Text className="text-muted text-xs" accessibilityLiveRegion="polite">{`You can delete up to ${HISTORY_DELETE_MAX} at a time.`}</Text> : null}
+        <Box className="flex-row gap-gap">
+          <Pressable onPress={clearAll} accessibilityRole="button" accessibilityLabel="Clear all" className="flex-1 items-center justify-center rounded-pill bg-surface border border-border" style={PILL}>
+            <Text className="text-accent text-body font-bold">Clear all</Text>
+          </Pressable>
+          <Pressable
+            onPress={chosen.size > 0 ? deleteChosen : undefined}
+            disabled={chosen.size === 0}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete (${chosen.size})`}
+            accessibilityState={{ disabled: chosen.size === 0 }}
+            className={`flex-1 items-center justify-center rounded-pill bg-primary ${chosen.size === 0 ? 'opacity-40' : ''}`}
+            style={PILL}
+          >
+            <Text className="text-onPrimary text-body font-bold">{`Delete (${chosen.size})`}</Text>
+          </Pressable>
+        </Box>
+      </Box>
+    ) : null}
+    {dialog}
+    <EpisodeRowSheet
+      episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl: menuFor.feedUrl, imageUrl: menuFor.imageUrl ?? stores.feeds.getShow(menuFor.feedUrl)?.imageUrl } : undefined}
+      onClose={() => setMenuFor(undefined)}
+      comments={menuFor ? comments[menuFor.id] : undefined}
+      actions={menuFor ? [{ icon: 'play', label: 'Play', onPress: () => { const id = menuFor.id; setMenuFor(undefined); play(id); } }] : []}
+    />
+    </>
   );
 }

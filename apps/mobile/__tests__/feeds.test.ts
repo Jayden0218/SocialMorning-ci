@@ -66,30 +66,6 @@ describe('refreshShow', () => {
     expect(cache.getShow(FEED)?.lastModified).toBe('Wed, 11 Sep 2024 09:00:00 GMT');
   });
 
-  // M32 T092: the parser returns an empty result with a `not-rss` warning for garbage; that must not replace a good cached copy.
-  it('keeps the cached episodes when the next body is truncated or not a feed', async () => {
-    const cache = createMemoryFeedCache(hash);
-    const fetchSpy = jest.spyOn(globalThis, 'fetch');
-    fetchSpy.mockResolvedValueOnce(response(200, feedXml('A Show', TWO_ITEMS), { etag: 'W/"v1"' }));
-    await refreshShow(FEED, cache, 1_000);
-
-    fetchSpy.mockResolvedValueOnce(response(200, '<html><body>Captive portal</body></html>', { etag: 'W/"bad"' }));
-    const result = await refreshShow(FEED, cache, 2_000);
-
-    expect(result.stale).toBe(true);
-    expect(result.episodes.map((e) => e.guid)).toEqual(['ep-2', 'ep-1']);
-    expect(cache.listEpisodes(FEED).map((e) => e.guid)).toEqual(['ep-2', 'ep-1']);
-    expect(cache.getShow(FEED)?.etag).toBe('W/"v1"');
-  });
-
-  it('with nothing cached, a body that is not a feed keeps the old behaviour (an empty parse is stored)', async () => {
-    const cache = createMemoryFeedCache(hash);
-    jest.spyOn(globalThis, 'fetch').mockResolvedValue(response(200, '<html></html>'));
-    const result = await refreshShow(FEED, cache, 1_000);
-    expect(result.episodes).toEqual([]);
-    expect(result.warnings.some((w) => w.code === 'not-rss')).toBe(true);
-  });
-
   it('sends If-None-Match and If-Modified-Since once it has them', async () => {
     const cache = createMemoryFeedCache(hash);
     const fetchMock = jest

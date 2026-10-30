@@ -8,7 +8,6 @@ import { stripImageMetadata } from '@socialmorning/social-core';
 import { createFeedback, feedbackImageBytes, imagesSentToday, IMAGE_MAX_BYTES, IMAGES_MAX, sniff, type ImageIn } from '../../db/repos/account/feedback.ts';
 import { ApiError } from '../../errors.ts';
 import { clientAddress, DAY_MS, HOUR_MS, limit } from '../../auth/rate.ts';
-import { feedbackImageCeilingRaw } from '../../config.ts';
 
 /**
  * Mounted at /v1/feedback (M10b US6). Signed in or not. The only route allowed a body
@@ -29,7 +28,7 @@ export const SIGNED_OUT_FEEDBACK_PER_DAY = 500;
 export const FEEDBACK_PER_ACCOUNT_DAY = 30;
 
 function imageCeiling(): number {
-  const n = Number(feedbackImageCeilingRaw());
+  const n = Number(process.env['FEEDBACK_IMAGE_CEILING_BYTES']);
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_FEEDBACK_IMAGE_CEILING;
 }
 const body = z.object({

@@ -15,47 +15,32 @@
  * which plays it and moves through the row. The row now comes with up to 5 "Suggested" statuses
  * from public accounts you don't follow (GET /v1/voice-posts?suggested=1), after the people you
  * follow, each marked "Suggested" under its circle. If that call fails, the old list (`load`) is used.
- *
- * M31 W4-D (T053; design-pulse2 `voice-posts--chooser-sheet`, `voice-posts--delete-dialog`, the rail of `updatesCtx`): the rail is 58 circles
- * 14 apart from 16 in, the name under each in Geist 600 11; a status has the hot → violet ring (2) round its avatar (54, a 2 void border),
- * "New" is a line-coloured ring round a raise disc with a hot-text plus (22), its name in hot-text; "Suggested" is hot-text under the name.
- * The drawing has no "Statuses · last 24 h" eyebrow, so it is gone from the rail (the circles say who they are). The chooser is the kit sheet:
- * "New status · gone after 24 h" as its title, the Panel rows Voice · up to 60 seconds / Text · up to 140 characters, and the quiet Cancel.
- * Holding your own circle asks in the kit dialog (Cancel quiet, Delete hot). Taps, labels and destinations are as before.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { useConfirm } from '@/ui/kit/confirm';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
 import { Icon } from '@/ui/kit/Icon';
-import { avatarTone } from '@/ui/kit/Avatar';
 import { Avatar } from '@/ui/kit/Avatar';
-import { ActionSheet } from '@/ui/kit/ActionSheet';
-import { PanelRow } from '@/ui/kit/PanelRow';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { Type } from '@/ui/kit/Type';
-import { PanelGroup } from '@/ui/me/Panel';
-import { LinearGradient } from '@/design/tailwind';
-import { colour, hit, spacing } from '@/design';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { hit, size } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import type { VoicePost } from '@/social/m12-api';
 import { useM22SocialApi, type Status } from '@/social/api-m22-social';
 import { hoursLeft } from '@/social/voice';
 
-/** The drawn rail: 58 circles 14 apart from 16 in; the ring is 2, the avatar inside it 54. */
-const RAIL_DRAWN = { circle: 58, inner: 54, gap: 14, lead: 16, ring: 2, plus: 22 } as const;
-/**
- * M31 D-A (design-pulse2 `index.html#updates--screen`, the Voice row): on the Updates tab the circles are 56 with a 2 void gap and a 2 ring round
- * them (64 over all), 12 apart from 28 in — the box-shadows' spill is part of the circle here, so the gap between items is 12 less the 8 of
- * spill and the lead 28 less 4. The first circle is yours, "You" with the mic.
- */
-const RAIL_UPDATES = { circle: 64, inner: 60, gap: 4, lead: 24, ring: 2, plus: 22 } as const;
-const ITEM_MIN = { minHeight: hit.min };
-const fill = (r: { circle: number }) => ({ position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: 0, borderRadius: r.circle / 2 });
-const RING_COLOURS = [colour.hot, colour.violet] as const;
-const CORNERS = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
+/** A 64 pt ring round a 56 pt disc, in a 64 pt-wide column with the name under it. */
+const RING = { width: 64, height: 64 };
+const DISC = { width: 56, height: 56 };
+const ITEM = { width: 64, minHeight: hit.min };
+/** The "+" badge on my own circle. */
+const PLUS = { width: 22, height: 22 };
+const ROW = { minHeight: size.row };
+const TAP = { minHeight: hit.min };
 
 export function voiceLabel(p: VoicePost, now: number, playing: boolean): string {
   if (p.body !== undefined) {
@@ -69,14 +54,7 @@ export function VoicePosts(props: {
   load: () => Promise<VoicePost[]>; remove: (id: string) => Promise<void>; pauseEpisode: () => void; colours: { accent: string; muted: string; text: string };
   /** M21 US8: me, for the first circle (photo, or my letters). */
   me?: { name: string; avatarUrl?: string | undefined };
-  /** `updates`: the Updates tab's Voice row (56 circles); `rail`: the status rail as drawn in the voice-posts entries. */
-  variant?: 'rail' | 'updates';
 }): React.ReactElement | null {
-  const RAIL = props.variant === 'updates' ? RAIL_UPDATES : RAIL_DRAWN;
-  const RING = { width: RAIL.circle, height: RAIL.circle, padding: RAIL.ring };
-  const INNER = { width: RAIL.inner, height: RAIL.inner };
-  const ITEM = { width: RAIL.circle, gap: props.variant === 'updates' ? 2 : spacing.gap, ...ITEM_MIN };
-  const FILL = fill(RAIL);
   const router = useRouter();
   const [posts, setPosts] = useState<(VoicePost & { suggested?: boolean })[]>([]);
   const m22 = useM22SocialApi();
@@ -110,48 +88,59 @@ export function VoicePosts(props: {
   const now = Date.now();
   const shown = posts.find((x) => x.id === playing);
   return (
-    <Box>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: RAIL.gap, paddingLeft: RAIL.lead, paddingRight: RAIL.lead }}>
+    <Box className="pt-section">
+      <Eyebrow className="px-screen-x">Statuses · last 24 h</Eyebrow>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-section px-screen-x" className="pt-2">
         {/* M21 US8: my avatar with "+", opening the Voice / Text chooser. */}
-        <Pressable onPress={() => setChooser(true)} accessibilityRole="button" accessibilityLabel="Post a status: voice or text" className="items-center" style={ITEM}>
-          <Box className="items-center justify-center" style={RING}>
-            <Box testID="status-new-ring" className="border-line" style={[FILL, { borderWidth: RAIL.ring }]} />
-            <Box className="rounded-pill bg-raise items-center justify-center" style={INNER}>
-              <Icon name={props.variant === 'updates' ? 'mic-outline' : 'add'} size={RAIL.plus} color={colour.hotText} />
+        <Pressable onPress={() => setChooser(true)} accessibilityRole="button" accessibilityLabel="Post a status: voice or text" className="items-center gap-1" style={ITEM}>
+          <Box className="rounded-pill border-2 border-dashed border-accent items-center justify-center" style={RING}>
+            <Avatar url={props.me?.avatarUrl ?? null} name={props.me?.name ?? '+'} size={56} />
+            <Box className="absolute bottom-0 right-0 rounded-pill bg-primary border-2 border-background items-center justify-center" style={PLUS}>
+              <Icon name="add" size={14} color={props.colours.text} />
             </Box>
           </Box>
-          <Type step="chip" className="text-hotText" numberOfLines={1}>{props.variant === 'updates' ? 'You' : 'New'}</Type>
+          <Text className="text-accent text-xs font-bold" numberOfLines={1}>New</Text>
         </Pressable>
         {posts.map((p) => {
           const on = playing === p.id;
           const isText = p.body !== undefined;
           return (
-            <Pressable key={p.id} onPress={() => toggle(p)} onLongPress={() => askDelete(p)} accessibilityRole="button" accessibilityLabel={`${p.suggested ? 'Suggested. ' : ''}${voiceLabel(p, now, playing === p.id)}`} className="items-center" style={ITEM}>
-              <Box className="items-center justify-center" style={RING}>
-                <LinearGradient testID="status-ring" colors={RING_COLOURS} start={CORNERS.start} end={CORNERS.end} style={FILL} />
-                <Box className="rounded-pill items-center justify-center bg-raise border-void" style={[INNER, { borderWidth: RAIL.ring }, !on && !isText ? { backgroundColor: avatarTone(p.author.name).fill } : null]}>
-                  {on && !isText ? <Icon name="stop" size={18} color={colour.hotText} />
-                    : isText ? <Icon name="chatbubble-ellipses-outline" size={20} color={colour.hotText} />
-                      : <Type step="chip" className={avatarTone(p.author.name).ink === 'text' ? 'text-text' : 'text-void'}>{p.author.initials ?? '·'}</Type>}
+            <Pressable key={p.id} onPress={() => toggle(p)} onLongPress={() => askDelete(p)} accessibilityRole="button" accessibilityLabel={`${p.suggested ? 'Suggested. ' : ''}${voiceLabel(p, now, playing === p.id)}`} className="items-center gap-1" style={ITEM}>
+              <Box className={`rounded-pill border-2 items-center justify-center ${on ? 'border-primary' : 'border-accent'}`} style={RING}>
+                <Box className={`rounded-pill items-center justify-center ${on ? 'bg-primary' : 'bg-accentTint'}`} style={DISC}>
+                  {on && !isText ? <Icon name="stop" size={18} color={props.colours.accent} />
+                    : isText ? <Icon name="chatbubble-ellipses-outline" size={20} color={props.colours.accent} />
+                      : <Text className="text-text text-meta font-bold">{p.author.initials ?? '·'}</Text>}
                 </Box>
               </Box>
-              <Type step="chip" className="text-text" numberOfLines={1}>{on && !isText ? mmss(p.durationMs) : p.mine ? 'You' : p.author.name}</Type>
-              {p.suggested ? <Type step="tag" className="text-hotText" numberOfLines={1}>Suggested</Type> : null}
+              <Text className="text-text text-xs font-semibold" numberOfLines={1}>{on && !isText ? mmss(p.durationMs) : p.mine ? 'You' : p.author.name}</Text>
+              {p.suggested ? <Text className="text-accent text-micro font-bold" numberOfLines={1}>Suggested</Text> : null}
             </Pressable>
           );
         })}
         {dialog}
       </ScrollView>
       {/* M20 US3: the text of the voice that is playing; M21 US8: or the words of the text status picked. */}
-      {shown?.body !== undefined ? <Type step="note" className="px-screen-x pt-row text-text" numberOfLines={6}>{`${shown.body} — ${shown.mine ? 'You' : shown.author.name}`}</Type>
-        : shown?.text ? <Type step="note" className="px-screen-x pt-row text-text" numberOfLines={4}>{`“${shown.text}” — ${shown.mine ? 'You' : shown.author.name}`}</Type> : null}
-      <ActionSheet open={chooser} onClose={() => setChooser(false)} label="New status" title="New status · gone after 24 h">
-        <PanelGroup>
-          <PanelRow icon="mic-outline" label="Voice · up to 60 seconds" accessibilityLabel="Record a voice status" onPress={() => { setChooser(false); router.push('/voice/new'); }} />
-          <PanelRow icon="create-outline" label="Text · up to 140 characters" accessibilityLabel="Write a text status" onPress={() => { setChooser(false); router.push('/status/text'); }} />
-        </PanelGroup>
-        <PulseButton label="Cancel" kind="quiet" onPress={() => setChooser(false)} full />
-      </ActionSheet>
+      {shown?.body !== undefined ? <Text className="px-screen-x pt-row text-text text-sm" numberOfLines={6}>{`${shown.body} — ${shown.mine ? 'You' : shown.author.name}`}</Text>
+        : shown?.text ? <Text className="px-screen-x pt-row text-text text-sm" numberOfLines={4}>{`“${shown.text}” — ${shown.mine ? 'You' : shown.author.name}`}</Text> : null}
+      <Actionsheet isOpen={chooser} onClose={() => setChooser(false)}>
+        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
+        <ActionsheetContent className="px-screen-x pt-row items-stretch">
+          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
+          <Text className="text-sm font-bold text-text py-row">New status · gone after 24 h</Text>
+          <Pressable onPress={() => { setChooser(false); router.push('/voice/new'); }} accessibilityRole="button" accessibilityLabel="Record a voice status" className="flex-row items-center gap-section border-b-hairline border-separator" style={ROW}>
+            <Icon name="mic-outline" size={20} color={props.colours.accent} />
+            <Text className="text-text text-body flex-1">Voice · up to 60 seconds</Text>
+          </Pressable>
+          <Pressable onPress={() => { setChooser(false); router.push('/status/text'); }} accessibilityRole="button" accessibilityLabel="Write a text status" className="flex-row items-center gap-section border-b-hairline border-separator" style={ROW}>
+            <Icon name="create-outline" size={20} color={props.colours.accent} />
+            <Text className="text-text text-body flex-1">Text · up to 140 characters</Text>
+          </Pressable>
+          <Pressable onPress={() => setChooser(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
+            <Text className="text-accent text-sm font-bold">Cancel</Text>
+          </Pressable>
+        </ActionsheetContent>
+      </Actionsheet>
     </Box>
   );
 }

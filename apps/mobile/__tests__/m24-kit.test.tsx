@@ -8,14 +8,14 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { colour, hit } from '@/design';
 import { loadFonts, resetFontsForTest } from '@/design/fonts';
-import { coverToneIndex } from '@socialmorning/social-core';
+import { coverTone } from '@socialmorning/social-core';
 import { sheetClass } from '@/ui/lib/actionsheet';
 import { Button, ButtonText } from '@/ui/lib/button';
 import { Heading } from '@/ui/lib/heading';
 import { Input, InputField } from '@/ui/lib/input';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
 import { Artwork, cornerFor, thumbUrl } from '@/ui/kit/Artwork';
-import { AVATAR_TONES, Avatar } from '@/ui/kit/Avatar';
+import { Avatar } from '@/ui/kit/Avatar';
 import { Segmented } from '@/ui/kit/Segmented';
 import { Toggle } from '@/ui/kit/Toggle';
 import { TopBar } from '@/ui/kit/TopBar';
@@ -44,19 +44,19 @@ describe('app faces on words that are not Text (break: ButtonText back on react-
   const family = (r: ReactTestRenderer, pick: (n: ReactTestInstance) => boolean): unknown =>
     flat(hosts(r).find(pick)?.props['style'])['fontFamily'];
 
-  it('a button label is Geist at its weight', () => {
+  it('a button label is Manrope at its weight', () => {
     const r = render(h(Button, null, h(ButtonText, { className: 'text-onPrimary font-bold' }, 'Play')));
-    expect(family(r, (n) => n.props['children'] === 'Play')).toBe('Geist-Bold');
+    expect(family(r, (n) => n.props['children'] === 'Play')).toBe('Manrope-Bold');
   });
-  it('text fields are Geist, or Unbounded when they ask for the display face', () => {
+  it('text fields are Manrope, or Lora when they ask for the display face', () => {
     const a = render(h(Input, null, h(InputField, { accessibilityLabel: 'Email' })));
-    expect(family(a, (n) => n.props['aria-label'] === 'Email')).toBe('Geist-Regular');
+    expect(family(a, (n) => n.props['aria-label'] === 'Email')).toBe('Manrope-Regular');
     const b = render(h(Textarea, null, h(TextareaInput, { accessibilityLabel: 'Note', className: 'text-text font-display-semibold' })));
-    expect(family(b, (n) => n.props['aria-label'] === 'Note')).toBe('Unbounded-SemiBold');
+    expect(family(b, (n) => n.props['aria-label'] === 'Note')).toBe('Lora-SemiBold');
   });
-  it('a heading is the display face unless it names a weight', () => {
-    expect(family(render(h(Heading, { className: 'text-text text-display font-display' }, 'Report')), (n) => n.props['children'] === 'Report')).toBe('Unbounded-Bold');
-    expect(family(render(h(Heading, { className: 'text-text text-base font-bold' }, 'Sign out?')), (n) => n.props['children'] === 'Sign out?')).toBe('Geist-Bold');
+  it('a heading is the serif unless it names a weight', () => {
+    expect(family(render(h(Heading, { className: 'text-text text-display font-display' }, 'Report')), (n) => n.props['children'] === 'Report')).toBe('Lora-Bold');
+    expect(family(render(h(Heading, { className: 'text-text text-base font-bold' }, 'Sign out?')), (n) => n.props['children'] === 'Sign out?')).toBe('Manrope-Bold');
   });
 });
 
@@ -85,20 +85,20 @@ describe('Segmented (break: the white bordered track, or drop the dark tone)', (
     expect(words.props['numberOfLines']).toBe(1);
     expect(flat(words.props['style'])['fontSize']).toBe(13);
   });
-  it('T101: there is one look — the Editorial dark tone is gone, so even a stray tone prop draws the Pulse fill with void words', () => {
-    const r = render(h(Segmented<'a' | 'b'>, { items, value: 'b', onChange: () => undefined, ...({ tone: 'dark' } as object) }));
+  it('tone dark: the chosen tab is dark with paper words', () => {
+    const r = render(h(Segmented<'a' | 'b'>, { items, value: 'b', onChange: () => undefined, tone: 'dark' }));
     const on = tabs(r)[1]!;
-    expect(rgb(flat(on.props['style'])['backgroundColor'])).toBe(rgb(colour.primary));
+    expect(rgb(flat(on.props['style'])['backgroundColor'])).toBe(rgb(colour.text));
     const words = r.root.findAll((n) => typeof n.type === 'string' && n.props['children'] === 'Only finished')[0]!;
-    expect(rgb(flat(words.props['style'])['color'])).toBe(rgb(colour.onPrimary));
+    expect(rgb(flat(words.props['style'])['color'])).toBe(rgb(colour.background));
   });
 });
 
-it('an off switch has a visible track and a text2 thumb, with no shadow — Pulse has no drop shadows (break: bg-separator)', () => {
+it('an off switch has a visible track and a white thumb with a shadow (break: bg-separator)', () => {
   const r = render(h(Toggle, { value: false, onChange: () => undefined, label: 'Autoplay' }));
   const all = hosts(r).map((n) => flat(n.props['style']));
   expect(all.some((s) => rgb(s['backgroundColor']) === rgb(colour.switchOff))).toBe(true);
-  expect(all.some((s) => s['shadowOpacity'] !== undefined)).toBe(false);
+  expect(all.some((s) => s['shadowOpacity'] === 0.18)).toBe(true);
 });
 
 it('a person is a flat circle with one letter on their own colour (break: back to the cover tile)', () => {
@@ -106,7 +106,7 @@ it('a person is a flat circle with one letter on their own colour (break: back t
   const json = JSON.stringify(r.toJSON());
   expect(json).toContain('"M"');
   expect(json).not.toContain('"MO"');
-  expect(flat(hosts(r)[0]!.props['style'])['backgroundColor']).toBe(AVATAR_TONES[coverToneIndex('Mira Okafor') % AVATAR_TONES.length]!.fill); // F2a: the drawings' saturated discs, not the pastels
+  expect(flat(hosts(r)[0]!.props['style'])['backgroundColor']).toBe(coverTone('Mira Okafor').fill);
 });
 
 describe('covers', () => {

@@ -11,45 +11,41 @@
  * `{"days":[]}`. So the page was right: correct, one day of picks. An empty answer shows
  * "No earlier picks yet".
  *
- * M31 W5-D (T064; design-pulse2 `discover.html` `picks-past--screen`, `picks-past--error`, layout pattern Thread): a pushed page, the title bar low
- * ("Past picks", "Every day the editors picked"). The days hang from a spine at x 44: the date as a solid hot chip on it with "2 picks" in mono,
- * and each pick a raise card 46 in (radius 18, 12 of padding): the cover (56) with the show's first letter over it, the note in italics
- * (Geist 13/18), the show, the title (one line) and Play (34). A pick with no episode is a note card that says "Open the show ›". At the spine's
- * end "Show earlier days" (quiet, 40), or "Couldn't load — try again". A failed first load is the error tile with Retry; empty, "No earlier picks yet".
+ * M17 T055 (`PastPicks-B`): each day is a serif accent date with its pick count; the day's
+ * first pick (when it has an episode) is a white card — a wide artwork banner, the editor's
+ * note as a serif italic quote, show, title and Play; the other picks are divided rows with
+ * the note in muted italic. Loading, paging, hidden shows and every action are unchanged.
  *
  * M22 US16: on a tablet (`useOpensInPane`) a pick opens its episode in the right pane
  * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
+import { StyleSheet } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { Image } from '@/ui/lib/image';
+import { hit } from '@/design';
 import { Loader } from '@/ui/kit/Loader';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { TimestampChip } from '@/ui/kit/TimestampChip';
-import { Type } from '@/ui/kit/Type';
+import { Screen } from '@/ui/kit/Screen';
+import { Card } from '@/ui/kit/Card';
 import { initialOf } from '@/ui/kit/Artwork';
+import { EmptyPicture } from '@/ui/me/parts';
+import { EpisodeLine, PlayButton } from '@/ui/discover/parts';
 import { useCardActions } from '@/discover/useDiscover';
 import { dayTitle } from '@/discover/sections';
 import { useSafety } from '@/safety/context';
 import type { EpisodeCard } from '@/social/api';
 import { useM12Api, type PastPick, type PastPicksDay } from '@/social/m12-api';
+import { PageHeader } from '@/ui/kit/PageHeader';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
-import { LinearGradient } from '@/design/tailwind';
-import { colour } from '@/design';
-import { CoverBand, DiscPlay } from '@/ui/discover/Deck';
-import { RetryTile } from '@/ui/discover/Mosaic';
-import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
-import { bodyTop } from '@/ui/discover/page-parts';
-import { DRAWN, emptyTop, PageEmpty } from '@/ui/me/lists';
 
+const TAP = { minHeight: hit.min };
+/** The feature card's artwork banner (`PastPicks-B`: 150 pt high, the card's width). */
+const BANNER = { height: 150 };
+const BANNER_LETTER = { fontSize: 48 };
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; days: PastPicksDay[]; next?: string; more: 'idle' | 'loading' | 'error' };
-const SPINE = [colour.hot, colour.violet, colour.line] as const;
-/** The days sit 18 apart; a day's chip is 10 over its cards, the cards 10 apart. */
-const DAY_GAP = 18;
-const NOTE_FOOT = 10;
 
 export default function PastPicksScreen(): React.ReactElement {
   const router = useRouter();
@@ -84,74 +80,83 @@ export default function PastPicksScreen(): React.ReactElement {
   const pane = inPane ? setPaneId : undefined;
   const openShow = (feedUrl: string) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } });
 
-  /** A pick with an episode: the cover with the show's first letter, the note, the show, the title, Play. */
-  const withEpisode = (p: PastPick, card: EpisodeCard, i: number): React.ReactElement => (
-    <Box key={`${card.id}-${i}`} testID="past-pick" className="flex-row items-center bg-raise" style={{ borderRadius: PAGE.card.article.radius, padding: PAGE.card.issue.pad, gap: PAGE.card.issue.pad }}>
-      <Pressable onPress={() => void open(card, pane)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`} className="flex-1 flex-row items-center min-w-0" style={{ gap: PAGE.card.issue.pad }}>
-        <Box style={{ width: 56, height: 56 }} accessible={false} importantForAccessibility="no-hide-descendants">
-          <CoverBand url={card.imageUrl} name={card.showTitle} height={56} width={56} />
-          <Box className="absolute inset-0 items-center justify-center">
-            <Type step="hero" className="text-text" style={[PAGE_TYPE.letter22, { opacity: 0.8 }]}>{initialOf(card.showTitle)}</Type>
+  /** The day's first pick: banner, the note as a serif quote, show, title, Play. */
+  const feature = (p: PastPick, card: EpisodeCard, i: number): React.ReactElement => {
+    const letter = initialOf(card.showTitle);
+    return (
+      <Card key={`${card.id}-${i}`} padded={false} className="overflow-hidden mb-row">
+        <Pressable onPress={() => void open(card, pane)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`}>
+          <Box className="bg-accentTint justify-end p-row overflow-hidden" style={BANNER} accessible={false} importantForAccessibility="no-hide-descendants">
+            {letter ? <Text className="text-muted font-bold" style={BANNER_LETTER}>{letter}</Text> : null}
+            {card.imageUrl ? <Image source={{ uri: card.imageUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
           </Box>
+          <Box className="px-section pt-row">
+            {p.why ? <Text className="text-text text-base font-display-semibold italic" numberOfLines={4}>“{p.why}”</Text> : null}
+            <Text className={`text-muted text-xs ${p.why ? 'mt-row' : ''}`} numberOfLines={1}>{card.showTitle}</Text>
+            <Text className="text-text text-sm font-bold mt-0.5" numberOfLines={3}>{card.title}</Text>
+          </Box>
+        </Pressable>
+        <Box className="flex-row justify-end px-2 pb-2">
+          <PlayButton title={card.title} onPress={() => void play(card)} />
         </Box>
-        <Box className="flex-1 min-w-0">
-          {p.why ? <Type step="caption" className="text-quote italic" numberOfLines={3}>{`“${p.why}”`}</Type> : null}
-          <Type step="caption" className="text-text2" style={PAGE_TYPE.small12} numberOfLines={1}>{card.showTitle}</Type>
-          <Type step="compact" className="text-text font-bold" numberOfLines={1}>{card.title}</Type>
-        </Box>
-      </Pressable>
-      <DiscPlay size={34} title={card.title} onPress={() => void play(card)} />
-    </Box>
-  );
+      </Card>
+    );
+  };
 
-  /** No episode yet: the note, and the show it came from. */
-  const noteCard = (p: PastPick, i: number): React.ReactElement => (
-    <Pressable key={`${p.feedUrl}-${i}`} onPress={() => openShow(p.feedUrl)} accessibilityRole="link" accessibilityLabel={`${p.why}. Open the show`} className="bg-raise" style={{ borderRadius: PAGE.card.article.radius, padding: PAGE.card.issue.pad, gap: 4 }}>
-      <Type step="caption" className="text-quote italic" numberOfLines={4}>{`“${p.why}”`}</Type>
-      <Type step="caption" className="text-hotText font-semibold">Open the show ›</Type>
-    </Pressable>
-  );
+  const row = (p: PastPick, i: number): React.ReactElement => {
+    if (p.episode) {
+      const card = p.episode;
+      if (i === 0) return feature(p, card, i);
+      return <EpisodeLine key={`${card.id}-${i}`} card={card} size={56} divided {...(p.why ? { line: `“${p.why}”` } : {})} onOpen={() => void open(card, pane)} onPlay={() => void play(card)} />;
+    }
+    // No episode yet: the note, and the show it came from.
+    return (
+      <Pressable key={`${p.feedUrl}-${i}`} onPress={() => openShow(p.feedUrl)} accessibilityRole="link" accessibilityLabel={`${p.why}. Open the show`} className={`justify-center py-row ${i === 0 ? '' : 'border-t-hairline border-separator'}`} style={TAP}>
+        <Text className="text-text text-body font-display-semibold italic" numberOfLines={3}>“{p.why}”</Text>
+        <Text className="text-accent text-xs font-semibold mt-1">Open the show ›</Text>
+      </Pressable>
+    );
+  };
 
   const days = state.kind === 'ok'
     ? state.days.map((d) => ({ ...d, picks: d.picks.filter((p) => !hiddenFeeds.has(p.feedUrl)) })).filter((d) => d.picks.length > 0)
     : [];
 
   return (
-    <PushedPage title="Past picks" subtitle="Every day the editors picked">
-      {(layout) => (
-        <ListDetail
-          placeholder="Choose an episode to see it here."
-          detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
-          list={
-            <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body64), paddingBottom: layout.reserve }}>
-              {state.kind === 'loading' ? <Loader className="my-section" /> : null}
-              {state.kind === 'error' ? <Box style={{ marginTop: 120 - PAGE.body64 }}><RetryTile line="Couldn't load past picks right now." onRetry={first} /></Box> : null}
-              {state.kind === 'ok' && days.length === 0 ? <PageEmpty top={emptyTop(260) - (PAGE.body64 - DRAWN.listTop)} title="No earlier picks yet" /> : null}
-              {days.length > 0 ? (
-                <Box testID="past-thread" style={{ paddingLeft: PAGE.threadLeft, paddingRight: PAGE.threadRight }}>
-                  <LinearGradient colors={SPINE} locations={[0, 0.6, 1]} testID="past-spine" pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', left: PAGE.pastSpine, top: PAGE.gap, bottom: 0, width: 2 }} />
-                  {days.map((d) => (
-                    <Box key={d.date} style={{ marginBottom: DAY_GAP }}>
-                      <Box className="flex-row items-center" style={{ gap: PAGE.gap, marginBottom: PAGE.gap }}>
-                        <Box className="bg-void" style={{ paddingVertical: 2, zIndex: 2 }}><TimestampChip text={dayTitle(d.date).replace(/ \d{4}$/, '')} solid /></Box>
-                        <Type step="tag" className="text-text3" style={PAGE_TYPE.mono11}>{d.picks.length === 1 ? '1 pick' : `${d.picks.length} picks`}</Type>
-                      </Box>
-                      <Box style={{ marginLeft: PAGE.pastCard, gap: NOTE_FOOT }}>
-                        {d.picks.map((p, i) => (p.episode ? withEpisode(p, p.episode, i) : noteCard(p, i)))}
-                      </Box>
-                    </Box>
-                  ))}
-                  {state.kind === 'ok' && state.next ? (
-                    <Box style={{ marginLeft: PAGE.pastCard, alignItems: 'flex-start' }}>
-                      {state.more === 'loading' ? <Loader /> : <PulseButton kind="quiet" height={40} label={state.more === 'error' ? "Couldn't load — try again" : 'Show earlier days'} accessibilityLabel="Show earlier days" onPress={loadMore} />}
-                    </Box>
-                  ) : null}
-                </Box>
-              ) : null}
-            </ScrollView>
-          }
-        />
-      )}
-    </PushedPage>
+    <>
+    <PageHeader title="Past picks" />
+    <ListDetail
+      placeholder="Choose an episode to see it here."
+      detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+      list={
+    <Screen scroll>
+      {state.kind === 'loading' ? <Loader className="my-section" /> : null}
+      {state.kind === 'error' ? (
+        <Box className="items-center my-section">
+          <Text className="text-muted text-sm">Couldn't load past picks right now.</Text>
+          <Pressable onPress={first} accessibilityRole="button" accessibilityLabel="Retry" className="justify-center" style={TAP}>
+            <Text className="text-accent text-sm font-semibold">Retry</Text>
+          </Pressable>
+        </Box>
+      ) : null}
+      {state.kind === 'ok' && days.length === 0 ? <EmptyPicture icon="sparkles-outline" line="No earlier picks yet" /> : null}
+      {days.map((d) => (
+        <Box key={d.date} className="mb-section">
+          <Box className="flex-row items-baseline gap-2 mt-1 mb-row">
+            <Text className="text-accent text-lg font-display" accessibilityRole="header">{dayTitle(d.date)}</Text>
+            <Text className="text-muted text-xs">{d.picks.length === 1 ? '1 pick' : `${d.picks.length} picks`}</Text>
+          </Box>
+          {d.picks.map(row)}
+        </Box>
+      ))}
+      {state.kind === 'ok' && state.next ? (
+        <Pressable onPress={loadMore} accessibilityRole="button" accessibilityLabel="Show earlier days" className="items-center justify-center" style={TAP}>
+          {state.more === 'loading' ? <Loader /> : <Text className="text-accent text-sm font-semibold">{state.more === 'error' ? "Couldn't load — try again" : 'Show earlier days'}</Text>}
+        </Pressable>
+      ) : null}
+    </Screen>
+      }
+    />
+    </>
   );
 }

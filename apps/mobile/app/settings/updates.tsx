@@ -16,24 +16,18 @@
  * API's /get page (and the release notes' line, when present). Only a match is offered for
  * install (Android's package installer, through expo-intent-launcher); anything else is deleted.
  * NOT VERIFIED on a phone.
- *
- * M31 S-B (T060; design-pulse2 `settings-updates--screen` — iPhone, and Android with a downloaded update; layout Panel): iPhone (and a store copy) is one tile: the
- * download mark in hot-text and the one line in Geist 500 16. An APK copy shows a version tile — "This app: version …" in mono, the state line, "Version x is
- * ready" in Unbounded 26 with the notes, the green checksum line in mono — then "Download and check the update" / "Install the update" (light, full width) and
- * "Check again" (quiet), then the Play Store line in 12. After an update "What's new in …" is its own tile on top. Same checks, refusals and names.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Icon } from '@/ui/kit/Icon';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { Type } from '@/ui/kit/Type';
-import { useColours } from '@/ui/kit/useColours';
-import { Line, Section, SettingsPage, Tile } from '@/ui/settings/panel';
-import { SET, SET_TYPE } from '@/ui/settings/measures';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { Card } from '@/ui/kit/Card';
+import { Button } from '@/ui/kit/Button';
 import { apiBaseUrl } from '@/social/base-url';
 import { RELEASES_LATEST, isNewer, parseRelease, type Release } from '@/ui/shell/startupExtras';
 import { VERDICT_TEXT, distributionOf, shaFromGetPage, shaFromNotes, updaterShown, verdict } from '@/ui/shell/updater';
@@ -61,17 +55,13 @@ async function publishedSha(): Promise<string | undefined> {
 }
 
 function StoreNote(props: { line: string }): React.ReactElement {
-  const c = useColours();
   return (
-    <SettingsPage title="Check for updates">
-      <Box style={{ height: SET.storeTop }} />
-      <Section>
-        <Tile>
-          <Icon name="download-outline" size={SET.heroIcon} color={c.hotText} />
-          <Type step="row" className="text-text font-medium" style={SET_TYPE.store}>{props.line}</Type>
-        </Tile>
-      </Section>
-    </SettingsPage>
+    <>
+    <PageHeader title="Check for updates" />
+    <Box className="flex-1 bg-background px-screen-x pt-section">
+      <Text className="text-muted text-body">{props.line}</Text>
+    </Box>
+    </>
   );
 }
 
@@ -130,46 +120,46 @@ export default function UpdatesScreen(): React.ReactElement {
   };
 
   return (
-    <SettingsPage title="Check for updates">
+    <>
+    <PageHeader title="Check for updates" />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-2 pb-24 gap-row">
       {params.whatsNew === '1' && release && !newer && release.notes ? (
-        <Section>
-          <Tile>
-            <Type step="lede" className="text-text" style={SET_TYPE.step} accessibilityRole="header">{`What's new in ${version}`}</Type>
-            <Type step="body" className="text-text">{release.notes}</Type>
-          </Tile>
-        </Section>
+        <Card>
+          <Box className="py-row gap-gap">
+            <Text className="text-text text-base font-display" accessibilityRole="header">{`What's new in ${version}`}</Text>
+            <Text className="text-text text-body">{release.notes}</Text>
+          </Box>
+        </Card>
       ) : null}
-      <Section>
-        <Tile>
-          <Type step="mono" className="text-text2" style={SET_TYPE.mono13}>{`This app: version ${version}`}</Type>
-          {check.kind === 'checking' ? <Type step="body" className="text-text">Checking…</Type> : null}
-          {check.kind === 'failed' ? <Type step="body" className="text-text">Could not reach GitHub. Check your connection and try again.</Type> : null}
-          {release && !newer ? <Type step="body" className="text-text">You have the latest version.</Type> : null}
+      <Card>
+        <Box className="py-row gap-gap">
+          <Text className="text-muted text-xs">{`This app: version ${version}`}</Text>
+          {check.kind === 'checking' ? <Text className="text-text text-body">Checking…</Text> : null}
+          {check.kind === 'failed' ? <Text className="text-text text-body">Could not reach GitHub. Check your connection and try again.</Text> : null}
+          {release && !newer ? <Text className="text-text text-body">You have the latest version.</Text> : null}
           {release && newer ? (
             <>
-              <Type step="heading" className="text-text" style={SET_TYPE.version26} accessibilityRole="header">{`Version ${release.version} is ready`}</Type>
-              {release.notes ? <Type step="caption" className="text-text2 font-normal" style={SET_TYPE.notes19}>{release.notes}</Type> : null}
+              <Text className="text-text text-title font-display" accessibilityRole="header">{`Version ${release.version} is ready`}</Text>
+              {release.notes ? <Text className="text-muted text-body">{release.notes}</Text> : null}
             </>
           ) : null}
           {fetching.kind === 'working' || fetching.kind === 'refused' ? (
-            <Type step="body" className="text-text" accessibilityLiveRegion="polite">{fetching.line}</Type>
+            <Text className="text-text text-body" accessibilityLiveRegion="polite">{fetching.line}</Text>
           ) : null}
-          {fetching.kind === 'ready' ? <Type step="mono" className="text-ok" style={SET_TYPE.line12}>Checked: the download matches the published checksum.</Type> : null}
-        </Tile>
-      </Section>
+          {fetching.kind === 'ready' ? <Text className="text-text text-body">Checked: the download matches the published checksum.</Text> : null}
+        </Box>
+      </Card>
       {release && newer && release.apkUrl && fetching.kind !== 'ready' ? (
-        <Section>
-          <PulseButton
-            label="Download and check the update"
-            busy={fetching.kind === 'working'}
-            full
-            onPress={() => { if (fetching.kind !== 'working' && release.apkUrl) void download(release.apkUrl, release.notes); }}
-          />
-        </Section>
+        <Button
+          label="Download and check the update"
+          busy={fetching.kind === 'working'}
+          onPress={() => { if (fetching.kind !== 'working' && release.apkUrl) void download(release.apkUrl, release.notes); }}
+        />
       ) : null}
-      {fetching.kind === 'ready' ? <Section><PulseButton label="Install the update" full onPress={() => install(fetching.file)} /></Section> : null}
-      {check.kind !== 'checking' ? <Section><PulseButton label="Check again" kind="quiet" full onPress={run} /></Section> : null}
-      <Section><Line>Android asks before installing an app from outside the Play Store.</Line></Section>
-    </SettingsPage>
+      {fetching.kind === 'ready' ? <Button label="Install the update" onPress={() => install(fetching.file)} /> : null}
+      {check.kind !== 'checking' ? <Button label="Check again" kind="secondary" onPress={run} /> : null}
+      <Text className="text-muted text-xs">Android asks before installing an app from outside the Play Store.</Text>
+    </ScrollView>
+    </>
   );
 }

@@ -13,7 +13,6 @@ import type { Db } from '../../../db.ts';
 import { batchWriteAll } from '../../../ddb/batch.ts';
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
-import { queryDay } from '../../../ddb/day-index.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
 import { nextSeq } from '../../../ddb/seq.ts';
 import { update, type Store } from '../../../ddb/store.ts';
@@ -81,7 +80,9 @@ export async function sweepOldRecEvents(store: Store, _db: Db): Promise<number> 
   const doomed: { PK: string; SK: string }[] = [];
   for (let d = 0; d <= 30; d++) {
     const day = K.day(cutoff - d * DAY_MS);
-    const items = await queryDay(store, day, { condition: 'begins_with(E1SK, :re)', values: { ':re': 're#' } });
+    const { items } = await queryAll(store, 'events', {
+      IndexName: K.INDEX.E1, KeyConditionExpression: 'E1PK = :d AND begins_with(E1SK, :re)', ExpressionAttributeValues: { ':d': `DAY#${day}`, ':re': 're#' },
+    });
     for (const it of items) if (Date.parse(String(it['SK']).slice(0, 24)) < cutoff) doomed.push({ PK: String(it['PK']), SK: String(it['SK']) });
   }
   await batchWriteAll(store, 'events', doomed.map((k) => ({ delete: k })));

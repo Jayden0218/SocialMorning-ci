@@ -43,7 +43,7 @@ if (!ON) {
       assert.equal(out.Items?.length, 1, `G${n} finds the item`);
     }
     await put(s.store, 'events', encode('dailyActive', K.ev.dailyActive('2026-10-10', 'a'), {}, { gsi: K.E1('2026-10-10', 'da', 'a') }));
-    const e1 = await queryPage(s.store, 'events', { IndexName: 'EV1', KeyConditionExpression: 'E1PK = :p', ExpressionAttributeValues: { ':p': K.E1('2026-10-10', 'da', 'a').E1PK } }); // M32 C7: sharded
+    const e1 = await queryPage(s.store, 'events', { IndexName: 'EV1', KeyConditionExpression: 'E1PK = :p', ExpressionAttributeValues: { ':p': 'DAY#2026-10-10' } });
     assert.equal(e1.Items?.length, 1);
     assert.ok(await get(s.store, 'main', K.episode('e1')));
 

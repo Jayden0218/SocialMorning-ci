@@ -22,16 +22,9 @@
  * or previous category (one pan gesture that gives way to vertical scrolling); the chevron
  * opens a full-screen grid of every category in place of the sheet; every card shows two lines
  * about the show (its maker and its kinds — Apple's catalogue gives no description).
- *
- * M31 D-C (design-pulse2 `category--screen`, `category--all-sheet`; layout pattern Mosaic): a pushed page with the title bar low — the genre as
- * the title, "Categories" under it, and the grid circle ("All categories") that opens every genre as a 3-column sheet. Under the status bar:
- * the genre strip, the 44 track (For you · Hot · Newest), the order in words with "Not subscribed only" and its 46 x 28 switch, then the
- * Mosaic — the first show a light 2 x 3 card, the rest 1 x 2 tiles. The body is still the virtualised two-column FlatList (034): the
- * strip, the track and the lead card are its header, the "Couldn't load more" tile and the end line its footer; swiping the list moves to
- * the next genre as before. Every action stays; parts are in `src/ui/discover/CategoryParts.tsx`.
  */
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { Image as RNImage, ScrollView } from "react-native";
+import { Image as RNImage, ScrollView, useWindowDimensions } from "react-native";
 import {
   useCallback,
   useEffect,
@@ -42,18 +35,11 @@ import {
 import { runOnJS } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { Pressable } from "@/ui/lib/pressable";
-import { FlatList } from "@/ui/lib/flat-list";
+import { Text } from "@/ui/lib/text";
 import { Box } from "@/ui/lib/box";
+import { Segmented } from "@/ui/kit/Segmented";
 import { Toggle } from "@/ui/kit/Toggle";
 import { Loader } from "@/ui/kit/Loader";
-import { PushedPage } from "@/ui/kit/PushedPage";
-import { Type } from "@/ui/kit/Type";
-import { ErrTile } from "@/ui/chat/blocks";
-import { SegmentSwitch } from "@/ui/me/lists";
-import { ME_MOSAIC } from "@/ui/me/mosaic";
-import { ME_TYPE } from "@/ui/me/measures";
-import { bodyTop } from "@/ui/discover/page-parts";
-import { AllCategoriesSheet, CATEGORY, GenreStrip, LeadCard, ShowTile } from "@/ui/discover/CategoryParts";
 import {
   cachedCategory,
   fetchCategory,
@@ -69,22 +55,37 @@ import {
   type CategorySort,
 } from "@/discover/category-list";
 import { tick } from "@/ui/kit/haptics";
-import { hit, spacing } from "@/design";
+import { hit } from "@/design";
+import { ago } from "@/discover/sections";
 import { useSafety } from "@/safety/context";
 import type { CategoryShows, ShowCard } from "@/social/api";
 import { useSocial } from "@/social/context";
 import { useStores, useSubscriptionSync } from "@/ui/shell/providers";
+import { useColours } from "@/ui/kit/useColours";
+import { Icon } from "@/ui/kit/Icon";
+import { Artwork } from "@/ui/kit/Artwork";
+import { Card } from "@/ui/kit/Card";
+import { Screen } from "@/ui/kit/Screen";
+import { PageHeader } from "@/ui/kit/PageHeader";
 import { EndOfList } from "@/ui/kit/EndOfList";
 
 const TAP = { minHeight: hit.min };
+const ROUND = { width: hit.min, height: hit.min };
+/** Owner, 2026-10-04: the half card's plus is smaller (32 pt; 8 pt hitSlop keeps a 48 pt tap). */
+const ROUND_SMALL = { width: 32, height: 32 };
+/** The half card's cover; the + row laid over the card leaves a gap this size for it. */
+const HALF_ART = 72;
+const SLOP = { top: 8, bottom: 8, left: 8, right: 8 };
 /** The longest a category waits for its covers before showing the list anyway. */
 const COVER_WAIT_MS = 3000;
+/** The chevron over the category row's right end: a 48 pt tap (plus `px-2`, 64 pt in all; the row ends with `pr-16` to match). */
+const CHEVRON = { minWidth: hit.min, zIndex: 1 };
 /** A finger lifted with no fling: the swipe's category is picked after this pause. */
 const SETTLE_MS = 150;
-/** M32: the grid's rows — two tiles side by side (10 apart, in the 28 / 16 lane); a lone last tile stays half width. */
-const COLUMNS = { gap: ME_MOSAIC.gap, marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right };
-const CELL = { flex: 1, maxWidth: "50%" as const, marginBottom: ME_MOSAIC.gap };
-const LANE = { marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right };
+/** How near the bottom (pt) the next page starts loading. */
+const LOAD_AHEAD = 600;
+/** M21: three category tiles to a row in the grid overlay. */
+const GRID_TILE = { minHeight: hit.min, flexBasis: "30%" as const, flexGrow: 1 };
 const GENRE_IDS = GENRES.map((g) => g.id);
 /**
  * Owner, 2026-10-05: scrolling to the bottom loads the next 20 (`?page=N`) until the server says
@@ -115,6 +116,7 @@ export default function CategoryScreen(): React.ReactElement {
   const { hiddenFeeds } = useSafety();
   const stores = useStores();
   const subscriptionSync = useSubscriptionSync();
+  const c = useColours(stores.settings);
   // Owner, 2026-10-04: the kept list draws on the first frame; the fresh one replaces it.
   const keptState = (id: number): State => {
     const body = cachedCategory(stores.feedCache, id);
@@ -137,6 +139,7 @@ export default function CategoryScreen(): React.ReactElement {
   const [more, setMore] = useState<More>(() => freshMore(Number(params.id)));
   const loadingMore = useRef<number | null>(null);
   const [picking, setPicking] = useState(false);
+  const { height: screenHeight } = useWindowDimensions();
   const readSubscribed = useCallback(
     () => new Set(stores.subscriptions.list().map((s) => s.feedUrl)),
     [stores],
@@ -309,163 +312,371 @@ export default function CategoryScreen(): React.ReactElement {
     pinned: state.kind === "ok" ? (state.body.pinned ?? []) : [],
   });
   const [lead, ...rest] = shows;
+  const pairs: ShowCard[][] = [];
+  for (let i = 0; i < rest.length; i += 2) pairs.push(rest.slice(i, i + 2));
 
-  const open = (feedUrl: string) =>
-    router.push({
-      pathname: "/show/[feedUrl]",
-      params: { feedUrl: encodeURIComponent(feedUrl) },
-    });
-  const genre = GENRES.find((g) => g.id === genreId);
-  const lit = hover ?? genreId;
+  /** M21: the two lines under a show's name — Apple's catalogue gives no description. */
+  const about = (s: ShowCard): string => {
+    const kinds = s.genres.filter((g) => g !== "Podcasts").slice(0, 3).join(", ");
+    return kinds ? `${s.author} · ${kinds}` : s.author;
+  };
+
+  /** One show: the first is the wide card, the rest half-width; subscribe sits top right on both. */
+  const showCard = (s: ShowCard, wide: boolean): React.ReactElement => {
+    const on = subscribed.has(s.feedUrl);
+    const ep = s.latestEpisode;
+    return (
+      <Card
+        key={s.feedUrl}
+        padded={false}
+        className={wide ? "mb-row" : "flex-1"}
+      >
+        {/* Owner, 2026-10-04 ("I press a podcast and can't go in"): the whole card is the tap
+            area — the padding and the empty space under a shorter half card used to sit outside it. */}
+        <Pressable
+          onPress={() =>
+            router.push({
+              pathname: "/show/[feedUrl]",
+              params: { feedUrl: encodeURIComponent(s.feedUrl) },
+            })
+          }
+          accessibilityRole="button"
+          accessibilityLabel={`${s.title}, ${s.author}${ep ? `. Newest: ${ep.title}` : ""}`}
+          className={
+            wide
+              ? "flex-row items-center gap-section p-section pr-16"
+              : "flex-1 items-center gap-1 p-row"
+          }
+          style={TAP}
+        >
+          {wide ? (
+            <Artwork url={s.imageUrl} size={100} name={s.title} />
+          ) : (
+            /* Owner, 2026-10-05: the half card's + sits in a row with the cover, the space
+               shared out equally. The + is drawn by the same row laid over the card (below),
+               so the whole card stays one tap and the + its own; this gap holds its place. */
+            <Box className="self-stretch flex-row items-center justify-evenly">
+              <Artwork url={s.imageUrl} size={HALF_ART} name={s.title} />
+              <Box style={ROUND_SMALL} />
+            </Box>
+          )}
+          {/* Owner, 2026-10-04: everything in a half card sits in the middle. */}
+          <Box className={wide ? "flex-1" : "self-stretch items-center"}>
+            {/* Owner, 2026-10-04: names were cut off with "…" — a line more for each (title 3, author 2, episode 3). */}
+            {/* Owner, 2026-10-04: smaller titles: 17 pt wide, 13 pt half (were 20 and 14). */}
+            <Text
+              className={
+                wide
+                  ? "text-text text-title font-display"
+                  : "text-text text-meta font-bold mt-1 text-center"
+              }
+              numberOfLines={3}
+            >
+              {s.title}
+            </Text>
+            {/* M21 T085: two lines about the show — its maker and its kinds. */}
+            <Text
+              className={`text-muted text-xs ${wide ? "" : "text-center"}`}
+              numberOfLines={2}
+            >
+              {about(s)}
+            </Text>
+            {ep ? (
+              /* Owner, 2026-10-04: the first card's newest episode sits in the same tinted box as
+                 the others, with no play mark. */
+              <Box className="self-stretch bg-background rounded-row p-2 mt-2">
+                <Text
+                  className={`text-muted text-xs ${wide ? "" : "text-center"}`}
+                  numberOfLines={3}
+                >
+                  {ep.publishedAt ? `${ago(ep.publishedAt, now)} · ` : ""}
+                  {ep.title}
+                </Text>
+              </Box>
+            ) : null}
+          </Box>
+        </Pressable>
+        {wide ? (
+          /* Owner, 2026-10-05: the wide card's button is always a + on yellow, never a tick. */
+          <Box className="absolute top-2 right-2">
+            <Pressable
+              onPress={() => toggleSubscription(s.feedUrl)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`
+              }
+              accessibilityState={{ selected: on }}
+              className="items-center justify-center rounded-pill bg-primary"
+              style={ROUND}
+            >
+              <Icon name="add" size={22} color={c.onPrimary} />
+            </Pressable>
+          </Box>
+        ) : (
+          <Box
+            pointerEvents="box-none"
+            className="absolute top-0 left-0 right-0 p-row flex-row items-center justify-evenly"
+          >
+            <Box pointerEvents="none" style={{ width: HALF_ART, height: HALF_ART }} />
+            <Pressable
+              onPress={() => toggleSubscription(s.feedUrl)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                on ? `Unsubscribe from ${s.title}` : `Subscribe to ${s.title}`
+              }
+              accessibilityState={{ selected: on }}
+              className={`items-center justify-center rounded-pill ${on ? "bg-surface border border-border" : "bg-primary"}`}
+              style={ROUND_SMALL}
+              hitSlop={SLOP}
+            >
+              <Icon name={on ? "checkmark" : "add"} size={18} color={on ? c.muted : c.onPrimary} />
+            </Pressable>
+          </Box>
+        )}
+      </Card>
+    );
+  };
 
   return (
     <>
-      <PushedPage
-        title={genre?.name ?? "Categories"}
-        subtitle="Categories"
-        actions={[{ icon: "grid-outline", label: "All categories", onPress: () => setPicking(true) }]}
+      <PageHeader title="Categories" />
+      <Screen
+        scroll
+        // Owner, 2026-10-05: the category row stays at the top while the list scrolls.
+        stickyHeaderIndices={[0]}
+        scrollEventThrottle={100}
+        onScroll={(e) => {
+          const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
+          if (layoutMeasurement.height + contentOffset.y >= contentSize.height - LOAD_AHEAD)
+            loadMore();
+        }}
       >
-        {(layout) => (
-          /* M32 T030 (review C5): the grid is a FlatList (a window of rows is mounted, not every loaded page). */
-          <GestureDetector gesture={listSwipe}>
-            <Box className="flex-1" style={{ paddingTop: bodyTop(layout) }}>
-              <FlatList
-                data={rest}
-                keyExtractor={(s: ShowCard) => s.feedUrl}
-                numColumns={2}
-                columnWrapperStyle={COLUMNS}
-                contentContainerStyle={{ paddingBottom: layout.reserve }}
-                initialNumToRender={8}
-                maxToRenderPerBatch={8}
-                windowSize={5}
-                onEndReachedThreshold={0.6}
-                onEndReached={loadMore}
-                renderItem={({ item }: { item: ShowCard }) => (
-                  <Box style={CELL}>
-                    <ShowTile
-                      show={item}
-                      subscribed={subscribed.has(item.feedUrl)}
-                      now={now}
-                      onOpen={() => open(item.feedUrl)}
-                      onToggle={() => toggleSubscription(item.feedUrl)}
+        {/* Owner, 2026-10-04: no large category title and no list under it — the sliding row of
+          categories below is how a category is chosen. Owner, 2026-10-05: a chevron fixed at its
+          right opens every category as a list, wherever the row has scrolled. */}
+        <Box className="-mx-screen-x bg-background border-b-hairline border-separator mb-gap">
+          <ScrollView
+            ref={strip}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerClassName="gap-5 pl-screen-x pr-16"
+            scrollEventThrottle={16}
+            onScrollBeginDrag={() => {
+              if (settle.current) clearTimeout(settle.current);
+              dragging.current = true;
+            }}
+            onScroll={(e) => {
+              const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+              followSwipe(contentOffset.x, contentSize.width - layoutMeasurement.width);
+            }}
+            onScrollEndDrag={() => {
+              // A fling goes on (momentum begins and cancels this); a plain lift ends here.
+              settle.current = setTimeout(endSwipe, SETTLE_MS);
+            }}
+            onMomentumScrollBegin={() => {
+              if (settle.current) clearTimeout(settle.current);
+              settle.current = undefined;
+            }}
+            onMomentumScrollEnd={() => {
+              if (dragging.current) endSwipe();
+            }}
+          >
+            {GENRES.map((g) => {
+              const on = g.id === genreId;
+              const lit = g.id === (hover ?? genreId);
+              return (
+                <Pressable
+                  key={g.id}
+                  onPress={() => pick(g.id)}
+                  onLayout={(e) => {
+                    tileX.current.set(g.id, e.nativeEvent.layout.x);
+                    if (on && !scrolled.current) {
+                      scrolled.current = true;
+                      showTile(g.id, false);
+                    }
+                  }}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={g.name}
+                  className="justify-center"
+                  style={TAP}
+                >
+                  {/* Owner, 2026-10-04: the yellow line sits just under the word (it was at the foot of
+                    the 48 pt tap area, about 14 pt below). */}
+                  <Box>
+                    <Text
+                      className={
+                        lit
+                          ? "text-text text-body font-bold"
+                          : "text-muted text-body"
+                      }
+                      numberOfLines={1}
+                    >
+                      {g.name}
+                    </Text>
+                    {/* A bar with round ends, not a border (a border's ends are square). */}
+                    <Box
+                      className={`h-[3px] rounded-pill mt-1 ${lit ? "bg-primary" : "bg-clear"}`}
                     />
                   </Box>
-                )}
-                ListHeaderComponent={
-                  <>
-                    {/* Owner, 2026-10-05: the sliding row of categories is how a category is chosen; the grid circle in the title bar lists them all. */}
-                    <GenreStrip
-                      genreId={genreId}
-                      lit={lit}
-                      onPick={pick}
-                      scrollRef={strip}
-                      onTileLayout={(id, x, chosen) => {
-                        tileX.current.set(id, x);
-                        if (chosen && !scrolled.current) {
-                          scrolled.current = true;
-                          showTile(id, false);
-                        }
-                      }}
-                      scrollProps={{
-                        onScrollBeginDrag: () => {
-                          if (settle.current) clearTimeout(settle.current);
-                          dragging.current = true;
-                        },
-                        onScroll: (e) => {
-                          const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
-                          followSwipe(contentOffset.x, contentSize.width - layoutMeasurement.width);
-                        },
-                        onScrollEndDrag: () => {
-                          // A fling goes on (momentum begins and cancels this); a plain lift ends here.
-                          settle.current = setTimeout(endSwipe, SETTLE_MS);
-                        },
-                        onMomentumScrollBegin: () => {
-                          if (settle.current) clearTimeout(settle.current);
-                          settle.current = undefined;
-                        },
-                        onMomentumScrollEnd: () => {
-                          if (dragging.current) endSwipe();
-                        },
-                      }}
-                    />
-                    {/* The 44 track: For you · Hot · Newest. */}
-                    <Box style={[LANE, { marginTop: CATEGORY.rowGap, marginBottom: CATEGORY.rowGap }]}>
-                      <SegmentSwitch
-                        items={[
-                          { value: "forYou", label: "For you", accessibilityLabel: "For you, shows you don't follow first" },
-                          { value: "all", label: "Hot", accessibilityLabel: "Hot, chart order" },
-                          { value: "newest", label: "Newest", accessibilityLabel: "Newest episodes first" },
-                        ] as const}
-                        value={sort}
-                        onChange={pickSort}
-                      />
-                    </Box>
-                    {/* The order in words, and the filter with its 46 x 28 switch. */}
-                    <Box className="flex-row items-center" style={[LANE, { marginBottom: CATEGORY.rowGap, gap: ME_MOSAIC.gap }]}>
-                      <Type step="caption" className="text-text3 flex-1" style={ME_TYPE.node12} numberOfLines={2}>
-                        {sort === "newest" ? "By latest update" : sort === "forYou" ? "New to you first" : "Recommended by us"}
-                      </Type>
-                      <Type step="caption" className="text-text2" style={ME_TYPE.node12}>Not subscribed only</Type>
-                      <Toggle value={notSubscribedOnly} onChange={setNotSubscribedOnly} label="Not subscribed only" />
-                    </Box>
-                    {state.kind === "loading" ? <Loader className="my-section" /> : null}
-                    {state.kind === "error" ? <ErrTile line="Couldn't load this category right now." /> : null}
-                    {state.kind === "ok" && state.body.stale ? (
-                      <Type step="caption" className="text-hotText" style={[LANE, { marginBottom: spacing.row }]}>
-                        Couldn't refresh — showing an earlier list.
-                      </Type>
-                    ) : null}
-                    {state.kind === "ok" && shows.length === 0 ? (
-                      <Type step="caption" className="text-text2" style={LANE}>
-                        {visible.length > 0 && notSubscribedOnly
-                          ? "You're subscribed to every show here."
-                          : "No shows here yet."}
-                      </Type>
-                    ) : null}
-                    {lead ? (
-                      <Box style={{ marginBottom: ME_MOSAIC.gap }}>
-                        <LeadCard
-                          show={lead}
-                          subscribed={subscribed.has(lead.feedUrl)}
-                          now={now}
-                          onOpen={() => open(lead.feedUrl)}
-                          onToggle={() => toggleSubscription(lead.feedUrl)}
-                        />
-                      </Box>
-                    ) : null}
-                  </>
-                }
-                ListFooterComponent={
-                  <>
-                    {state.kind === "ok" && visible.length > 0 ? (
-                      more.status === "loading" ? (
-                        <Loader className="my-section" />
-                      ) : more.status === "error" ? (
-                        <Pressable
-                          onPress={() => {
-                            setMore((m) => ({ ...m, status: "idle" }));
-                            // The state above lands on the next render; load from there.
-                            setTimeout(loadMore, 0);
-                          }}
-                          accessibilityRole="button"
-                          accessibilityLabel="Couldn't load more — tap to try again."
-                          style={TAP}
-                        >
-                          <ErrTile line="Couldn't load more — tap to try again." />
-                        </Pressable>
-                      ) : ended ? (
-                        <EndOfList />
-                      ) : null
-                    ) : null}
-                  </>
-                }
-              />
-            </Box>
-          </GestureDetector>
-        )}
-      </PushedPage>
-      {/* M21 T085: every category as a grid, now in a sheet (design-pulse2 `category--all-sheet`). */}
-      <AllCategoriesSheet open={picking} genreId={genreId} onPick={pickFromSheet} onClose={() => setPicking(false)} />
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          {/* Phone check 2026-10-05: as a flex sibling the row still spread under the chevron and took
+              its taps (it picked a category). Now the chevron is laid over the row's right end, solid,
+              on top (zIndex; Android's elevation drew a grey box), and the row leaves room for it. */}
+          <Pressable
+            onPress={() => setPicking(true)}
+            accessibilityRole="button"
+            accessibilityLabel="All categories"
+            className="absolute right-0 top-0 bottom-0 px-2 items-center justify-center bg-background"
+            style={CHEVRON}
+          >
+            <Icon name="chevron-down" size={22} color={c.text} />
+          </Pressable>
+        </Box>
+        {/* Owner, 2026-10-04: All / Newest in the Notifications style (the shared Segmented, full
+          width), and "Not subscribed only" on its own row under it. */}
+        <Segmented
+          items={[
+            {
+              value: "forYou",
+              label: "For you",
+              accessibilityLabel: "For you, shows you don't follow first",
+              icon: "sparkles-outline",
+            },
+            {
+              value: "all",
+              label: "Hot",
+              accessibilityLabel: "Hot, chart order",
+              icon: "flame-outline",
+            },
+            {
+              value: "newest",
+              label: "Newest",
+              accessibilityLabel: "Newest episodes first",
+              icon: "time-outline",
+            },
+          ]}
+          value={sort}
+          onChange={pickSort}
+        />
+        {/* Owner, 2026-10-04: right under the switch (no 48 pt row round it; the toggle is its own tap target).
+            Owner, 2026-10-05: the order in words on the left, "Not subscribed only" on the right. */}
+        <Box className="flex-row items-center justify-between gap-2 mb-row pt-2">
+          {/* Owner, 2026-10-05: both in the small meta size. */}
+          <Text className="text-muted text-xs flex-1" numberOfLines={2}>
+            {sort === "newest" ? "By latest update" : sort === "forYou" ? "New to you first" : "Recommended by us"}
+          </Text>
+          <Box className="flex-row items-center gap-2">
+            <Text className="text-muted text-xs">Not subscribed only</Text>
+            <Toggle
+              value={notSubscribedOnly}
+              onChange={setNotSubscribedOnly}
+              label="Not subscribed only"
+              size="small"
+            />
+          </Box>
+        </Box>
+        <GestureDetector gesture={listSwipe}>
+        <Box>
+        {state.kind === "loading" ? <Loader className="my-section" /> : null}
+        {state.kind === "error" ? (
+          <Text className="text-muted text-sm">
+            Couldn't load this category right now.
+          </Text>
+        ) : null}
+        {state.kind === "ok" && state.body.stale ? (
+          <Text className="text-accent text-sm mb-row">
+            Couldn't refresh — showing an earlier list.
+          </Text>
+        ) : null}
+        {state.kind === "ok" && shows.length === 0 ? (
+          <Text className="text-muted text-sm">
+            {visible.length > 0 && notSubscribedOnly
+              ? "You're subscribed to every show here."
+              : "No shows here yet."}
+          </Text>
+        ) : null}
+        {lead ? showCard(lead, true) : null}
+        {pairs.map((pair) => (
+          <Box
+            key={pair.map((s) => s.feedUrl).join("|")}
+            className="flex-row gap-row mb-row"
+          >
+            {pair.map((s) => showCard(s, false))}
+            {pair.length === 1 ? <Box className="flex-1" /> : null}
+          </Box>
+        ))}
+        </Box>
+        </GestureDetector>
+        {state.kind === "ok" && visible.length > 0 ? (
+          more.status === "loading" ? (
+            <Loader className="my-section" />
+          ) : more.status === "error" ? (
+            <Pressable
+              onPress={() => {
+                setMore((m) => ({ ...m, status: "idle" }));
+                // The state above lands on the next render; load from there.
+                setTimeout(loadMore, 0);
+              }}
+              accessibilityRole="button"
+              className="items-center justify-center my-row"
+              style={TAP}
+            >
+              <Text className="text-muted text-sm">
+                Couldn't load more — tap to try again.
+              </Text>
+            </Pressable>
+          ) : ended ? (
+            <EndOfList />
+          ) : null
+        ) : null}
+      </Screen>
+      {/* M21 T085: every category as a grid laid over the page (it replaces the sheet). */}
+      {picking ? (
+        <Box className="absolute top-0 left-0 right-0 bottom-0 bg-background">
+          <PageHeader
+            title="All categories"
+            left={
+              <Pressable
+                onPress={() => setPicking(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Close"
+                className="items-center justify-center"
+                style={ROUND}
+              >
+                <Icon name="close" size={22} color={c.text} />
+              </Pressable>
+            }
+          />
+          <ScrollView
+            style={{ maxHeight: screenHeight * 0.85 }}
+            contentContainerClassName="flex-row flex-wrap gap-gap px-screen-x pb-24"
+          >
+            {GENRES.map((g) => {
+              const on = g.id === genreId;
+              return (
+                <Pressable
+                  key={g.id}
+                  onPress={() => pickFromSheet(g.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  accessibilityLabel={g.name}
+                  className={`items-center justify-center gap-1 rounded-row border px-1 py-row ${on ? "bg-primary border-primary" : "bg-surface border-border"}`}
+                  style={GRID_TILE}
+                >
+                  <Icon name={g.icon} size={22} color={on ? c.onPrimary : c.accent} />
+                  <Text className={on ? "text-onPrimary text-xs font-bold text-center" : "text-text text-xs font-semibold text-center"} numberOfLines={2}>
+                    {g.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Box>
+      ) : null}
     </>
   );
 }

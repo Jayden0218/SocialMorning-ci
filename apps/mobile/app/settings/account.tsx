@@ -16,102 +16,102 @@
  *
  * M24 US16: "Change" on the email strip opens `app/settings/account-email.tsx`.
  * M25 SB: "Signed-in devices" opens `app/settings/devices.tsx`.
- *
- * M31 S-A (T060; design-pulse2 `settings-account--screen`, `settings-account--signed-out`; Panel): one sign-in tile (avatar 56 with the initial in
- * hot-text on a tint, "You sign in with" 12 over "Email" in Unbounded 20; the masked address in mono 14 on a void strip, radius 16, 56 tall, with
- * **Change** in hot-text when signed in; the no-password line in 12), then "Signed-in devices" as a group row when signed in, then **More** as a
- * group row at the foot with "Delete account" in mono on its right (it was the bottom bar, so the bottom stays for the title bar). Edge labels
- * SIGN-IN, DEVICES, MORE; title "Account and security" at 26 in the bottom title bar.
  */
 import { useRouter } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { BottomBar } from '@/ui/kit/BottomBar';
 import { useSocial } from '@/social/context';
-import { readyMethods } from '@/ui/auth/methods';
-import { PanelGroup } from '@/ui/me/Panel';
+import { useStores } from '@/ui/shell/providers';
+import { useColours } from '@/ui/kit/useColours';
 import { Icon } from '@/ui/kit/Icon';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { Type } from '@/ui/kit/Type';
-import { Note, Sec, SetCard, SetPage, SetRow } from '@/ui/settings/hub-parts';
-import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
+import { readyMethods } from '@/ui/auth/methods';
+import { PageHeader } from '@/ui/kit/PageHeader';
+import { Card } from '@/ui/kit/Card';
+import { Eyebrow } from '@/ui/kit/Eyebrow';
+import { size } from '@/design';
 
-const AVATAR = 56;
+const AVATAR = { width: 56, height: 56 };
+const TAP = { minHeight: size.row };
+
+/** M24 US20 (`SettingsAccount-B`): the not-yet methods' cards — 1.5 pt dashes at .22 (the handle tone), visible on the paper. */
 const DASHED = { borderWidth: 1.5, minHeight: 120 };
 
 export default function AccountSecurityScreen(): React.ReactElement {
   const router = useRouter();
+  const stores = useStores();
+  const c = useColours(stores.settings);
   const { listener } = useSocial();
 
   const masked = listener?.email ? listener.email.replace(/^(.)(.*)(.@.*)$/, (_m, a: string, mid: string, b: string) => `${a}${'*'.repeat(Math.min(6, mid.length))}${b}`) : '';
   const initial = (listener?.displayName || listener?.email || '?').slice(0, 1).toUpperCase();
-  const methods = readyMethods();
   return (
-    <PushedPage title="Account and security" size={26}>
-      {(layout) => (
-        <SetPage layout={layout}>
-          {/* M10 (owner, 2026-09-27), after the reference: the ways you sign in, then deletion.
-              SocialNet signs in by an emailed code; Google and Facebook are not set up yet. */}
-          <Sec label="Sign-in">
-            <SetCard testID="signin-card" gap={12}>
-              <Box className="flex-row items-center" style={{ gap: SET.rowGap }}>
-                <Box className={listener ? 'items-center justify-center bg-hotSoft' : 'items-center justify-center bg-raise2'} style={{ width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2 }} accessible={false}>
-                  <Type step="lede" className={listener ? 'text-hotText font-bold' : 'text-text font-bold'} style={SET_TYPE.display20}>{listener ? initial : '?'}</Type>
-                </Box>
-                <Box>
-                  <Type step="caption" className="text-text2" style={SET_TYPE.line12}>You sign in with</Type>
-                  <Type step="heading" className="text-text font-bold">Email</Type>
-                </Box>
-              </Box>
-              <Box testID="email-strip" className="flex-row items-center bg-void" style={{ gap: 10, borderRadius: 16, paddingHorizontal: 14, minHeight: 56 }} accessible accessibilityLabel={`Email: ${masked || 'Not signed in'}`}>
-                <Icon name="mail-outline" size={20} color={colour.hotText} />
-                <Type step="mono" className="text-text flex-1" style={SET_TYPE.mono14} numberOfLines={1}>{masked || 'Not signed in'}</Type>
-                {/* M24 US16: change the sign-in email (a code goes to the new address). */}
-                {listener ? (
-                  <Pressable onPress={() => router.push('/settings/account-email')} accessibilityRole="button" accessibilityLabel="Change email" className="justify-center" style={{ minHeight: 48 }}>
-                    <Type step="row" className="text-hotText">Change</Type>
-                  </Pressable>
-                ) : null}
-              </Box>
-              <Note>We send a one-time code each time; there is no password.</Note>
-            </SetCard>
-          </Sec>
-          {/* M25 SB: every place this account is signed in, with sign out one or all others. */}
+    <>
+    <PageHeader title="Account and security" />
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-section">
+      {/* M10 (owner, 2026-09-27), after the reference: the ways you sign in, then deletion.
+          SocialNet signs in by an emailed code; Google and Facebook are not set up yet. */}
+      <Card className="py-section gap-row">
+        <Box className="flex-row items-center gap-row">
+          <Box className="rounded-pill bg-accentTint items-center justify-center" style={AVATAR} accessible={false}>
+            <Text className="text-text text-base font-display">{initial}</Text>
+          </Box>
+          <Box className="flex-1">
+            <Text className="text-muted text-xs">You sign in with</Text>
+            <Text className="text-text text-base font-display">Email</Text>
+          </Box>
+        </Box>
+        <Box className="flex-row items-center gap-row bg-background rounded-row px-row" style={TAP} accessible accessibilityLabel={`Email: ${masked || 'Not signed in'}`}>
+          <Icon name="mail-outline" size={20} color={c.accent} />
+          <Text className="text-text text-body font-semibold flex-1" numberOfLines={1}>{masked || 'Not signed in'}</Text>
+          {/* M24 US16: change the sign-in email (a code goes to the new address). */}
           {listener ? (
-            <Sec label="Devices">
-              <PanelGroup>
-                <SetRow icon="phone-portrait-outline" label="Signed-in devices" line="See where you are signed in; sign a device out" onPress={() => router.push('/settings/devices')} />
-              </PanelGroup>
-            </Sec>
+            <Pressable onPress={() => router.push('/settings/account-email')} accessibilityRole="button" accessibilityLabel="Change email" className="justify-center px-1" style={TAP}>
+              <Text className="text-accent text-body font-bold">Change</Text>
+            </Pressable>
           ) : null}
-          {/* M25 L3c (App Review 2.1): a way in that is not built is not listed (none is today). */}
-          {methods.length > 0 ? (
-            <Sec label="Other ways">
-              <Box className="flex-row" style={{ gap: SET.rowGap }}>
-                {methods.map((m) => (
-                  <Box key={m.id} className="flex-1 border-dashed border-handle" style={{ ...DASHED, borderRadius: SET.radius, padding: SET.tilePad, gap: 4 }} accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not linked yet`}>
-                    <Icon name={m.icon} size={24} color={colour.text2} />
-                    <Type step="heading" className="text-text font-bold" style={{ marginTop: SET.rowGap }}>{m.label.replace('Continue with ', '')}</Type>
-                    <Note>Not linked yet</Note>
-                  </Box>
-                ))}
-              </Box>
-            </Sec>
-          ) : null}
-          {/* M12 FR-096: deletion sits one level down, under More — a pushed page, now a group row at the foot. */}
-          <Sec label="More">
-            <PanelGroup>
-              <SetRow
-                icon="trash-outline"
-                label="More"
-                right={<Box className="flex-row items-center" style={{ gap: SET.rowGap }}><Type step="mono" className="text-text2" style={SET_TYPE.mono12}>Delete account</Type><Icon name="chevron-forward" size={SET.chevron} color={colour.text3} /></Box>}
-                accessibilityLabel="More account options"
-                onPress={() => router.push('/settings/account-more')}
-              />
-            </PanelGroup>
-          </Sec>
-        </SetPage>
-      )}
-    </PushedPage>
+        </Box>
+        <Text className="text-muted text-xs">We send a one-time code each time; there is no password.</Text>
+      </Card>
+      {/* M25 SB: every place this account is signed in, with sign out one or all others. */}
+      {listener ? (
+        <Card className="py-1">
+          <Pressable onPress={() => router.push('/settings/devices')} accessibilityRole="button" accessibilityLabel="Signed-in devices" className="flex-row items-center gap-row py-row" style={TAP}>
+            <Icon name="phone-portrait-outline" size={22} color={c.accent} />
+            <Box className="flex-1">
+              <Text className="text-text text-body font-bold">Signed-in devices</Text>
+              <Text className="text-muted text-xs mt-0.5">See where you are signed in; sign a device out</Text>
+            </Box>
+            <Icon name="chevron-forward" size={16} color={c.muted} />
+          </Pressable>
+        </Card>
+      ) : null}
+      {/* M25 L3c (App Review 2.1): a way in that is not built is not listed (none is today). */}
+      {readyMethods().length > 0 ? (
+      <Box className="gap-row">
+        <Eyebrow accent>Other ways to sign in</Eyebrow>
+        <Box className="flex-row gap-row">
+          {readyMethods().map((m) => (
+            <Box key={m.id} className="flex-1 rounded-row border-dashed border-handle p-section gap-1" style={DASHED} accessible accessibilityLabel={`${m.label.replace('Continue with ', '')}: not linked yet`}>
+              <Icon name={m.icon} size={24} color={c.muted} />
+              <Text className="text-text text-title font-display mt-row">{m.label.replace('Continue with ', '')}</Text>
+              <Text className="text-muted text-xs">Not linked yet</Text>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+      ) : null}
+    </ScrollView>
+    {/* M12 FR-096: deletion sits one level down, under More — a pushed page (M17), pinned to the foot. */}
+    <BottomBar tone="page" pad="none">
+        <Pressable onPress={() => router.push('/settings/account-more')} accessibilityRole="button" accessibilityLabel="More account options" className="flex-row items-center gap-gap" style={TAP}>
+          <Text className="text-text text-sm font-semibold flex-1">More</Text>
+          <Text className="text-muted text-xs">Delete account</Text>
+          <Icon name="chevron-forward" size={16} color={c.muted} />
+        </Pressable>
+    </BottomBar>
+    </>
   );
 }

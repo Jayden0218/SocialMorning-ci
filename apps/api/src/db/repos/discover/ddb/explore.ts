@@ -19,7 +19,6 @@ import { hiddenFeedUrls } from '../../safety/moderation.ts';
 import { hiddenEpisodeIds } from '../../studio/hidden-episodes.ts';
 import { cardOf, PLAZA_POOL, type ChartItem, type Face, type PlazaRow } from '../explore.ts';
 import { commentItemsOf, recentTopComments } from './activity-stats.ts';
-import { sharedPool } from './pool.ts';
 import { DAY_MS, epRowOf, episodesByIds, iso, listenersByIds, nowMs, partitionItems, showEpisodes, type EpRow } from './common.ts';
 import { listensSince } from './listens.ts';
 
@@ -86,8 +85,9 @@ export async function risingChart(store: Store, db: Db): Promise<ChartItem[]> {
 
 /** The hunt's candidates: episodes with audio, not hidden, not from a show the viewer follows or turned down; bottom half by 30-day plays. */
 export async function huntRows(store: Store, db: Db, listenerId: string | null): Promise<EpRow[]> {
-  const pool = await sharedPool(store); // C1: the catalogue and the 30-day plays, rebuilt every 5 minutes; the rest is per viewer
-  const plays = pool.plays;
+  const now = nowMs(store);
+  const plays = new Map<string, Set<string>>();
+  for (const m of await listensSince(store, now - 30 * DAY_MS, now)) (plays.get(m.episodeId) ?? plays.set(m.episodeId, new Set()).get(m.episodeId)!).add(m.actorId);
   const [hidden, hiddenEps] = await Promise.all([hiddenFeedUrls(db), hiddenEpisodeIds(db)]);
   let subscribed = new Set<string>();
   const turnedDown = { shows: new Set<string>(), episodes: new Set<string>() };
@@ -99,10 +99,10 @@ export async function huntRows(store: Store, db: Db, listenerId: string | null):
     subscribed = new Set(subs.filter((s) => !s['deletedAt']).map((s) => String(s['feedUrl'])));
     for (const d of dis) (d['kind'] === 'show' ? turnedDown.shows : turnedDown.episodes).add(String(d['itemKey']));
   }
-  const cand = pool.rows
+  const cand = (await catalogue(store))
     .filter((e) => e.enclosure_url !== '' && !hidden.has(e.feed_url) && !hiddenEps.has(e.id)
       && !subscribed.has(e.feed_url) && !turnedDown.shows.has(e.feed_url) && !turnedDown.episodes.has(e.id))
-    .map((e) => ({ e, n: plays.get(e.id) ?? 0 }))
+    .map((e) => ({ e, n: plays.get(e.id)?.size ?? 0 }))
     .sort((a, b) => a.n - b.n || cmp(a.e.id, b.e.id));
   const total = cand.length;
   return cand.filter((_, i) => (i + 1) * 2 <= total + 1).slice(0, 2000).map((x) => x.e);
@@ -126,7 +126,7 @@ function plazaOf(rows: readonly EpRow[]): Map<string, Agg> {
 const toPlaza = (a: Agg): PlazaRow => ({ feed_url: a.feed, title: a.title?.v ?? null, image_url: a.image?.v ?? null, episodes: a.episodes, first_at: a.first });
 
 export async function plazaRows(store: Store, _db: Db): Promise<PlazaRow[]> {
-  return [...plazaOf((await sharedPool(store)).rows).values()]
+  return [...plazaOf(await catalogue(store)).values()]
     .sort((a, b) => cmp(b.first, a.first) || cmp(a.feed, b.feed))
     .slice(0, PLAZA_POOL)
     .map(toPlaza);

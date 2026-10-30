@@ -49,8 +49,7 @@
     "area": "player",
     "kind": "sheet",
     "covers": [
-      "app/player.tsx::route::route",
-      "src/ui/player/SettingsPanel.tsx::sheet::#1"
+      "app/player.tsx::route::route"
     ],
     "as": "listener",
     "steps": [
@@ -112,44 +111,11 @@
     "status": "CAPTURE"
   },
   {
-    "name": "player--more-sheet",
-    "area": "player",
-    "kind": "sheet",
-    "covers": [
-      "src/ui/player/PlayerMoreSheet.tsx::sheet::#1"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "open": "/episode/{episode}"
-      },
-      {
-        "tap": "Play this episode"
-      },
-      {
-        "open": "/player"
-      },
-      {
-        "see": "Now playing"
-      },
-      {
-        "tap": "More"
-      },
-      {
-        "see": "Share this episode"
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "The player title bar's More button opens the tile sheet (Clip, Share, Favourite, About, and Transcript / Chapters when the feed has them)."
-  },
-  {
     "name": "player--transcript-pane",
     "area": "player",
     "kind": "variant",
     "covers": [
-      "app/player.tsx::route::route",
-      "src/ui/player/TranscriptSheet.tsx::sheet::#1"
+      "app/player.tsx::route::route"
     ],
     "as": "listener",
     "steps": [
@@ -240,39 +206,6 @@
     ],
     "design": "ShareSheet-B",
     "status": "CAPTURE"
-  },
-  {
-    "name": "player--share-whatsapp-handoff",
-    "area": "system",
-    "kind": "system",
-    "covers": [
-      "src/ui/kit/openLink.ts::system::open-url#2"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "open": "/episode/{episode}"
-      },
-      {
-        "tap": "Play this episode"
-      },
-      {
-        "open": "/player"
-      },
-      {
-        "see": "Now playing"
-      },
-      {
-        "tap": "Share this episode"
-      },
-      {
-        "tap": "WhatsApp"
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "web": "skip: opens another app or the browser",
-    "note": "The share panel's chat-app tiles open the app's link (wa.me and the like) through Linking.openURL; same hand-off as show--share-whatsapp-handoff."
   },
   {
     "name": "player--share-more-system-sheet",
@@ -610,35 +543,6 @@
     "status": "CAPTURE"
   },
   {
-    "name": "queue--clear-dialog",
-    "area": "library",
-    "kind": "dialog",
-    "covers": [
-      "app/queue.tsx::dialog::Clear the playlist?"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "open": "/episode/{episode2}"
-      },
-      {
-        "tap": "Add to queue"
-      },
-      {
-        "open": "/queue"
-      },
-      {
-        "tap": "Clear all"
-      },
-      {
-        "see": "Clear the playlist?"
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "The queue page draws the kit Dialog \"Clear the playlist?\" (the player queue sheet has its own: player--queue-clear-dialog). The \"Clear all\" button label is taken from the page; the capture lane should confirm it."
-  },
-  {
     "name": "queue--empty",
     "area": "states",
     "kind": "empty",
@@ -662,7 +566,7 @@
     "area": "library",
     "kind": "sheet",
     "covers": [
-      "src/ui/player/QueueDeck.tsx::sheet::#1"
+      "src/ui/queue/QueueList.tsx::sheet::#1"
     ],
     "as": "listener",
     "steps": [
@@ -730,7 +634,7 @@
     "area": "episode",
     "kind": "sheet",
     "covers": [
-      "src/ui/episode/EpisodeMoreSheet.tsx::sheet::#1"
+      "app/episode/[id].tsx::sheet::#1"
     ],
     "as": "listener",
     "steps": [
@@ -752,7 +656,7 @@
     "area": "episode",
     "kind": "variant",
     "covers": [
-      "src/ui/episode/EpisodeMoreSheet.tsx::sheet::#1"
+      "app/episode/[id].tsx::sheet::#1"
     ],
     "as": "listener",
     "steps": [
@@ -777,7 +681,7 @@
     "area": "episode",
     "kind": "variant",
     "covers": [
-      "src/ui/episode/EpisodeMoreSheet.tsx::sheet::#1"
+      "app/episode/[id].tsx::sheet::#1"
     ],
     "as": "listener",
     "steps": [
@@ -825,6 +729,7 @@
     "area": "states",
     "kind": "empty",
     "covers": [
+      "src/ui/clips/ClipList.tsx::empty::clips",
       "packages/social-core/src/empty.ts::surface::clips"
     ],
     "as": "new",
@@ -845,6 +750,7 @@
     "area": "states",
     "kind": "empty",
     "covers": [
+      "src/ui/episode/RelatedEpisodes.tsx::empty::nextup",
       "packages/social-core/src/empty.ts::surface::nextup"
     ],
     "as": "new",
@@ -881,29 +787,6 @@
     "design": null,
     "status": "CAPTURE",
     "note": "The episode sheet opened from a chart card's ⋯ (the same host also serves Search). {episode} is the title of a chart row."
-  },
-  {
-    "name": "clip--card-menu",
-    "area": "clips",
-    "kind": "sheet",
-    "covers": [
-      "src/ui/clips/ClipCard.tsx::sheet::#1"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "open": "/episode/{episode}"
-      },
-      {
-        "tap": "More for this clip"
-      },
-      {
-        "see": "Share this clip"
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "Needs an episode with at least one clip (the clip card's ⋯ opens Share / Delete / Report). The ⋯ label is the card's; the capture lane should confirm it."
   },
   {
     "name": "episode--picture-viewer",
@@ -995,10 +878,7 @@
     "covers": [
       "src/ui/queue/QueueButtons.tsx::toast::${said}${r.downloading ? ' · downloading' : ''}",
       "src/ui/queue/QueueButtons.tsx::toast::The queue is full (300). Remove something first.",
-      "src/ui/queue/QueueButtons.tsx::toast::The queue was full — the last item was dropped.",
-      "src/ui/episode/EpisodeSheetBody.tsx::toast::${said}${r.downloading ? ' · downloading' : ''}",
-      "src/ui/episode/EpisodeSheetBody.tsx::toast::The queue is full (300). Remove something first.",
-      "src/ui/episode/EpisodeSheetBody.tsx::toast::The queue was full — the last item was dropped."
+      "src/ui/queue/QueueButtons.tsx::toast::The queue was full — the last item was dropped."
     ],
     "as": "listener",
     "steps": [
@@ -1018,32 +898,6 @@
     "design": null,
     "status": "CAPTURE",
     "note": "Triggered message: \"Playing next\"."
-  },
-  {
-    "name": "toast--episode-sheet-body",
-    "area": "toasts",
-    "kind": "toast",
-    "covers": [
-      "src/ui/episode/EpisodeSheetBody.tsx::toast::Sign in to make playlists."
-    ],
-    "as": "visitor",
-    "steps": [
-      {
-        "open": "/episode/{episode}"
-      },
-      {
-        "tap": "More: play next, download, save a moment"
-      },
-      {
-        "tap": "Add to playlist"
-      },
-      {
-        "see": "Sign in to make playlists."
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "The signed-out message of the episode More sheet."
   },
   {
     "name": "toast--episode-page",
@@ -1307,7 +1161,7 @@
     "area": "system",
     "kind": "system",
     "covers": [
-      "src/ui/kit/openLink.ts::system::open-url#2"
+      "app/show/[feedUrl].tsx::system::open-url#1"
     ],
     "as": "listener",
     "steps": [
@@ -1333,8 +1187,7 @@
     "covers": [
       "app/show/[feedUrl].tsx::toast::<dynamic>#1",
       "app/show/[feedUrl].tsx::toast::Couldn't open ${app}.",
-      "app/show/[feedUrl].tsx::toast::Link copied.",
-      "app/show/[feedUrl].tsx::toast::<dynamic>#2"
+      "app/show/[feedUrl].tsx::toast::Link copied."
     ],
     "as": "listener",
     "steps": [
@@ -1508,29 +1361,6 @@
     ],
     "design": "ShareSheet-B",
     "status": "CAPTURE"
-  },
-  {
-    "name": "clip--menu",
-    "area": "clips",
-    "kind": "sheet",
-    "covers": [
-      "app/clip/[id].tsx::sheet::#1"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "open": "/clip/{clip}"
-      },
-      {
-        "tap": "Clip menu"
-      },
-      {
-        "see": "Delete this clip"
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "The ⋯ of the clip page (\"Clip menu\"). For a clip made by someone else the rows differ (Report); the signed-in author sees Delete."
   },
   {
     "name": "clip--not-found",
@@ -1778,29 +1608,6 @@
     ],
     "design": null,
     "status": "CAPTURE"
-  },
-  {
-    "name": "downloads--item-menu",
-    "area": "library",
-    "kind": "sheet",
-    "covers": [
-      "app/downloads.tsx::sheet::#1"
-    ],
-    "as": "listener",
-    "steps": [
-      {
-        "open": "/downloads"
-      },
-      {
-        "tap": "More for {episode}"
-      },
-      {
-        "see": "Remove"
-      }
-    ],
-    "design": null,
-    "status": "CAPTURE",
-    "note": "Long-press / ⋯ on a download tile: Remove (finished or failed) or Cancel (still running). Needs a downloaded episode; the tile's control label is taken from the page and may need the capture lane to adjust."
   },
   {
     "name": "downloads--delete-dialog",
@@ -2998,8 +2805,8 @@
       "src/ui/player/QuoteShare.tsx::system::Share.share#1",
       "src/ui/player/QuoteShare.tsx::toast::Couldn't make the picture — try again when you're online.",
       "src/ui/player/QuoteShare.tsx::toast::Making the picture…",
-      "app/episode/[id].tsx::system::clipboard#1",
-      "app/episode/[id].tsx::sheet::#1"
+      "app/episode/[id].tsx::sheet::#2",
+      "app/episode/[id].tsx::system::clipboard#1"
     ],
     "as": "listener",
     "steps": [],
@@ -3012,7 +2819,6 @@
     "area": "show",
     "kind": "sheet",
     "covers": [
-      "src/ui/show/ShowSales.tsx::sheet::#1",
       "src/ui/show/ShowSales.tsx::system::Share.share#1",
       "src/ui/show/ShowSales.tsx::toast::<dynamic>#1",
       "src/ui/show/ShowSales.tsx::toast::Couldn't open the preview — try again.",
@@ -3030,7 +2836,7 @@
     "kind": "sheet",
     "covers": [
       "src/ui/player/DataPrompt.tsx::sheet::#1",
-      "src/ui/kit/openLink.ts::system::open-url#2",
+      "src/ui/clips/ShareChooser.tsx::system::open-url#1",
       "src/ui/episode/PictureViewer.tsx::system::Share.share#1",
       "src/ui/episode/WatchTile.tsx::toast::<dynamic>#1"
     ],

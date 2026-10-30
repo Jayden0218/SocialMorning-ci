@@ -980,7 +980,8 @@
     "area": "states",
     "kind": "empty",
     "covers": [
-      "packages/social-core/src/empty.ts::surface::clips"
+      "packages/social-core/src/empty.ts::surface::clips",
+      "src/ui/clips/ClipList.tsx::empty::clips"
     ],
     "as": "new",
     "steps": [
@@ -1046,7 +1047,8 @@
     "area": "states",
     "kind": "empty",
     "covers": [
-      "packages/social-core/src/empty.ts::surface::nextup"
+      "packages/social-core/src/empty.ts::surface::nextup",
+      "src/ui/episode/RelatedEpisodes.tsx::empty::nextup"
     ],
     "as": "new",
     "steps": [
@@ -1302,9 +1304,17 @@
     "area": "system",
     "kind": "system",
     "covers": [
-      "src/ui/kit/openLink.ts::system::open-url#2",
+      "app/settings/feedback.tsx::system::open-url#1",
+      "app/settings/help.tsx::system::open-url#1",
+      "app/settings/licences.tsx::system::open-url#1",
+      "app/show/[feedUrl].tsx::system::open-url#1",
+      "app/wallet.tsx::system::open-url#1",
+      "src/ui/clips/ShareChooser.tsx::system::open-url#1",
+      "src/ui/content/Markdown.tsx::system::open-url#1",
       "src/ui/kit/openLink.ts::system::browser#1",
-      "src/ui/kit/openLink.ts::system::open-url#1"
+      "src/ui/kit/openLink.ts::system::open-url#1",
+      "src/ui/shell/RateSheet.tsx::system::open-url#1",
+      "src/ui/shell/providers.tsx::system::open-url#1"
     ],
     "as": "listener",
     "steps": [],

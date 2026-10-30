@@ -13,7 +13,6 @@ import { pushNewStatus } from '../../db/repos/account/push.ts';
 import { addAudioReply, addTextReply, clearReaction, deleteReply, listReplies, REACTION_KINDS, REPLY_TEXT_MAX, setReaction, summaries, visibleStatus } from '../../db/repos/social/status-replies.ts';
 import { insertItems, itemsFor, itemsFromHeader, ItemsError, parseItems, recordUpload, STATUS_PHOTO_MAX_BYTES, statusPhotoBytes, type StatusItemIn } from '../../db/repos/social/status-items.ts';
 import { insertTextStatusInTx, listenerExistsRows, liveCommentImageBytesRows } from '../../db/repos/social/status-writes.ts';
-import { log, swallow } from '../../log.ts';
 
 /**
  * M12 FR-104 — mounted at /v1/voice-posts. The body is the raw recording (`audio/mp4` or
@@ -89,14 +88,14 @@ voice.post('/', requireAuth, async (c) => {
   try {
     stored = await storage.put(path, bytes, type);
   } catch (e) {
-    log.error('voice_put_failed', { requestId: c.get('requestId'), error: e });
+    console.error(c.get('requestId'), 'voice put', e);
     throw new ApiError('unavailable', "Couldn't save the recording. Try again.");
   }
   const row = await insertPost(db, { id, listenerId: me.id, url: stored.url, path: stored.pathname, durationMs: Math.min(VOICE_MAX_MS, Math.max(1, measured)), bytes: bytes.length, ...(transcript ? { transcript } : {}) });
   if (items.length > 0) {
     try { await insertItems(db, row.id, me.id, items); } catch (e) {
       // The status is refused whole: its recording and row go again.
-      await removePost(db, storage, row, c.get('images')).catch(swallow('voice_post_remove_failed'));
+      await removePost(db, storage, row, c.get('images')).catch(() => undefined);
       if (e instanceof ItemsError) throw itemsError(e);
       throw e;
     }
@@ -191,7 +190,7 @@ voice.post('/images', requireAuth, async (c) => {
   try {
     stored = await store.put(path, bytes, type);
   } catch (e) {
-    log.error('status_photo_put_failed', { requestId: c.get('requestId'), error: e });
+    console.error(c.get('requestId'), 'status photo put', e);
     throw new ApiError('unavailable', "Couldn't save the image. Try again.");
   }
   await recordUpload(db, { pathname: stored.pathname, url: stored.url, bytes: bytes.length, listenerId: me.id });
@@ -214,7 +213,7 @@ voice.delete('/:id', requireAuth, async (c) => {
   try {
     await removePost(db, c.get('voice'), row, c.get('images'));
   } catch (e) {
-    log.error('voice_delete_failed', { requestId: c.get('requestId'), error: e });
+    console.error(c.get('requestId'), 'voice delete', e);
     throw new ApiError('unavailable', "Couldn't delete the recording just now. Try again.");
   }
   return c.body(null, 204);
@@ -254,7 +253,7 @@ voice.post('/:id/replies', requireAuth, async (c) => {
   try {
     stored = await storage.put(path, bytes, type);
   } catch (e) {
-    log.error('voice_reply_put_failed', { requestId: c.get('requestId'), error: e });
+    console.error(c.get('requestId'), 'voice reply put', e);
     throw new ApiError('unavailable', "Couldn't save the recording. Try again.");
   }
   const id = await addAudioReply(db, post, me, { key: stored.pathname, url: stored.url, durationMs: Math.min(VOICE_MAX_MS, Math.max(1, measured)) });
@@ -267,7 +266,7 @@ voice.delete('/:id/replies/:replyId', requireAuth, async (c) => {
   try {
     r = await deleteReply(c.get('db'), c.get('voice'), post, c.req.param('replyId'), c.get('listener')!.id);
   } catch (e) {
-    log.error('voice_reply_delete_failed', { requestId: c.get('requestId'), error: e });
+    console.error(c.get('requestId'), 'voice reply delete', e);
     throw new ApiError('unavailable', "Couldn't delete the recording just now. Try again.");
   }
   if (r === 'not_found') throw new ApiError('not_found', 'No such reply.');

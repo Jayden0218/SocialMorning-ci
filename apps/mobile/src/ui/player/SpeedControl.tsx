@@ -1,63 +1,53 @@
-// Play speed: the dial with − and +, quick choices and the default link; the fine bar and "This show only" in More settings.
+// Play speed: − big number +, quick choices and the default link; the slider and "This show only" in More settings.
 /**
  * Playback speed (US3, FR-012/013): −0.1 / +0.1, presets. Episode time stays episode time (FR-014).
  *
+ * M17 T102 (`PlaybackSheet-B`): the rate is the big serif number, the presets sit in one pill
+ * track (the chosen one yellow).
+ *
  * M21 US2 (spec story 2, scenarios 2–3), after 小宇宙's player settings:
+ *   - a slider 0.5–3.0 in 0.1 steps — our own views and React Native's responder system, no native
+ *     slider; to a screen reader it is one `adjustable` "Speed" with ±0.1;
  *   - "This show only" (a switch). On: the speed is this show's own (`speed_prefs`). Off: the
  *     speed is the default for every show, and this show's own is cleared, so its next episode —
  *     and any other show's — plays at the default (`clearShowRate` in player-core).
  *
- * Round 2: the preset chips are the drawn 36 tall, two a row, 6 apart (mono 13, 600); the − and + glyphs are Geist 20; the hot
- * line shows whenever the rate is not the default (it had waited for a show-only rate as well); the blocks are 14 apart.
- *
- * M31 T024 (design-pulse2 `player--playback-sheet`, `player--playback-more-settings`): the sheet's
- * block is the DIAL (`SpeedDial`, 176) with the − and + circles (48) and the presets 1× 1.2× 1.5× 2×
- * as chips (the chosen one light) beside it, then the hot-text line "Set 1.2× as default (this show
- * remembers its own)" — or, when the rate is the default, the caption in text3. `SpeedMore` is the "Speed,
- * finer" tile: the rate in Unbounded 20 and a 26-bar slider (0.5–3.0, 0.1 steps; the kit `Curve` with
- * every bar the same height), then "This show only". To a screen reader the bar is one `adjustable`
- * "Speed" with ±0.1. Nothing lost.
+ * M24 US19 (`PlaybackSheet-B`, the short sheet): `SpeedControl` is B's block — − · "1.2×" (48 pt
+ * serif) · + on one row, the four presets, and the accent link "Set 1.2× as default (this show
+ * remembers its own)", offered while this show plays at its own speed. The slider and the
+ * "This show only" switch are `SpeedMore`, behind the sheet's "More settings" row. Nothing lost.
  *
  * The runtime is not changed (src/playback/store.ts keeps its 100 % branches): `setRate` saves the
  * rate for the show playing, so with the switch off that row is cleared again at once.
- * M31: the episode comes from a selector, the rate from `useRate` — no re-render per TICK (review C4).
  */
 import { useState } from 'react';
-import { clampRate, fractionOfRate, RATE_MAX, RATE_MIN, RATE_STEP } from '@socialmorning/player-core';
+import type { GestureResponderEvent } from 'react-native';
+import { clampRate, fractionOfRate, rateAtFraction, RATE_MAX, RATE_MIN, RATE_STEP } from '@socialmorning/player-core';
 import { Pressable } from '@/ui/lib/pressable';
-import { bars, hit } from '@/design';
+import { hit, tabular } from '@/design';
+import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Type } from '@/ui/kit/Type';
-import { Toggle } from '@/ui/kit/Toggle';
-import { Curve } from '@/ui/kit/Curve';
-import { selectEpisodeId, usePlayer, usePlayerSelector } from '@/playback/store';
+import { usePlayer, usePlayerState } from '@/playback/store';
 import { useStores } from '@/ui/shell/providers';
-import { DIAL_TICKS } from './dial-math';
-import { PLAYER } from './measures';
-import { SpeedDial } from './SpeedDial';
-import { useRate } from './useRuntime';
+import { Toggle } from '@/ui/kit/Toggle';
 
-/** M12 FR-043: every speed and sleep target is 48 pt. */
+/** M12 FR-043: every speed and sleep target is 48 pt (the chips were ~24 pt). */
 const TAP = { minHeight: hit.min, minWidth: hit.min };
-/** The − and + circles are 48; their glyphs are the drawing's 20. */
-const ROUND = { width: PLAYER.stepButton, height: PLAYER.stepButton };
-/** The default link is one drawn line (13 / 17); the finger gets 48. */
-const LINE_SLOP = { top: 15, bottom: 15, left: 0, right: 0 };
-const STEP = { fontSize: PLAYER.stepGlyph, lineHeight: PLAYER.stepLine };
-/** The preset chips are 36 tall and 6 apart; the finger gets 48. */
-const CHIP = { height: PLAYER.chip };
-const CHIP_SLOP = { top: (hit.min - PLAYER.chip) / 2, bottom: (hit.min - PLAYER.chip) / 2, left: 0, right: 0 };
+/** B's round − and + are 52 pt. */
+const ROUND = { width: 52, height: 52 };
+/** The slider's thumb: 24 pt, centred on the value. */
+const THUMB = 24;
 
 const PRESETS = [1, 1.2, 1.5, 2];
-const STEPS = Array.from({ length: DIAL_TICKS }, () => 1);
 
 /** The rate, and the two ways to change it, shared by the sheet's block and More settings. */
 function useSpeed() {
   const player = usePlayer();
-  const episodeId = usePlayerSelector(selectEpisodeId);
-  const rate = useRate();
+  const state = usePlayerState(); // re-render on runtime notifications
   const stores = useStores();
   const [, force] = useState(0);
+  const rate = player.rate();
+  const episodeId = state.kind === 'idle' ? undefined : state.episodeId;
   const feedUrl = episodeId === undefined ? undefined : stores.feeds.getEpisode(episodeId)?.feedUrl;
   /** This show plays at its own speed (a `speed_prefs` row), not the app-wide default. */
   const showOnly = feedUrl !== undefined && stores.speed.get(feedUrl) !== undefined;
@@ -86,77 +76,84 @@ function useSpeed() {
   return { player, rate, feedUrl, showOnly, set, setShowOnly, makeDefault };
 }
 
-/** The 26-bar slider: one `adjustable` "Speed" to a screen reader, the bars drawn by `Curve`. */
-function SpeedBars(props: { rate: number; onChange: (rate: number) => void }): React.ReactElement {
-  const index = Math.round(fractionOfRate(props.rate) * (DIAL_TICKS - 1));
+/** The track, the filled part and the thumb, and the touch that moves them. */
+function SpeedSlider(props: { rate: number; onChange: (rate: number) => void }): React.ReactElement {
+  const [width, setWidth] = useState(0);
+  const [drag, setDrag] = useState<number | undefined>();
+  const shown = drag ?? props.rate;
+  const at = (e: GestureResponderEvent): number => rateAtFraction(width === 0 ? 0 : e.nativeEvent.locationX / width);
+  const f = fractionOfRate(shown);
   return (
     <Box
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel="Speed"
-      accessibilityValue={{ min: RATE_MIN * 10, max: RATE_MAX * 10, now: Math.round(props.rate * 10), text: `${props.rate.toFixed(1)}×` }}
+      accessibilityValue={{ min: RATE_MIN * 10, max: RATE_MAX * 10, now: Math.round(shown * 10), text: `${shown.toFixed(1)}×` }}
       accessibilityActions={[{ name: 'increment', label: 'Faster' }, { name: 'decrement', label: 'Slower' }]}
       onAccessibilityAction={(e) => props.onChange(props.rate + (e.nativeEvent.actionName === 'increment' ? RATE_STEP : -RATE_STEP))}
-      className="justify-center"
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      onStartShouldSetResponder={() => width > 0}
+      onMoveShouldSetResponder={() => width > 0}
+      onResponderTerminationRequest={() => false}
+      onResponderGrant={(e) => setDrag(at(e))}
+      onResponderMove={(e) => setDrag(at(e))}
+      onResponderRelease={(e) => { const r = at(e); setDrag(undefined); props.onChange(r); }}
+      onResponderTerminate={() => setDrag(undefined)}
+      className="flex-1 justify-center"
       style={{ minHeight: hit.min }}
     >
-      <Curve data={STEPS} count={DIAL_TICKS} height={PLAYER.speedBar} min={PLAYER.speedBar} gap={PLAYER.speedBarGap} played={(index + 1) / DIAL_TICKS} onSeek={(f) => props.onChange(RATE_MIN + Math.round(f * (DIAL_TICKS - 1)) * RATE_STEP)} />
+      <Box pointerEvents="none" className="h-1.5 rounded-pill bg-border overflow-hidden">
+        <Box className="h-full rounded-pill bg-accent" style={{ width: `${f * 100}%` }} />
+      </Box>
+      <Box pointerEvents="none" className="absolute rounded-pill bg-primary border border-border" style={{ width: THUMB, height: THUMB, left: f * width - THUMB / 2 }} />
     </Box>
   );
 }
 
-/** The Playback sheet's speed block: the dial, − and +, the presets, the default link. */
+/** The Playback sheet's speed block (B): − · big number · +, the presets, the default link. */
 export function SpeedControl(): React.ReactElement {
   const { player, rate, showOnly, set, makeDefault } = useSpeed();
   const isDefault = Math.abs(rate - player.defaultRate()) < 0.01;
   return (
-    <Box className="w-full" style={{ gap: bars.sheetGap }}>
-      <Box className="flex-row items-center" style={{ gap: PLAYER.speedGap }}>
-        <SpeedDial rate={rate} onChange={set} />
-        <Box testID="speed-controls" className="flex-1 gap-gap">
-          <Box className="flex-row gap-gap">
-            <Pressable style={ROUND} className="items-center justify-center rounded-pill bg-raise" onPress={() => set(rate - 0.1)} accessibilityRole="button" accessibilityLabel="Slower"><Type step="row" className="text-text" style={STEP}>−</Type></Pressable>
-            <Pressable style={ROUND} className="items-center justify-center rounded-pill bg-raise" onPress={() => set(rate + 0.1)} accessibilityRole="button" accessibilityLabel="Faster"><Type step="row" className="text-text" style={STEP}>+</Type></Pressable>
-          </Box>
-          <Box testID="speed-presets" style={{ gap: PLAYER.chipGap }}>
-            {[PRESETS.slice(0, 2), PRESETS.slice(2)].map((row) => (
-              <Box key={row[0]} className="flex-row" style={{ gap: PLAYER.chipGap }}>
-                {row.map((p) => (
-                  <Pressable style={CHIP} hitSlop={CHIP_SLOP} className={`flex-1 items-center justify-center rounded-pill border ${Math.abs(rate - p) < 0.01 ? 'bg-text border-text' : 'bg-raise border-line'}`} key={p} onPress={() => set(p)} accessibilityRole="button" accessibilityLabel={`${p}×`} accessibilityState={{ selected: Math.abs(rate - p) < 0.01 }}>
-                    <Type step="mono" className={Math.abs(rate - p) < 0.01 ? 'font-semibold text-void' : 'font-semibold text-text'} style={{ fontSize: PLAYER.chipText, lineHeight: PLAYER.chipLine }}>{`${p}×`}</Type>
-                  </Pressable>
-                ))}
-              </Box>
-            ))}
-          </Box>
-        </Box>
+    <Box className="w-full gap-row">
+      <Box className="flex-row items-center justify-between">
+        <Pressable style={ROUND} className="items-center justify-center rounded-pill bg-surface border border-border" onPress={() => set(rate - 0.1)} accessibilityRole="button" accessibilityLabel="Slower"><Text className="text-lg text-text">−</Text></Pressable>
+        <Text className="text-[48px] leading-[62px] font-display text-text" style={tabular} accessibilityLabel={`Speed ${rate.toFixed(1)}×`}>{`${rate.toFixed(1)}×`}</Text>
+        <Pressable style={ROUND} className="items-center justify-center rounded-pill bg-surface border border-border" onPress={() => set(rate + 0.1)} accessibilityRole="button" accessibilityLabel="Faster"><Text className="text-lg text-text">+</Text></Pressable>
       </Box>
-      {!isDefault ? (
-        <Pressable hitSlop={LINE_SLOP} className="justify-center" onPress={makeDefault} accessibilityRole="button" accessibilityLabel={`Set ${rate.toFixed(1)}× as default (this show remembers its own)`}>
-          <Type step="caption" className="text-hotText font-semibold">{`Set ${rate.toFixed(1)}× as default (this show remembers its own)`}</Type>
+      <Box className="flex-row gap-1 p-1 rounded-[16px] bg-track">
+        {PRESETS.map((p) => (
+          <Pressable style={TAP} className={`flex-1 items-center justify-center rounded-[12px] ${Math.abs(rate - p) < 0.01 ? 'bg-primary' : ''}`} key={p} onPress={() => set(p)} accessibilityRole="button" accessibilityLabel={`${p}×`} accessibilityState={{ selected: Math.abs(rate - p) < 0.01 }}>
+            <Text className={Math.abs(rate - p) < 0.01 ? 'text-body font-extrabold text-onPrimary' : 'text-body font-semibold text-text'}>{p}×</Text>
+          </Pressable>
+        ))}
+      </Box>
+      {showOnly && !isDefault ? (
+        <Pressable style={TAP} className="items-center justify-center" onPress={makeDefault} accessibilityRole="button" accessibilityLabel={`Set ${rate.toFixed(1)}× as default (this show remembers its own)`}>
+          <Text className="text-meta font-semibold text-accent text-center">{`Set ${rate.toFixed(1)}× as default (this show remembers its own)`}</Text>
         </Pressable>
       ) : (
-        <Type step="caption" className="text-text3">{showOnly ? `${rate.toFixed(1)}× is also the default for other shows` : `${rate.toFixed(1)}× for every show · keep one for this show in More settings`}</Type>
+        <Text className="text-meta text-muted text-center">{showOnly ? `${rate.toFixed(1)}× is also the default for other shows` : `${rate.toFixed(1)}× for every show · keep one for this show in More settings`}</Text>
       )}
     </Box>
   );
 }
 
-/** More settings: the fine slider and the "This show only" switch (M21 US2). */
+/** More settings: the fine slider and the "This show only" switch (M21 US2, unchanged). */
 export function SpeedMore(): React.ReactElement {
   const { player, rate, feedUrl, showOnly, set, setShowOnly } = useSpeed();
   return (
-    <Box testID="speed-finer" className="w-full bg-raise" style={{ gap: PLAYER.panelGap, padding: PLAYER.panelPad, borderRadius: PLAYER.panelRadius }}>
+    <Box className="w-full gap-gap">
       <Box className="flex-row items-baseline justify-between">
-        <Type step="compact" className="text-text" accessibilityRole="header">Speed, finer</Type>
-        <Type step="heading" className="text-text font-extrabold" style={{ fontSize: PLAYER.speedFiner, lineHeight: PLAYER.speedFinerLine }}>{`${rate.toFixed(1)}×`}</Type>
+        <Text className="text-sm font-bold text-text" accessibilityRole="header">Speed, finer</Text>
+        <Text className="text-title font-display text-text" style={tabular}>{`${rate.toFixed(1)}×`}</Text>
       </Box>
-      <SpeedBars rate={rate} onChange={set} />
+      <SpeedSlider rate={rate} onChange={set} />
       {feedUrl !== undefined ? (
-        <Box className="flex-row items-center" style={{ minHeight: TAP.minHeight, gap: PLAYER.panelGap }}>
+        <Box className="flex-row items-center gap-section" style={{ minHeight: TAP.minHeight }}>
           <Box className="flex-1">
-            <Type step="compact" className="text-text">This show only</Type>
-            <Type step="caption" className="text-text2" style={{ fontSize: PLAYER.panelDetail, lineHeight: PLAYER.panelDetailLine }}>{showOnly ? `Other shows play at ${player.defaultRate().toFixed(1)}×` : 'Off: this speed is the default for every show'}</Type>
+            <Text className="text-body font-bold text-text">This show only</Text>
+            <Text className="text-xs text-muted">{showOnly ? `Other shows play at ${player.defaultRate().toFixed(1)}×` : 'Off: this speed is the default for every show'}</Text>
           </Box>
           <Toggle value={showOnly} onChange={setShowOnly} label="This show only" />
         </Box>

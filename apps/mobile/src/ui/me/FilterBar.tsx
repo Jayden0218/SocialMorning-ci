@@ -21,9 +21,9 @@ export function FilterBar(props: { term: string; onTerm: (t: string) => void; pl
   const toggle = props.toggle;
   return (
     <Box className="gap-row pb-row">
-      <Box className="flex-row items-center bg-surface border border-border rounded-pill px-row gap-gap min-h-12">
+      <Box className="flex-row items-center bg-surface border border-border rounded-pill px-row gap-2 min-h-12">
         <Icon name="search" size={18} color={c.muted} />
-        <Input className="flex-1 border-0 h-auto w-auto" style={{ paddingHorizontal: 0 }}>
+        <Input className="flex-1 border-0 h-auto px-0 w-auto">
           <InputField value={props.term} onChangeText={props.onTerm} placeholder={props.placeholder} placeholderTextColor={c.muted} autoCorrect={false} accessibilityLabel={props.placeholder} returnKeyType="search"  className="py-row text-text text-body" />
         </Input>
       </Box>
