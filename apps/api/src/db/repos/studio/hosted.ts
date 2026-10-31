@@ -4,13 +4,11 @@
  * A created show is ALSO a proven claim on its own feed address (plan R3), so the whole M11
  * Studio — roles, numbers, comments, settings — works on it without a second code path.
  */
+import { CATEGORY_NAMES } from '@socialmorning/social-core';
 import { viaStore } from '../../backend.ts';
 
 /** Apple Podcasts' top-level categories (podcasters.apple.com/support/1691, read 2026-09-29). */
-export const CATEGORIES = [
-  'Arts', 'Business', 'Comedy', 'Education', 'Fiction', 'Government', 'History', 'Health & Fitness', 'Kids & Family',
-  'Leisure', 'Music', 'News', 'Religion & Spirituality', 'Science', 'Society & Culture', 'Sports', 'Technology', 'True Crime', 'TV & Film',
-] as const;
+export const CATEGORIES = CATEGORY_NAMES;
 
 /** Storage ceiling across all created shows: Blob Hobby's 1 GB minus headroom (FR-008, guard G-Q1). */
 export const DEFAULT_CEILING_BYTES = 900 * 1024 * 1024;

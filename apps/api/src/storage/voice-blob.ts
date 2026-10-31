@@ -9,6 +9,8 @@
  * under Vercel's 4.5 MB request limit, and the server must see the bytes to check the length.
  */
 import { del, put } from '@vercel/blob';
+import { voiceBlobToken } from '../config.ts';
+import { tokenOf, type TokenSource } from './episodes-blob.ts';
 
 export interface VoiceStorage {
   readonly ready: boolean;
@@ -16,16 +18,18 @@ export interface VoiceStorage {
   remove(url: string): Promise<void>;
 }
 
-export function voiceBlobStorage(token: string | undefined): VoiceStorage {
+export function voiceBlobStorage(source: TokenSource = voiceBlobToken): VoiceStorage {
   return {
-    ready: Boolean(token),
+    get ready() { return Boolean(tokenOf(source)); },
     put: async (pathname, bytes, contentType) => {
+      const token = tokenOf(source);
       if (!token) throw new Error('voice store not connected');
       // @vercel/blob 2.8.0 (read from its .d.ts): put(pathname, body, { access, token, contentType, addRandomSuffix }).
       const r = await put(pathname, Buffer.from(bytes), { access: 'public', token, contentType, addRandomSuffix: false });
       return { url: r.url, pathname: r.pathname };
     },
     remove: async (url) => {
+      const token = tokenOf(source);
       if (!token) throw new Error('voice store not connected');
       await del(url, { token });
     },

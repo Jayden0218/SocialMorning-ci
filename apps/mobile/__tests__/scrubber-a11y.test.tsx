@@ -61,11 +61,11 @@ it('M9 guard: the library draws the position on the right side — 14:32 of 34:1
 });
 
 it('FR-024: the heat curve announces its loudest moment, or the empty sentence with the action in it', () => {
-  const buckets = new Array<number>(100).fill(0);
+  const buckets = Array.from({ length: 100 }, () => 0);
   buckets[43] = 1;
   expect(heatLabel({ available: true, buckets }, 2_057_000)).toBe('Reaction curve. Most reactions at 14:44.');
   expect(heatLabel({ available: true, buckets }, undefined)).toBe('Reaction curve. Most reactions at segment 44 of 100.');
-  expect(heatLabel({ available: true, buckets: new Array<number>(100).fill(0) }, 1000)).toBe(EMPTY_STATES.heat.sentence);
+  expect(heatLabel({ available: true, buckets: Array.from({ length: 100 }, () => 0) }, 1000)).toBe(EMPTY_STATES.heat.sentence);
   expect(heatMessage({ available: false })).toBe("Heat isn't available yet for this episode");
   expect(heatLabel({ available: false }, 1000)).toBe("Heat isn't available yet for this episode");
 });

@@ -193,7 +193,7 @@ export function createMemoryFeedCache(hash: (s: string) => string): FeedCache {
         ...(http.lastModified !== undefined && { lastModified: http.lastModified }),
         lastWarnings: parsed.warnings,
       });
-      for (const existing of [...episodes.values()]) {
+      for (const existing of episodes.values()) {
         if (existing.feedUrl === feedUrl) episodes.delete(existing.id);
       }
       for (const episode of parsed.episodes) {

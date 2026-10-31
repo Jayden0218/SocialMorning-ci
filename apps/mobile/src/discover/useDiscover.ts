@@ -15,6 +15,7 @@ import { queueEpisode } from '@/settings/queue';
 import { createDiscover, type DiscoverView } from './cache';
 import { resolveCard } from './open';
 import type { EpisodeCard } from '@/social/api';
+import { nowMs as clockMs } from '@/ui/kit/clock';
 
 /** How old the Discover copy may be before opening the tab fetches a new one. */
 export const FOCUS_REFRESH_MS = 5 * 60_000;
@@ -28,7 +29,7 @@ export function dueForRefresh(fetchedAt: number | string | undefined, now: numbe
 export function useDiscover() {
   const { api } = useSocial();
   const stores = useStores();
-  const discover = useMemo(() => createDiscover({ api, cache: stores.feedCache, now: () => Date.now() }), [api, stores]);
+  const discover = useMemo(() => createDiscover({ api, cache: stores.feedCache, now: clockMs }), [api, stores]);
   // M12 NEW-9: the saved copy is not "couldn't refresh" until a refresh has actually failed —
   // the first launch showed that banner before any request was made.
   const [view, setView] = useState<DiscoverView | undefined>(() => {

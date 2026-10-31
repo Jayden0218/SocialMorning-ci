@@ -129,7 +129,7 @@ function RowsCard<I extends string | number>({ item, reload, title, sub, field, 
 }
 
 function TitlesCard({ item, reload, titles }: { item: Item; reload: () => void; titles: string[] }) {
-  const [map, setMap] = useState<Record<string, string>>(() => ({ ...((item.value as Record<string, string> | undefined) ?? {}) }));
+  const [map, setMap] = useState<Record<string, string>>(() => ({ ...(item.value as Record<string, string> | undefined) }));
   return (
     <KeyCard item={item} reload={reload} title="Discover section titles" sub="Leave a box empty to keep the title as it is."
       value={() => Object.fromEntries(Object.entries(map).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]))}>

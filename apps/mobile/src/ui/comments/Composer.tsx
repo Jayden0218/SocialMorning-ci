@@ -18,43 +18,51 @@
  * M21 US6 (G-M21-7): the first post answers 428 rules_required — the sheet then shows the
  * community rules in place of the form (RulesBody). Accept sends the comment again; Not now goes
  * back to the form with the draft kept, and nothing is sent.
+ *
+ * M31 W2-B (`social.html` `composerSheet`, `comments--composer-sheet`, `-reply-composer`, `-community-rules`): the kit sheet, lifted
+ * by the keyboard — a head row (Cancel in text2 · "New comment" / "Reply" in Unbounded 700 17 · Post as a hot 38 pill, dim until
+ * there is text), the moment card (raise, radius 16, padding 10: a 44 cover, the hot "At 14:32" chip or "Reply", the episode in
+ * text2, and the × that removes the moment), the write box (min 120, radius 18, raise, 16/24), then the "Add a picture" chip with
+ * the count in mono. An error is one hot-text line under the box. The first post's rules replace the form in place (a raise card).
  */
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
-import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent } from '@/ui/lib/actionsheet';
-import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { Text } from '@/ui/lib/text';
+import { useEffect, useRef, useState } from 'react';
 import { Box } from '@/ui/lib/box';
+import { Pressable } from '@/ui/lib/pressable';
+import { Textarea, TextareaInput } from '@/ui/lib/textarea';
+import { Image } from '@/ui/lib/image';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
-import { hit } from '@/design';
+import { IconButton } from '@/ui/kit/PulseButton';
+import { TimestampChip } from '@/ui/kit/TimestampChip';
+import { Type } from '@/ui/kit/Type';
+import { colour } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import { useSocial } from '@/social/context';
 import type { ComposerState } from '@/social/composer';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { Image } from '@/ui/lib/image';
 import { needsRules, useCommentExtrasApi } from '@/social/comment-extras-api';
 import { RulesBody } from './RulesSheet';
 import { pickCommentImage, type PickedCommentImage } from '@/social/comment-image';
-import { useColours } from '@/ui/kit/useColours';
+import { COMMENTS } from './measures';
+import { drawnType } from '@/design/type-px';
 
-/** The ✕ is a 48 pt square (B draws 44; the floor is 48). */
-const CLOSE = { width: hit.min, height: hit.min };
-/** M24 US20 (`CommentComposer-B`): the box grows to fill the sheet; 120 is its floor. */
-const BOX = { minHeight: 120 };
+const POST = { height: COMMENTS.postHeight, paddingHorizontal: COMMENTS.postPad };
+const MOMENT = { borderRadius: COMMENTS.momentCardRadius, padding: COMMENTS.momentCardPad, gap: 10 };
+const BOX = { minHeight: COMMENTS.writeMin, borderRadius: COMMENTS.writeRadius };
+/** Cancel is text in a 38 tall head row (the Post pill sets the height): its 48 pt tap is the hitSlop. */
+const CANCEL_SLOP = { top: 14, bottom: 14, left: 8, right: 8 };
 const THUMB = { width: 64, height: 64, borderRadius: 12 };
 
 export function ComposerSheet(props: {
   initial: ComposerState;
+  /** The composer's image button opened it: ask for the picture as soon as pictures are known to be on. */
+  pickPicture?: boolean;
   onClose: () => void;
   onPosted: () => void;
 }): React.ReactElement {
   const stores = useStores();
-  const c = useColours(stores.settings);
   const { composer, bump } = useSocial();
   const [state, setState] = useState<ComposerState>(props.initial);
   const [error, setError] = useState<string | undefined>();
@@ -71,6 +79,8 @@ export function ComposerSheet(props: {
     else if (r.kind === 'denied') setError('SocialNet needs your photos to add one — allow it in the phone\'s settings.');
     else if (r.kind === 'too-big') setError('That picture is too big — choose one under 10 MB.');
   };
+  const asked = useRef(false);
+  useEffect(() => { if (props.pickPicture === true && imagesOn && !asked.current) { asked.current = true; void addPicture(); } });
   const length = state.body.trim().length;
   const episode = stores.feeds.getEpisode(state.episodeId);
   const show = episode ? stores.feeds.getShow(episode.feedUrl) : undefined;
@@ -107,49 +117,48 @@ export function ComposerSheet(props: {
     }
   }
 
+  // Drawn (`social.html` `composerSheet`): the head row stays above the form AND above the rules card.
+  const head = (
+    <Box className="flex-row items-center justify-between" style={{ gap: 8 }}>
+      <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Cancel" hitSlop={CANCEL_SLOP} className="justify-center" style={{ minWidth: 56 }}>
+        <Type step="row" className="text-text2">Cancel</Type>
+      </Pressable>
+      <Type step="section" className="text-text font-display font-bold flex-1 text-center" numberOfLines={1} accessibilityRole="header">{state.parentId ? 'Reply' : 'New comment'}</Type>
+      <Pressable
+        className={`bg-hot rounded-pill justify-center items-center ${cannot ? 'opacity-50' : ''}`}
+        style={POST}
+        hitSlop={5}
+        disabled={cannot}
+        onPress={submit}
+        accessibilityRole="button"
+        accessibilityLabel="Post"
+        accessibilityState={{ disabled: cannot, busy }}
+      >
+        <Type step="row" className="text-void">Post</Type>
+      </Pressable>
+    </Box>
+  );
+
   return (
-    <Actionsheet isOpen onClose={props.onClose}>
-      <ActionsheetBackdrop />
-      {/* M24 US20 (`CommentComposer-B`): a full-height paper sheet from 44 pt under the top down to
-          the keyboard; the text box takes the space between the episode card and the foot. */}
-      <KeyboardAvoidingView className="w-full flex-1 justify-end" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        {/* M25 IJ: `still` — placed by layout, not slid to a measured spot: with the box focused at
-            once the slide could leave the sheet one screen down (ios-journey run 37993589437). */}
-        <ActionsheetContent still className="px-0 pt-0 mt-11 items-stretch flex-1 max-h-full">
-        <ScrollView className="flex-1 w-full" keyboardShouldPersistTaps="handled" scrollEnabled={false} contentContainerClassName="px-screen-x pt-row pb-section gap-row flex-grow">
-          {rules ? <RulesBody onAccepted={() => { setRules(false); void submit(); }} onClose={() => setRules(false)} /> : (<>
-          <Box className="flex-row justify-between items-center gap-gap">
-            <Pressable onPress={props.onClose} accessibilityRole="button" className="min-h-12 justify-center pr-row"><Text className="text-accent text-body font-bold">Cancel</Text></Pressable>
-            <Text className="text-text text-base font-display flex-1 text-center" numberOfLines={1} accessibilityRole="header">{state.parentId ? 'Reply' : 'New comment'}</Text>
-            <Pressable
-              className={`bg-primary rounded-pill justify-center px-[22px] ${cannot ? 'opacity-50' : ''}`}
-              style={{ minHeight: hit.min }}
-              disabled={cannot}
-              onPress={submit}
-              accessibilityRole="button"
-            >
-              <Text className="text-onPrimary text-body font-bold">Post</Text>
-            </Pressable>
+    <ActionSheet open onClose={props.onClose} label={state.parentId ? 'Reply' : 'New comment'} keyboard>
+      {rules ? <>{head}<RulesBody card onAccepted={() => { setRules(false); void submit(); }} onClose={() => setRules(false)} /></> : (<>
+        {head}
+        {/* The episode, with the moment the comment is pinned to (removable). */}
+        <Box className="flex-row items-center bg-raise" style={MOMENT}>
+          <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={COMMENTS.momentCover} name={show?.title ?? episode?.title} />
+          <Box className="flex-1" style={{ gap: 2 }}>
+            {state.moment && !state.parentId
+              ? <TimestampChip text={`At ${mmss(state.moment.offsetMs)}`} />
+              : <Type step="tag" className="text-text3">{state.parentId ? 'Reply' : 'No moment attached'}</Type>}
+            {episode ? <Type step="caption" className="text-text2" numberOfLines={1}>{episode.title}</Type> : null}
           </Box>
-          {/* The episode, with the moment the comment is pinned to (removable). */}
-          <Box className="flex-row items-center gap-row bg-surface border border-border rounded-row py-row pl-row pr-1">
-            <Artwork url={episode?.imageUrl ?? show?.imageUrl} size={44} name={show?.title ?? episode?.title} />
-            <Box className="flex-1">
-              {state.moment
-                ? <Text className="text-accent text-xs font-bold">At {mmss(state.moment.offsetMs)}</Text>
-                : <Text className="text-muted text-xs font-bold">{state.parentId ? 'Reply' : 'No moment attached'}</Text>}
-              {episode ? <Text className="text-muted text-meta" numberOfLines={1}>{episode.title}</Text> : null}
-            </Box>
-            {state.moment ? (
-              <Pressable onPress={() => setState(composer.removeMoment(state))} accessibilityLabel="Remove the moment" accessibilityRole="button" className="items-center justify-center" style={CLOSE}>
-                <Icon name="close" size={20} color={c.muted} />
-              </Pressable>
-            ) : null}
-          </Box>
-          <Textarea className="flex-1 h-auto border-0 bg-clear" style={BOX}>
+          {state.moment && !state.parentId ? <IconButton icon="close" label="Remove the moment" onPress={() => setState(composer.removeMoment(state))} size={18} /> : null}
+        </Box>
+        <Textarea className="h-auto border-0 bg-raise" style={BOX}>
           <TextareaInput
-            placeholderTextColor={c.muted}
-            className="p-0 text-base font-display align-top text-text"
+            placeholderTextColor={colour.text3}
+            className="text-pulse-body align-top text-text"
+            style={{ ...drawnType.composer, padding: COMMENTS.writePad, minHeight: COMMENTS.writeMin }}
             multiline
             autoFocus
             placeholder={state.parentId ? 'Write a reply' : 'What is worth saying here?'}
@@ -157,33 +166,32 @@ export function ComposerSheet(props: {
             // a render that arrived after the next keystroke put older text back: letters dropped,
             // the cursor jumped, deletes were lost (ios-journey runs 38002770918, 38009542753:
             // "Maestro: herd it on the simulatoraestro: heard …"). Nothing rewrites the text.
-            defaultValue={props.initial.body}
+            defaultValue={state.body}
             onChangeText={(t) => setState((s) => composer.edit(s, t))}
             accessibilityLabel="Comment"
           />
-          </Textarea>
-          {error ? <Text className="text-accent text-meta">{error}</Text> : null}
+        </Textarea>
+        {error ? <Type step="note" className="text-hotText">{error}</Type> : null}
+        <Box className="flex-row items-center" style={{ gap: 10 }}>
           {imagesOn ? (
             picture ? (
-              <Box className="flex-row items-center gap-row">
+              <Box className="flex-row items-center" style={{ gap: 12 }}>
                 <Image source={{ uri: picture.uri }} style={THUMB} accessibilityLabel="The picture you added" />
-                <Pressable onPress={() => setPicture(undefined)} accessibilityRole="button" accessibilityLabel="Remove the picture" className="justify-center px-row" style={{ minHeight: hit.min }}>
-                  <Text className="text-accent text-body font-bold">Remove</Text>
+                <Pressable onPress={() => setPicture(undefined)} accessibilityRole="button" accessibilityLabel="Remove the picture" className="justify-center" style={{ minHeight: 48 }}>
+                  <Type step="row" className="text-hotText">Remove</Type>
                 </Pressable>
               </Box>
             ) : (
-              <Pressable onPress={() => void addPicture()} accessibilityRole="button" accessibilityLabel="Add a picture" className="self-start flex-row items-center gap-2 justify-center" style={{ minHeight: hit.min }}>
-                <Icon name="image-outline" size={20} color={c.accent} />
-                <Text className="text-accent text-body font-bold">Add a picture</Text>
+              <Pressable onPress={() => void addPicture()} accessibilityRole="button" accessibilityLabel="Add a picture" hitSlop={6} className="flex-row items-center bg-raise border border-line rounded-pill" style={{ height: 36, paddingHorizontal: 14, gap: 6 }}>
+                <Icon name="image-outline" size={16} color={colour.text} />
+                <Type step="caption" className="text-text font-semibold">Add a picture</Type>
               </Pressable>
             )
           ) : null}
-          <Text className={length > 2000 ? 'text-accent text-meta text-right' : 'text-muted text-meta text-right'}>{length} / 2000</Text>
-          </>)}
-        </ScrollView>
-        </ActionsheetContent>
-      </KeyboardAvoidingView>
-    </Actionsheet>
+          <Box className="flex-1" />
+          <Type step="mono" className={length > 2000 ? 'text-hotText' : 'text-text3'}>{length} / 2000</Type>
+        </Box>
+      </>)}
+    </ActionSheet>
   );
 }
-

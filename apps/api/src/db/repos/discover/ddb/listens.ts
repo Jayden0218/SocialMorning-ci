@@ -17,7 +17,9 @@
 import { encode } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { batchWriteAll } from '../../../ddb/batch.ts';
+import { ddbLowThroughput } from '../../../../config.ts';
 import { queryAll } from '../../../ddb/paginate.ts';
+import { queryDay } from '../../../ddb/day-index.ts';
 import type { Item, Store } from '../../../ddb/store.ts';
 
 export const DAY_MS = 86_400_000;
@@ -47,18 +49,23 @@ const fromIndexKey = (i: Item): ListenMark => {
   return { episodeId: String(i['PK']).slice('LSN#'.length), actorId: sk.slice(0, cut), day: sk.slice(cut + 1), at, hidden: h === '1' };
 };
 
-/** Every listen row written after `sinceMs` (up to `nowMs`): one E1 Query per UTC day of the window. */
+/** How many UTC days of a window are read at the same time (one when the indexes are provisioned small: DDB_LOW_THROUGHPUT=1). */
+const DAYS_AT_ONCE = 6;
+const daysAtOnce = (): number => (ddbLowThroughput() ? 1 : DAYS_AT_ONCE);
+
+/** Every listen row written after `sinceMs` (up to `nowMs`): the E1 day partitions of each UTC day of the window, 6 days at a time. */
 export async function listensSince(store: Store, sinceMs: number, nowMs: number): Promise<ListenMark[]> {
   const since = new Date(sinceMs).toISOString();
+  const days: string[] = [];
+  for (let d = Date.parse(`${since.slice(0, 10)}T00:00:00.000Z`); d <= nowMs; d += DAY_MS) days.push(new Date(d).toISOString().slice(0, 10));
+  // DAYS_AT_ONCE days at a time (each is nine partition Queries), results kept in day order.
   const out: ListenMark[] = [];
-  for (let d = Date.parse(`${since.slice(0, 10)}T00:00:00.000Z`); d <= nowMs; d += DAY_MS) {
-    const day = new Date(d).toISOString().slice(0, 10);
-    const { items } = await queryAll(store, 'events', {
-      IndexName: K.INDEX.E1, KeyConditionExpression: 'E1PK = :d AND E1SK > :from',
-      ExpressionAttributeValues: { ':d': `DAY#${day}`, ':from': `lsn#${since}` },
-    }, { keep: (i) => String(i['E1SK']).startsWith('lsn#') });
-    for (const i of items) {
-      const m = fromIndexKey(i);
+  const step = daysAtOnce();
+  for (let i = 0; i < days.length; i += step) {
+    const rows = await Promise.all(days.slice(i, i + step).map((day) =>
+      queryDay(store, day, { condition: 'E1SK > :from', values: { ':from': `lsn#${since}` } }, { keep: (it) => String(it['E1SK']).startsWith('lsn#') })));
+    for (const items of rows) for (const it of items) {
+      const m = fromIndexKey(it);
       if (m.at > since) out.push(m);
     }
   }

@@ -12,6 +12,7 @@ import { useStores } from '@/ui/shell/providers';
 import { createSafety, type Safety } from './hidden';
 import { filterClips, filterComments, filterFeed, filterListeners, type Sets } from './filter';
 import type { Clip, ClipAuthor, Comment, FeedItem } from '@/social/api';
+import { nowMs as clockMs } from '@/ui/kit/clock';
 
 export type SafetyContextValue = {
   safety: Safety;
@@ -39,7 +40,7 @@ export function SafetyProvider(props: { children?: ReactNode }): ReactNode {
   const [version, setVersion] = useState(0);
   const bump = useRef(() => setVersion((v) => v + 1));
   const safety = useMemo(() => createSafety({
-    api, stores, now: () => Date.now(),
+    api, stores, now: clockMs,
     viewerId: () => stores.auth.get()?.listenerId,
     onChange: () => bump.current(),
   }), [api, stores]);

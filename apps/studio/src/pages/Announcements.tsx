@@ -24,14 +24,16 @@ export function Announcements({ show }: { show: Show }) {
   const [images, setImages] = useState<string[]>([]);
   const [later, setLater] = useState(false);
   const [at, setAt] = useState('');
+  const [now, setNow] = useState(() => Date.now()); // the clock as of the last time edit; publish() re-reads it
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const left = list.state === 'ready' ? list.data.pushesLeftThisMonth : null;
   const releaseAt = later && at ? new Date(at) : null;
-  const badTime = releaseAt !== null && (Number.isNaN(releaseAt.getTime()) || releaseAt.getTime() <= Date.now());
+  const badTime = releaseAt !== null && (Number.isNaN(releaseAt.getTime()) || releaseAt.getTime() <= now);
   const publish = async () => {
-    if (later && (!releaseAt || badTime)) { setError('Choose a time in the future, or turn off "Publish later".'); return; }
+    const stale = releaseAt !== null && (Number.isNaN(releaseAt.getTime()) || releaseAt.getTime() <= Date.now());
+    if (later && (!releaseAt || stale)) { setError('Choose a time in the future, or turn off "Publish later".'); return; }
     setBusy(true); setError(null); setDone(null);
     try {
       const body = { body: text, ...(images.length ? { images } : {}), ...(releaseAt ? { releaseAt: releaseAt.toISOString() } : {}) };
@@ -67,7 +69,7 @@ export function Announcements({ show }: { show: Show }) {
             {later ? (
               <>
                 <label htmlFor="ann-at" className="sr-only">Publish at</label>
-                <input id="ann-at" type="datetime-local" className="select" value={at} onChange={(e) => setAt(e.target.value)} aria-invalid={badTime || undefined} />
+                <input id="ann-at" type="datetime-local" className="select" value={at} onChange={(e) => { setNow(Date.now()); setAt(e.target.value); }} aria-invalid={badTime || undefined} />
                 <span className="muted" style={{ fontSize: 13 }}>Saved now and shown from this time, in your time zone. A scheduled announcement is not sent as a notification.</span>
               </>
             ) : null}

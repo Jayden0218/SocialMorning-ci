@@ -11,7 +11,7 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { colour, hit } from '@/design';
+import { bars, colour } from '@/design';
 
 const mockPause = jest.fn();
 const mockPlay = jest.fn();
@@ -20,16 +20,20 @@ let mockFocused = true;
 let mockSleepLeft: number | undefined;
 let mockSleepEnd = false;
 const mockOpenQueue = jest.fn();
+const mockPush = jest.fn();
 
 jest.mock('expo-router', () => ({
   // `asChild` hands the press to the child; for rendering, the child IS the output.
   Link: ({ children }: { children: React.ReactNode }) => children,
   usePathname: () => '/',
   useIsFocused: () => mockFocused,
+  router: { push: (...a: unknown[]) => mockPush(...a) },
 }));
 jest.mock('@/playback/store', () => ({
+  ...jest.requireActual('@/playback/store'),
   usePlayer: () => ({ play: mockPlay, pause: mockPause, sleepRemainingMs: () => mockSleepLeft, sleepTimer: () => ({ endOfEpisode: mockSleepEnd }) }),
-  usePlayerState: () => mockPlayerState,
+  // M31 T024 (C4): the bar reads the player through selectors; the real ones run over this state.
+  usePlayerSelector: (sel: (s: unknown) => unknown) => sel(mockPlayerState),
 }));
 jest.mock('@/ui/shell/providers', () => ({
   useStores: () => ({
@@ -49,7 +53,6 @@ jest.mock('@/ui/shell/providers', () => ({
 jest.mock('@/ui/queue/QueueSheetHost', () => ({ useQueueSheet: () => ({ open: mockOpenQueue, close: jest.fn() }) }));
 
 import { MiniPlayer, TabsMiniPlayer } from '@/ui/player/MiniPlayer';
-import { MINI_PLAYER_HEIGHT } from '@/ui/kit/Screen';
 import { TAB_HREF } from '@/ui/shell/tabs';
 
 const render = (el: React.ReactElement): ReactTestRenderer => {
@@ -81,7 +84,9 @@ it('is absent on /player, where the full player already draws the same episode',
   mockPlayerState = { kind: 'playing', episodeId: 'e1' };
   expect(render(createElement(MiniPlayer, { pathname: '/player' })).toJSON()).toBeNull();
   // …and present everywhere else, with the same state.
-  expect(render(createElement(MiniPlayer, { pathname: '/episode/e1' })).toJSON()).not.toBeNull();
+  expect(render(createElement(MiniPlayer, { pathname: '/show/x' })).toJSON()).not.toBeNull();
+  // M31 W3-A (T040): …and absent on the Episode page, which draws its own tray where the bar would float (m31-w3a-bars.test.ts).
+  expect(render(createElement(MiniPlayer, { pathname: '/episode/e1' })).toJSON()).toBeNull();
 });
 
 it('is absent on the sign-in pages (owner, 2026-09-27), even while an episode plays', () => {
@@ -93,19 +98,23 @@ it('is absent on the sign-in pages (owner, 2026-09-27), even while an episode pl
 
 it('shows the episode, the show and the artwork, and opens the player', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1' };
-  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
+  const r = render(createElement(MiniPlayer, { pathname: '/show/x' }));
   const text = JSON.stringify(r.toJSON());
   expect(text).toContain('Casey Wants to Believe');
   expect(text).toContain('Reply All');
   expect(text).toContain('https://img/ep.png');
   const link = byLabel(r, 'Now playing: Casey Wants to Believe. Open the player.');
-  expect(link?.props['accessibilityRole']).toBe('link');
+  // The kit's NowBar: a button (it was a link to /player); it opens the player through the router.
+  expect(link?.props['accessibilityRole']).toBe('button');
+  mockPush.mockClear();
+  act(() => pressable(r, 'Now playing: Casey Wants to Believe. Open the player.')!.props['onPress']());
+  expect(mockPush).toHaveBeenCalledWith('/player');
 });
 
-it('with a length known, the second line is the time — "26:37/1:30:28", as in the reference — and the playlist is one tap away', () => {
+it('with a length known, the second line is the time — "26:37 / 1:30:28", mono, as in the drawing — and the playlist is one tap away', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1', positionMs: 1_597_000, durationMs: 5_428_000 };
-  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
-  expect(JSON.stringify(r.toJSON())).toContain('26:37/1:30:28');
+  const r = render(createElement(MiniPlayer, { pathname: '/show/x' }));
+  expect(JSON.stringify(r.toJSON())).toContain('26:37 / 1:30:28');
   // M21 US3 (FR-020): ≡ is a button that opens the playlist sheet over the page, not a link to /queue.
   expect(byLabel(r, 'Playlist')?.props['accessibilityRole']).toBe('button');
   mockOpenQueue.mockClear();
@@ -115,42 +124,47 @@ it('with a length known, the second line is the time — "26:37/1:30:28", as in 
 
 it('the play/pause button carries the state in its NAME, not only in its glyph', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1' };
-  const paused = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
+  const paused = render(createElement(MiniPlayer, { pathname: '/show/x' }));
   const play = byLabel(paused, 'Play')!;
   expect(play.props['accessibilityRole']).toBe('button');
-  expect(play.props['accessibilityState']).toEqual({ selected: false });
+  expect(play.props['accessibilityState']).toEqual({ selected: false, busy: false });
   act(() => pressable(paused, 'Play')!.props['onPress']());
   expect(mockPlay).toHaveBeenCalledTimes(1);
 
   mockPlayerState = { kind: 'playing', episodeId: 'e1' };
-  const playing = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
+  const playing = render(createElement(MiniPlayer, { pathname: '/show/x' }));
   const pause = byLabel(playing, 'Pause')!;
-  expect(pause.props['accessibilityState']).toEqual({ selected: true });
+  expect(pause.props['accessibilityState']).toEqual({ selected: true, busy: false });
   act(() => pressable(playing, 'Pause')!.props['onPress']());
   expect(mockPause).toHaveBeenCalledTimes(1);
 
   // Buffering is still "playing" to a listener: the button must offer Pause.
   mockPlayerState = { kind: 'buffering', episodeId: 'e1' };
-  expect(byLabel(render(createElement(MiniPlayer, { pathname: '/episode/e1' })), 'Pause')).toBeDefined();
+  expect(byLabel(render(createElement(MiniPlayer, { pathname: '/show/x' })), 'Pause')).toBeDefined();
 });
 
-it('an error is shown in the bar, in the accent, and never as a silent empty bar', () => {
-  mockPlayerState = { kind: 'error', message: 'This episode would not load.' };
-  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
-  expect(JSON.stringify(r.toJSON())).toContain('This episode would not load.');
-  expect(byLabel(r, 'Play')).toBeUndefined();
+it('an error is never a silent empty bar: the bar stays, says it could not play, and opens the player where Try again is', () => {
+  mockPlayerState = { kind: 'error', episodeId: 'e1', message: 'This episode would not load.' };
+  const r = render(createElement(MiniPlayer, { pathname: '/show/x' }));
+  expect(JSON.stringify(r.toJSON())).toContain('couldn’t play');
+  expect(byLabel(r, 'Play')).toBeDefined();
+  expect(byLabel(r, 'Now playing: Casey Wants to Believe. Open the player.')).toBeDefined();
 });
 
-it('reserves its height with minHeight, so the largest system font grows the bar instead of clipping', () => {
+it('floats: 66 above the tab bar over the tabs, the safe area + 6 on a pushed page (nowBarBottom), with the kit sizes', () => {
   mockPlayerState = { kind: 'paused', episodeId: 'e1' };
-  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
-  const bar = flat(r.root.findAll((n) => typeof n.type === 'string')[0]!.props['style']);
-  expect(bar['height']).toBeUndefined();
-  expect(bar['minHeight']).toBe(MINI_PLAYER_HEIGHT);
-  expect(bar['backgroundColor']).toBe(colour.surface); // M17: the white Editorial bar
-  const button = flat(byLabel(r, 'Play')!.props['style']);
-  expect(Number(button['minHeight'])).toBeGreaterThanOrEqual(hit.min);
-  expect(Number(button['minWidth'])).toBeGreaterThanOrEqual(hit.min);
+  const tabs = render(createElement(MiniPlayer, { pathname: '/', context: 'tabs' }));
+  const barOf = (r: ReactTestRenderer) => flat(r.root.findAll((n) => n.props['testID'] === 'now-bar')[0]!.props['style']);
+  expect(barOf(tabs)['bottom']).toBe(bars.tab + bars.nowGap);
+  expect(barOf(tabs)['position']).toBe('absolute');
+  const pushed = render(createElement(MiniPlayer, { pathname: '/show/x', context: 'root' }));
+  expect(barOf(pushed)['bottom']).toBe(bars.pushedGap);
+  const set = render(createElement(MiniPlayer, { pathname: '/', context: 'tabs', bottom: 14 }));
+  expect(barOf(set)['bottom']).toBe(14);
+  const inner = tabs.root.findAll((n) => n.props['testID'] === 'now-bar')[0]!;
+  const face = flat(inner.findAll((n) => typeof n.type === 'string' && flat(n.props['style'])['minHeight'] === bars.now)[0]!.props['style']);
+  expect(face['minHeight']).toBe(bars.now);
+  expect(face['backgroundColor']).toBe(colour.glass);
 });
 
 it('exactly one bar: the root instance stands down on a tab route, where the tab layout draws its own', () => {
@@ -162,7 +176,7 @@ it('exactly one bar: the root instance stands down on a tab route, where the tab
     expect(render(createElement(MiniPlayer, { pathname: path, context: 'tabs' })).toJSON()).not.toBeNull();
   }
   // Off the tabs, the root instance is the only one mounted, and it shows.
-  expect(render(createElement(MiniPlayer, { pathname: '/episode/e1', context: 'root' })).toJSON()).not.toBeNull();
+  expect(render(createElement(MiniPlayer, { pathname: '/show/x', context: 'root' })).toJSON()).not.toBeNull();
 });
 
 it('G-B3: the bar above the tab bar draws only while the tabs are focused — never beside the root bar mid-swipe (M12 B3)', () => {
@@ -179,11 +193,11 @@ it('G-B3: the bar above the tab bar draws only while the tabs are focused — ne
 it('M21 FR-004: while a sleep timer runs, the second line also shows its time left — or "at end"', () => {
   mockPlayerState = { kind: 'playing', episodeId: 'e1', positionMs: 1_597_000, durationMs: 5_428_000 };
   mockSleepLeft = 299_000;
-  const r = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
+  const r = render(createElement(MiniPlayer, { pathname: '/show/x' }));
   expect(JSON.stringify(r.toJSON())).toContain('sleep 4:59');
   mockSleepLeft = undefined;
   mockSleepEnd = true;
-  const end = render(createElement(MiniPlayer, { pathname: '/episode/e1' }));
+  const end = render(createElement(MiniPlayer, { pathname: '/show/x' }));
   expect(JSON.stringify(end.toJSON())).toContain('sleep at end');
   mockSleepEnd = false;
 });

@@ -1,7 +1,8 @@
 // The text and action for each empty screen, and loading and timeout timings.
 /**
  * M6 empty states (spec FR-019–FR-021): the 13 surfaces, each with one sentence on what
- * fills it and one action that leads there; loading after 1 s; give up at 10 s.
+ * fills it and one action that leads there (M31 W6-C, design-pulse2 `states--*`: the Inbox and Library names became
+ * Updates and Home — same routes, `/inbox` redirects to Updates and `/` is Home); loading after 1 s; give up at 10 s.
  */
 export type Surface = 'library' | 'inbox' | 'queue' | 'downloads' | 'feed' | 'followers' | 'following' | 'clips' | 'comments' | 'heat' | 'nextup' | 'stats' | 'search';
 
@@ -10,9 +11,9 @@ export type EmptySpec = { sentence: string; action: EmptyAction };
 
 export const EMPTY_STATES: Record<Surface, EmptySpec> = {
   library:   { sentence: 'No subscriptions yet. Pick something to listen to.', action: { label: 'Discover', route: '/discover' } },
-  inbox:     { sentence: 'Nothing new. New episodes of your subscriptions land here.', action: { label: 'Open Library', route: '/' } },
+  inbox:     { sentence: 'Nothing new. New episodes of your subscriptions land here.', action: { label: 'Open Home', route: '/' } },
   queue:     { sentence: 'Nothing queued. Use Add to queue on an episode.', action: { label: 'Open Discover', route: '/discover' } },
-  downloads: { sentence: 'Nothing downloaded yet. Downloads run on Wi-Fi unless you allow mobile data.', action: { label: 'Open Inbox', route: '/inbox' } },
+  downloads: { sentence: 'Nothing downloaded yet. Downloads run on Wi-Fi unless you allow mobile data.', action: { label: 'Open Updates', route: '/inbox' } },
   feed:      { sentence: 'Follow someone and their comments and clips land here.', action: { label: 'Discover', route: '/discover' } },
   followers: { sentence: 'Nobody follows you yet. Share a clip — your name travels with it.', action: { label: 'Open Discover', route: '/discover' } },
   following: { sentence: 'You follow nobody yet. Tap a name on any comment to see their profile.', action: { label: 'Open Discover', route: '/discover' } },
@@ -20,7 +21,7 @@ export const EMPTY_STATES: Record<Surface, EmptySpec> = {
   comments:  { sentence: 'Nobody has said anything at this moment yet.', action: { label: 'Comment here', route: '/player' } },
   heat:      { sentence: 'Nobody has marked a moment yet — tap ♡ while listening.', action: { label: 'React', route: '/player' } },
   nextup:    { sentence: 'Nothing to suggest yet — play something and come back.', action: { label: 'Discover', route: '/discover' } },
-  stats:     { sentence: 'Nothing listened yet. Play something — stats count from the first minute.', action: { label: 'Open Library', route: '/' } },
+  stats:     { sentence: 'Nothing listened yet. Play something — stats count from the first minute.', action: { label: 'Open Home', route: '/' } },
   search:    { sentence: "Nothing matches. Try the show's name, or paste a feed URL.", action: { label: 'Discover', route: '/discover' } },
 };
 

@@ -8,8 +8,8 @@
  *  - a failure keeps the cached copy and is REPORTED as stale, rather than
  *    being swallowed or blanking the row.
  *
- * Sequential on purpose: a hundred parallel requests off a phone on mobile
- * data is worse for the listener than waiting, and nothing here blocks the UI.
+ * Three at a time (C3), never a hundred: parallel requests off a phone on mobile
+ * data are worse for the listener than waiting. Screens call `refresh-service.ts`.
  */
 import { refreshShow } from './fetch';
 import { refreshHiddenGuids } from './hidden';
@@ -24,6 +24,7 @@ export type RefreshAllResult = {
 };
 
 export const PER_FEED_TIMEOUT_MS = 10_000;
+export const REFRESH_CONCURRENCY = 3;
 
 export async function refreshAll(
   stores: Stores,
@@ -34,7 +35,8 @@ export async function refreshAll(
 ): Promise<RefreshAllResult> {
   const result: RefreshAllResult = { refreshed: [], stale: [], failed: [] };
 
-  for (const { feedUrl } of stores.subscriptions.list()) {
+  const queue = stores.subscriptions.list().map((s) => s.feedUrl);
+  const one = async (feedUrl: string): Promise<void> => {
     const controller = new AbortController();
     // A feed that never answers must not hold the whole library open.
     const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -48,7 +50,15 @@ export async function refreshAll(
     } finally {
       clearTimeout(timer);
     }
-  }
+  };
+  // C3: three feeds at a time, and a macro-task between feeds so taps are not starved by XML parsing.
+  const worker = async (): Promise<void> => {
+    for (let feedUrl = queue.shift(); feedUrl !== undefined; feedUrl = queue.shift()) {
+      await one(feedUrl);
+      await new Promise<void>((r) => setTimeout(r, 0));
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(REFRESH_CONCURRENCY, queue.length) }, worker));
 
   if (hiddenOf) await refreshHiddenGuids(stores.settings, stores.subscriptions.list().map((s) => s.feedUrl), hiddenOf);
   return result;

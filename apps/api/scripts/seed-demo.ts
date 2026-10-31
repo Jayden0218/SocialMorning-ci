@@ -326,7 +326,7 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
   }
   // Comments, replies, likes (the "commented" feed item comes with each top-level comment).
   const commentIds: { id: string; ep: string; who: Who; body: string; offsetMs: number }[] = [];
-  const backdateComment = async (cid: string, when: Date) => {
+  const backdateComment = async (_cid: string, _when: Date) => {
   };
   for (const t of THREADS) {
     const e = ep[t.ep]!;
@@ -374,14 +374,14 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
     const start = atMs(c.ep, c.at);
     const end = Math.min(ep[c.ep]!.duration_ms, start + c.secs * 1000);
     at(c.ago);
-    const made = await createClip(db, { authorId: id[c.who], clientId: `demo-seed-${n + 1}`, episodeId: ep[c.ep]!.id, startMs: start, endMs: end, caption: c.caption });
+    await createClip(db, { authorId: id[c.who], clientId: `demo-seed-${n + 1}`, episodeId: ep[c.ep]!.id, startMs: start, endMs: end, caption: c.caption });
     bump('clips');
   }
   // Chats: a read message is read by its recipient right after (reading the thread marks it).
   for (const m of CHATS) {
     const when = now - m.ago * 60_000;
     o.setClock?.(when);
-    const sent = await sendChat(db, id[m.from], id[m.to], m.body, m.ep ? ep[m.ep]!.id : undefined);
+    await sendChat(db, id[m.from], id[m.to], m.body, m.ep ? ep[m.ep]!.id : undefined);
     if (m.read) {
       o.setClock?.(when + 60_000);
       await readThread(db, id[m.to], id[m.from]);

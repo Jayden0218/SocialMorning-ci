@@ -15,6 +15,7 @@
  *  - `fn` undefined (signed out, no id yet) means nothing to load: the state stays `loading`.
  */
 import { useCallback, useEffect, useRef, useState, type DependencyList } from 'react';
+import { useLatest } from './useLatest';
 import { ApiError } from '@/social/api';
 import { reportError } from '@/telemetry/reportError';
 
@@ -36,23 +37,37 @@ export function useLoad<T extends object>(fn: (() => Promise<T>) | undefined, de
   const [state, setState] = useState<LoadState<T>>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const latest = useRef(0);
+  const getFn = useLatest(fn);
+  const getScope = useLatest(scope);
+  // `fn` is a new closure each render; the caller's deps say when it really changed (compared as React does).
+  const [seenDeps, setSeenDeps] = useState<DependencyList>(deps);
+  const [generation, setGeneration] = useState(0);
+  const changed = seenDeps.length !== deps.length || deps.some((d, i) => !Object.is(d, seenDeps[i]));
+  if (changed) {
+    setSeenDeps(deps);
+    setGeneration((g) => g + 1);
+    // A change after an error shows the loader again; over shown data it keeps the data until the answer.
+    if (fn !== undefined) setState((s) => (s.kind === 'error' ? { kind: 'loading' } : s));
+  }
   useEffect(() => {
-    if (fn === undefined) return undefined;
+    const run = getFn();
+    if (run === undefined) return undefined;
     const id = ++latest.current;
     let live = true;
-    // A retry after an error shows the loader again; a reload over shown data keeps it until the answer.
-    setState((s) => (s.kind === 'error' ? { kind: 'loading' } : s));
-    fn().then(
+    run().then(
       (data) => { if (live && id === latest.current) setState({ ...data, kind: 'ok' } as LoadState<T>); },
       (e: unknown) => {
         if (!live || id !== latest.current) return;
-        if (worthLogging(e)) reportError(scope, e);
+        if (worthLogging(e)) reportError(getScope(), e);
         setState({ kind: 'error', message: loadFailedMessage(e) });
       },
     );
     return () => { live = false; };
-  // `fn` is a new closure each render; the caller's deps say when it really changed.
-  }, [...deps, attempt]);
-  const reload = useCallback(() => setAttempt((n) => n + 1), []);
+  }, [generation, attempt, getFn, getScope]);
+  // A retry after an error shows the loader again.
+  const reload = useCallback(() => {
+    if (getFn() !== undefined) setState((s) => (s.kind === 'error' ? { kind: 'loading' } : s));
+    setAttempt((n) => n + 1);
+  }, [getFn]);
   return [state, reload];
 }

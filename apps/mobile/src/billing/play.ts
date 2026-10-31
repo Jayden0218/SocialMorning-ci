@@ -53,7 +53,7 @@ export type PlayStore = {
 };
 
 export function usePlayStore(api: PurchaseApi, o: { serverReady: boolean; teen: boolean }): PlayStore {
-  const iap = useMemo(loadIap, []);
+  const iap = useMemo(() => loadIap(), []);
   const listenerId = useSocial().listener?.listenerId;
   const ready = canBuy({ platform: Platform.OS, native: iap !== undefined, serverReady: o.serverReady, teen: o.teen, variant: appVariant() });
   const [prices, setPrices] = useState<Record<string, string>>({});

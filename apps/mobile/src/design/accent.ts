@@ -22,13 +22,18 @@ export const accentStore = {
   subscribe: (f: () => void): (() => void) => { listeners.add(f); return () => { listeners.delete(f); }; },
 };
 
-const vars = (k: AccentKeys) => ({ '--color-primary': k.primary, '--color-onPrimary': k.onPrimary, '--color-accent': k.accent, '--color-accentTint': k.accentTint });
+// M31: the Pulse `hot` / `hotText` / `hotSoft` follow the accent, so a redrawn screen takes the colour too.
+const vars = (k: AccentKeys) => ({
+  '--color-primary': k.primary, '--color-onPrimary': k.onPrimary, '--color-accent': k.accent, '--color-accentTint': k.accentTint,
+  '--color-hot': k.primary, '--color-hotText': k.accent, '--color-hotSoft': k.accentTint,
+});
 
 export function applyAccent(name: AccentName): void {
   current = name;
   const t = ACCENTS[name];
   try {
-    // M17: UniWind's `dark` theme is a copy of light (scripts/tokens-to-css.mjs) — keep it so.
+    // M31: dark only. UniWind builds a `light` and a `dark` theme and they must carry the same
+    // variables (scripts/tokens-to-css.mjs writes both as the Pulse palette) — keep them so.
     Uniwind.updateCSSVariables('light', vars(t.light));
     Uniwind.updateCSSVariables('dark', vars(t.light));
   } catch {
@@ -37,8 +42,9 @@ export function applyAccent(name: AccentName): void {
   for (const f of listeners) f();
 }
 
-/** The palette with the accent's four tokens swapped in. */
+/** The palette with the accent's four tokens swapped in — and the Pulse `hot`, `hotText`, `hotSoft` that follow them. */
 export function withAccent<P extends AccentKeys>(palette: P, name: AccentName): P {
   if (name === 'sunrise') return palette;
-  return { ...palette, ...ACCENTS[name].light };
+  const a = ACCENTS[name].light;
+  return { ...palette, ...a, hot: a.primary, hotText: a.accent, hotSoft: a.accentTint };
 }

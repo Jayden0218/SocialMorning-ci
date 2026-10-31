@@ -5,7 +5,7 @@ import { createMemorySocialCacheStore } from '@/storage/memory';
 import { ApiError, type ApiClient, type Social } from '@/social/api';
 
 const D = 2_899_000;
-const social = (my: number[]): Social => ({ serverTime: 's', episode: { id: 'e', durationMs: D }, comments: [], heat: { available: true, buckets: new Array(100).fill(0) }, myReactionBuckets: my });
+const social = (my: number[]): Social => ({ serverTime: 's', episode: { id: 'e', durationMs: D }, comments: [], heat: { available: true, buckets: Array.from({ length: 100 }, () => 0) }, myReactionBuckets: my });
 
 function build(over: Partial<ApiClient> = {}) {
   const api = {

@@ -7,17 +7,18 @@
  */
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Artwork } from '@/ui/kit/Artwork';
-import { BottomBar } from '@/ui/kit/BottomBar';
-import { Button } from '@/ui/kit/Button';
+import { colour, hit } from '@/design';
+import { giftColour } from '@/design/tokens';
 import { Loader } from '@/ui/kit/Loader';
+import { PageGlow } from '@/ui/kit/PageGlow';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
 import { useM22Api, type ClaimResult, type GiftView } from '@/social/api-m22-server';
+import { GIFT } from '@/ui/wallet/measures';
+import { GiftDead, GiftOffer } from '@/ui/gift/parts';
 
 const SAID: Record<Exclude<ClaimResult, 'claimed'>, string> = {
   already_claimed: 'Already claimed — someone opened this link first.',
@@ -60,28 +61,29 @@ export default function GiftScreen(): React.ReactElement {
   };
 
   const open = gift !== undefined && gift !== 'missing' && !gift.claimed && !gift.cancelled;
+  const dead = gift === 'missing';
   return (
-    <>
-      <PageHeader title="A gift for you" />
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-row items-center">
-        {gift === undefined ? <Loader /> : null}
-        {gift === 'missing' ? <Text className="text-muted text-body text-center mt-section">{SAID.not_found}</Text> : null}
-        {gift !== undefined && gift !== 'missing' ? (
-          <Box className="items-center gap-row mt-section">
-            <Artwork url={gift.show.artworkUrl} size={180} name={gift.show.title} />
-            <Text className="text-text font-display text-hero text-center" accessibilityRole="header">{gift.show.title}</Text>
-            <Text className="text-muted text-body text-center">
-              {gift.cancelled ? SAID.cancelled : gift.claimed ? SAID.already_claimed : `${gift.buyerName ?? 'Someone'} gave you this paid series. The first person to claim it gets every paid episode.`}
-            </Text>
-          </Box>
-        ) : null}
-        {said ? <Text className="text-accent text-body text-center" accessibilityLiveRegion="polite">{said}</Text> : null}
-      </ScrollView>
-      {open ? (
-        <BottomBar tone="surface" line="border" className="flex-row items-center">
-          <Button label={listener ? 'Claim the series' : 'Sign in to claim'} onPress={() => void claim()} busy={busy} className="flex-1" />
-        </BottomBar>
-      ) : null}
-    </>
+    <PushedPage
+      title="A gift for you"
+      size={GIFT.titleSize}
+      tone="none"
+      {...(open ? { below: <PulseButton kind="hot" icon="gift-outline" label={listener ? 'Claim the series' : 'Sign in to claim'} onPress={() => void claim()} busy={busy} full />, belowHeight: hit.min } : {})}
+    >
+      {(layout) => (
+        <>
+          <PageGlow colours={dead ? [colour.violet, colour.line] : [giftColour.pink, colour.violet]} top={GIFT.glowTop} strength={dead ? GIFT.deadGlowStrength : GIFT.glowStrength} />
+          {gift === undefined ? <Box className="absolute left-0 right-0 items-center" style={{ top: layout.top + GIFT.loadTop }}><Loader /></Box> : null}
+          {dead ? <GiftDead top={layout.top} sentence={SAID.not_found} /> : null}
+          {gift !== undefined && gift !== 'missing' ? (
+            <GiftOffer
+              top={layout.top}
+              show={gift.show}
+              sentence={gift.cancelled ? SAID.cancelled : gift.claimed ? SAID.already_claimed : `${gift.buyerName ?? 'Someone'} gave you this paid series. The first person to claim it gets every paid episode.`}
+              said={said}
+            />
+          ) : null}
+        </>
+      )}
+    </PushedPage>
   );
 }

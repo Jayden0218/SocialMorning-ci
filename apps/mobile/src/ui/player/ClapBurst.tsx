@@ -8,8 +8,9 @@
  *
  * `trigger` is a counter: each increase plays the burst once; 0 plays nothing.
  */
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, Easing, StyleSheet } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, Easing, StyleSheet } from 'react-native';
+import { useReducedMotion } from '@/ui/kit/useReducedMotion';
 import { Icon } from '@/ui/kit/Icon';
 import { usePlayerPalette } from '@/ui/player/palette';
 
@@ -19,19 +20,18 @@ export const CLAP_PATHS: readonly (readonly [number, number])[] = [[-90, -150], 
 
 export function ClapBurst(props: { trigger: number }): React.ReactElement | null {
   const c = usePlayerPalette();
-  const [still, setStill] = useState(false);
-  const [showing, setShowing] = useState(false);
-  const t = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    let live = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((v) => { if (live) setStill(v); }).catch(() => undefined);
-    return () => { live = false; };
-  }, []);
+  const still = useReducedMotion();
+  const [showing, setShowing] = useState(() => props.trigger !== 0 && !still);
+  const [t] = useState(() => new Animated.Value(0));
+  // A new clap (or Reduce Motion going off) shows the burst in the same render; the effect plays it.
+  const [seen, setSeen] = useState({ trigger: props.trigger, still });
+  if (seen.trigger !== props.trigger || seen.still !== still) {
+    setSeen({ trigger: props.trigger, still });
+    if (props.trigger !== 0 && !still) setShowing(true);
+  }
 
   useEffect(() => {
     if (props.trigger === 0 || still) return;
-    setShowing(true);
     t.setValue(0);
     const run = Animated.timing(t, { toValue: 1, duration: CLAP_MS, easing: Easing.out(Easing.quad), useNativeDriver: true });
     run.start(() => setShowing(false));

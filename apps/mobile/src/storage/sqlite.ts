@@ -7,11 +7,14 @@
  * declares `openDatabaseSync`, `execSync`, `runSync`, `getAllSync<T>`,
  * `getFirstSync<T>` and `withTransactionSync`.
  *
- * NOT VERIFIED: none of this has been executed. `expo-sqlite` is a native
- * module and this build machine has no device and no Android SDK. The rules
- * these stores must obey are pinned by `__tests__/storage.test.ts` against
- * `memory.ts`; that the SQL below implements the same rules is reviewed, not
- * tested, until it runs on the phone.
+ * TESTED through `node:sqlite` (M32 T061): `__tests__/storage-sqlite.test.ts` replaces
+ * `expo-sqlite` with a shim (`__tests__/support/node-sqlite-shim.js`) and runs the same
+ * scenarios as `__tests__/storage.test.ts` against the SQL below (seen red when a column
+ * name or a comparison is broken). Only the stores those scenarios use are exercised.
+ *
+ * NOT VERIFIED on a device: `expo-sqlite` is a native module; its engine, file storage and
+ * type coercion have not run on a phone. SQLite itself is the same library, but the shim's
+ * binding rules are a copy of expo-sqlite's, not expo-sqlite.
  */
 // 2026-10-31: the stores live in sqlite-open.ts (opening + migrations), sqlite-feeds.ts, sqlite-playback.ts and
 // sqlite-social.ts; this file re-exports every one of them, so `@/storage/sqlite` exports exactly what it did.

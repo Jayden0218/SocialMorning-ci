@@ -152,10 +152,10 @@ test('G-M28-SECRET: the cursor secret is read through the store at each use', as
   const store = ATTACHED.get(db)!.store;
   assert.equal(store.secret, 'cursor-one');
   state.values['CURSOR_SECRET'] = 'cursor-two'; clock += SECRETS_TTL_MS;
-  store.secret; await tick();
+  void store.secret; await tick();
   assert.equal(store.secret, 'cursor-two');
   delete state.values['CURSOR_SECRET']; clock += SECRETS_TTL_MS;
-  store.secret; await tick();
+  void store.secret; await tick();
   assert.equal(store.secret, `cursor:${BASE.SESSION_PEPPER}`, 'unset → the pepper signs them, as on the environment path');
 });
 

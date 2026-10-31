@@ -5,7 +5,7 @@
  *
  * The SDK already retries throttling on its own; it does NOT retry a cancelled transaction (research R3),
  * and DynamoDB Local never produces a `TransactionConflict` (research R9) — the conflict wrapper in
- * test-wrappers.ts makes one so this path is tested.
+ * test/ddb-wrappers.ts makes one so this path is tested.
  */
 import { TxCancelled } from './tx.ts';
 

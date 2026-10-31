@@ -17,7 +17,7 @@ const walk = (dir) => {
     // M9: src/ui/lib holds gluestack's generic wrappers (`<Pressable {...props} />`); their
     // names come from where they are used, so the audit checks the call sites instead.
     if (statSync(p).isDirectory()) { if (name !== 'node_modules' && p !== path.join('src', 'ui', 'lib')) walk(p); continue; }
-    if (/\.tsx$/.test(p)) files.push(p);
+    if (p.endsWith('.tsx')) files.push(p);
   }
 };
 for (const r of ROOTS) walk(r);
@@ -91,7 +91,7 @@ for (const file of files) {
     if (!/<Pressable\b/.test(lines[i])) continue;
     // The opening tag, read past arrow functions (`=>`) and comparisons in its props.
     const tag = lines.slice(i, i + 6).join(' ').replace(/=>|>=|<=/g, '').split(/>(?!=)/)[0];
-    const cls = /min-h-(\d+)(?![\d.\[])/.exec(tag);
+    const cls = /min-h-(\d+)(?![\d.[])/.exec(tag);
     const arb = /min-h-\[(\d+)px\]/.exec(tag);
     const style = /minHeight:\s*(\d+)/.exec(tag);
     const pt = cls ? Number(cls[1]) * 4 : arb ? Number(arb[1]) : style ? Number(style[1]) : undefined;

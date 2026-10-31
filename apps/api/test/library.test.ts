@@ -36,7 +36,7 @@ test('G-S1: a removal on one phone is not revived by the other phone\'s older co
   const later = await put(t, a.token, [{ kind: 'moment', key: 'm1', payload: { episodeId: 'e1', atMs: 1000, note: 'first' }, updatedAt: at(60) }]);
   assert.equal(find(later, 'moment', 'm1')?.payload['note'], 'first');
   const edited = await put(t, a.token, [{ kind: 'moment', key: 'm1', payload: { episodeId: 'e1', atMs: 1000, note: 'x'.repeat(900) }, updatedAt: at(120) }]);
-  assert.equal((find(edited, 'moment', 'm1')?.payload['note'] as string).length, 500, 'notes are capped at 500');
+  assert.equal(((find(edited, 'moment', 'm1')?.payload['note'] ?? '') as string).length, 500, 'notes are capped at 500');
   const tie = await put(t, a.token, [{ kind: 'moment', key: 'm1', payload: { note: 'tie' }, updatedAt: at(120), deletedAt: at(120) }]);
   assert.ok(find(tie, 'moment', 'm1')?.deletedAt, 'on a tie the tombstone wins');
   await t.close();

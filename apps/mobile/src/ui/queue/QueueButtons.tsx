@@ -10,18 +10,25 @@
  * M21 T047 (US3, FR-022): a long-press on "Add to queue" adds to the FRONT instead — the same
  * enqueue (and 300 limit; full → the last item drops) as Play next — with "Added to the front".
  * A screen reader reaches it as the tile's "Add to the front" action.
+ *
+ * M31 W3-B (T041; design-pulse2 `stile`, the More sheet's tiles, and `toast--queue-buttons`): a tile is 84 tall, radius 20,
+ * raise fill, 12 / 14 of padding, the icon (hot-text 22) top left and the name (Geist 600 14) with its mono 11 detail
+ * at the foot; two to a row, 10 apart. A statement of fact ("Downloaded") is the same tile with no press. The toasts are
+ * the shared toast (light, void words): "Playing next · downloading", "Added to the queue", "Added to the front",
+ * "The queue is full (300). Remove something first.", "The queue was full — the last item was dropped."
  */
 import type { AccessibilityActionEvent } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
+import { player } from '@/design/tokens';
 import { Icon, type IconName } from '@/ui/kit/Icon';
+import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
 import { queueEpisode } from '@/settings/queue';
 import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 
-/** 64 pt: one size for every tile, one or two lines (above the 48 pt floor). */
-const TILE = { minHeight: 64 };
+/** The drawn tile: 84 tall, radius 20, padding 12 / 14 (the `player` block's tile numbers). */
+const TILE = { height: player.tileHeight, borderRadius: player.panelRadius, paddingVertical: player.tilePadY, paddingHorizontal: player.tilePadX };
 
 export function SheetTile(props: {
   icon: IconName;
@@ -36,19 +43,18 @@ export function SheetTile(props: {
   selected?: boolean;
   tone?: 'normal' | 'accent' | 'muted';
 }): React.ReactElement {
-  const label = props.tone === 'accent' ? 'text-accent text-body font-bold' : props.tone === 'muted' ? 'text-muted text-body font-bold' : 'text-text text-body font-bold';
+  const c = useColours();
+  const words = props.tone === 'accent' ? 'text-hotText' : props.tone === 'muted' ? 'text-text2' : 'text-text';
   const body = (
     <>
-      <Icon name={props.icon} size={20} color={props.iconColour} />
-      <Box className="flex-1 justify-center">
-        <Text className={label} numberOfLines={2}>{props.label}</Text>
-        {props.detail ? <Text className="text-muted text-xs" numberOfLines={1}>{props.detail}</Text> : null}
+      <Icon name={props.icon} size={player.tileIcon} color={props.iconColour} />
+      <Box>
+        <Type step="compact" className={words} numberOfLines={2}>{props.label}</Type>
+        {props.detail ? <Type step="mono" className="text-text3" numberOfLines={1} style={{ fontSize: player.tileDetail, lineHeight: player.tileDetailLine }}>{props.detail}</Type> : null}
       </Box>
     </>
   );
-  // Owner, 2026-10-05 (Honor 50): icon on the left, words on the right, both centred — with the icon
-  // above, a tile with a second line ("Downloaded · 34 MB") pushed its label up over the icon.
-  const cls = 'flex-1 flex-row items-center gap-row px-row py-2 rounded-row bg-surface border border-border';
+  const cls = 'flex-1 justify-between bg-raise';
   if (!props.onPress) {
     // A statement of fact ("Downloaded", "Downloading · 43 %"), not an action.
     return <Box className={cls} style={TILE} accessible accessibilityLabel={props.detail ? `${props.accessibilityLabel ?? props.label}, ${props.detail}` : props.accessibilityLabel ?? props.label}>{body}</Box>;
@@ -66,16 +72,16 @@ export function SheetTile(props: {
         onAccessibilityAction: (e: AccessibilityActionEvent) => { if (e.nativeEvent.actionName === 'longpress') props.onLongPress?.(); },
       } : {})}
       className={cls}
-      style={TILE}
+      style={{ ...TILE, ...(props.selected === true ? { borderWidth: player.tileOutline, borderColor: c.hot } : null) }}
     >
       {body}
     </Pressable>
   );
 }
 
-/** One row of the grid: two tiles side by side. */
+/** One row of the grid: two tiles side by side, 10 apart. */
 export function TileRow(props: { children: React.ReactNode }): React.ReactElement {
-  return <Box className="flex-row gap-gap mb-gap">{props.children}</Box>;
+  return <Box className="flex-row" style={{ gap: player.tileGap, marginBottom: player.tileGap }}>{props.children}</Box>;
 }
 
 export function QueueButtons(props: { episodeId: string; onQueued?: () => void }): React.ReactElement {

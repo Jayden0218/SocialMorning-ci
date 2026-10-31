@@ -17,19 +17,21 @@ on:
 concurrency:
   group: infra-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+permissions:
+  contents: read
 jobs:
   template:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.13'
       - run: pip install cfn-lint==1.57.2
       - name: lint the stack template
         run: cfn-lint --regions ap-southeast-1 -- apps/api/infra/stack.json
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
@@ -37,7 +39,7 @@ jobs:
       # node_modules restored whole when package-lock.json, the package.json files and patches/ are unchanged
       # (exact key only: a near match is never used); a miss runs npm ci and saves right after it, before any
       # test or build writes into node_modules. ~/.npm (setup-node's cache) still speeds up the miss.
-      - uses: actions/cache/restore@v6
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: node-modules
         with:
           path: |
@@ -48,7 +50,7 @@ jobs:
       - if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci --no-audit --no-fund
       - if: steps.node-modules.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             node_modules

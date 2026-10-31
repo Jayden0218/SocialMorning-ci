@@ -14,7 +14,7 @@ if (!ON) {
   const { queryAll, countAll } = await import('../src/db/ddb/paginate.ts');
   const { batchWriteAll, batchGetAll } = await import('../src/db/ddb/batch.ts');
   const { encodeCursor, decodeCursor } = await import('../src/db/ddb/cursor.ts');
-  const { withGsiLag, withFaults } = await import('../src/db/ddb/test-wrappers.ts');
+  const { withGsiLag, withFaults } = await import('./ddb-wrappers.ts');
 
   const PAD = 'x'.repeat(100_000); // ~100 KB per item: 12 items ≈ 1.2 MB, more than one 1 MB page
   async function bigPartition(store: Parameters<typeof put>[0], n: number) {

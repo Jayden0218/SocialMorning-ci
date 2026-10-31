@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
 import { Box } from '@/ui/lib/box';
 import { hit } from '@/design';
 import { plural } from '@socialmorning/social-core';
@@ -53,7 +53,7 @@ export default function SharedListScreen(): React.ReactElement {
   return (
     <>
       <PageHeader title="Shared list" {...(right ? { right } : {})} />
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-gap pb-24 gap-row">
+      <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-gap pb-region gap-row">
         {list === undefined ? <Loader /> : list === null || hidden ? (
           <Text className="text-muted text-body">{hidden ? 'You reported this list. It is hidden for you.' : 'This list is gone, or the link is wrong.'}</Text>
         ) : (

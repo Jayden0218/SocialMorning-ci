@@ -108,8 +108,9 @@ function startPlaying(runtime: PlayerRuntime, push: (e: AdapterEvent) => void): 
 it('a TICK does not re-render a component that selects only kind', () => {
   const { runtime, push } = harness();
   let renders = 0;
+  const countRender = (): void => { renders += 1; };
   function KindOnly(): React.ReactElement {
-    renders += 1;
+    countRender();
     return createElement(Text, null, usePlayerSelector((s) => s.kind));
   }
   const tree = mount(runtime, createElement(KindOnly));
@@ -126,8 +127,9 @@ it('a TICK does not re-render a component that selects only kind', () => {
 it('the episode page view (an object) does not re-render on a TICK while it plays', () => {
   const { runtime, push } = harness();
   let renders = 0;
+  const countRender = (): void => { renders += 1; };
   function EpisodePage(): React.ReactElement {
-    renders += 1;
+    countRender();
     const v = usePlayerSelector((s) => episodePlayView(s, 'e1'), sameEpisodePlayView);
     return createElement(Text, null, v.playing ? 'playing' : v.loaded ? `at ${v.positionMs ?? 0}` : 'off');
   }
@@ -143,8 +145,9 @@ it('the episode page view (an object) does not re-render on a TICK while it play
 it('control: the whole state still re-renders per TICK (so the counts above mean something)', () => {
   const { runtime, push } = harness();
   let renders = 0;
+  const countRender = (): void => { renders += 1; };
   function Whole(): React.ReactElement {
-    renders += 1;
+    countRender();
     return createElement(Text, null, usePlayerState().kind);
   }
   mount(runtime, createElement(Whole));
@@ -162,9 +165,12 @@ it('the four screens read the player through a selector, not the whole state', (
   const fs = require('fs') as typeof import('fs');
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const path = require('path') as typeof import('path');
-  for (const f of ['app/_layout.tsx', 'app/show/[feedUrl].tsx', 'app/comments/[episodeId].tsx', 'app/episode/[id].tsx']) {
+  // M31 W2-B: the comments page reads the playhead through `usePlayheadMs` (src/ui/comments/usePlayhead.ts, one
+  // `usePlayerSelector`), so the page file names that hook where it used to name the selector.
+  for (const f of ['app/_layout.tsx', 'app/show/[feedUrl].tsx', 'app/comments/[episodeId].tsx', 'app/episode/[id].tsx', 'src/ui/comments/usePlayhead.ts']) {
     const src = fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
     expect({ f, whole: /usePlayerState\(/.test(src) }).toEqual({ f, whole: false });
-    expect({ f, selector: /usePlayerSelector\(/.test(src) }).toEqual({ f, selector: true });
+    const selector = /usePlayerSelector\(/.test(src) || (f === 'app/comments/[episodeId].tsx' && /usePlayheadMs\(/.test(src));
+    expect({ f, selector }).toEqual({ f, selector: true });
   }
 });

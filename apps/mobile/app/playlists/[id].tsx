@@ -1,35 +1,42 @@
-// One playlist: its episodes in order, Play all; yours can be renamed, reordered, made public or deleted.
+// One playlist as a deck of numbered episode cards; Play all; yours can be renamed, reordered, made public or deleted.
 /**
  * M19 T041 (US4, FR-030/031): a playlist (合集). Anyone opens a public one; someone else's
- * private one answers not found (the server's 404). The serif title, "By <owner> · n episodes",
- * then a yellow "Play all" pill: the first episode plays now and the rest go next in the queue,
- * in order (each episode is resolved through its show's feed first, as Discover's cards are).
+ * private one answers not found (the server's 404). "By <owner> · n episodes", then a light "Play all" pill: the first
+ * episode plays now and the rest go next in the queue, in order (each episode is resolved through its show's feed first,
+ * as Discover's cards are).
  *
- * Yours adds: a Public switch (the app's own Toggle), Rename (an inline name box), Delete (asks
- * first, through the app's own confirm sheet), and on every episode row Move up · Move down ·
- * Remove. No drag library (no new dependencies): the arrows are 48 pt buttons, and every change
- * sends the whole ordered list (PUT …/items), so the order reaches your other phones (FR-032).
+ * Yours adds: a Public switch (the app's own Toggle), Rename, Delete (asks first, through the app's own confirm
+ * dialog), and on every episode card Move up · Move down · Remove. No drag library (no new dependencies): the buttons are
+ * 48 pt targets, and every change sends the whole ordered list (PUT …/items), so the order reaches your other phones (FR-032).
+ *
+ * M31 W3-C (T041; design-pulse2 `listen.html` `playlist--screen`, `playlist--rename`, `playlist--delete-dialog`,
+ * `playlist--missing`, `toast--playlist`; layout pattern Deck, as the Queue): the Public switch and its line sit at the
+ * top (14 under the status bar); the numbered cards — 290 × 330, the cover 46 % with its number on it, the show, the
+ * episode in Unbounded 700 18 — snap one at a time with dots under them. A card's foot: ‹ and › (move up and down), × (remove),
+ * and the 44 light play circle; tapping the card opens the episode. The title bar is low: the playlist's name (tap it to
+ * rename), "By you · 12 episodes", a pencil (Rename playlist) and a bin (Delete playlist), the light "Play all 12
+ * episodes" above it. Renaming turns the foot into the field (Unbounded 700 20, a hot ring) with Cancel and Save. Someone else's
+ * playlist shows "By {name}" and none of the edit controls. Not found: the grey glow and today's words.
  */
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Input, InputField } from '@/ui/lib/input';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
+import { colour, spacing } from '@/design';
 import { useSocial } from '@/social/context';
 import { ApiError, type EpisodeCard } from '@/social/api';
 import { PLAYLIST_TITLE_MAX, useM19Api, type Playlist } from '@/social/m19-api';
-import { goBack, PageHeader } from '@/ui/kit/PageHeader';
-import { EndOfList } from '@/ui/kit/EndOfList';
+import { goBack } from '@/ui/kit/PageHeader';
+import { Fade } from '@/ui/kit/Fade';
 import { Loader } from '@/ui/kit/Loader';
-import { Artwork } from '@/ui/kit/Artwork';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Icon } from '@/ui/kit/Icon';
-import { Card } from '@/ui/kit/Card';
 import { Toggle } from '@/ui/kit/Toggle';
+import { Type } from '@/ui/kit/Type';
 import { useConfirm } from '@/ui/kit/confirm';
-import { useColours } from '@/ui/kit/useColours';
+import { CoverBand } from '@/ui/discover/Deck';
 import { useCardActions } from '@/discover/useDiscover';
 import { resolveCard } from '@/discover/open';
 import { refreshShow } from '@/feeds/fetch';
@@ -38,19 +45,22 @@ import { queueEpisode } from '@/settings/queue';
 import { usePlayer } from '@/playback/store';
 import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 import { plural } from '@socialmorning/social-core';
-
-const TAP = { minHeight: hit.min };
-const ROUND = { minHeight: hit.min, minWidth: hit.min };
-/** B's primary pill: 52 pt. */
-const PILL = { minHeight: 52 };
+import { ME_TYPE } from '@/ui/me/measures';
+import { CardDeck, DRAWN, emptyTop, KeyboardPage, PageEmpty, round, slop } from '@/ui/me/lists';
 
 type State = { kind: 'loading' } | { kind: 'missing' } | { kind: 'error' } | { kind: 'ok'; playlist: Playlist; items: EpisodeCard[] };
+
+/** The card: 290 × 330, radius 26, the cover 46 % of it; the foot's tools are 36 and the play circle 44. */
+const CARD = { height: 330, radius: 26, coverShare: 0.46, tool: 36, play: 44 } as const;
+const COVER = Math.round(CARD.height * CARD.coverShare);
+/** The Public row sits 64 from the top of the drawn phone; the deck 100. */
+const ROW_TOP = 64;
+const DECK_TOP = 100;
 
 export default function PlaylistScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { listener } = useSocial();
   const stores = useStores();
-  const c = useColours(stores.settings);
   const toast = useToast();
   const player = usePlayer();
   const downloads = useDownloads();
@@ -69,20 +79,17 @@ export default function PlaylistScreen(): React.ReactElement {
   useFocusEffect(load);
 
   if (state.kind !== 'ok') {
+    const grey = state.kind === 'missing' || state.kind === 'error';
     return (
-      <>
-      <PageHeader title="Playlist" />
-      <Box className="flex-1 bg-background px-screen-x gap-row">
-        {state.kind === 'loading' ? <Box className="items-center p-4"><Loader /></Box> : null}
-        {state.kind === 'missing' ? <Text className="text-muted text-body">This playlist was not found. It may be private, or deleted.</Text> : null}
-        {state.kind === 'error' ? (
-          <>
-            <Text className="text-text text-body">Couldn't load this playlist right now.</Text>
-            <Pressable onPress={() => { setState({ kind: 'loading' }); load(); }} accessibilityRole="button" accessibilityLabel="Retry" className="justify-center self-start" style={TAP}><Text className="text-accent text-body font-semibold">Retry</Text></Pressable>
-          </>
-        ) : null}
-      </Box>
-      </>
+      <PushedPage title="Playlist" tone={grey ? 'grey' : 'hot'}>
+        {(l) => (
+          <Box className="flex-1 items-center" style={{ paddingTop: l.top + (DRAWN.listTop - DRAWN.status) }}>
+            {state.kind === 'loading' ? <Box style={{ marginTop: emptyTop(260) }}><Loader /></Box> : null}
+            {state.kind === 'missing' ? <PageEmpty top={emptyTop(260)} title="Not found" line="This playlist was not found. It may be private, or deleted." /> : null}
+            {state.kind === 'error' ? <PageEmpty top={emptyTop(260)} title="Couldn't load" line="Couldn't load this playlist right now." action={{ label: 'Retry', onPress: () => { setState({ kind: 'loading' }); load(); } }} /> : null}
+          </Box>
+        )}
+      </PushedPage>
     );
   }
 
@@ -154,84 +161,103 @@ export default function PlaylistScreen(): React.ReactElement {
   };
 
   const by = playlist.owner ? `By ${mine ? 'you' : playlist.owner.displayName} · ` : '';
-  return (
-    <>
-    <PageHeader title={playlist.title} subtitle={`${by}${plural(items.length, 'episode')}`} />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-gap pb-24 gap-section">
-      <Pressable onPress={() => void playAll()} disabled={busy || items.length === 0} accessibilityRole="button" accessibilityLabel={`Play all ${plural(items.length, 'episode')}`} accessibilityState={{ disabled: busy || items.length === 0 }} className={`flex-row gap-gap items-center justify-center rounded-pill bg-primary ${items.length === 0 ? 'opacity-40' : ''}`} style={PILL}>
-        <Icon name="play" size={18} color={c.onPrimary} />
-        <Text className="text-onPrimary text-body font-bold">Play all</Text>
-      </Pressable>
-
-      {mine ? (
-        <Card className="py-row gap-row">
-          <Box className="flex-row items-center gap-section" style={TAP}>
-            <Box className="flex-1">
-              <Text className="text-text text-body font-bold">Public</Text>
-              <Text className="text-muted text-xs mt-0.5">{playlist.isPublic ? 'On your profile; anyone with the link can open it' : 'Only you can see it'}</Text>
+  const card = (i: number) => {
+    const e = items[i]!;
+    return (
+      <Box testID="playlist-card" className="bg-raise border border-line overflow-hidden" style={{ height: CARD.height, borderRadius: CARD.radius }}>
+        <Pressable onPress={() => void cards.open(e)} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${e.title}, ${e.showTitle}`} className="flex-1">
+          <Box style={{ height: COVER }}>
+            <CoverBand url={e.imageUrl} name={e.showTitle} height={COVER} />
+            <Box className="absolute bg-glassDark" style={{ left: spacing.row, top: spacing.row, borderRadius: 6, paddingHorizontal: spacing.hair + 3, paddingVertical: 5 }} accessible={false}>
+              <Type step="mono" className="text-text" style={ME_TYPE.mono11}>{String(i + 1)}</Type>
             </Box>
-            <Toggle value={playlist.isPublic} onChange={setPublic} label="Public playlist" />
           </Box>
-          {renaming !== undefined ? (
-            <Box className="flex-row items-center gap-gap">
-              <Input className="flex-1 bg-background border border-border rounded-row h-auto px-0">
-                <InputField value={renaming} onChangeText={setRenaming} maxLength={PLAYLIST_TITLE_MAX} placeholder="Playlist name" placeholderTextColor={c.muted} accessibilityLabel="Playlist name" returnKeyType="done" onSubmitEditing={rename} autoFocus className="p-row text-text text-body" />
-              </Input>
-              <Pressable onPress={() => setRenaming(undefined)} accessibilityRole="button" accessibilityLabel="Cancel rename" className="justify-center px-row" style={TAP}><Text className="text-accent text-body font-bold">Cancel</Text></Pressable>
-              <Pressable onPress={rename} disabled={busy} accessibilityRole="button" accessibilityLabel="Save name" className="justify-center rounded-pill bg-primary px-section" style={TAP}><Text className="text-onPrimary text-body font-bold">Save</Text></Pressable>
-            </Box>
-          ) : (
-            <Box className="flex-row gap-row">
-              <Pressable onPress={() => setRenaming(playlist.title)} accessibilityRole="button" accessibilityLabel="Rename playlist" className="flex-1 flex-row gap-gap items-center justify-center rounded-pill border border-border bg-background" style={TAP}>
-                <Icon name="create-outline" size={18} color={c.accent} />
-                <Text className="text-text text-body font-semibold">Rename</Text>
+          <Box className="flex-1" style={{ padding: 14, gap: 7 }}>
+            <Type step="caption" className="text-text2" style={ME_TYPE.node12} numberOfLines={1}>{e.showTitle}</Type>
+            <Type step="lede" className="text-text" style={ME_TYPE.cardTitle18} numberOfLines={3}>{e.title}</Type>
+          </Box>
+        </Pressable>
+        <Box className="flex-row items-center" style={{ gap: spacing.gap, paddingHorizontal: 14, paddingBottom: 14 }}>
+          {mine ? (
+            <>
+              <Pressable onPress={() => move(i, i - 1)} disabled={i === 0} accessibilityRole="button" accessibilityLabel={`Move ${e.title} up`} accessibilityState={{ disabled: i === 0 }} hitSlop={slop(CARD.tool)} className={`bg-raise2 items-center justify-center ${i === 0 ? 'opacity-40' : ''}`} style={round(CARD.tool)}>
+                <Icon name="chevron-back" size={16} color={colour.text} />
               </Pressable>
-              <Pressable onPress={remove} accessibilityRole="button" accessibilityLabel="Delete playlist" className="flex-1 flex-row gap-gap items-center justify-center rounded-pill border border-border bg-background" style={TAP}>
-                <Icon name="trash-outline" size={18} color={c.accent} />
-                <Text className="text-text text-body font-semibold">Delete</Text>
+              <Pressable onPress={() => move(i, i + 1)} disabled={i === items.length - 1} accessibilityRole="button" accessibilityLabel={`Move ${e.title} down`} accessibilityState={{ disabled: i === items.length - 1 }} hitSlop={slop(CARD.tool)} className={`bg-raise2 items-center justify-center ${i === items.length - 1 ? 'opacity-40' : ''}`} style={round(CARD.tool)}>
+                <Icon name="chevron-forward" size={16} color={colour.text} />
               </Pressable>
-            </Box>
-          )}
-        </Card>
-      ) : null}
+              <Pressable onPress={() => saveOrder(items.filter((x) => x.id !== e.id))} accessibilityRole="button" accessibilityLabel={`Remove ${e.title} from the playlist`} hitSlop={slop(CARD.tool)} className="bg-raise2 items-center justify-center" style={round(CARD.tool)}>
+                <Icon name="close" size={16} color={colour.text} />
+              </Pressable>
+            </>
+          ) : null}
+          <Box className="flex-1" />
+          <Pressable onPress={() => void cards.play(e)} accessibilityRole="button" accessibilityLabel={`Play ${e.title}`} hitSlop={slop(CARD.play)} className="bg-text items-center justify-center" style={[round(CARD.play), { paddingLeft: 2 }]}>
+            <Icon name="play" size={18} color={colour.void} />
+          </Pressable>
+        </Box>
+      </Box>
+    );
+  };
 
-      <Box className="gap-row">
-        {items.length === 0 ? (
-          <Text className="text-muted text-body">{mine ? 'No episodes yet. Use Add to playlist in any episode\'s menu.' : 'No episodes in this playlist yet.'}</Text>
-        ) : items.map((e, i) => (
-          <Box key={e.id} className="bg-surface border border-border rounded-row p-row gap-gap">
-            <Box className="flex-row gap-row items-center">
-              <Pressable onPress={() => void cards.open(e)} accessibilityRole="button" accessibilityLabel={`${i + 1}. ${e.title}, ${e.showTitle}`} className="flex-1 flex-row gap-row items-center" style={TAP}>
-                <Text className="text-muted text-meta font-bold w-6 text-center">{i + 1}</Text>
-                <Artwork url={e.imageUrl} size={52} name={e.showTitle} />
-                <Box className="flex-1 gap-0.5">
-                  <Text className="text-text text-sm font-display" numberOfLines={2}>{e.title}</Text>
-                  <Text className="text-muted text-xs" numberOfLines={1}>{e.showTitle}</Text>
-                </Box>
-              </Pressable>
-              <Pressable onPress={() => void cards.play(e)} accessibilityRole="button" accessibilityLabel={`Play ${e.title}`} className="items-center justify-center rounded-pill bg-playDisc" style={ROUND}>
-                <Icon name="play" size={18} color={c.playGlyph} />
-              </Pressable>
-            </Box>
+  return (
+    <KeyboardPage>
+      <PushedPage
+        title={playlist.title}
+        subtitle={`${by}${plural(items.length, 'episode')}`}
+        bare={renaming !== undefined}
+        {...(mine && renaming === undefined ? {
+          onTitle: () => setRenaming(playlist.title),
+          titleLabel: `${playlist.title}, rename`,
+          actions: [
+            { icon: 'pencil-outline' as const, label: 'Rename playlist', onPress: () => setRenaming(playlist.title) },
+            { icon: 'trash-outline' as const, label: 'Delete playlist', onPress: remove },
+          ],
+        } : {})}
+        extra={<PulseButton label={`Play all ${plural(items.length, 'episode')}`} accessibilityLabel={`Play all ${plural(items.length, 'episode')}`} icon="play" onPress={() => void playAll()} disabled={busy || items.length === 0} full />}
+        extraAbove={48}
+      >
+        {(l) => (
+          <Box className="flex-1">
             {mine ? (
-              <Box className="flex-row justify-end gap-1">
-                <Pressable onPress={() => move(i, i - 1)} disabled={i === 0} accessibilityRole="button" accessibilityLabel={`Move ${e.title} up`} accessibilityState={{ disabled: i === 0 }} className={`items-center justify-center rounded-pill border border-border ${i === 0 ? 'opacity-40' : ''}`} style={ROUND}>
-                  <Icon name="arrow-up" size={18} color={c.text} />
-                </Pressable>
-                <Pressable onPress={() => move(i, i + 1)} disabled={i === items.length - 1} accessibilityRole="button" accessibilityLabel={`Move ${e.title} down`} accessibilityState={{ disabled: i === items.length - 1 }} className={`items-center justify-center rounded-pill border border-border ${i === items.length - 1 ? 'opacity-40' : ''}`} style={ROUND}>
-                  <Icon name="arrow-down" size={18} color={c.text} />
-                </Pressable>
-                <Pressable onPress={() => saveOrder(items.filter((x) => x.id !== e.id))} accessibilityRole="button" accessibilityLabel={`Remove ${e.title} from the playlist`} className="items-center justify-center rounded-pill border border-border" style={ROUND}>
-                  <Icon name="close" size={18} color={c.text} />
-                </Pressable>
+              <Box testID="playlist-public" className="absolute flex-row items-center justify-between" style={{ left: spacing.screenX, right: spacing.screenX, top: l.top + (ROW_TOP - DRAWN.status), gap: spacing.row }}>
+                <Box className="flex-row items-center" style={{ gap: spacing.gap }}>
+                  <Toggle value={playlist.isPublic} onChange={setPublic} label="Public playlist" />
+                  <Type step="caption" className="text-text font-semibold">Public</Type>
+                </Box>
+                <Type step="caption" className="text-text2 flex-1 text-right" style={ME_TYPE.node12} numberOfLines={2}>{playlist.isPublic ? 'On your profile; anyone with the link can open it' : 'Only you can see it'}</Type>
               </Box>
             ) : null}
+            <Box style={{ paddingTop: l.top + (DECK_TOP - DRAWN.status) }}>
+              {items.length === 0 ? (
+                <PageEmpty
+                  top={emptyTop(260) - (DECK_TOP - DRAWN.listTop)}
+                  title={mine ? 'No episodes yet' : 'No episodes in this playlist yet.'}
+                  {...(mine ? { line: "Use Add to playlist in any episode's menu." } : {})}
+                />
+              ) : (
+                <CardDeck count={items.length} height={CARD.height} label={playlist.title} card={card} />
+              )}
+            </Box>
+            {renaming !== undefined ? (
+              <>
+                <Fade bottom={0} height={260} />
+                <Box testID="playlist-rename" className="absolute" style={{ left: spacing.screenX, right: spacing.screenX, bottom: l.titleBottom, gap: spacing.row - 2, zIndex: 20 }}>
+                  <Type step="mono" className="text-text3 uppercase" style={ME_TYPE.mono11}>Playlist name</Type>
+                  <Input className="bg-raise2 border-hot h-auto" style={{ borderRadius: 18, borderWidth: 1.5, paddingHorizontal: 0 }}>
+                    <InputField value={renaming} onChangeText={setRenaming} maxLength={PLAYLIST_TITLE_MAX} placeholder="Playlist name" placeholderTextColor={colour.text3} accessibilityLabel="Playlist name" returnKeyType="done" onSubmitEditing={rename} autoFocus className="text-text font-display font-bold" style={[ME_TYPE.rename20, { height: 48, paddingHorizontal: spacing.row + 2 }]} />
+                  </Input>
+                  <Box className="flex-row" style={{ gap: spacing.row - 2 }}>
+                    <Pressable onPress={() => setRenaming(undefined)} accessibilityRole="button" accessibilityLabel="Cancel rename" className="flex-1 bg-raise items-center justify-center rounded-pill" style={{ height: 48 }}><Type step="row" className="text-text">Cancel</Type></Pressable>
+                    <Pressable onPress={rename} disabled={busy} accessibilityRole="button" accessibilityLabel="Save name" className="flex-1 bg-text items-center justify-center rounded-pill" style={{ height: 48 }}><Type step="row" className="text-void">Save</Type></Pressable>
+                  </Box>
+                </Box>
+              </>
+            ) : null}
+            {dialog}
           </Box>
-        ))}
-        {items.length > 0 ? <EndOfList /> : null}
-      </Box>
-    </ScrollView>
-    {dialog}
-    </>
+        )}
+      </PushedPage>
+    </KeyboardPage>
   );
 }

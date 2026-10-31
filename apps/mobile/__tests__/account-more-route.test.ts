@@ -33,6 +33,8 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => mockStores }));
 jest.mock('@/social/context', () => ({ useSocial: () => mockSocial }));
+// M31 S-A: the pages are `PushedPage`s (the bottom title bar); it asks the toast placement whether the now bar shows — there is no player here.
+jest.mock('@/ui/shell/toastPlacement', () => ({ useToastPlacement: () => ({ tabs: false, now: false, player: false }) }));
 
 import AccountSecurityScreen from '../app/settings/account';
 import AccountMoreScreen from '../app/settings/account-more';
@@ -52,9 +54,11 @@ async function render(page: () => ReactElement): Promise<ReactTestRenderer> {
 }
 afterEach(() => { for (const r of rendered.splice(0)) act(() => r.unmount()); mockPush.mockClear(); });
 
+// The page's title is the header that holds words; an edge label (M31: ACCOUNT, DEVICES …) is a header too, but its words are drawn by a child.
 const headers = (r: ReactTestRenderer): string[] =>
   r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header')
-    .map((n) => n.children.filter((c): c is string => typeof c === 'string').join(''));
+    .map((n) => n.children.filter((c): c is string => typeof c === 'string').join(''))
+    .filter((t) => t !== '');
 const labelled = (r: ReactTestRenderer, label: string): ReactTestInstance[] =>
   r.root.findAll((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');
 const press = async (r: ReactTestRenderer, label: string) => {
@@ -91,7 +95,7 @@ it('the More page is a route with the app\'s own bar and the deletion flow', asy
   expect(typeof AccountMoreScreen).toBe('function');
   const r = await render(AccountMoreScreen);
   expect(headers(r)).toEqual(['More']);
-  // The app's own back button (PageHeader → TopBar), never a native header.
+  // The app's own back button (the bottom title bar's back circle, M31), never a native header.
   expect(labelled(r, 'Back')).not.toHaveLength(0);
   await press(r, 'Delete my account');
   expect(headers(r)).toEqual(['Delete my account']);

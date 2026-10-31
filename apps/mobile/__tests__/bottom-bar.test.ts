@@ -26,7 +26,7 @@ function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
     if (statSync(path).isDirectory()) return files(path);
-    return /\.tsx$/.test(name) ? [path] : [];
+    return name.endsWith('.tsx') ? [path] : [];
   });
 }
 
@@ -39,8 +39,10 @@ const OWN_BOTTOM = new Set([
   'app/_layout.tsx', // the root itself
   'app/voice/new.tsx', // presentation: 'modal' — a native modal, outside the root's padding
   'src/ui/shell/LegalDoc.tsx', // inside a React Native Modal
+  'src/ui/episode/PictureViewer.tsx', // M31 W3-A: full-screen pictures in a React Native Modal, outside the root's padding; its Close / Save bar pads the strip itself
   'src/ui/shell/Terms.tsx', // drawn by AppProviders, outside the root's padding: its bar centres itself over the strip
   'app/player.tsx', // owner 2026-10-06: the root leaves its strip to the player, whose wash reaches the bottom edge
+  'src/ui/player/measures.ts', // M31 round 2: `playerLayout` lifts the player's bottom parts by the inset above the drawn 34 (app/player.tsx calls it)
   'src/ui/player/SettingsPanel.tsx', // M21 US2: full-screen panel over the player (which pads its own bottom), so it pads its own too
 ]);
 
@@ -84,7 +86,7 @@ it.each([['none', 0], ['row', 12], ['section', 16]] as const)('BottomBar pad="%s
   let r!: ReactTestRenderer;
   act(() => {
     r = create(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } },
-      createElement(BottomBar, { tone: 'surface', pad, className: 'flex-row gap-row', children: createElement(Text, { testID: 'inside' }, 'Send code') })));
+      createElement(BottomBar, { tone: 'surface', pad, className: 'flex-row gap-row' } as React.ComponentProps<typeof BottomBar>, createElement(Text, { testID: 'inside' }, 'Send code'))));
   });
   const hosts = r.root.findAll((n) => typeof n.type === 'string');
   expect(vertical(flat(hosts[0]!.props['style']))).toEqual([pt, pt]);

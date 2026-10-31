@@ -56,7 +56,7 @@ export async function revokeClaim(t: TestDb, feedUrl: string): Promise<void> {
 }
 
 /** A proven claim without the role copy or the Studio (for the app's tests: hosts, show info). */
-export async function provenClaim(t: TestDb, listenerId: string, feedUrl: string, code = 'code-1'): Promise<void> {
+export async function provenClaim(t: TestDb, listenerId: string, feedUrl: string, _code = 'code-1'): Promise<void> {
   await (await import('./fixtures.ts')).proveClaimItem(t.store, listenerId, feedUrl);
 }
 

@@ -44,6 +44,7 @@ import {
   nowMs, purchaseItem, purchasePtrItem, purchasesOfListener, putRows, readPlus, rechain, zoneOf, ackDue, type EntItem, type PurchaseItem,
 } from './common.ts';
 import { hostedPriceTier, tipsEnabled } from './foreign.ts';
+import { log } from '../../../../log.ts';
 
 const PLUS_STORE = '';
 
@@ -127,7 +128,7 @@ export async function grantGoogle(store: Store, db: Db, play: GooglePlay, p: Gra
       await play.acknowledge(kind === 'plus' ? 'subscription' : 'product', p.productId, p.purchaseToken);
       await upd(store, 'main', key, { update: 'SET acknowledgedAt = :now REMOVE G4PK, G4SK', condition: 'attribute_exists(PK)', values: { ':now': at } });
     } catch (e) {
-      console.error('google acknowledge failed; the cycle retries', e instanceof Error ? e.message : String(e));
+      log.error('google_acknowledge_failed', { error: e });
     }
   } else if (acknowledged) {
     await upd(store, 'main', key, { update: 'SET acknowledgedAt = if_not_exists(acknowledgedAt, :now) REMOVE G4PK, G4SK', condition: 'attribute_exists(PK)', values: { ':now': at } });
@@ -225,10 +226,10 @@ export async function applyVoided(store: Store, db: Db, voided: { purchaseToken:
     try {
       const outcome = await withRetry(() => refundOne(store, db, v), { tries: 4, retryOn: retryable('purchase', 'ent', 'plusv') });
       if (outcome === 'withdrawn') withdrawn++;
-      if (outcome === 'unknown') { unknown++; console.warn('google refund for a purchase this server never saw'); }
+      if (outcome === 'unknown') { unknown++; log.warn('google_refund_unknown_purchase'); }
     } catch (e) {
       failed++;
-      console.error('google refund failed; the next run retries it', e instanceof Error ? e.message : String(e));
+      log.error('google_refund_failed', { error: e });
     }
   }
   return { withdrawn, unknown, ...(failed > 0 ? { failed } : {}) };

@@ -47,7 +47,7 @@ async function replaceOne(store: Store, listenerId: string, deviceId: string, d:
     const after = unionLength([...others, merged]);
     const now = isoNow(store.clock);
     const v = Number(lday?.['v'] ?? 0);
-    const eps = { ...((lday?.['eps'] as unknown as Record<string, number> | undefined) ?? {}), [d.episodeId]: after };
+    const eps = { ...(lday?.['eps'] as unknown as Record<string, number> | undefined), [d.episodeId]: after };
     const t = tx(store)
       .put('main', encode('listenedRange', K.listenedRange(listenerId, d.episodeId, d.day, deviceId), { listenerId, episodeId: d.episodeId, day: d.day, deviceId, ranges: merged, updatedAt: now }))
       .put('main', encode('listenedDay', K.listenedDay(listenerId, d.day), { listenerId, day: d.day, eps, v: v + 1, updatedAt: now }), lday

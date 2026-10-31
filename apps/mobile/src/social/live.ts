@@ -8,12 +8,13 @@
 import { useEffect, useState } from 'react';
 import { deviceId } from '@/sync/device-id';
 import { useM12Api } from './m12-api';
+import { compactCount } from '@/ui/kit/format';
 
 export const LIVE_EVERY_MS = 60_000;
 
 /** What the chip says, or nothing. */
 export function liveLabel(count: number | undefined): string | undefined {
-  return count !== undefined && count >= 2 ? `${count} listening now` : undefined;
+  return count !== undefined && count >= 2 ? `${compactCount(count)} listening now` : undefined;
 }
 
 export function useListeningNow(episodeId: string | undefined, playing: boolean): number | undefined {

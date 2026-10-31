@@ -1,7 +1,7 @@
 // Starts the API locally on Node, on DynamoDB Local (DDB_ENDPOINT) — see src/config.ts.
 import { serve } from '@hono/node-server';
 import { createApp } from './app.ts';
-import { dbFromConfig, depsFromEnv, readConfig } from './config.ts';
+import { dbFromConfig, depsFromEnv, port as portFromEnv, readConfig } from './config.ts';
 
 const config = readConfig();
 // On a local DynamoDB the tables may not exist yet (`npm run dev:ddb`): create the missing ones before listening.
@@ -17,7 +17,7 @@ if (config.ddbEndpoint) {
 }
 
 const app = createApp(await depsFromEnv());
-const port = Number(process.env.PORT ?? 3000);
+const port = portFromEnv();
 serve({ fetch: app.fetch, port }, () => {
   console.log(`api listening on :${port} (${config.appEnv}, DynamoDB)`);
 });

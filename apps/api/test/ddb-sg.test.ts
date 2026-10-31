@@ -26,7 +26,7 @@ if (!ON) {
 } else {
   const { freshDb, signUp } = await import('./harness.ts');
   const { withStore } = await import('../src/db/backend-ddb.ts');
-  const { withConflicts } = await import('../src/db/ddb/test-wrappers.ts');
+  const { withConflicts } = await import('./ddb-wrappers.ts');
   const { encode, ITEM_TYPES, PERSON_ATTRS, CodecError } = await import('../src/db/ddb/codec.ts');
   const K = await import('../src/db/ddb/keys.ts');
   const { follow, unfollow } = await import('../src/db/repos/social/follows.ts');

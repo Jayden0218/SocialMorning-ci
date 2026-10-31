@@ -23,7 +23,8 @@ it('no layout → today\'s order, every section', () => {
   expect(sectionOrder(undefined)).toEqual([...SECTION_IDS]);
   // M24 US20 (`Home-B`): the pick card first, For You after it.
   // M25 A5: one id per thing drawn; `followedHere` (drew nothing) is gone.
-  expect(SECTION_IDS).toEqual(['picks', 'theirLikes', 'forYou', 'pickedShows', 'chart', 'categories', 'shows', 'premium', 'video', 'collections', 'said', 'newShows', 'hunt']);
+  // M31 F2a (design-pulse2 home--fold-a/-b): Picks, For you, Their likes, Charts, Genres, Shows, Premium, Video, Lists, Said, New, Hunt.
+  expect(SECTION_IDS).toEqual(['picks', 'forYou', 'theirLikes', 'chart', 'categories', 'pickedShows', 'shows', 'premium', 'video', 'collections', 'said', 'newShows', 'hunt']);
   expect(buildModel(BODY, undefined, none).order).toEqual([...SECTION_IDS]);
 });
 
@@ -42,7 +43,7 @@ it('follows the owner\'s order; unlisted sections keep today\'s order after it',
   const order = sectionOrder({ order: ['said', 'video', 'picks'], hidden: [] });
   // M25 A5: a part split from a listed bundle (theirLikes from picks) sits right after it.
   expect(order.slice(0, 4)).toEqual(['said', 'video', 'picks', 'theirLikes']);
-  expect(order.slice(4)).toEqual(['forYou', 'pickedShows', 'chart', 'categories', 'shows', 'premium', 'collections', 'newShows', 'hunt']);
+  expect(order.slice(4)).toEqual(['forYou', 'chart', 'categories', 'pickedShows', 'shows', 'premium', 'collections', 'newShows', 'hunt']);
 });
 
 it('unknown ids and duplicates are ignored', () => {

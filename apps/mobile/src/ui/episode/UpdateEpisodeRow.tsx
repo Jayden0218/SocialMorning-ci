@@ -1,43 +1,29 @@
-// One episode card on Updates: notes, plays, comments, small buttons, Play.
+// One episode card on the Updates deck: cover with date and length, show, title, small buttons, Play.
 /**
- * One episode row on the Updates tab (Owner, 2026-10-01, row 9): artwork, title, show notes,
- * the show — then a meta line "duration · ago · (headset) plays · (chat) comments" and a row of
- * small icon buttons (queue, comments, download, more) with the round play button at the right.
- * Plays and comments come from ONE comment-counts call for the whole page (M12 FR-080); a count
- * that is 0 or unknown is left out, never shown as "0".
+ * One episode on the Updates tab (Owner, 2026-10-01, row 9). Plays and comments come from ONE comment-counts call for the whole page
+ * (M12 FR-080); a count that is 0 or unknown is left out, never shown as "0".
  *
- * M17 (`Library-B`, T041): each row is a white `Card` — 64 pt artwork beside the show (accent)
- * and the episode title in the serif; the notes and the meta line under them at full width; a
- * hairline, then the four icon buttons and a yellow "Play" pill at the right. Same buttons,
- * names and handlers as before.
- * M21 US4: a long-press on the episode opens the ⋯ sheet too.
- * M21 US8 (FR-070): a video episode shows a small video mark before the show name (and says so).
- * M22 US12 (FR-036/037): the row swipes — left for Queue and Remove from Updates, right for Mark
- * played (src/ui/kit/SwipeRow.tsx); each is also an accessibility action on the episode button.
+ * M31 D-A (T031; design-pulse2 `index.html#updates--screen`, layout pattern Deck): the row became a 290 x 350 card (radius 26, a 1 line,
+ * raise) — a 150 cover with the date and length in a mono chip at its corner ("TODAY · 48 MIN"), then the show (opens it, with a ›), the
+ * title in Unbounded 700 19 (opens the episode) and, at the foot, four 40 circles (the drawing's `ibtn fill` is the card's own raise colour, so a circle shows only its glyph until it is used) — Queue, Comments, Download, More — and Play (46,
+ * the light disc). A swipe up marks the episode played, a swipe down removes it from Updates (`SwipeCard`; also two accessibility
+ * actions on the title). Plays and comments are no longer printed on the card (the drawing has no line for them): they are in the
+ * title's spoken name. Queue is not in the drawing's action list; it stays as a fourth circle so nothing is lost.
+ * M21 US4: a long-press on the title opens the ⋯ sheet too. M21 US8 (FR-070): a video episode says so in the spoken name and on the chip.
  */
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Artwork } from '@/ui/kit/Artwork';
-import { Card, CardDivider } from '@/ui/kit/Card';
-import { CommentsButton } from '@/ui/comments/CommentsButton';
-import { Icon, PlayIcon, type IconName } from '@/ui/kit/Icon';
-import { ago, minutesLabel } from '@/ui/kit/format';
-import { hit } from '@/design';
+import { Type } from '@/ui/kit/Type';
+import { Icon, PlayIcon } from '@/ui/kit/Icon';
+import { TimestampChip } from '@/ui/kit/TimestampChip';
+import { CoverBand } from '@/ui/discover/Deck';
+import { ago, chipClock, compactCount, minutesLabel, mmss, shortDate } from '@/ui/kit/format';
+import { colour } from '@/design';
 import { mediaKindOf, plural } from '@socialmorning/social-core';
 import type { UpdateRow } from '@/me/updates';
-import { SwipeRow, swipeA11y, type SwipeAction } from '@/ui/kit/SwipeRow';
-
-const TAP = { minHeight: hit.min, minWidth: hit.min };
-/** The episode link and the Play pill: 48 pt tall, any width. */
-const PILL = { minHeight: hit.min };
-
-/** "999", "1.2k", "12k" — short enough for the meta line. */
-export function compactCount(n: number): string {
-  if (n < 1000) return String(n);
-  if (n < 10_000) return `${(Math.floor(n / 100) / 10).toString()}k`;
-  return `${Math.floor(n / 1000)}k`;
-}
+import { swipeA11y, type SwipeAction } from '@/ui/kit/SwipeRow';
+import { SwipeCard } from '@/ui/library/SwipeCard';
+import { LIB_TYPE, UPDATES } from '@/ui/library/measures';
 
 export type UpdateMeta = { lead: string; plays?: number; comments?: number; label: string };
 
@@ -53,24 +39,34 @@ export function updateMeta(p: { durationMs?: number | undefined; publishedAt?: n
   return { lead, ...(plays !== undefined ? { plays } : {}), ...(comments !== undefined ? { comments } : {}), label };
 }
 
-function IconButton(props: { name: IconName; label: string; colour: string; onPress: () => void; selected?: boolean }): React.ReactElement {
-  return (
-    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.label} {...(props.selected !== undefined ? { accessibilityState: { selected: props.selected } } : {})} className="items-center justify-center pr-section" style={TAP}>
-      <Icon name={props.name} size={20} color={props.colour} />
-    </Pressable>
-  );
+const DAY = 86_400_000;
+/** The cover chip: "TODAY · 48 MIN", "YESTERDAY · 38 MIN", else the date. Either part is left out when unknown. */
+export function coverChip(publishedAt: number | undefined, durationMs: number | undefined, now: number): string {
+  const startOfDay = (ms: number) => { const d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  let when = '';
+  if (publishedAt !== undefined) {
+    const days = Math.round((startOfDay(now) - startOfDay(publishedAt)) / DAY);
+    when = days <= 0 ? 'TODAY' : days === 1 ? 'YESTERDAY' : shortDate(publishedAt);
+  }
+  return [when, minutesLabel(durationMs).toUpperCase()].filter((s) => s !== '').join(' · ');
 }
+
+/** The 40 round tools of the card: the raise disc (light with void glyph once used — queued, downloading, downloaded), the glyph 18, touched 48. */
+const TOOL = { width: UPDATES.card.action, height: UPDATES.card.action, borderRadius: UPDATES.card.action / 2 };
+const TOOL_SLOP = Math.ceil((48 - UPDATES.card.action) / 2);
 
 export function UpdateEpisodeRow(props: {
   item: UpdateRow;
   plays?: number | undefined;
   comments?: number | undefined;
+  /** Wave 5b: the episode's first hot moment (NEW in the drawing): a time chip and "N already reacting". Left out → no line. */
+  hot?: { startMs: number; reactions: number } | undefined;
   now: number;
-  /** A token colour from useColours — the icons are font glyphs, not text. */
-  iconColour: string;
+  /** Kept for callers: the circles take their glyph colour from the kit. */
+  iconColour?: string;
   /**
    * Owner, 2026-10-05: Queue and Download show when they are done — a filled icon in `doneColour`
-   * (the accent) once the episode is in the queue / downloading / downloaded.
+   * once the episode is in the queue / downloading / downloaded.
    */
   queued?: boolean;
   download?: 'none' | 'active' | 'done';
@@ -84,69 +80,75 @@ export function UpdateEpisodeRow(props: {
   onPlay: () => void;
   /** M21 US4 (FR-035): a long-press on the episode opens the same sheet as ⋯. Defaults to `onMore`. */
   onLongPress?: () => void;
-  /** M22 US12: swipe left → "Remove from Updates". Left out → no such action. */
+  /** Swipe down → "Remove from Updates". Left out → no such action. */
   onRemoveFromUpdates?: () => void;
-  /** M22 US12: swipe right → "Mark played". Left out → no such action. */
+  /** Swipe up → "Mark played". Left out → no such action. */
   onMarkPlayed?: () => void;
+  /** The page stops its own scroll while a finger is on a card. */
+  onDragging?: (on: boolean) => void;
 }): React.ReactElement {
-  const { item, iconColour: c } = props;
-  const done = props.doneColour ?? c;
+  const { item } = props;
   const dl = props.download ?? 'none';
   const e = item.episode;
   const meta = updateMeta({ durationMs: e.durationMs, publishedAt: e.publishedAt, plays: props.plays, comments: props.comments, now: props.now });
   const video = mediaKindOf(e.enclosureType, e.enclosureUrl) === 'video';
-  const swipeLeft: SwipeAction[] = [
-    { key: 'queue', label: 'Queue', onPress: props.onQueue },
-    ...(props.onRemoveFromUpdates ? [{ key: 'remove', label: 'Remove', onPress: props.onRemoveFromUpdates }] : []),
+  const chip = coverChip(e.publishedAt, e.durationMs, props.now);
+  const swipes: SwipeAction[] = [
+    ...(props.onMarkPlayed ? [{ key: 'played', label: 'Mark played', onPress: props.onMarkPlayed }] : []),
+    ...(props.onRemoveFromUpdates ? [{ key: 'remove', label: 'Remove from Updates', onPress: props.onRemoveFromUpdates }] : []),
   ];
-  const swipeRight: SwipeAction[] = props.onMarkPlayed ? [{ key: 'played', label: 'Mark played', onPress: props.onMarkPlayed }] : [];
+  const noop = (): void => undefined;
   return (
-    <SwipeRow swipeLeft={swipeLeft} swipeRight={swipeRight}>
-    <Card className="mx-screen-x mt-row pt-row">
-      <Box className="flex-row gap-row">
-        <Pressable onPress={props.onOpenShow} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`}>
-          <Artwork url={item.imageUrl} size={64} rounded="row" name={item.showTitle} />
-        </Pressable>
-        <Pressable {...swipeA11y([...swipeLeft, ...swipeRight])} onPress={props.onOpenEpisode} onLongPress={props.onLongPress ?? props.onMore} accessibilityHint="Long-press for more actions" accessibilityRole="button" accessibilityLabel={`${e.title}, ${item.showTitle}${video ? ', video' : ''}. ${meta.label}`} className="flex-1 gap-1" style={PILL}>
-          <Box className="flex-row items-center gap-1">
-            {video ? <Icon name="videocam-outline" size={14} color={c} /> : null}
-            <Text className="text-accent text-xs font-semibold flex-1" numberOfLines={1}>{item.showTitle}</Text>
+    <SwipeCard onUp={props.onMarkPlayed ?? noop} onDown={props.onRemoveFromUpdates ?? noop} {...(props.onDragging ? { onDragging: props.onDragging } : {})}>
+      <Box testID="update-card" className="flex-1 bg-raise border border-line overflow-hidden" style={{ borderRadius: UPDATES.card.radius }}>
+        <CoverBand url={item.imageUrl} name={item.showTitle} height={UPDATES.card.cover}>
+          {chip ? (
+            <Box className="absolute rounded-chip" style={{ left: UPDATES.card.chipLeft, top: UPDATES.card.chipTop, paddingHorizontal: UPDATES.card.chipPadX, paddingVertical: UPDATES.card.chipPadY, borderRadius: UPDATES.card.chipRadius, backgroundColor: colour.glassDark }}>
+              <Type step="tag" className="text-text" style={LIB_TYPE.mono11} numberOfLines={1}>{video ? `${chip} · VIDEO` : chip}</Type>
+            </Box>
+          ) : null}
+        </CoverBand>
+        <Box className="flex-1" style={{ padding: UPDATES.card.pad, gap: UPDATES.card.gap }}>
+          <Pressable onPress={props.onOpenShow} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`} hitSlop={UPDATES.card.gap} className="self-start max-w-full">
+            <Type step="caption" className="text-text2" style={LIB_TYPE.show12} numberOfLines={1}>{`${item.showTitle} ›`}</Type>
+          </Pressable>
+          <Pressable
+            {...swipeA11y(swipes)}
+            onPress={props.onOpenEpisode}
+            onLongPress={props.onLongPress ?? props.onMore}
+            accessibilityHint="Long-press for more actions"
+            accessibilityRole="button"
+            accessibilityLabel={`${e.title}, ${item.showTitle}${video ? ', video' : ''}. ${meta.label}`}
+          >
+            <Type step="lede" className="text-text font-bold" style={LIB_TYPE.cardTitle} numberOfLines={3}>{e.title}</Type>
+          </Pressable>
+          {props.hot ? (
+            <Box testID="update-hot" accessible accessibilityLabel={`${chipClock(mmss(props.hot.startMs))} · ${compactCount(props.hot.reactions)} already reacting`} className="flex-row items-center" style={{ gap: UPDATES.card.chipPadX - 1 }}>
+              <TimestampChip text={mmss(props.hot.startMs)} />
+              <Icon name="flame-outline" size={12} color={colour.hotText} />
+              <Type step="tag" className="text-hotText" numberOfLines={1}>{`${compactCount(props.hot.reactions)} already reacting`}</Type>
+            </Box>
+          ) : null}
+          <Box className="flex-row items-center mt-auto" style={{ gap: UPDATES.card.actionGap }}>
+            <Pressable onPress={props.onQueue} accessibilityRole="button" accessibilityLabel={props.queued ? `${e.title} is in the queue` : `Add ${e.title} to the queue`} accessibilityState={{ selected: props.queued === true }} hitSlop={TOOL_SLOP} className={`items-center justify-center ${props.queued ? 'bg-text' : 'bg-raise'}`} style={TOOL}>
+              <Icon name={props.queued ? 'checkmark' : 'add'} size={18} color={props.queued ? colour.void : colour.text} />
+            </Pressable>
+            <Pressable onPress={props.onComments} accessibilityRole="button" accessibilityLabel={meta.comments !== undefined ? `Comments on ${e.title}, ${plural(meta.comments, 'comment')}` : `Comments on ${e.title}`} hitSlop={TOOL_SLOP} className="items-center justify-center bg-raise" style={TOOL}>
+              <Icon name="chatbubble-outline" size={18} color={colour.text} />
+            </Pressable>
+            <Pressable onPress={props.onDownload} accessibilityRole="button" accessibilityLabel={dl === 'done' ? `${e.title} is downloaded` : dl === 'active' ? `Downloading ${e.title}` : `Download ${e.title}`} accessibilityState={{ selected: dl !== 'none' }} hitSlop={TOOL_SLOP} className={`items-center justify-center ${dl === 'none' ? 'bg-raise' : 'bg-text'}`} style={TOOL}>
+              <Icon name={dl === 'done' ? 'checkmark-done' : dl === 'active' ? 'cloud-download' : 'download-outline'} size={18} color={dl === 'none' ? colour.text : colour.void} />
+            </Pressable>
+            <Pressable onPress={props.onMore} accessibilityRole="button" accessibilityLabel={`More for ${e.title}`} hitSlop={TOOL_SLOP} className="items-center justify-center bg-raise" style={TOOL}>
+              <Icon name="ellipsis-horizontal" size={18} color={colour.text} />
+            </Pressable>
+            <Box className="flex-1" />
+            <Pressable onPress={props.onPlay} accessibilityRole="button" accessibilityLabel={`Play ${e.title}`} hitSlop={1} className="bg-text items-center justify-center" style={{ width: UPDATES.card.play, height: UPDATES.card.play, borderRadius: UPDATES.card.play / 2, paddingLeft: 2 }}>
+              <PlayIcon size={16} tint="void" />
+            </Pressable>
           </Box>
-          <Text className="font-display text-title text-text" numberOfLines={2}>{e.title}</Text>
-        </Pressable>
+        </Box>
       </Box>
-      {item.summary ? <Text className="text-muted text-meta mt-2" numberOfLines={2}>{item.summary}</Text> : null}
-      <Box className="flex-row items-center flex-wrap gap-1 mt-1">
-        {meta.lead !== '' ? <Text className="text-muted text-xs">{meta.lead}</Text> : null}
-        {meta.plays !== undefined ? (
-          <>
-            {meta.lead !== '' ? <Text className="text-muted text-xs">·</Text> : null}
-            <Icon name="headset-outline" size={12} color={c} />
-            <Text className="text-muted text-xs">{compactCount(meta.plays)}</Text>
-          </>
-        ) : null}
-        {meta.comments !== undefined ? (
-          <>
-            {meta.lead !== '' || meta.plays !== undefined ? <Text className="text-muted text-xs">·</Text> : null}
-            <Icon name="chatbubble-outline" size={12} color={c} />
-            <Text className="text-muted text-xs">{compactCount(meta.comments)}</Text>
-          </>
-        ) : null}
-      </Box>
-      <Box className="mt-2"><CardDivider /></Box>
-      <Box className="flex-row items-center py-1">
-        <IconButton name={props.queued ? 'checkmark-circle' : 'add-circle-outline'} label={props.queued ? `${e.title} is in the queue` : `Add ${e.title} to the queue`} colour={props.queued ? done : c} selected={props.queued === true} onPress={props.onQueue} />
-        {/* The count is on the meta line above; the button is the icon alone (M12 FR-080). */}
-        <CommentsButton title={e.title} colour={c} onPress={props.onComments} />
-        <IconButton name={dl === 'done' ? 'arrow-down-circle' : dl === 'active' ? 'cloud-download' : 'download-outline'} label={dl === 'done' ? `${e.title} is downloaded` : dl === 'active' ? `Downloading ${e.title}` : `Download ${e.title}`} colour={dl === 'none' ? c : done} selected={dl !== 'none'} onPress={props.onDownload} />
-        <IconButton name="ellipsis-horizontal" label={`More for ${e.title}`} colour={c} onPress={props.onMore} />
-        <Box className="flex-1" />
-        <Pressable onPress={props.onPlay} accessibilityRole="button" accessibilityLabel={`Play ${e.title}`} className="flex-row items-center gap-2 px-row rounded-pill bg-playDisc" style={PILL}>
-          <PlayIcon size={12} tint="playGlyph" />
-          <Text className="text-text text-body font-bold">Play</Text>
-        </Pressable>
-      </Box>
-    </Card>
-    </SwipeRow>
+    </SwipeCard>
   );
 }

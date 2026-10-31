@@ -7,6 +7,7 @@ import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
 import { createForYou, type ForYouView } from './cache';
 import { getPref } from '@/settings/prefs';
+import { nowMs as clockMs } from '@/ui/kit/clock';
 
 export function useForYou(signedInArg: boolean) {
   const { api } = useSocial();
@@ -14,7 +15,7 @@ export function useForYou(signedInArg: boolean) {
   // M10: Settings → More → Personalised recommendations. Off = no For You and, with no
   // items, no recommendation events either (useRecOutbox has nothing to report).
   const signedIn = signedInArg && getPref(stores.settings, 'personalRecs');
-  const forYou = useMemo(() => createForYou({ api, cache: stores.feedCache, now: () => Date.now() }), [api, stores]);
+  const forYou = useMemo(() => createForYou({ api, cache: stores.feedCache, now: clockMs }), [api, stores]);
   const [view, setView] = useState<ForYouView | undefined>(() => (signedIn ? forYou.cached() : undefined));
   // The first load is over: at once when signed out or with a saved copy, else after the first fetch.
   const [settled, setSettled] = useState(() => !signedIn || view !== undefined);

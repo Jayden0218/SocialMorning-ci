@@ -6,6 +6,8 @@
 import '../global.css';
 import '@/design/tailwind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { commentsAnimation } from '@/ui/shell/stackAnimation';
+import { useReducedMotion } from '@/ui/kit/useReducedMotion';
 import { Stack, usePathname, useSegments, type ErrorBoundaryProps } from 'expo-router';
 import { usePlayerSelector } from '@/playback/store';
 import * as SplashScreen from 'expo-splash-screen';
@@ -16,10 +18,6 @@ import { LogBox } from 'react-native';
 import { SafeAreaListener } from 'react-native-safe-area-context';
 import { Uniwind } from 'uniwind';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { hit } from '@/design';
-import { Box } from '@/ui/lib/box';
-import { Text } from '@/ui/lib/text';
-import { Pressable } from '@/ui/lib/pressable';
 import { AppProviders, useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { SocialProvider } from '@/social/context';
@@ -40,6 +38,7 @@ import { useStartupExtras } from '@/ui/shell/startupExtras';
 import { useStartConfig } from '@/config/useStartConfig'; // M25 lane AC
 import { useIconReset } from '@/ui/shell/iconReset';
 import { DataPrompt } from '@/ui/player/DataPrompt';
+import { ErrorScreen } from '@/ui/paused/ErrorScreen';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
 // in the Metro terminal; Release builds never show the bar.
@@ -55,29 +54,14 @@ void SplashScreen.preventAutoHideAsync();
  * layout that collapsed, but a thrown error would have looked the same). It sits outside every
  * provider, so it uses only plain parts and token classes.
  *
- * M17 T111 (`ErrorScreen-B`): left-aligned under a drawn accent waveform with a gap in it, a
- * 40 pt serif title, the line in 17 pt muted, and Try again as the full-width yellow pill at the
- * foot (it was a small centred pill). Same words, same `props.retry()`.
+ * M31 W6-B (`error-boundary--screen`): the Pulse page, drawn by `ErrorScreen`. Same words, same `props.retry()`.
  */
-const WAVE = [10, 18, 28, 16, 34, 22, 12, 0, 0, 14, 30, 20, 38, 24, 14, 8];
 export function ErrorBoundary(props: ErrorBoundaryProps): React.ReactElement {
   if (__DEV__) console.error(props.error);
   // M23 US8: a screen that crashed leaves a trace in our own error log.
   useEffect(() => { reportError('screen.crash', props.error); }, [props.error]);
-  return (
-    <Box className="flex-1 bg-background px-screen-x pb-10">
-      <Box className="flex-1 pt-[120px]">
-        <Box className="flex-row items-center gap-[5px] h-12" accessible={false} importantForAccessibility="no-hide-descendants">
-          {WAVE.map((h, i) => <Box key={i} className={h > 0 ? 'bg-accent rounded' : 'rounded'} style={{ width: 8, height: h }} />)}
-        </Box>
-        <Text className="text-text font-display text-[40px] leading-[52px] mt-7" accessibilityRole="header">Something went wrong</Text>
-        <Text className="text-muted text-title leading-[25px] mt-[14px]">This screen stopped working. Your listening and downloads are safe.</Text>
-      </Box>
-      <Pressable onPress={() => void props.retry()} accessibilityRole="button" accessibilityLabel="Try again" className="bg-primary rounded-pill px-section items-center justify-center w-full" style={{ minHeight: Math.max(hit.min, 52) }}>
-        <Text className="text-onPrimary text-[15px] font-bold">Try again</Text>
-      </Pressable>
-    </Box>
-  );
+  // M31 W6-B: the Pulse "ErrorScreen" (src/ui/paused/ErrorScreen.tsx).
+  return <ErrorScreen retry={() => void props.retry()} />;
 }
 
 export default function RootLayout(): React.ReactElement {
@@ -136,10 +120,12 @@ function RootStack(): React.ReactElement {
   const idle = usePlayerSelector((s) => s.kind === 'idle');
   const barShows = !rootBarHidden(leaving) && miniPlayerShows(path, 'root', idle);
   const onPlayer = path === '/player';
+  // design-pulse2 social.html: Comments rises from the bottom (a close button, not a back arrow); Reduce Motion fades.
+  const reduceMotion = useReducedMotion();
   return (
-      <SafeAreaView className={`flex-1 ${onTabs || barShows ? 'bg-surface' : 'bg-background'}`} edges={onPlayer ? [] : ['bottom']}>
-        {/* M10b: the clock and battery follow the page (light words on the dark palette). */}
-        <StatusBar style="dark" />
+      <SafeAreaView className={`flex-1 ${onTabs || barShows ? 'bg-void' : 'bg-background'}`} edges={onPlayer ? [] : ['bottom']}>
+        {/* M10b: the clock and battery follow the page (light words on the dark palette, v4.0.0). */}
+        <StatusBar style="light" />
         <CarLibrarySync />
         {/*
           * M16a T002 (FR-012, owner 2026-10-02, said twice): no iOS-native header on any page.
@@ -183,7 +169,7 @@ function RootStack(): React.ReactElement {
           <Stack.Screen name="show/[feedUrl]" options={{ title: 'Show', headerShown: false }} />
           <Stack.Screen name="episode/[id]" options={{ title: 'Episode', headerShown: false }} />
           {/* M12 US2: comments on their own page, opened from the player and the episode page. */}
-          <Stack.Screen name="comments/[episodeId]" options={{ title: 'Comments' }} />
+          <Stack.Screen name="comments/[episodeId]" options={{ title: 'Comments', animation: commentsAnimation(reduceMotion) }} />
           {/* M21 US2 (research R7): still a push, never a sheet — it slides up from the bottom and a
               downward swipe that starts in the top 120 pt (the bar and the artwork) closes it. */}
           <Stack.Screen name="player" options={{ title: 'Now Playing', headerShown: false, animation: 'slide_from_bottom', gestureEnabled: false }} />

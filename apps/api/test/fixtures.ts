@@ -53,7 +53,7 @@ export async function listenerItem(store: Store, l: { id?: string; email: string
   const createdAt = l.createdAt ?? now(store);
   const t = tx(store).put('main', encode('listener', K.listener(id), {
     id, email: l.email.trim().toLowerCase(), displayName: l.displayName, createdAt, listenedMs: 0, followerCount: 0, followingCount: 0,
-    rulesAcceptedAt: createdAt, ...(l.flags ?? {}),
+    rulesAcceptedAt: createdAt, ...l.flags,
   }, { gsi: { ...K.G6(l.displayName, id), ...K.G4('listeners', createdAt, id) } }), { condition: 'attribute_not_exists(PK)' });
   claimUnique(t, K.U.email(l.email), id);
   await t.commit();

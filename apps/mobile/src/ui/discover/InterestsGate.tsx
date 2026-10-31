@@ -19,6 +19,9 @@ export function InterestsGate(props: { onTabs: boolean }): null {
   const { listener } = useSocial();
   const api = useM22DiscoverApi();
   const asked = useRef(false);
+  // M32 T090: `asked` stops a second run, so only unmount (not a dependency change) ends this one.
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
     if (asked.current || !props.onTabs || !listener) return;
     asked.current = true;
@@ -37,7 +40,7 @@ export function InterestsGate(props: { onTabs: boolean }): null {
         reportError('discover.interests', e);
         // Offline: the phone's own record decides.
       }
-      if (interestsDueFrom(stores.settings, Date.now())) router.push('/onboarding/interests');
+      if (mounted.current && interestsDueFrom(stores.settings, Date.now())) router.push('/onboarding/interests');
     })();
   }, [props.onTabs, listener, api, stores]);
   return null;

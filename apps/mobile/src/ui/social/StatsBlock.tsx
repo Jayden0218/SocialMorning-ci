@@ -1,6 +1,6 @@
 // Listening numbers for last 7 days and all time: time, finished, top shows.
 /** Listening stats (M4 FR-012): time listened, episodes finished, top shows — last 7 days and all time. */
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
 import { Box } from '@/ui/lib/box';
 import { tabular } from '@/design';
 import type { ProfileStats } from '@/social/api';
@@ -14,7 +14,7 @@ export function hms(ms: number): string {
 
 function Window(props: { title: string; w: ProfileStats }): React.ReactElement {
   return (
-    <Box className="gap-0.5">
+    <Box className="gap-hair">
       <Text className="font-semibold text-text">{props.title}</Text>
       {/* iOS i15: the label carries the value too — VoiceOver read a label in place of the
           words, so "Last 7 days: time listened" was heard without "13 min 17 s". */}
@@ -33,7 +33,7 @@ function Window(props: { title: string; w: ProfileStats }): React.ReactElement {
 export function StatsBlock(props: { stats: { last7: ProfileStats; all: ProfileStats } | null; own: boolean }): React.ReactElement {
   if (props.stats === null) return <Text className="text-muted">{props.own ? 'Your listening is private.' : 'Listening is private.'}</Text>;
   return (
-    <Box className="gap-3">
+    <Box className="gap-row">
       <Window title="Last 7 days" w={props.stats.last7} />
       <Window title="All time" w={props.stats.all} />
     </Box>

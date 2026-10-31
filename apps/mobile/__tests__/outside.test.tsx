@@ -31,7 +31,7 @@ it('the card: nothing when idle; playing vs paused; an unknown episode draws not
 });
 
 it('the best comment is the one nearest the hottest moment; with no heat, the most replies; never a deleted one', () => {
-  const buckets = new Array<number>(100).fill(0); buckets[70] = 9; buckets[10] = 3; // peak at 70.5 s
+  const buckets = Array.from({ length: 100 }, () => 0); buckets[70] = 9; buckets[10] = 3; // peak at 70.5 s
   const s = social([comment('a', 10_000), comment('b', 69_000), comment('c', 71_000, { deleted: true, body: null }), comment('d', null)], buckets);
   expect(bestComment(s)).toEqual({ author: 'Nb', body: 'body b', offsetMs: 69_000 });
   const flat = social([comment('a', 5_000), comment('b', 9_000, { replies: [comment('r', null)] })]);

@@ -194,7 +194,12 @@ export const ev = {
   /** Hourly rollup: `R#<scope>#<metric>` / `yyyy-mm-ddThh`. */
   rollup: (scope: string, metric: string, at: string) => k(`R#${scope}#${metric}`, ts(at).slice(0, 13)),
 } as const;
-export const E1 = (d: string, kind: string, key: string) => ({ E1PK: `DAY#${d}`, E1SK: `${kind}#${key}` });
+/** M32 C7: the day index is `DAY#<day>#<0-7>`; the shard is a stable hash of the item's own key, so one day's writes spread over 8 partitions. */
+export const DAY_SHARDS = 8;
+const dayShard = (key: string): number => createHash('sha256').update(key).digest()[0]! % DAY_SHARDS;
+export const E1 = (d: string, kind: string, key: string) => ({ E1PK: `DAY#${d}#${dayShard(`${kind}#${key}`)}`, E1SK: `${kind}#${key}` });
+/** Every E1 partition a day's items can be in: the 8 shards, and the unsharded `DAY#<day>` that items written before M32 still have. */
+export const dayPks = (d: string): string[] => [`DAY#${d}`, ...Array.from({ length: DAY_SHARDS }, (_, n) => `DAY#${d}#${n}`)];
 
 // ---- Lane AC (account) additions — data-model.md "Lane AC changes" ----
 /** Act-as pointer under the ADMIN's partition (replaces the `acting_admin_id` lookup; strongly consistent, no GSI). */

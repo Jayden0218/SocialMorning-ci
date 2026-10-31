@@ -6,9 +6,10 @@ import { acceptInvite, createInvite, listHosts, openInvites, previewInvite, remo
 import type { Hono } from 'hono';
 import { ownerOnly } from './common.ts';
 import type { StudioEnv } from '../../auth/studio-session.ts';
+import { studioUrl } from '../../config.ts';
 
 export function registerHosts(studio: Hono<StudioEnv>): void {
-  const studioBase = () => process.env['STUDIO_URL'] ?? 'https://socialmorning-studio.vercel.app';
+  const studioBase = studioUrl;
 
   studio.get('/shows/:show/hosts', async (c) => c.json({ hosts: await listHosts(c.get('db'), c.get('show').feedUrl) }));
 

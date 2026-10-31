@@ -17,7 +17,7 @@
  */
 import { router } from 'expo-router';
 import { Box } from '@/ui/lib/box';
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
 import { hit } from '@/design';
 import { TopBar } from './TopBar';
@@ -54,9 +54,9 @@ export function PageHeader(props: {
       {props.middle ? null : (
         // Owner, 2026-10-04: the title close under the back chevron — pulled up 12 pt. Its line
         // height stays the serif's own (41 at 32 pt): any less and Android cuts off g / y / p.
-        <Box className="px-screen-x pb-row -mt-3">
+        <Box className="px-screen-x pb-row -mt-row">
           <Text className="text-text text-display font-display" numberOfLines={2} accessibilityRole="header">{props.title ?? ''}</Text>
-          {props.subtitle ? <Text className="text-muted text-meta mt-1">{props.subtitle}</Text> : null}
+          {props.subtitle ? <Text className="text-muted text-meta mt-hair">{props.subtitle}</Text> : null}
         </Box>
       )}
     </SafeAreaView>

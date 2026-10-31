@@ -26,7 +26,7 @@ showCard.get('/:key', async (c) => {
   const openInApp = `socialmorning://show/${encodeURIComponent(feedUrl)}`;
   c.header('cache-control', 'public, max-age=300');
   return c.html(page(title, `
-${info?.cover && /^https:\/\//.test(info.cover) ? `<img src="${esc(info.cover)}" alt="" width="160" height="160" style="border-radius:16px;object-fit:cover">` : ''}
+${info?.cover && info.cover.startsWith('https://') ? `<img src="${esc(info.cover)}" alt="" width="160" height="160" style="border-radius:16px;object-fit:cover">` : ''}
 <h1 style="margin:16px 0 8px">${esc(title)}</h1>
 ${info?.description ? `<p class="muted">${esc(info.description.slice(0, 400))}</p>` : ''}
 ${eps.length ? `<h2 style="font-size:17px">Latest episodes</h2><ul>${eps.map((e) => `<li>${esc(e.title)}${e.published_at ? ` <span class="muted">· ${esc(new Date(e.published_at).toISOString().slice(0, 10))}</span>` : ''}</li>`).join('')}</ul>` : ''}

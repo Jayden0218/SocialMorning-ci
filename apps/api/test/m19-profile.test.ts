@@ -23,7 +23,7 @@ function fakeStore() {
   return { store, puts, removed };
 }
 
-const JPEG = (n: number) => new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...new Array(Math.max(0, n - 4)).fill(1)]);
+const JPEG = (n: number) => new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...Array.from({ length: Math.max(0, n - 4) }, () => 1)]);
 const putAvatar = (t: TestDb, token: string, bytes: Uint8Array, type = 'image/jpeg') =>
   t.app.request('/v1/me/avatar', { method: 'PUT', body: bytes as unknown as BodyInit, headers: { 'content-type': type, authorization: `Bearer ${token}` } });
 

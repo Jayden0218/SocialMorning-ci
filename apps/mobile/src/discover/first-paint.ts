@@ -25,6 +25,6 @@ export function useFirstPaint(ready: boolean): boolean {
     return () => clearTimeout(t);
   }, [shown]);
   const next = shouldShow({ ready, waitedMs: capped ? FIRST_PAINT_CAP_MS : 0, shownBefore: shown });
-  useEffect(() => { if (next && !shown) setShown(true); }, [next, shown]);
+  if (next && !shown) setShown(true); // latch during render: once shown, never hide again
   return next;
 }

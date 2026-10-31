@@ -3,9 +3,10 @@
  * M17 (`Search-B`, `Following-B`): a section label — 11 pt bold capitals, spaced, in the muted
  * colour (or the accent for the section in focus). Spoken as a header.
  */
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
+import { drawnType } from '@/design/type-px';
 
-const CAPS = { letterSpacing: 1.3, textTransform: 'uppercase' as const };
+const CAPS = { ...drawnType.trackCaps, textTransform: 'uppercase' as const };
 
 export function Eyebrow(props: { children: string; accent?: boolean; className?: string }): React.ReactElement {
   return (

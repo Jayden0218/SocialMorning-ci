@@ -109,7 +109,7 @@ export async function listenersByIds(store: Store, ids: readonly string[]): Prom
 
 /** Runs `fn` over `xs` with at most `n` at once; results in input order. */
 export async function mapLimit<T, R>(xs: readonly T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(xs.length);
+  const out: R[] = Array.from({ length: xs.length }) as R[];
   let next = 0;
   const worker = async () => {
     for (;;) {
@@ -124,7 +124,7 @@ export async function mapLimit<T, R>(xs: readonly T[], n: number, fn: (x: T) => 
 
 /** A listener partition's items under an SK prefix (or between two SKs), strongly read. */
 export async function partitionItems(store: Store, pk: string, opts: { prefix?: string; from?: string; to?: string; filter?: { expr: string; names?: Record<string, string>; values?: Record<string, unknown> } } = {}): Promise<Item[]> {
-  const values: Record<string, unknown> = { ':pk': pk, ...(opts.filter?.values ?? {}) };
+  const values: Record<string, unknown> = { ':pk': pk, ...opts.filter?.values };
   let cond = 'PK = :pk';
   if (opts.prefix !== undefined) { cond += ' AND begins_with(SK, :pre)'; values[':pre'] = opts.prefix; }
   else if (opts.from !== undefined && opts.to !== undefined) { cond += ' AND SK BETWEEN :from AND :to'; values[':from'] = opts.from; values[':to'] = opts.to; }

@@ -34,7 +34,7 @@ const walk = (dir: string, out: string[] = []): string[] => {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) { if (name !== 'node_modules' && name !== 'lib') walk(p, out); continue; }
-    if (/\.tsx$/.test(p)) out.push(p);
+    if (p.endsWith('.tsx')) out.push(p);
   }
   return out;
 };

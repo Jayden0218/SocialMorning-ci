@@ -32,7 +32,8 @@ const mockSettings = { get: () => undefined, set: () => undefined, delete: () =>
 jest.mock('../global.css', () => ({}));
 jest.mock('@/design/tailwind', () => ({}));
 jest.mock('expo-splash-screen', () => ({ preventAutoHideAsync: () => Promise.resolve(true), hideAsync: () => Promise.resolve(true) }));
-jest.mock('expo-status-bar', () => ({ StatusBar: () => null }));
+const mockStatusBar = jest.fn();
+jest.mock('expo-status-bar', () => ({ StatusBar: (p: unknown) => { mockStatusBar(p); return null; } }));
 jest.mock('react-native-gesture-handler', () => ({ GestureHandlerRootView: (p: { children?: unknown }) => p.children }));
 // The stack draws one screen: a page with its own SafeAreaView (default edges), as every self-headed page has.
 jest.mock('expo-router', () => {
@@ -48,7 +49,8 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     ...actual,
     SafeAreaListener: (p: { onChange: (e: unknown) => void; children?: unknown }) => {
-      useEffect(() => { p.onChange({ insets: mockInsets, frame: { x: 0, y: 0, width: 430, height: 932 } }); }, []);
+      const { onChange } = p;
+      useEffect(() => { onChange({ insets: mockInsets, frame: { x: 0, y: 0, width: 430, height: 932 } }); }, [onChange]);
       return p.children;
     },
   };
@@ -100,7 +102,7 @@ const screen = (r: ReactTestRenderer): ReactTestInstance => r.root.find((n) => t
 const rootView = (r: ReactTestRenderer): ReactTestInstance => r.root.findAll((n) => typeof n.type === 'string')[0]!;
 const own = (n: ReactTestInstance) => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
 
-beforeEach(() => { mockRoute.path = '/'; mockRoute.segment = '(tabs)'; mockConsent.value = true; mockRateSheet.mockClear(); });
+beforeEach(() => { mockRoute.path = '/'; mockRoute.segment = '(tabs)'; mockConsent.value = true; mockRateSheet.mockClear(); mockStatusBar.mockClear(); });
 
 describe('G-T1: each safe-area edge is padded once', () => {
   it('a page under the root: the top inset once (the page), the bottom inset once (the root)', () => {
@@ -150,6 +152,32 @@ describe('defect 1 (2026-10-07): the rate sheet knows the page and the consent',
     mockConsent.value = false;
     const r = render();
     expect(mockRateSheet).toHaveBeenLastCalledWith({ onTabs: false, segment: 'onboarding', consent: false });
+    act(() => r.unmount());
+  });
+});
+
+describe('M31 (Pulse, dark only): the status bar and the bottom strip', () => {
+  const stripClass = (r: ReactTestRenderer): string =>
+    String(r.root.findAll((n) => typeof n.props['className'] === 'string' && /\bflex-1\b/.test(n.props['className']) && /\bbg-/.test(n.props['className']))[0]!.props['className']);
+
+  it('the clock and battery are light words on the dark page', () => {
+    const r = render();
+    expect(mockStatusBar).toHaveBeenCalledWith(expect.objectContaining({ style: 'light' }));
+    expect(mockStatusBar).not.toHaveBeenCalledWith(expect.objectContaining({ style: 'dark' }));
+    act(() => r.unmount());
+  });
+
+  it('on the tabs the home-bar strip is the void, not the raised surface', () => {
+    const r = render();
+    expect(stripClass(r)).toMatch(/\bbg-void\b/);
+    expect(stripClass(r)).not.toMatch(/\bbg-surface\b/);
+    act(() => r.unmount());
+  });
+
+  it('on a page with no bar the strip is the page colour', () => {
+    mockRoute.path = '/settings'; mockRoute.segment = 'settings';
+    const r = render();
+    expect(stripClass(r)).toMatch(/\bbg-background\b/);
     act(() => r.unmount());
   });
 });

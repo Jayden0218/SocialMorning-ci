@@ -20,6 +20,7 @@ import { apiBaseUrl } from './base-url';
 import { toSignIn } from '@/ui/auth/navigate';
 import { createM22Api, deviceTimeZone, pendingDeletionStore } from './api-m22-server';
 import type { AuthRow } from '@/storage/types';
+import { nowMs as clockMs } from '@/ui/kit/clock';
 
 export type SocialContextValue = {
   api: ApiClient;
@@ -62,7 +63,7 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
   const api = useMemo(() => createApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get, onSuspended: (m, _a, t) => suspendedRef.current(m, t) }), []);
   // M22 US11/US15: after every sign-in — remember a pending deletion (the Keep sheet) and send the phone's time zone.
   const m22 = useMemo(() => createM22Api({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), []);
-  const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: () => Date.now(), onAccepted: (r) => {
+  const auth = useMemo(() => createAuth({ api, stores, token: secureToken, now: clockMs, onAccepted: (r) => {
     pendingDeletionStore.set(r.pendingDeletion ?? null);
     const tz = deviceTimeZone();
     if (tz) void m22.setTimeZone(tz).catch(reportAndDrop('me.timeZone'));
@@ -78,22 +79,24 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
     if (listenerId === undefined) return;
     void registerPush({ token: () => expoNotify.pushToken?.() ?? Promise.resolve(undefined), add: (t, p) => api.pushTokenAdd(t, p), remove: (t) => api.pushTokenRemove(t), settings: stores.settings, platform: expoNotify.os });
   }, [listenerId, api, stores]);
-  suspendedRef.current = (m, appealToken) => {
-    stores.settings.set(SUSPENDED_KEY, m);
-    if (appealToken) stores.settings.set(APPEAL_TOKEN_KEY, appealToken);
-    void secureToken.clear().then(() => { stores.auth.clear(); stores.drafts.clearAll(); stores.hidden.clearAll(); stores.blocks.clearAll(); setListener(undefined); });
-  };
+  useEffect(() => {
+    suspendedRef.current = (m, appealToken) => {
+      stores.settings.set(SUSPENDED_KEY, m);
+      if (appealToken) stores.settings.set(APPEAL_TOKEN_KEY, appealToken);
+      void secureToken.clear().then(() => { stores.auth.clear(); stores.drafts.clearAll(); stores.hidden.clearAll(); stores.blocks.clearAll(); setListener(undefined); });
+    };
+  });
   const cache = useMemo(() => createSocialCache(stores.socialCache), [stores]);
-  const drafts = useMemo(() => createDrafts(stores.drafts, () => Date.now()), [stores]);
+  const drafts = useMemo(() => createDrafts(stores.drafts, clockMs), [stores]);
   const composer = useMemo(() => createComposer({
     api, drafts, cache,
     isSignedIn: () => stores.auth.get() !== undefined,
-    now: () => Date.now(),
+    now: clockMs,
     registration: (id) => registrationFor(stores, id),
   }), [api, drafts, cache, stores]);
 
   const reactToggle = useMemo(() => createReactToggle({
-    api, cache, now: () => Date.now(), registration: (id) => registrationFor(stores, id),
+    api, cache, now: clockMs, registration: (id) => registrationFor(stores, id),
   }), [api, cache, stores]);
 
   // A tiny per-episode version counter so screens re-render when the cache changes.

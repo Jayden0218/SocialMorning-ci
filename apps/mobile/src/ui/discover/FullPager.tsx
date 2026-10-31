@@ -18,8 +18,9 @@ export function FullPager(props: { count: number; index: number; onPage: (i: num
   const [size, setSize] = useState<{ width: number; height: number } | undefined>();
   const [seen, setSeen] = useState<ReadonlySet<number>>(() => new Set(near(props.index)));
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
+  // The page and its neighbours are drawn once the index reaches them.
+  if (!near(props.index).every((i) => seen.has(i))) setSeen(new Set([...seen, ...near(props.index)]));
   useEffect(() => {
-    setSeen((s) => (near(props.index).every((i) => s.has(i)) ? s : new Set([...s, ...near(props.index)])));
     if (size) scroller.current?.scrollTo?.({ x: props.index * size.width, animated: true });
   }, [props.index, size]);
   const layout = (e: LayoutChangeEvent): void => {

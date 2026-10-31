@@ -22,7 +22,7 @@ const mockPush = jest.fn();
 const mockToast = jest.fn();
 const mockQueueEpisode = jest.fn();
 let mockQueue: readonly string[] = [];
-let mockAsked: { title: string; action?: string; onConfirm?: () => void } | undefined;
+const mockPlayerState = { kind: 'playing', episodeId: 'cur', positionMs: 0, lastSavedMs: 0 };
 
 const TITLES: Record<string, string> = { cur: 'The One Playing', e1: 'Ep One', e2: 'Ep Two', e3: 'Ep Three', e4: 'Ep Four', e5: 'Ep Five' };
 
@@ -34,15 +34,13 @@ jest.mock('expo-router', () => ({
   useIsFocused: () => true,
 }));
 jest.mock('@/playback/store', () => ({
+  ...jest.requireActual('@/playback/store'),
   usePlayer: () => ({ load: mockLoad, play: jest.fn(), pause: jest.fn(), sleepRemainingMs: () => undefined, sleepTimer: () => ({ endOfEpisode: false }) }),
-  usePlayerState: () => ({ kind: 'playing', episodeId: 'cur', positionMs: 0, lastSavedMs: 0 }),
+  // M31 T024 (C4): the sheet reads the player through selectors; the real ones run over this state.
+  usePlayerSelector: (sel: (s: unknown) => unknown) => sel(mockPlayerState),
 }));
 jest.mock('@/storage/playable', () => ({ toPlayable: (_s: unknown, id: string) => ({ episodeId: id }) }));
 jest.mock('@/settings/queue', () => ({ queueEpisode: (...a: unknown[]) => mockQueueEpisode(...a) }));
-// Our own confirm draws through gluestack's portal (absent here): record the question instead.
-jest.mock('@/ui/kit/confirm', () => ({
-  useConfirm: () => [(r: { title: string; action?: string; onConfirm?: () => void }) => { mockAsked = r; }, null],
-}));
 jest.mock('@/ui/shell/providers', () => ({
   useStores: () => ({
     settings: { get: () => 'light' },
@@ -79,6 +77,14 @@ const press = (r: ReactTestRenderer, label: string) => {
   if (!n) throw new Error(`no pressable "${label}"`);
   act(() => { n.props['onPress'](); });
 };
+/** A button inside the kit Dialog (its buttons are named like the footer's, so look inside the dialog only). */
+const pressInDialog = (r: ReactTestRenderer, label: string) => {
+  const dialog = r.root.findAll((x) => x.props['testID'] === 'dialog')[0];
+  if (!dialog) throw new Error('no dialog is open');
+  const n = dialog.findAll((x) => x.props['accessibilityLabel'] === label && typeof x.props['onPress'] === 'function')[0];
+  if (!n) throw new Error(`no dialog button "${label}"`);
+  act(() => { n.props['onPress'](); });
+};
 const labels = (r: ReactTestRenderer): string[] =>
   r.root.findAll((x) => typeof x.type === 'string' && typeof x.props['accessibilityLabel'] === 'string').map((x) => x.props['accessibilityLabel'] as string);
 
@@ -94,7 +100,6 @@ afterEach(() => {
 beforeEach(() => {
   jest.useFakeTimers();
   mockQueue = ['e1', 'e2', 'e3', 'e4', 'e5'];
-  mockAsked = undefined;
   mockLoad.mockClear(); mockPush.mockClear(); mockToast.mockClear(); mockQueueEpisode.mockClear();
 });
 
@@ -126,18 +131,32 @@ it('Edit → select 2 → Remove (2): 3 are left', () => {
   expect(checked).toHaveLength(2);
   press(r, 'Remove (2)');
   expect(mockQueue).toEqual(['e1', 'e3', 'e5']);
-  expect(labels(r)).toContain('Remove (0)');
+  // design-pulse2 player--queue-sheet-edit: Remove (n) shows only while a card is ticked.
+  expect(labels(r).some((l) => l.startsWith('Remove ('))).toBe(false);
 });
 
-it('Clear all asks once, then keeps only the playing episode', () => {
+it('Clear all asks once (the kit dialog "Clear the playlist?"), then keeps only the playing episode', () => {
   mockQueue = ['e1', 'cur', 'e2'];
   const r = render(createElement(QueueSheet, { open: true, onClose: jest.fn() }));
   press(r, 'Edit');
   press(r, 'Clear all');
   expect(mockQueue).toEqual(['e1', 'cur', 'e2']); // nothing until confirmed
-  expect(mockAsked?.action).toBe('Clear all');
-  act(() => { mockAsked?.onConfirm?.(); });
+  expect(labels(r)).toContain('Clear the playlist?');
+  // Cancel asks nothing more and clears nothing.
+  pressInDialog(r, 'Cancel');
+  expect(mockQueue).toEqual(['e1', 'cur', 'e2']);
+  expect(labels(r)).not.toContain('Clear the playlist?');
+  press(r, 'Clear all');
+  pressInDialog(r, 'Clear all');
   expect(mockQueue).toEqual(['cur']);
+});
+
+it('M31 (player--queue-empty): with nothing queued the sheet says so and Edit is hidden; the playing episode is still the strip', () => {
+  mockQueue = [];
+  const r = render(createElement(QueueSheet, { open: true, onClose: jest.fn() }));
+  expect(JSON.stringify(r.toJSON())).toContain('Nothing queued.');
+  expect(labels(r)).not.toContain('Edit');
+  expect(labels(r)).toContain('Now playing: The One Playing');
 });
 
 it('the backdrop closes the sheet; the handle is a button for anyone who cannot drag', () => {
@@ -189,7 +208,7 @@ it('a long-press on Add to queue adds to the front: "Added to the front"', () =>
 });
 
 it('one sheet for the app: the mini player\'s ≡ (Playlist) opens the root\'s sheet, not the /queue page', () => {
-  const r = render(createElement(QueueSheetHost, null, createElement(MiniPlayer, { pathname: '/episode/e1' })));
+  const r = render(createElement(QueueSheetHost, null, createElement(MiniPlayer, { pathname: '/show/x' })));
   expect(labels(r)).not.toContain('Play Ep One'); // closed: the sheet draws nothing
   press(r, 'Playlist');
   expect(labels(r)).toContain('Now playing: The One Playing');

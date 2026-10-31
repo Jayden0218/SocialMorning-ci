@@ -11,10 +11,25 @@ export function mmss(ms: number): string {
   return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
 }
 
-/** A date a listener recognises, or nothing if the feed gave us none. */
+/**
+ * M31 F2a (design-pulse2 `ts('06:10')`, `ts('03:05')`, `ts('04:12')`): a timestamp CHIP writes the minutes with two digits
+ * ("06:10"); the running clock and every other time stay `mmss` ("6:10", "0:08"). Only a plain `m:ss` is padded — an hour
+ * time ("1:02:03") and anything with words in it are left alone.
+ */
+export function chipClock(text: string): string {
+  return /^\d:\d\d$/.test(text) ? `0${text}` : text;
+}
+
+/**
+ * A date a listener recognises, or nothing if the feed gave us none: the LOCAL day and month as the drawings write it ("27 Oct"),
+ * with the year when it is not this year ("12 Mar 2025"). M31 R2: it was the ISO UTC day ("2026-10-27"), a day off for most of the world at night.
+ */
 export function shortDate(ms: number | undefined): string {
-  if (ms === undefined) return '';
-  return new Date(ms).toISOString().slice(0, 10);
+  if (ms === undefined || Number.isNaN(ms)) return '';
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return '';
+  const year = d.getFullYear() === new Date().getFullYear() ? '' : ` ${d.getFullYear()}`;
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${year}`;
 }
 
 /**
@@ -138,13 +153,17 @@ const URL = /https?:\/\/[^\s<>"')\]]+[^\s<>"')\].,;:!?]/g;
 
 const IMG = /<img\b[^>]*?\bsrc\s*=\s*["']([^"']+)["'][^>]*>/gi;
 const ALT = /\balt\s*=\s*["']([^"']*)["']/i;
+// The six marker characters U+0001..U+0006, built from code points so no control character sits in a regex literal.
+const [M1, M2, M3, M4, M5, M6] = [1, 2, 3, 4, 5, 6].map((n) => String.fromCharCode(n)) as [string, string, string, string, string, string];
+const MARKER_CHARS = new RegExp(`[${M1}-${M6}]`, 'g');
+const MARKERS = new RegExp(`${M1}([^${M2}]*)${M2}([^${M3}]*)${M3}|${M4}([^${M5}]*)${M5}([^${M6}]*)${M6}`, 'g');
 
 /** M22 US7: each `<img src>` with an http(s) address as a marker on its own line; any other image is dropped. */
 function markImages(html: string): string {
   return html.replace(IMG, (tag: string, src: string) => {
     const url = decode(src.trim());
     if (!/^https?:\/\/[^\s"'<>]+$/i.test(url)) return '';
-    const alt = decode(ALT.exec(tag)?.[1] ?? '').replace(/[\u0001-\u0006]/g, '');
+    const alt = decode(ALT.exec(tag)?.[1] ?? '').replace(MARKER_CHARS, '');
     return `\n\u0004${url}\u0005${alt}\u0006\n`;
   });
 }
@@ -179,7 +198,7 @@ export function noteParts(html: string | undefined, maxMs?: number): NotePart[] 
     if (last < t.length) out.push(...timestampParts(t.slice(last), maxMs));
   };
   let at = 0;
-  for (const m of text.matchAll(/\u0001([^\u0002]*)\u0002([^\u0003]*)\u0003|\u0004([^\u0005]*)\u0005([^\u0006]*)\u0006/g)) {
+  for (const m of text.matchAll(MARKERS)) {
     plain(text.slice(at, m.index));
     if (m[3] !== undefined) {
       out.push({ text: m[4] ?? '', image: m[3] });
@@ -207,4 +226,30 @@ export function noteSummary(html: string | undefined): string {
   if (summaries.size >= 1000) summaries.delete(summaries.keys().next().value!);
   summaries.set(html, line);
   return line;
+}
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+/** "12 Oct" (no year) or, with `year`, "12 Mar 2026" — the drawings' day-month(-year); empty for a bad time. UTC, as `shortDate`. */
+export function dayMonth(ms: number | undefined, year = false): string {
+  if (ms === undefined || Number.isNaN(ms)) return '';
+  const d = new Date(ms);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}${year ? ` ${d.getUTCFullYear()}` : ''}`;
+}
+
+import { noun } from '@socialmorning/social-core';
+
+/**
+ * M31 F10 (widths W1): a count as the drawings write it - 999, 1.2k, 12.3k, 123k, 1M, 12.3M. One helper for "listening now", "listened",
+ * comments, likes and replies, so 12 345 678 never prints as twelve digits. Below 1000 the number is whole; a negative or odd value is 0.
+ */
+export function compactCount(n: number): string {
+  if (!Number.isFinite(n) || n <= 0) return '0';
+  if (n < 1000) return String(Math.round(n));
+  const [value, unit] = n < 999_500 ? [n / 1000, 'k'] : [n / 1_000_000, 'M'];
+  return `${value >= 100 ? Math.round(value) : (Math.floor(value * 10) / 10).toFixed(1).replace(/\.0$/, '')}${unit}`;
+}
+
+/** "12.3M comments", "1 comment": the count as `compactCount` writes it, with the right noun for the exact number. */
+export function pluralCompact(n: number, one: string, other?: string): string {
+  return `${compactCount(n)} ${noun(n, one, other)}`;
 }

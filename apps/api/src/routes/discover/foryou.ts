@@ -6,6 +6,7 @@ import { optionalAuth } from '../../auth/session.ts';
 import { ApiError } from '../../errors.ts';
 import { forYou, forYouAnon } from '../../db/repos/discover/foryou.ts';
 import { cleanGenreIds } from '../../db/repos/account/interests.ts';
+import { log } from '../../log.ts';
 
 /**
  * Mounted at /v1/for-you (M8 US2). Signed in — or, since M22 US5, signed out with
@@ -34,7 +35,7 @@ foryou.get('/', optionalAuth, async (c) => {
   if (c.req.header('if-none-match') === etag) return c.body(null, 304);
   c.header('ETag', etag);
 
-  if (body.warnings.length > 0) console.warn(`[for-you] ${body.warnings.join(' | ')}`);
-  const { warnings, ...pub } = body;
+  if (body.warnings.length > 0) log.warn('for_you_warnings', { warnings: body.warnings });
+  const { warnings: _warnings, ...pub } = body;
   return c.json({ ...pub, stale, serverTime: new Date().toISOString() });
 });

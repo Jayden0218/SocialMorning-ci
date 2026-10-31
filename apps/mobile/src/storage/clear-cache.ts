@@ -55,7 +55,8 @@ export function phoneCacheEntries(): CacheEntry[] {
 
 /** "0 KB", "320 KB", "4.2 MB", "1.1 GB" — a cache is often under a megabyte. */
 export function sizeLabel(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.round(Math.max(0, bytes) / 1024)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(1)} GB`;
+  // M31 F8: decimal units, as the drawings write them (2 000 000 000 bytes is "2.0 GB").
+  if (bytes < 1_000_000) return `${Math.round(Math.max(0, bytes) / 1000)} KB`;
+  if (bytes < 1_000_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+  return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
 }

@@ -12,6 +12,7 @@ import { useStores } from '@/ui/shell/providers';
 import { createClips, type Clips } from './clips';
 import type { Clip } from '@/social/api';
 import type { PendingClipRow } from '@/storage/types';
+import { nowMs as clockMs } from '@/ui/kit/clock';
 
 export type GraphContextValue = {
   clips: Clips;
@@ -39,7 +40,7 @@ export function GraphProvider(props: { children?: ReactNode }): ReactNode {
   const clips = useMemo(() => createClips({
     api, pending: stores.pendingClips,
     isSignedIn: () => stores.auth.get() !== undefined,
-    now: () => Date.now(),
+    now: clockMs,
     registration: (id) => registrationFor(stores, id),
     newClientId,
     onSent: (clip) => { setLists((l) => ({ ...l, [clip.episodeId]: [clip, ...(l[clip.episodeId] ?? []).filter((c) => c.id !== clip.id)] })); bump(); },

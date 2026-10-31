@@ -13,6 +13,7 @@
  * - Logged: names and counts. Never a value.
  */
 import { GetParametersByPathCommand, SSMClient } from '@aws-sdk/client-ssm';
+import { awsRegionEnv } from './config.ts';
 
 export const SECRETS_TTL_MS = 15 * 60_000;
 export const SECRETS_RETRY_MS = 60_000;
@@ -62,7 +63,7 @@ export async function loadSecrets(opts: SecretsOptions): Promise<Secrets> {
   const path = withSlash(opts.path);
   const now = opts.now ?? Date.now;
   const log = opts.log ?? ((m: string) => console.log(m));
-  const client = opts.client ?? new SSMClient({ region: opts.region ?? process.env['AWS_REGION'] });
+  const client = opts.client ?? new SSMClient({ region: opts.region ?? awsRegionEnv() });
   const required = opts.required ?? [];
   const check = (m: Map<string, string>) => { for (const name of required) if (!m.has(name)) throw new Error(`secret ${name} is not set at ${path}`); };
 

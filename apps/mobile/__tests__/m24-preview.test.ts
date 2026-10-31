@@ -44,7 +44,7 @@ function fakeRuntime(afterClip: PlayerState) {
   let state: PlayerState = { kind: 'idle' };
   const listeners = new Set<() => void>();
   const calls: string[] = [];
-  const set = (s: PlayerState) => { state = s; for (const l of [...listeners]) l(); };
+  const set = (s: PlayerState) => { state = s; for (const l of Array.from(listeners)) l(); };
   const runtime = {
     getState: () => state,
     subscribe: (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; },

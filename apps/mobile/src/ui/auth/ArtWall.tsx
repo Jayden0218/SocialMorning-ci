@@ -1,121 +1,107 @@
-// A row of words-only tiles moving slowly on the sign-in page.
+// The wall of drawn tiles behind the sign-in page.
 /**
- * A row of show covers on the sign-in page (owner, 2026-10-03: was a loose wall). It moves
- * on one cover every second and loops without a jump back: the covers are drawn twice, and
- * on reaching the second copy's first cover it snaps, unanimated, to the identical first.
- * A finger can drag it; the timer starts again from where it lets go. Reduce Motion keeps it
- * still.
- * M17 (`SignIn-B`): 22 pt corners and a soft shadow under each cover (room left under the row
- * so the shadow is not cut off).
- * Owner, 2026-10-04: the covers are words-only tiles (`LANDING_TILES`), not podcast artwork —
- * there is no permission to show other people's covers. Nothing loads, so the row is ready at once.
+ * M31 S-C (T061; design-pulse2 `settings.html` `signInPage`, entry `auth-sign-in--screen`, layout Stage): the top 430 of the page is a wall
+ * of twelve tiles, three columns wide, rows of 96 and 8 between, each 18 round; every fifth tile (the first, sixth, eleventh)
+ * spans two rows. It sits 12 from each side, 6 under the status bar, at 90 %, and fades to the page colour from 250 to 490
+ * under the status bar. It was a row of words-only tiles that moved (owner, 2026-10-04: no show covers — there is no permission
+ * to show other people's artwork); it still shows none: the tiles are painted here, two colours and a disc or two, and the wall
+ * is still. Nothing loads, so the page is whole at once (`onReady` fires once, straight away).
+ *
+ * Not as drawn: CSS repeating, edge-centred and conic gradients have no React Native equivalent, so a tile is the nearest
+ * two-stop gradient plus its discs, in the drawing's colours (`WALL_PAINTS`).
  */
-import { useEffect, useRef, type ComponentRef } from 'react';
-import { AccessibilityInfo, ScrollView, useWindowDimensions } from 'react-native';
+import { useContext, useEffect, useRef } from 'react';
+import { useWindowDimensions } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { Box } from '@/ui/lib/box';
-import { Text } from '@/ui/lib/text';
-import { colour, spacing } from '@/design';
-import type { ArtTile, ArtTone } from './art';
-/** One tile forward this often (owner, 2026-10-04: every 2 seconds; was 1). */
-export const ART_STEP_MS = 2000;
-/** How long the animated step takes before the loop may snap back. */
-const SETTLE_MS = 400;
-/** `SignIn-B`: 0 12 28 at 10 % of the text colour. */
-const SHADOW = { shadowColor: colour.text, shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 12 }, elevation: 6 };
+import { LinearGradient } from '@/design/tailwind';
+import { WALL_ORDER, WALL_PAINTS, colour, type WallPaint } from '@/design/tokens';
+import { AUTH } from './measures';
 
-/**
- * One tick of the loop from cover `at` of `n`: where to scroll, and whether to snap back to
- * the first cover once there (the second copy's first cover looks the same).
- */
-export function nextStep(at: number, n: number): { to: number; snapBack: boolean } {
-  const to = at + 1;
-  return { to, snapBack: to >= n };
+export type WallTile = { key: keyof typeof WALL_PAINTS; column: number; row: number; rows: number };
+
+/** Pure: where each tile of `order` goes — row-major, first free cell, every fifth tile two rows tall (CSS `grid-row: span 2`). */
+export function wallLayout(order: readonly (keyof typeof WALL_PAINTS)[] = WALL_ORDER, columns: number = AUTH.wall.columns): WallTile[] {
+  const taken = new Set<string>();
+  return order.map((key, i) => {
+    const rows = i % 5 === 0 ? 2 : 1;
+    for (let r = 0; ; r++) {
+      for (let c = 0; c < columns; c++) {
+        const free = Array.from({ length: rows }, (_, k) => !taken.has(`${r + k},${c}`)).every(Boolean);
+        if (!free) continue;
+        for (let k = 0; k < rows; k++) taken.add(`${r + k},${c}`);
+        return { key, column: c, row: r, rows };
+      }
+    }
+  });
 }
 
-/** Each tone: the tile's fill, its small label and its words — palette tokens, colour and type written together (token check). */
-const TONE: Record<ArtTone, { box: string; kicker: string; title: string }> = {
-  primary: {
-    box: 'bg-primary',
-    kicker: 'text-onPrimary text-xs font-bold uppercase tracking-widest',
-    title: 'text-onPrimary font-display text-[24px] leading-[31px]',
-  },
-  surface: {
-    box: 'bg-surface border border-border',
-    kicker: 'text-accent text-xs font-bold uppercase tracking-widest',
-    title: 'text-text font-display text-[24px] leading-[31px]',
-  },
-  dark: {
-    box: 'bg-text',
-    kicker: 'text-background text-xs font-bold uppercase tracking-widest',
-    title: 'text-background font-display text-[24px] leading-[31px]',
-  },
-};
+/** Pure: the gradient's start and end (0 to 1 across the tile) for a CSS angle, 180 being top to bottom. */
+export function paintPoints(angle: number): { start: { x: number; y: number }; end: { x: number; y: number } } {
+  const a = (angle * Math.PI) / 180;
+  const dx = Math.sin(a) / 2;
+  const dy = -Math.cos(a) / 2;
+  return { start: { x: 0.5 - dx, y: 0.5 - dy }, end: { x: 0.5 + dx, y: 0.5 + dy } };
+}
 
-/**
- * `onReady` fires once, as soon as the row is drawn — the tiles are words, nothing loads —
- * so the page appears whole (owner, 2026-09-27).
- */
-export function ArtWall(props: { tiles: readonly ArtTile[]; onReady?: () => void }): React.ReactElement {
-  const { width } = useWindowDimensions();
-  const card = Math.round(width * 0.5);
-  const step = card + spacing.section;
-  const n = props.tiles.length;
-  const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
-  const at = useRef(0);
-  const dragging = useRef(false);
-  const fired = useRef(false);
-  const ready = useRef(props.onReady);
-  ready.current = props.onReady;
-  const fire = (): void => { if (!fired.current) { fired.current = true; ready.current?.(); } };
-
-  useEffect(() => { fire(); }, []);
-
-  useEffect(() => {
-    if (n < 2) return;
-    let still = false;
-    let live = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((v) => { if (live) still = v; }).catch(() => undefined);
-    const timers: ReturnType<typeof setTimeout>[] = [];
-    const tick = setInterval(() => {
-      if (still || dragging.current) return;
-      const next = nextStep(at.current, n);
-      at.current = next.to;
-      scroller.current?.scrollTo?.({ x: next.to * step, animated: true });
-      if (next.snapBack) {
-        timers.push(setTimeout(() => { at.current = 0; scroller.current?.scrollTo?.({ x: 0, animated: false }); }, SETTLE_MS));
-      }
-    }, ART_STEP_MS);
-    return () => { live = false; clearInterval(tick); timers.forEach(clearTimeout); };
-  }, [n, step]);
-
-  // Drawn twice so the loop has somewhere to go.
-  const row = n >= 2 ? [...props.tiles, ...props.tiles] : props.tiles;
+function Tile(props: { paint: WallPaint; width: number; height: number; left: number; top: number }): React.ReactElement {
+  const { paint: p } = props;
+  const { start, end } = paintPoints(p.angle);
   return (
-    <ScrollView
-      ref={scroller}
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      snapToInterval={step}
-      decelerationRate="fast"
-      contentContainerStyle={{ paddingHorizontal: spacing.screenX, paddingBottom: 28, gap: spacing.section }}
-      onScrollBeginDrag={() => { dragging.current = true; }}
-      onMomentumScrollEnd={(e) => {
-        dragging.current = false;
-        at.current = Math.round(e.nativeEvent.contentOffset.x / step) % Math.max(n, 1);
-        scroller.current?.scrollTo?.({ x: at.current * step, animated: false });
-      }}
-      style={{ flexGrow: 0 }}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      {row.map((t, i) => (
-          <Box key={`${i}-${t.kicker}`} className="rounded-artwork-lg bg-surface" style={[SHADOW, { width: card, height: card }]}>
-            <Box className={`rounded-artwork-lg overflow-hidden flex-1 p-5 justify-between ${TONE[t.tone].box}`}>
-              <Text className={TONE[t.tone].kicker}>{t.kicker}</Text>
-              <Text className={TONE[t.tone].title} numberOfLines={4}>{t.title}</Text>
-            </Box>
-          </Box>
+    <Box testID="wall-tile" className="absolute overflow-hidden" style={{ left: props.left, top: props.top, width: props.width, height: props.height, borderRadius: AUTH.wall.radius }}>
+      <LinearGradient colors={[p.from, p.to]} start={start} end={end} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+      {p.discs.map((d, i) => (
+        <Box key={i} className="absolute" style={{ left: d.x * props.width - d.r * props.width, top: d.y * props.height - d.r * props.width, width: d.r * 2 * props.width, height: d.r * 2 * props.width, borderRadius: d.r * props.width, backgroundColor: d.colour }} />
       ))}
-    </ScrollView>
+    </Box>
+  );
+}
+
+/** `onReady` fires once, as soon as the wall is drawn, so the page appears whole (owner, 2026-09-27). */
+export function ArtWall(props: { onReady?: () => void }): React.ReactElement {
+  const { width } = useWindowDimensions();
+  const top = (useContext(SafeAreaInsetsContext)?.top ?? 0) + AUTH.wall.below;
+  const ready = useRef(props.onReady);
+  useEffect(() => { ready.current = props.onReady; });
+  const fired = useRef(false);
+  useEffect(() => { if (!fired.current) { fired.current = true; ready.current?.(); } }, []);
+  const column = (width - AUTH.wall.side * 2 - AUTH.wall.gap * (AUTH.wall.columns - 1)) / AUTH.wall.columns;
+  const tiles = wallLayout();
+  return (
+    <Box
+      testID="art-wall"
+      className="absolute overflow-hidden"
+      pointerEvents="none"
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      style={{ left: AUTH.wall.side, right: AUTH.wall.side, top, height: AUTH.wall.height, opacity: AUTH.wall.opacity }}
+    >
+      {tiles.map((t, i) => (
+        <Tile
+          key={i}
+          paint={WALL_PAINTS[t.key]}
+          width={column}
+          height={t.rows * AUTH.wall.row + (t.rows - 1) * AUTH.wall.gap}
+          left={t.column * (column + AUTH.wall.gap)}
+          top={t.row * (AUTH.wall.row + AUTH.wall.gap)}
+        />
+      ))}
+    </Box>
+  );
+}
+
+/** The fade over the wall's foot: transparent to the page colour at 70 %, 240 tall, from 250 under the status bar. */
+export function WallFade(): React.ReactElement {
+  const top = (useContext(SafeAreaInsetsContext)?.top ?? 0) + AUTH.wallFade.belowStatus;
+  return (
+    <LinearGradient
+      testID="wall-fade"
+      colors={[colour.clear, colour.void, colour.void]}
+      locations={[0, 0.7, 1]}
+      pointerEvents="none"
+      accessible={false}
+      importantForAccessibility="no-hide-descendants"
+      style={{ position: 'absolute', left: 0, right: 0, top, height: AUTH.wallFade.height }}
+    />
   );
 }

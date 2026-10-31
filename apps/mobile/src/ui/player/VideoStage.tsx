@@ -14,11 +14,16 @@ import { useEffect } from 'react';
 import { Box } from '@/ui/lib/box';
 import { followAudio } from '@/playback/video/sync';
 
+/** Moves the video to `seconds` (the player is an outside object, so its setter is called here). */
+function seekTo(player: { currentTime: number }, seconds: number): void {
+  player.currentTime = seconds;
+}
+
 export function VideoStage(props: { url: string; positionMs: number; playing: boolean; size: number }): React.ReactElement {
   const player = useVideoPlayer(props.url, (p) => { p.muted = true; });
   useEffect(() => {
     const cmd = followAudio({ positionMs: props.positionMs, playing: props.playing }, { currentTimeS: player.currentTime, playing: player.playing });
-    if (cmd.seekToS !== undefined) player.currentTime = cmd.seekToS;
+    if (cmd.seekToS !== undefined) seekTo(player, cmd.seekToS);
     if (cmd.play === true) player.play();
     if (cmd.play === false) player.pause();
   }, [player, props.positionMs, props.playing]);

@@ -6,8 +6,12 @@
  * This is the only place that opens the database and builds the audio
  * adapter, and it does both exactly once for the app's life.
  */
-import { createContext, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { AppState, Linking, Platform } from 'react-native';
+import { nowMs } from '@/ui/kit/clock';
+import { useCell } from '@/ui/kit/useLatest';
+import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { AppState, Platform } from 'react-native';
+import { openSystem } from '@/ui/kit/openLink';
+import { ToastContext } from '@/ui/shell/toast-context';
 import Constants from 'expo-constants';
 import { createExpoAudioAdapter } from '@/playback/expo-audio-adapter';
 import { PlayerProvider, createPlayerRuntime, type PlayerRuntime } from '@/playback/store';
@@ -47,7 +51,7 @@ import { applyAccent, readAccent } from '@/design/accent';
 import { loadFonts } from '@/design/fonts';
 import * as SplashScreen from 'expo-splash-screen';
 import { Terms } from './Terms';
-import { ToastHost } from '@/ui/kit/ToastHost';
+import { PlacedToastHost } from '@/ui/shell/toastPlacement';
 import { accept, consentGiven } from './consent';
 import { HANDOFF_MAX_MS, coverLaunch, keepTerms, opensSignIn, signInPage } from './launch';
 import { router, usePathname, type Href } from 'expo-router';
@@ -59,7 +63,6 @@ import { createLaunchFiles } from '@/launch/launch-files';
 import { syncLaunch } from '@/launch/sync';
 
 const StoresContext = createContext<Stores | undefined>(undefined);
-const ToastContext = createContext<((message: string) => void) | undefined>(undefined);
 /** True while something covers the app at start (not ready, the launch promotion, the terms). */
 const CoveredContext = createContext(false);
 /** Sheets that must not open over the start-up cover (the rate sheet) read this. */
@@ -114,11 +117,12 @@ export function useToast(): (message: string) => void {
   return toast;
 }
 
+
 export function AppProviders(props: { children?: ReactNode }): ReactNode {
   const [message, setMessage] = useState<string | undefined>(undefined);
   // The toast is read by the runtime through a ref so that building the
   // runtime does not depend on a state setter identity.
-  const show = useRef((next: string) => setMessage(next));
+  const [show] = useState(() => (next: string) => setMessage(next));
 
   const stores = useMemo(() => createSqliteStores(hash), []);
 
@@ -133,10 +137,10 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     });
     return () => setTokenRotatedListener(undefined);
   }, []);
-  const deviceIdRef = useRef<string | undefined>(undefined);
+  const [getDeviceId, setDeviceId] = useCell<string | undefined>(undefined);
   // The launch screen waits on these (owner, 2026-09-27): the account's positions and
   // subscriptions, and the download recovery. See `./startup`.
-  const startupTasks = useRef<Promise<unknown>[]>([]);
+  const [startupTasks] = useCell<Promise<unknown>[]>([]);
   const sync = useMemo<PositionSync>(() => {
     let id: string | undefined;
     const api = graphApi;
@@ -145,7 +149,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       positions: stores.positions,
       get deviceId() { return id ?? 'pending'; },
       isSignedIn: () => id !== undefined && stores.auth.get() !== undefined,
-      now: () => Date.now(),
+      now: nowMs,
       registration: (episodeId) => registrationFor(stores, episodeId),
       setTimeout: (fn, ms) => setTimeout(fn, ms),
       clearTimeout: (h) => clearTimeout(h as ReturnType<typeof setTimeout>),
@@ -153,9 +157,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     // App start while signed in: pull the account's positions, merge, push (T057) —
     // only once the device id is known, or `isSignedIn()` is false and nothing happens.
     // (Seen on the phone 2026-09-21: the reconcile ran before the id resolved and did nothing.)
-    startupTasks.current.push(deviceId().then((v) => { id = v; deviceIdRef.current = v; return created.reconcile(); }));
+    startupTasks().push(deviceId().then((v) => { id = v; setDeviceId(v); return created.reconcile(); }));
     return created;
-  }, [stores, graphApi]);
+  }, [stores, graphApi, startupTasks, setDeviceId]);
 
   /**
    * M8 (US1): subscriptions belong to the account, not to this phone.
@@ -171,9 +175,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       subscriptions: stores.subscriptions,
       isSignedIn: () => stores.auth.get() !== undefined,
     });
-    startupTasks.current.push(created.reconcile().catch(reportAndDrop('sync.reconcile')));
+    startupTasks().push(created.reconcile().catch(reportAndDrop('sync.reconcile')));
     return created;
-  }, [stores, graphApi]);
+  }, [stores, graphApi, startupTasks]);
 
   // M10b US2: the library change log uploads on every change, at launch, and at sign-in
   // (the social context calls `reconcile` from onSignedIn).
@@ -183,9 +187,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       settings: stores.settings,
       isSignedIn: () => stores.auth.get() !== undefined,
     });
-    startupTasks.current.push(created.reconcile().catch(reportAndDrop('sync.reconcile')));
+    startupTasks().push(created.reconcile().catch(reportAndDrop('sync.reconcile')));
     return created;
-  }, [stores, graphApi]);
+  }, [stores, graphApi, startupTasks]);
 
   // M22 US4 (research R4): the playlist syncs at start (once the device id is known), when the
   // app comes back to the front, and every 60 s while it is in front — only when signed in.
@@ -195,18 +199,19 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     backups: stores.queueBackups,
     settings: stores.settings,
     listenerId: () => stores.auth.get()?.listenerId,
-    deviceId: () => deviceIdRef.current,
-    now: () => Date.now(),
-  }), [stores]);
+    deviceId: getDeviceId,
+    now: nowMs,
+  }), [stores, getDeviceId]);
   useEffect(() => {
     const run = () => { void queueSync.sync().catch(reportAndDrop('sync.queue')); };
-    void deviceId().then(run);
+    let live = true; // M32 T090: a late device id after unmount must not start a sync
+    void deviceId().then(() => { if (live) run(); });
     let timer: ReturnType<typeof setInterval> | undefined = setInterval(run, QUEUE_SYNC_EVERY_MS);
     const sub = AppState.addEventListener('change', (st) => {
       if (st === 'active') { run(); if (timer === undefined) timer = setInterval(run, QUEUE_SYNC_EVERY_MS); return; }
       if (timer !== undefined) { clearInterval(timer); timer = undefined; }
     });
-    return () => { sub.remove(); if (timer !== undefined) clearInterval(timer); };
+    return () => { live = false; sub.remove(); if (timer !== undefined) clearInterval(timer); };
   }, [queueSync]);
 
   // M2 (US1): the download manager. One per app life; recovers interrupted rows at start.
@@ -214,7 +219,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     downloader: createExpoDownloader(),
     network: createExpoNetwork(),
     stores,
-    now: () => Date.now(),
+    now: nowMs,
     pathFor: downloadPathFor,
   }), [stores]);
   // M10b US4: the Appearance choice is applied at start (a no-op on main until M9 wires it).
@@ -255,8 +260,8 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   // (the Debug-only "show it on every launch" switch of 2026-09-27 is gone).
   const [accepted, setAccepted] = useState(() => consentGiven(stores.settings, stores.auth.get() !== undefined));
   // Then the sign-in page, on every launch while signed out (see `./launch`).
-  const signInOpened = useRef(false);
-  const wantSignIn = opensSignIn({ ready, accepted, signedIn: stores.auth.get() !== undefined, opened: signInOpened.current });
+  const [signInOpened, setSignInOpened] = useState(false);
+  const wantSignIn = opensSignIn({ ready, accepted, signedIn: stores.auth.get() !== undefined, opened: signInOpened });
   // Owner, 2026-09-27: Accept goes straight to the sign-in page, with no glimpse of the
   // home page first. Something stays over the app from the render that decides to open it
   // (`wantSignIn`) until the page is on top and whole (`handoff`); the page does not slide.
@@ -264,15 +269,14 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   const pathname = usePathname();
   const whole = useSyncExternalStore(signInPage.subscribe, signInPage.isWhole);
   const [handoff, setHandoff] = useState(false);
+  // The render that decides to open the page latches it and starts the hand-off; the push follows in an effect.
+  if (wantSignIn) { setSignInOpened(true); setHandoff(true); }
+  else if (handoff && pathname === '/auth/sign-in' && whole) setHandoff(false);
   useEffect(() => {
-    if (!wantSignIn) return;
-    signInOpened.current = true;
-    setHandoff(true);
-    router.push('/auth/sign-in');
-  }, [wantSignIn]);
+    if (handoff) router.push('/auth/sign-in');
+  }, [handoff]);
   useEffect(() => {
     if (!handoff) return;
-    if (pathname === '/auth/sign-in' && whole) { setHandoff(false); return; }
     // Never trap the app behind the cover if the page does not arrive.
     const t = setTimeout(() => setHandoff(false), HANDOFF_MAX_MS);
     return () => clearTimeout(t);
@@ -281,32 +285,32 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   // under it is finished — no white frame while the first screen draws (owner, 2026-09-29).
   const cover = coverLaunch({ ready, wantSignIn, handoff });
   const [launched, setLaunched] = useState(false);
+  if (!launched && !cover) setLaunched(true);
   useEffect(() => {
-    if (launched || cover) return;
-    setLaunched(true);
+    if (!launched) return;
     // One frame, so what replaces it is already drawn.
     requestAnimationFrame(() => SplashScreen.hide());
-  }, [launched, cover]);
+  }, [launched]);
   useEffect(() => {
     let live = true;
     // M17 (research R5): the Editorial fonts load behind the held splash; `loadFonts` never
     // rejects and gives up after FONT_WAIT_MS, so start-up always settles (guard G-E4).
-    void waitForStartup([...startupTasks.current, downloads.recover(), loadFonts()]).then(() => { if (live) setReady(true); });
+    void waitForStartup([...startupTasks(), downloads.recover(), loadFonts()]).then(() => { if (live) setReady(true); });
     return () => { live = false; };
-  }, [downloads]);
+  }, [downloads, startupTasks]);
 
   // M2 (research R7): what the queue advance needs. `online` is the last network
   // reading, refreshed on every connectivity change, app-foreground and every 30 s.
   // Each refresh also ticks the download manager: a transfer paused by a network
   // loss resumes when the network is back (gap 6), and a transient failure is
   // retried within 30 s instead of never.
-  const online = useRef(true);
+  const [getOnline, setOnline] = useCell(true);
   // M10b US4: the last network kind, for "Allow mobile data for playback".
-  const netKind = useRef<string>('wifi');
+  const [getNetKind, setNetKind] = useCell<string>('wifi');
   const network = useMemo(() => createExpoNetwork(), []);
   useEffect(() => {
     const refresh = () => {
-      void network.kind().then((k) => { online.current = k !== 'none'; netKind.current = k; });
+      void network.kind().then((k) => { setOnline(k !== 'none'); setNetKind(k); });
       void downloads.tick();
     };
     refresh();
@@ -314,48 +318,48 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     const unsubscribe = network.onChange?.(refresh);
     const timer = setInterval(refresh, 30_000);
     return () => { sub.remove(); unsubscribe?.(); clearInterval(timer); };
-  }, [network, downloads]);
+  }, [network, downloads, setOnline, setNetKind]);
 
   // M4 (research R3): listening time from TICKs, pushed on the position sync's cadence.
   const listened = useMemo(() => createListened({
-    api: graphApi, store: stores.listened, deviceId: () => deviceIdRef.current, isSignedIn: () => stores.auth.get() !== undefined, now: () => Date.now(),
-  }), [graphApi, stores]);
+    api: graphApi, store: stores.listened, deviceId: getDeviceId, isSignedIn: () => stores.auth.get() !== undefined, now: nowMs,
+  }), [graphApi, stores, getDeviceId]);
 
   const runtime = useMemo<PlayerRuntime>(() => {
     const adapter = createExpoAudioAdapter();
     // M22 T073: the episode a public `load` is starting (read by mayStream), and one toast to drop.
     let asking: Parameters<PlayerRuntime['load']>[0] | undefined;
-    let skipToast = false;
+    const skipToast = { on: false };
     // Fire and forget: setAudioModeAsync must happen once, before anything
     // plays. interruptionMode doNotMix is what lock-screen controls need.
     void adapter.configure();
     const r = createPlayerRuntime({
       adapter,
       stores,
-      now: () => Date.now(),
-      notify: (text) => { if (skipToast) { skipToast = false; return; } show.current(text); },
+      now: nowMs,
+      notify: (text) => { if (skipToast.on) { skipToast.on = false; return; } show(text); },
       onTick: (episodeId, positionMs) => listened.onTick(episodeId, positionMs),
       onPositionSaved: (row, reason) => {
         sync.onSaved(row, reason);
         // A stop/seek/background closes the listened interval and pushes with the positions.
         if (IMMEDIATE.has(reason)) { listened.close(); void listened.push(); }
         // FR-019: an episode that has a position has been played — it leaves the inbox.
-        stores.inboxState.mark(row.episodeId, 'played', Date.now());
+        stores.inboxState.mark(row.episodeId, 'played', nowMs());
         // M22 US17: "Delete after playing" (off by default) removes a finished episode's download.
         if (reason === 'finished') downloads.afterFinished(row.episodeId);
       },
       // M22 US17 (T073): refused on mobile data → the prompt asks "Allow this time / Always allow"
       // (src/ui/player/DataPrompt.tsx) and replays the episode on an allow; its toast is not shown.
       mayStream: () => {
-        if (mayStreamNow(stores.settings, netKind.current)) return true;
+        if (mayStreamNow(stores.settings, getNetKind())) return true;
         const episode = asking;
-        if (askMobileData(episode === undefined ? {} : { retry: () => r.load(episode, 'play') })) skipToast = true;
+        if (askMobileData(episode === undefined ? {} : { retry: () => r.load(episode, 'play') })) skipToast.on = true;
         return false;
       },
       advance: {
         lookup: (episodeId) => toPlayable(stores, episodeId),
-        online: () => online.current,
-        onSkipped: (episodeId) => show.current(`Not downloaded — skipped: ${stores.feeds.getEpisode(episodeId)?.title ?? episodeId}`),
+        online: getOnline,
+        onSkipped: (episodeId) => show(`Not downloaded — skipped: ${stores.feeds.getEpisode(episodeId)?.title ?? episodeId}`),
       },
     });
     const load = r.load;
@@ -369,7 +373,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
     if (getPref(stores.settings, 'voiceBoost')) r.setVoiceBoost(true);
     if (getPref(stores.settings, 'mixWithOthers')) r.setMixWithOthers(true);
     return r;
-  }, [stores, sync, listened, downloads]);
+  }, [stores, sync, listened, downloads, show, getNetKind, getOnline]);
 
   /**
    * M8 (US6, FR-028): a **play** and a **finish** are recorded here, not on the screen
@@ -457,7 +461,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       },
       discover: () => savedDiscover(stores.feedCache),
       sinks: platformWidgetDataSinks(stores.settings),
-      now: () => Date.now(),
+      now: nowMs,
     });
     const appState = AppState.addEventListener('change', () => widgets.refresh());
     return () => { setOutsideToggle(undefined); setOutsideSkip(undefined); bridge.dispose(); widgets.dispose(); appState.remove(); };
@@ -468,7 +472,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
   useEffect(() => startWatchLink({
     link: WatchLink,
     positions: stores.positions,
-    now: () => Date.now(),
+    now: nowMs,
     playingNow: () => { const st = runtime.getState(); return st.kind === 'playing' || st.kind === 'buffering' ? st.episodeId : undefined; },
     onApplied: () => { void sync.flush(); },
   }), [runtime, stores, sync]);
@@ -488,7 +492,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       <SubscriptionSyncContext.Provider value={subscriptionSync}>
       <LibrarySyncContext.Provider value={librarySync}>
       <QueueSyncContext.Provider value={queueSync}>
-      <ToastContext.Provider value={show.current}>
+      <ToastContext.Provider value={show}>
         <PlayerProvider runtime={runtime}>
           <CoveredContext.Provider value={!ready || launchPick !== undefined || keepTerms({ ready, accepted, launched, cover })}>
           {props.children}
@@ -505,7 +509,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
               onTap={() => {
                 void launchApi.event(launchPick.promotion.id, 'tap').catch(reportAndDrop('launch.event'));
                 const to = resolveTarget(launchPick.promotion, (path) => knownRoute(path));
-                if (to.kind === 'url') void Linking.openURL(to.url).catch(() => undefined);
+                if (to.kind === 'url') void openSystem(to.url).catch(() => undefined);
                 else if (to.path !== '/') router.push(to.path as never);
               }}
               onDone={() => setLaunchPick(undefined)}
@@ -513,9 +517,9 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
           ) : null}
           {keepTerms({ ready, accepted, launched, cover }) ? <Terms settings={stores.settings} onAccept={() => { accept(stores.settings); setAccepted(true); }} /> : null}
           {/* M16a T015: the toast host — spoken on iOS too, and drawn above native modals. */}
-          <ToastHost message={message} />
+          <PlacedToastHost message={message} />
           {/* M22 US4: "Which playlist do you want to keep?" — over every page, until answered. */}
-          <QueueChooserHost sync={queueSync} feeds={stores.feeds} onError={show.current} />
+          <QueueChooserHost sync={queueSync} feeds={stores.feeds} onError={show} />
         </PlayerProvider>
       </ToastContext.Provider>
       </QueueSyncContext.Provider>

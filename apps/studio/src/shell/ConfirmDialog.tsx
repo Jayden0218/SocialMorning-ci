@@ -16,7 +16,7 @@ export function ConfirmDialog({ title, body, confirm, onConfirm, onCancel, busy,
   const first = useRef<HTMLButtonElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const cancel = useRef(onCancel);
-  cancel.current = onCancel;
+  useEffect(() => { cancel.current = onCancel; });
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     first.current?.focus();

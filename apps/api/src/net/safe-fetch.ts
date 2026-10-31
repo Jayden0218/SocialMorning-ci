@@ -119,7 +119,7 @@ export function safeFetch(inner: typeof fetch, opts: SafeFetchOptions = {}): typ
     let url = new URL(typeof input === 'string' ? input : input instanceof URL ? input.href : input.url);
     const timeout = AbortSignal.timeout(timeoutMs);
     const signal = init?.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-    let req: RequestInit = { ...(init ?? {}) };
+    let req: RequestInit = { ...init };
     for (let hop = 0; ; hop++) {
       await assertPublicUrl(url, resolve);
       const res = await inner(url.href, { ...req, redirect: 'manual', signal });

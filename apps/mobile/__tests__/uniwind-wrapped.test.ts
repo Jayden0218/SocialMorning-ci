@@ -17,7 +17,7 @@ function sources(dir: string): string[] {
     const rel = `${dir}/${name}`;
     if (rel === 'src/ui/lib') return [];
     if (statSync(join(root, rel)).isDirectory()) return sources(rel);
-    return /\.tsx$/.test(name) ? [rel] : [];
+    return name.endsWith('.tsx') ? [rel] : [];
   });
 }
 const files = [...sources('app'), ...sources('src')].filter((f) => f !== 'src/design/tailwind.ts');

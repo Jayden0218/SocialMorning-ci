@@ -41,7 +41,7 @@ const mockAccount = { startEmailChange: jest.fn((_e: string) => Promise.resolve(
 // pages' useCallback deps, re-runs their focus effects (which set state) and renders for ever —
 // the gate 37744935171 timeouts on the Notifications and change-email pages.
 const mockSocial = {
-  api: { votePoll: (...a: unknown[]) => mockVote(...a), pushPrefs: (...a: unknown[]) => (mockPushPrefs as (...x: unknown[]) => Promise<void>)(...a) },
+  api: { social: () => Promise.resolve({ status: 404 }), votePoll: (...a: unknown[]) => mockVote(...a), pushPrefs: (...a: unknown[]) => (mockPushPrefs as (...x: unknown[]) => Promise<void>)(...a) },
   listener: { listenerId: 'me', displayName: 'Me', email: 'old@e.com' },
   refreshListener: () => mockRefreshListener(),
 };
@@ -64,6 +64,15 @@ jest.mock('@/ui/shell/providers', () => ({
   useCovered: () => false,
 }));
 jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null }));
+// M31 S-B: the Updates / Notifications pages sit in the settings page body (`PushedPage` under it needs the router's path); the bar is not what these guards are about.
+const mockBody = (c: unknown): unknown => (typeof c === 'function' ? (c as (layout: { top: number; titleBottom: number; reserve: number }) => unknown)({ top: 0, titleBottom: 0, reserve: 0 }) : c);
+// M31 S-A: a page with a bottom zone (Change email's button) passes it as `below`; draw it after the body.
+jest.mock('@/ui/kit/PushedPage', () => ({
+  PushedPage: (p: { children: unknown; below?: unknown }) => {
+    const { createElement, Fragment } = require('react');
+    return createElement(Fragment, null, mockBody(p.children), p.below ?? null);
+  },
+}));
 jest.mock('@/notify/expo', () => ({ expoNotify: { status: () => Promise.resolve('granted') } }));
 jest.mock('@/social/m12-api', () => ({ useM12Api: () => mockM12 }));
 jest.mock('@/ui/settings/NotifyShows', () => ({ NotifyShows: () => null }));
@@ -83,14 +92,12 @@ import { getPref } from '@/settings/prefs';
 import { createAccountApi, emailChangedLine } from '@/social/account-api';
 import { KEY_PICKED } from '@/discover/interests';
 import { getAppConfig } from '@/config/store';
-import { Actionsheet } from '@/ui/lib/actionsheet';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 import { Icon } from '@/ui/kit/Icon';
 import { EndOffer } from '@/ui/player/EndOffer';
-import { PlayRing } from '@/ui/player/PlayRing';
 import { QueueList } from '@/ui/queue/QueueList';
 import { PicksSection } from '@/ui/discover/sections';
-import { AddButton } from '@/ui/discover/parts';
 import PushSettings from '../app/settings/push';
 import ChangeEmailScreen from '../app/settings/account-email';
 
@@ -162,10 +169,10 @@ describe('1 (rendered). every way out of the sheet records an answer, and the sh
     act(() => again.unmount());
   });
 
-  it('the backdrop / back gesture (the sheet\'s onClose) and the ✕ both record "closed"', () => {
+  it('the backdrop / back gesture (the kit sheet\'s onClose) and the ✕ both record "closed"', () => {
     const r = mount();
     expect(shown(r)).toBe(true);
-    act(() => { (r.root.findAll((n) => n.type === Actionsheet)[0]!.props['onClose'] as () => void)(); });
+    act(() => { (r.root.findAll((n) => n.type === ActionSheet)[0]!.props['onClose'] as () => void)(); });
     expect(mockMap.get(RATE_KEY)).toBe('closed');
     act(() => { jest.runOnlyPendingTimers(); });
     act(() => r.unmount());
@@ -177,27 +184,51 @@ describe('1 (rendered). every way out of the sheet records an answer, and the sh
     act(() => x.unmount());
     expect(shown(mount())).toBe(false);
   });
+
+  /**
+   * M31 S-C (T062; design-pulse2 `rate-sheet--sheet`): the sheet's numbers read off the render — the close circle 36, the title
+   * Unbounded 21, the thumbs disc 60, the two buttons 52 and side by side (ring then hot). Break that turns it red: change
+   * `AUTH.rate.button` or `AUTH.rate.disc` (src/ui/auth/measures.ts).
+   */
+  it('M31: close 36, title 21, thumbs disc 60 round, Give feedback and Rate us 52 tall side by side', () => {
+    const r = mount();
+    const style = (n: ReactTestInstance): Record<string, unknown> => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
+    expect(style(tap(r, 'Give feedback')!)['height']).toBe(52);
+    expect(style(tap(r, 'Rate us')!)['height']).toBe(52);
+    const close = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Close' && typeof n.props['onPress'] === 'function' && style(n)['width'] === 36);
+    expect(close.length).toBeGreaterThan(0);
+    const disc = r.root.findAll((n) => n.props['testID'] === 'rate-disc' && typeof n.type === 'string')[0]!;
+    expect(style(disc)).toMatchObject({ width: 60, height: 60, borderRadius: 30 });
+    const title = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header' && style(n)['fontSize'] === 21)[0]!;
+    expect(title).toBeDefined();
+    // "A rating helps a lot" is drawn one character at a time, hot to violet: the first and last differ.
+    const chars = r.root.findAll((n) => n.props['testID'] === 'glow-words')[0]!.findAll((n) => typeof n.type === 'string' && n.children.length === 1 && typeof n.children[0] === 'string' && n.children[0] !== ' ');
+    const colourOf = (n: ReactTestInstance): unknown => style(n)['color'];
+    expect(colourOf(chars[0]!)).not.toBe(colourOf(chars[chars.length - 1]!));
+    act(() => { jest.runOnlyPendingTimers(); });
+    act(() => r.unmount());
+  });
 });
 
-describe('2. main Play buttons are the fixed strong yellow, whatever the accent', () => {
-  it('`play` is #fcc522 with dark words under every accent theme, and the pair clears 4.5', () => {
+describe('2. main Play buttons are the fixed light circle, whatever the accent', () => {
+  it('`play` is the Pulse light circle #f4f2ee with void words under every accent theme, and the pair clears 4.5', () => {
     for (const name of Object.keys(ACCENTS) as (keyof typeof ACCENTS)[]) {
       const p = withAccent(colour, name);
-      expect(p.play).toBe('#fcc522');
-      expect(p.onPlay).toBe('#111114');
+      expect(p.play).toBe('#f4f2ee');
+      expect(p.onPlay).toBe('#060608');
     }
-    expect(withAccent(colour, 'teal').primary).not.toBe('#fcc522');
+    expect(withAccent(colour, 'teal').primary).not.toBe('#f4f2ee');
     expect(PAIRS.some((p) => p.fg === colour.onPlay && p.bg === colour.play)).toBe(true);
     expect(contrastRatio(colour.onPlay, colour.play)).toBeGreaterThanOrEqual(BODY_MIN);
   });
   // KEPT as a source check: global.css is generated CSS, not a component — nothing to render.
   it('global.css carries the token (light, dark and the theme)', () => {
-    expect(read('global.css').match(/--color-play: #fcc522;/g)).toHaveLength(3);
-    expect(read('global.css').match(/--color-onPlay: #111114;/g)).toHaveLength(3);
+    expect(read('global.css').match(/--color-play: #f4f2ee;/g)).toHaveLength(3);
+    expect(read('global.css').match(/--color-onPlay: #060608;/g)).toHaveLength(3);
   });
 
   describe('rendered under the Teal accent: the pills are `bg-play` / `text-onPlay`, the glyph is onPlay', () => {
-    // `bg-play` and `bg-primary` are the same yellow in the default theme, so the class names tell
+    // `bg-play` and `bg-primary` are different colours, so the class names tell
     // them apart; under Teal the JS palette (icons, the ring) shows a `primary` slip as teal.
     beforeAll(() => { applyAccent('teal'); });
     afterAll(() => { applyAccent('sunrise'); });
@@ -207,7 +238,7 @@ describe('2. main Play buttons are the fixed strong yellow, whatever the accent'
       expect(classes(n)).not.toContain('bg-primary');
       const glyph = n.findAll((x) => x.type === Icon)[0]!;
       expect(glyph.props['color']).toBe(colour.onPlay);
-      expect(glyph.props['color']).not.toBe(teal.onPrimary);
+      expect(glyph.props['color']).not.toBe(teal.primary);
     };
 
     it('Play it (the episode-end card)', () => {
@@ -230,79 +261,72 @@ describe('2. main Play buttons are the fixed strong yellow, whatever the accent'
       positions: { get: () => undefined },
       downloads: { get: () => undefined },
     } as never;
-    const list = (layout: 'page' | 'sheet', onPlay: (id: string) => void): ReactTestRenderer => {
+    const list = (onPlay: (id: string) => void): ReactTestRenderer => {
       let r!: ReactTestRenderer;
-      // The page layout holds a (closed) ⋮ sheet, which wants the gluestack provider above it.
-      act(() => { r = create(createElement(GluestackUIProvider, null, createElement(QueueList, { ids: ['e1', 'e2'], stores, colours: { text: 'x', muted: 'x', accent: 'x' }, onChange: jest.fn(), onPlay, layout }))); });
+      act(() => { r = create(createElement(GluestackUIProvider, null, createElement(QueueList, { ids: ['e1', 'e2'], stores, onChange: jest.fn(), onPlay, onOpen: jest.fn() }))); });
       return r;
     };
 
-    it('Queue page: the next episode\'s Play now pill', () => {
+    // M31 W3-B: the queue page's pills are the Pulse light ones (`bg-text`, void glyph) — they do not follow the accent at all.
+    it('Queue page: the next episode\'s Play now pill is light, with a void glyph, whatever the accent', () => {
       const onPlay = jest.fn();
-      const r = list('page', onPlay);
+      const r = list(onPlay);
       const button = tap(r, 'Play First')!;
-      pill(button);
+      expect(classes(button)).toContain('bg-text');
+      expect(classes(button)).not.toContain('bg-primary');
+      expect(button.findAll((x) => x.type === Icon)[0]!.props['color']).toBe(colour.void);
       act(() => { button.props['onPress'](); });
       expect(onPlay).toHaveBeenCalledWith('e1');
     });
 
-    it('Queue sheet: a row\'s Play now pill (opened from ⋮)', () => {
+    it('Queue page: the Play circle on the other cards is light too (bg-text), not the Teal primary', () => {
       const onPlay = jest.fn();
-      const r = list('sheet', onPlay);
-      act(() => { tap(r, 'More for Second')!.props['onPress'](); });
-      const button = tap(r, 'Play now')!;
-      pill(button);
-      expect(r.root.findAll((n) => n.props['children'] === 'Play now' && typeof n.props['className'] === 'string').every((n) => classes(n).includes('text-onPlay'))).toBe(true);
+      const r = list(onPlay);
+      const button = tap(r, 'Play Second')!;
+      expect(classes(button)).toContain('bg-text');
+      expect(classes(button)).not.toContain('bg-primary');
       act(() => { button.props['onPress'](); });
       expect(onPlay).toHaveBeenCalledWith('e2');
     });
-
-    it('the mini player\'s ring is the play yellow, never the accent', () => {
-      let r!: ReactTestRenderer;
-      act(() => { r = create(createElement(PlayRing, { progress: 0.75, size: 44, stroke: 3 })); });
-      const styles = r.root.findAll((n) => typeof n.type === 'string').map((n) => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>);
-      const arcs = styles.filter((s) => s['borderTopColor'] !== undefined || s['borderBottomColor'] !== undefined);
-      expect(arcs.length).toBeGreaterThan(0);
-      expect(styles.some((s) => s['borderTopColor'] === colour.play)).toBe(true);
-      expect(styles.some((s) => s['borderBottomColor'] === colour.play)).toBe(true);
-      const colours = styles.flatMap((s) => [s['borderColor'], s['borderTopColor'], s['borderRightColor'], s['borderBottomColor'], s['borderLeftColor']]);
-      expect(colours).not.toContain(teal.primary);
-      expect(colours).not.toContain(teal.accent);
-    });
   });
 
-  // KEPT as source checks: these Play buttons live only inside app/player.tsx (~55 imports) and
-  // app/episode/[id].tsx (~52 imports); neither page has a smaller component to render.
+  // KEPT as source checks: the player's big Play disc is drawn by src/ui/player/TransportRow.tsx (M31) and
+  // the Episode page's by app/episode/[id].tsx (~52 imports); neither has a smaller part to render here.
   it('player and Episode page use it, not `primary`', () => {
-    expect(read('app/player.tsx')).toMatch(/const PLAY = '[^']*\bbg-play\b/);
-    expect(read('app/player.tsx')).toMatch(/size=\{34\} color=\{c\.onPlay\}/);
-    const ep = read('app/episode/[id].tsx');
-    expect(ep).toMatch(/rounded-pill bg-play items-center justify-center px-section/);
-    expect(ep).toMatch(/text-onPlay text-body font-bold" numberOfLines=\{1\}>\{playLabel\}/);
+    expect(read('src/ui/player/TransportRow.tsx')).toMatch(/className="rounded-pill bg-play items-center justify-center"/);
+    expect(read('src/ui/player/TransportRow.tsx')).toMatch(/size=\{PLAYER\.playGlyph\} color=\{c\.onPlay\}/); // 32, the `player` token (round 2)
+    // M31 W3-A (T040): the Episode page's Play is the Pulse light pill (`PulseButton kind="light"`: the text fill, void words),
+    // never the accent. Rendered (48 tall) in m31-w3a-episode.test.tsx.
+    const ep = read('src/ui/episode/EpisodeTitleBlock.tsx');
+    expect(ep).toMatch(/<PulseButton label=\{props\.playing \? 'Pause' : 'Play this episode'\}[^>]*kind="light"/);
+    expect(ep).not.toMatch(/bg-primary|kind="hot"/);
   });
 });
 
-describe('3. the Home pick card: "+" and the design\'s Play pill, side by side', () => {
-  it('both sit in the card\'s foot, "+" first; the pill is the fixed yellow and plays the pick', () => {
+describe('3. the Home pick card: "+" and the design\'s Play, side by side', () => {
+  // M31 T030 (Pulse, `home--fold-a`): the deck card's foot has the "+" ring (38) and the light Play disc (38) in one row.
+  // The break: draw Play in the accent (`bg-primary`), or put it before "+" / in another row.
+  it('both sit in the card\'s foot, "+" first; Play is the fixed light disc and plays the pick', () => {
     const card: EpisodeCard = { id: 'p1', feedUrl: 'https://f/p1.xml', guid: 'p1', title: 'Title p1', showTitle: 'Show p1', enclosureUrl: 'https://a/p1.mp3' };
     const onPlay = jest.fn();
     const onQueue = jest.fn();
     let r!: ReactTestRenderer;
     act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode: card }], onOpen: jest.fn(), onPlay, onQueue })); });
-    const add = r.root.findAll((n) => n.type === AddButton)[0]!;
-    const play = r.root.findAll((n) => typeof n.type === 'function' && (n.type as { name?: string }).name === 'PickPlay')[0]!;
-    // Siblings in one row: "+" then "▶ Play".
-    expect(add.parent).toBe(play.parent);
-    const row = add.parent!.children;
-    expect(row.indexOf(play)).toBe(row.indexOf(add) + 1);
+    const add = tap(r, 'Add Title p1 to the queue')!;
     const button = tap(r, 'Play Title p1')!;
-    expect(classes(button)).toContain('bg-play');
+    // Siblings in one row: "+" then Play.
+    // Each is wrapped by its own component (RingAdd, DiscPlay); those two are siblings in one row. (A failed toBe on instances would print the whole tree.)
+    const row = add.parent!.parent!.children;
+    expect(add.parent!.parent === button.parent!.parent).toBe(true);
+    expect(row.indexOf(button.parent!)).toBe(row.indexOf(add.parent!) + 1);
+    expect(classes(button)).toContain('bg-text');
     expect(classes(button)).not.toContain('bg-primary');
-    expect(button.findAll((x) => x.type === Icon)[0]!.props['color']).toBe(colour.onPlay);
-    expect(classes(textNode(r, 'Play'))).toContain('text-onPlay');
+    expect(button.findAll((x) => x.type === Icon)[0]!.props['color']).toBe(colour.void);
+    // Drawn 38 across, touched 48 (`hitSlop`).
+    expect([StyleSheet.flatten(button.props['style']).width, StyleSheet.flatten(add.props['style']).width]).toEqual([38, 38]);
     act(() => { button.props['onPress'](); });
     expect(onPlay).toHaveBeenCalledWith(card);
-    act(() => { tap(r, 'Add Title p1 to the queue')!.props['onPress'](); });
+    act(() => { add.props['onPress'](); });
     expect(onQueue).toHaveBeenCalledWith(card);
   });
 });
@@ -373,7 +397,8 @@ describe('4. G-M24-FP2: an episode its creator hid is not listed', () => {
     expect(show).toMatch(/const visible = withoutHidden\(episodes, hiddenGuids\)/);
     expect(show).toMatch(/saveHiddenGuids\(stores\.settings, feedUrl, serverHidden\)/);
     expect(read('app/subscriptions.tsx')).toMatch(/const latest = visibleEpisodes\(stores, feedUrl\)\[0\]/);
-    const wired = /refreshAll\(stores, Date\.now\(\), PER_FEED_TIMEOUT_MS, (?:social\.)?api\?\.hiddenEpisodes\)/g;
+    // M32 C3: the screens call the shared refresh service; the hidden-episodes lookup is still passed.
+    const wired = /refreshFeeds\(stores, \{[^}]*hiddenOf: (?:social\.)?api\?\.hiddenEpisodes/g;
     expect(read('app/subscriptions.tsx').match(wired)).toHaveLength(1);
     expect(read('app/(tabs)/library.tsx').match(wired)).toHaveLength(2);
   });
@@ -433,7 +458,8 @@ describe('6. Notifications: "System notices", server key `system`, on by default
     mockM22.pushSwitches.mockResolvedValue({});
     let r!: ReactTestRenderer;
     await act(async () => { r = create(createElement(PushSettings)); });
-    expect(texts(r)).toEqual(expect.arrayContaining(['From SocialNet', 'System notices', 'Notices from SocialNet']));
+    // M31 S-B: the group is named by the edge label SOCIALNET (design-pulse2 `settings-push--screen`), drawn in capitals.
+    expect(texts(r)).toEqual(expect.arrayContaining(['SOCIALNET', 'System notices', 'Notices from SocialNet']));
     const toggle = tap(r, 'System notices')!;
     expect(toggle.props['accessibilityState']).toEqual(expect.objectContaining({ checked: true }));
     await act(async () => { toggle.props['onPress'](); });

@@ -14,33 +14,40 @@
  *  - The server counted every follow row, while the list leaves out listeners the viewer blocked;
  *    `counts` now uses the list's rule (apps/api/src/db/repos/follows.ts).
  *
- * M17 (`Followers-B`, `FollowingList-B`): an eyebrow ("312 people", from the count the profile
- * showed; the owner's name when the page was opened without one) over the serif page title,
- * then a two-column grid of white cards — a round monogram and the name. Same rows, same links,
- * same paging, Retry and empty sentences.
- *
  * M21 US8 (FR-074): each card adds the person's one-line bio and, when you are signed in, a
  * Follow / Following button (`youFollow` from the server; never on your own card).
+ *
+ * M31 W4-A (T050; design-pulse2 social.html `profile-followers--screen`, `--own-empty`, `--other-empty`, `--load-failed`,
+ * `profile-following--screen`, `--own-empty`; layout pattern Mosaic): people are 1 x 1 tiles (rows 84, 10 apart, radius 22, in
+ * the Me tab's lane), each an avatar 40 and the name 14/600 over a bio line 11 in text3; a deleted account reads "Deleted account"
+ * in italics and is not a link. The edge label is "People". The title is the page's (30), the subtitle "Rui Costa · 1.2k"
+ * (the name, then the count the profile passed; "You" on your own empty list). Loading is ghost tiles; the end says "That's all";
+ * a failed load is an inline tile at the top of the mosaic, "Couldn't load followers right now." with a light Retry; an empty
+ * list is the centred empty block ("Nobody yet" and the sentence; your own with a light Open Discover).
+ *
+ * Not as drawn: the tile has no Follow button in the drawing; the M21 Follow stays, a 32 tall pill under the bio, so a tile that
+ * carries one is 108 tall rather than 84 (the action inventory's rule: every action stays).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList } from '@/ui/lib/flat-list';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
+import { router } from 'expo-router';
 import { Link } from '@/design/tailwind';
-import { hit } from '@/design';
+import { Pressable } from '@/ui/lib/pressable';
+import { Box } from '@/ui/lib/box';
+import { spacing } from '@/design';
+import { EMPTY_STATES } from '@socialmorning/social-core';
 import { useSocial } from '@/social/context';
 import { useSafety } from '@/safety/context';
 import type { ClipAuthor } from '@/social/api';
-import { EmptyState } from '@/ui/kit/EmptyState';
-import { Loader } from '@/ui/kit/Loader';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { Avatar } from '@/ui/kit/Avatar';
 import { EndOfList } from '@/ui/kit/EndOfList';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Type } from '@/ui/kit/Type';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
+import { DRAWN, PageEmpty, emptyTop } from '@/ui/me/lists';
+import { ErrorTile, GhostTiles, MosaicList, NameText } from '@/ui/profile/parts';
+import { PROFILE, PROFILE_TYPE } from '@/ui/profile/measures';
 import { FollowButton } from './FollowButton';
-
-const TAP = { minHeight: hit.min };
 
 export type FollowKind = 'followers' | 'following';
 
@@ -49,22 +56,28 @@ export type FollowKind = 'followers' | 'following';
  * (with its action); anyone else's says their name.
  */
 export function followEmptyLine(kind: FollowKind, own: boolean, name: string | undefined): string | undefined {
-  if (own) return undefined; // EmptyState's own sentence, which is about you
+  if (own) return undefined; // the table's own sentence, which is about you
   const named = name !== undefined && name.trim() !== '';
   if (kind === 'followers') return `Nobody follows ${named ? name : 'this listener'} yet.`;
   return `${named ? name : 'This listener'} doesn't follow anyone yet.`;
 }
 
-/** The empty partner of an odd last card in the grid; never tappable, never spoken. */
-const FILLER: ClipAuthor = { id: '__filler', displayName: null };
+/** "1.2k", "8.4M": the count as the drawing writes it. */
+export function compactCount(n: number): string {
+  if (n < 1000) return String(n);
+  const [value, unit] = n < 1_000_000 ? [n / 1000, 'k'] : [n / 1_000_000, 'M'];
+  return `${value >= 100 ? Math.round(value) : (Math.round(value * 10) / 10).toFixed(1).replace(/\.0$/, '')}${unit}`;
+}
+
+/** The subtitle under the title: "Rui Costa · 1.2k" (the name, then the count the profile passed). */
+export function followSubtitle(count: number | undefined, name: string | undefined): string | undefined {
+  const n = count !== undefined && Number.isFinite(count) && count >= 0 ? compactCount(count) : undefined;
+  const who = name !== undefined && name.trim() !== '' ? name : undefined;
+  if (who !== undefined && n !== undefined) return `${who} · ${n}`;
+  return who ?? n;
+}
 
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; rows: ClipAuthor[]; next?: string };
-
-/** The eyebrow over the title: the count when the profile passed one, else whose list it is. */
-export function followEyebrow(count: number | undefined, name: string | undefined): string | undefined {
-  if (count !== undefined && Number.isFinite(count) && count >= 0) return count === 1 ? '1 person' : `${count} people`;
-  return name !== undefined && name.trim() !== '' ? name : undefined;
-}
 
 export function FollowList(props: { kind: FollowKind; id: string; name?: string; count?: number }): React.ReactElement {
   const { api, listener } = useSocial();
@@ -78,55 +91,67 @@ export function FollowList(props: { kind: FollowKind; id: string; name?: string;
   useEffect(() => { load(); }, [load]);
   const own = listener?.listenerId === props.id;
   const emptyLine = followEmptyLine(props.kind, own, props.name);
-  const eyebrow = followEyebrow(props.count, props.name);
-  // Two columns: an odd last card gets an empty partner so it keeps a half width.
   const shown = state.kind === 'ok' ? safetyFilter.listeners(state.rows) : [];
-  const rows: ClipAuthor[] = shown.length % 2 === 1 ? [...shown, FILLER] : shown;
   const more = () => {
     if (state.kind !== 'ok' || !state.next) return;
     const before = state.next;
     fetchPage(before).then((r) => setState((s) => (s.kind === 'ok' ? { kind: 'ok', rows: [...s.rows, ...r.listeners], ...(r.next ? { next: r.next } : {}) } : s)), () => undefined);
   };
+  const title = props.kind === 'followers' ? 'Followers' : 'Following';
+  const nothing = state.kind === 'ok' && shown.length === 0;
+  const subtitle = nothing && own ? 'You' : followSubtitle(props.count, props.name);
+  const failure = `Couldn't load ${props.kind === 'followers' ? 'followers' : 'who this is following'} right now.`;
   return (
-    <>
-      {/* M17: the bar keeps only the back button; the eyebrow sits above the title, which
-          PageHeader's subtitle (under the title) cannot do. */}
-      <PageHeader middle={<Box className="flex-1" />} />
-      <Box className="bg-background px-screen-x pb-row">
-        {eyebrow !== undefined ? <Eyebrow accent>{eyebrow}</Eyebrow> : null}
-        <Text className="text-text text-display font-display" accessibilityRole="header">{props.kind === 'followers' ? 'Followers' : 'Following'}</Text>
-      </Box>
-      <FlatList
-        className="flex-1 bg-background"
-        data={rows}
-        // Owner, 2026-10-05: the bottom of a fetched list says so.
-        ListFooterComponent={state.kind === 'ok' && state.rows.length > 0 && !state.next ? <EndOfList /> : undefined}
-        keyExtractor={(l) => l.id}
-        numColumns={2}
-        columnWrapperClassName="gap-row"
-        contentContainerClassName="px-screen-x pb-section gap-row flex-grow"
-        ListEmptyComponent={state.kind === 'loading' ? <Loader className="my-section" /> : state.kind === 'error' ? (
-          <Box className="items-center my-section">
-            <Text className="text-muted text-sm">{`Couldn't load ${props.kind === 'followers' ? 'followers' : 'who this is following'} right now.`}</Text>
-            <Pressable onPress={load} accessibilityRole="button" accessibilityLabel="Retry" className="justify-center" style={TAP}><Text className="text-accent text-sm font-semibold">Retry</Text></Pressable>
+    <PushedPage title={title} {...(subtitle ? { subtitle } : {})}>
+      {(layout) => {
+        const lane = layout.top + (DRAWN.listTop - DRAWN.status);
+        if (nothing) {
+          return (
+            <Box className="flex-1" style={{ paddingTop: lane }}>
+              {emptyLine === undefined ? (
+                <PageEmpty top={emptyTop(230)} title="Nobody yet" line={EMPTY_STATES[props.kind].sentence} action={{ label: EMPTY_STATES[props.kind].action.label, onPress: () => router.push(EMPTY_STATES[props.kind].action.route as never) }} />
+              ) : (
+                <PageEmpty top={emptyTop(240)} title="Nobody yet" line={emptyLine} />
+              )}
+            </Box>
+          );
+        }
+        return (
+          <MosaicList
+            data={shown}
+            keyOf={(l) => l.id}
+            top={layout.top}
+            reserve={layout.reserve}
+            labels={state.kind === 'ok' ? [{ text: 'People', top: PROFILE.labelTop }] : []}
+            {...(state.kind === 'loading' ? { header: <GhostTiles count={8} /> } : {})}
+            footer={state.kind === 'ok' && state.rows.length > 0 && !state.next ? <EndOfList /> : null}
+            empty={state.kind === 'error' ? <ErrorTile line={failure}><PulseButton label="Retry" kind="light" onPress={load} className="self-start" /></ErrorTile> : null}
+            onEnd={more}
+            renderTile={(item) => <PersonTile person={item} youId={listener?.listenerId} />}
+          />
+        );
+      }}
+    </PushedPage>
+  );
+}
+
+/** One person: avatar 40, name 14/600, bio 11; a Follow pill under them when you are signed in and it is not you. A deleted account is not tappable. */
+function PersonTile(props: { person: ClipAuthor; youId: string | undefined }): React.ReactElement {
+  const item = props.person;
+  const deleted = !item.displayName;
+  const canFollow = props.youId !== undefined && item.youFollow !== undefined && item.id !== props.youId;
+  return (
+    <Box testID="person-tile" className="bg-raise justify-center" style={{ minHeight: ME_MOSAIC.row, padding: ME_MOSAIC.pad, borderRadius: ME_MOSAIC.radius, gap: spacing.gap }}>
+      <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
+        <Pressable disabled={deleted} accessibilityRole={deleted ? 'text' : 'link'} className="flex-row items-center" style={{ gap: PROFILE.avatarGap }}>
+          <Avatar size={PROFILE.avatar} url={item.avatarUrl} name={item.displayName} />
+          <Box className="flex-1 min-w-0">
+            <NameText step="compact" muted={deleted} numberOfLines={1}>{item.displayName ?? 'Deleted account'}</NameText>
+            {item.bio ? <Type step="caption" className="text-text3" style={PROFILE_TYPE.bio11} numberOfLines={1}>{item.bio}</Type> : null}
           </Box>
-        ) : emptyLine === undefined ? <EmptyState surface={props.kind} /> : <Text className="text-text text-[15px] py-4">{emptyLine}</Text>}
-        renderItem={({ item }) => item === FILLER ? <Box className="flex-1" accessible={false} /> : (
-          <Box className="flex-1 items-center gap-gap bg-surface border border-border rounded-row py-section px-gap">
-            <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
-              <Pressable className="items-center gap-gap self-stretch" accessibilityRole="link">
-                <Avatar size={56} url={item.avatarUrl} name={item.displayName} />
-                <Text className={item.displayName ? 'text-body font-bold text-text text-center' : 'text-body italic text-muted text-center'} numberOfLines={1}>{item.displayName ?? 'Deleted account'}</Text>
-                {item.bio ? <Text className="text-muted text-xs text-center" numberOfLines={1}>{item.bio}</Text> : null}
-              </Pressable>
-            </Link>
-            {listener && item.youFollow !== undefined && item.id !== listener.listenerId
-              ? <FollowButton listenerId={item.id} following={item.youFollow} className="self-center" />
-              : null}
-          </Box>
-        )}
-        onEndReached={more}
-      />
-    </>
+        </Pressable>
+      </Link>
+      {canFollow ? <FollowButton compact listenerId={item.id} following={item.youFollow === true} /> : null}
+    </Box>
   );
 }

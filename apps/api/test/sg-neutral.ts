@@ -44,7 +44,7 @@ export async function hiddenListenCount(t: TestDb): Promise<number> {
 // ---- live listeners (G-L1) ----
 
 /** What a live-listener row may hold: the item type's strict allowlist (snake_case). */
-export async function liveColumns(t: TestDb): Promise<string[]> {
+export async function liveColumns(_t: TestDb): Promise<string[]> {
   const { ITEM_TYPES, STRICT_TYPES } = await import('../src/db/ddb/codec.ts');
   assert.ok(STRICT_TYPES.includes('liveListener'), 'the live-listener item type is strict');
   return [...(ITEM_TYPES.liveListener.attrs as readonly string[])].map((a) => a.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)).sort();

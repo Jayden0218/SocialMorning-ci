@@ -42,7 +42,7 @@ export function myStickers(stores: Pick<Stores, 'positions' | 'feeds' | 'setting
  * the page then says just "Earned".
  */
 export function earnedDays(server: Record<string, string> | undefined, settings: Stores['settings']): Record<string, string> {
-  const out: Record<string, string> = { ...(server ?? {}) };
+  const out: Record<string, string> = { ...server };
   const moments = listMoments(settings);
   if (moments.length > 0) {
     const first = new Date(Math.min(...moments.map((m) => m.savedAt)));

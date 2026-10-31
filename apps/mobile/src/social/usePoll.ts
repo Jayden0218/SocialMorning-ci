@@ -32,7 +32,7 @@ export function usePoll(episodeId: string | undefined): void {
   }
 
   useEffect(() => {
-    poller.current?.update({ ...(episodeId !== undefined ? { episodeId } : {}) });
+    poller.current?.update(episodeId !== undefined ? { episodeId } : {});
   }, [episodeId]);
 
   useFocusEffect(

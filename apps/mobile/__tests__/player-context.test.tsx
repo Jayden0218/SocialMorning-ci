@@ -73,8 +73,9 @@ it('re-renders when the player state changes', () => {
 it('usePlayer hands back the runtime it was given', () => {
   const { runtime } = harness();
   let seen: PlayerRuntime | undefined;
+  const setSeen = (v: PlayerRuntime): void => { seen = v; };
   function Grab(): null {
-    seen = usePlayer();
+    setSeen(usePlayer());
     return null;
   }
   act(() => {

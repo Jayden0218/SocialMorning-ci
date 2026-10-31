@@ -28,7 +28,7 @@ function listed(readme: string, base: string): Map<string, string> {
   for (const line of readFileSync(join(REPO, readme), 'utf8').split('\n')) {
     const h = /^### `([^`]+\/)`/.exec(line);
     if (h) { folder = h[1]!; continue; }
-    if (/^### /.test(line)) { folder = ''; continue; }
+    if (line.startsWith('### ')) { folder = ''; continue; }
     const row = /^\| `([^`]+\.tsx?)` \|(.*)\|$/.exec(line);
     if (!row) continue;
     // The description is the last cell (the screen map has a Route column before it).

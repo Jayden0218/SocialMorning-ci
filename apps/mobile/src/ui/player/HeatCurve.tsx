@@ -12,9 +12,8 @@
  */
 import { useState } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
 import { useStores } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
 import { EMPTY_STATES } from '@socialmorning/social-core';
@@ -61,14 +60,14 @@ export function HeatCurve(props: {
   const [width, setWidth] = useState(0);
   const label = heatLabel(props.heat, props.durationMs);
   const message = heatMessage(props.heat);
-  const buckets = props.heat?.available ? props.heat.buckets : new Array<number>(100).fill(0);
+  const buckets = props.heat?.available ? props.heat.buckets : Array.from<number>({ length: 100 }).fill(0);
   const mine = new Set(props.myBuckets ?? []);
   // > 1 when the feed declared more than the audio holds (50:49 vs 48:19): the bars run past
   // the scrubber's end and the wrapper clips them — bucket i still sits under its time.
   const axisFraction = props.durationMs && props.playerDurationMs ? props.durationMs / props.playerDurationMs : 1;
 
   return (
-    <Box className="w-full gap-1 overflow-hidden">
+    <Box className="w-full gap-hair overflow-hidden">
       <Pressable
         accessibilityRole="adjustable"
         accessibilityLabel={label}

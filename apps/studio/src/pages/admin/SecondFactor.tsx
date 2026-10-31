@@ -1,5 +1,5 @@
 // The Admin second step: a code emailed to the owner, with "remember this browser for 30 days".
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api, HttpError } from '../../api';
 
 /**
@@ -15,7 +15,7 @@ export function SecondFactor({ email, onDone }: { email: string; onDone: () => v
   const [error, setError] = useState<string | null>(null);
   const sent = useRef(false);
 
-  async function send() {
+  const send = useCallback(async () => {
     setError(null);
     try {
       await api('/v1/studio/second-factor/send', { method: 'POST' });
@@ -23,13 +23,13 @@ export function SecondFactor({ email, onDone }: { email: string; onDone: () => v
     } catch (e) {
       setError(e instanceof HttpError ? e.message : 'The code could not be sent. Try again.');
     }
-  }
+  }, [email]);
 
   useEffect(() => {
     if (sent.current) return;
     sent.current = true;
     void send();
-  }, []);
+  }, [send]);
 
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();

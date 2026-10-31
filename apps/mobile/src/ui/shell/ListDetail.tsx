@@ -13,7 +13,7 @@
  * Used by Updates (app/(tabs)/library.tsx); exported for History, Discover lists and Search.
  */
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
+import { Text } from '@/ui/kit/Text';
 import { Box } from '@/ui/lib/box';
 import { Button } from '@/ui/kit/Button';
 import { Artwork } from '@/ui/kit/Artwork';
@@ -23,6 +23,7 @@ import { useStores } from '@/ui/shell/providers';
 import { usePlayer } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 import { useLayout } from './useLayout';
+import { nowMs } from '@/ui/kit/clock';
 
 export const LIST_PANE_WIDTH = 400;
 
@@ -67,15 +68,15 @@ export function EpisodePane(props: { episodeId: string; onOpenPage: () => void }
   }
   const show = stores.feeds.getShow(episode.feedUrl);
   const play = () => { const p = toPlayable(stores, episode.id); if (p) player.load(p, 'play'); };
-  const meta = [ago(episode.publishedAt, Date.now()), minutesLabel(episode.durationMs)].filter(Boolean).join(' · ');
+  const meta = [ago(episode.publishedAt, nowMs()), minutesLabel(episode.durationMs)].filter(Boolean).join(' · ');
   return (
-    <ScrollView className="flex-1" contentContainerClassName="px-section pt-section pb-24">
+    <ScrollView className="flex-1" contentContainerClassName="px-section pt-section pb-region">
       <Box className="flex-row gap-section items-center">
         <Artwork url={episode.imageUrl ?? show?.imageUrl} size={120} name={show?.title ?? episode.title} />
         <Box className="flex-1">
           <Text className="text-muted text-xs" numberOfLines={1}>{show?.title ?? ''}</Text>
-          <Text className="text-text font-display text-title mt-1" accessibilityRole="header" numberOfLines={3}>{episode.title}</Text>
-          {meta ? <Text className="text-muted text-xs mt-1">{meta}</Text> : null}
+          <Text className="text-text font-display text-title mt-hair" accessibilityRole="header" numberOfLines={3}>{episode.title}</Text>
+          {meta ? <Text className="text-muted text-xs mt-hair">{meta}</Text> : null}
         </Box>
       </Box>
       <Box className="flex-row gap-gap mt-section">

@@ -20,6 +20,7 @@ import { stripImageMetadata } from '@socialmorning/social-core';
 import { getComment, toPublic } from '../../db/repos/social/comments.ts';
 import { heldForImage, heldToPublic, setHeldImage } from '../../db/repos/studio/comment-policy.ts';
 import { commentImageBytesRows, setCommentImage } from '../../db/repos/social/comment-writes.ts';
+import { log } from '../../log.ts';
 
 export const COMMENT_IMAGE_MAX_BYTES = 1_000_000;
 const WINDOW_MS = 10 * 60_000;
@@ -64,7 +65,7 @@ commentImage.post('/:id/image', requireAuth, async (c) => {
   try {
     stored = await store.put(path, bytes, type);
   } catch (e) {
-    console.error(c.get('requestId'), 'comment image put', e);
+    log.error('comment_image_put_failed', { requestId: c.get('requestId'), error: e });
     throw new ApiError('unavailable', "Couldn't save the image. Try again.");
   }
   const image = { url: stored.url, path: stored.pathname, w, h, bytes: bytes.length };
@@ -72,7 +73,7 @@ commentImage.post('/:id/image', requireAuth, async (c) => {
     const kept = await setHeldImage(db, id, me.id, image);
     if (!kept) {
       // Approved or rejected while the bytes were uploading: the picture has no comment to wait with.
-      try { await store.remove(stored.pathname); } catch (e) { console.error(c.get('requestId'), 'comment image remove', e); }
+      try { await store.remove(stored.pathname); } catch (e) { log.error('comment_image_remove_failed', { requestId: c.get('requestId'), error: e }); }
       throw new ApiError('not_found', 'No such comment.');
     }
     return c.json({ comment: heldToPublic(kept), held: true }, 201);

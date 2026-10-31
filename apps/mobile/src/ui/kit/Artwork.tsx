@@ -24,16 +24,16 @@
  *  3. Corners follow the size, as the B designs draw them (`coverRadius`): 10–12 small, 14 mid,
  *     16–18 large.
  */
-import { memo, useEffect, useState } from 'react';
+import { memo, useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Image } from '@/ui/lib/image';
 import { Box } from '@/ui/lib/box';
-import { Text } from '@/ui/lib/text';
-import { coverRadius, type radius } from '@/design';
+import { Text } from '@/ui/kit/Text';
+import { coverRadius } from '@/design';
 import { COVER_SHAPE, coverLetters, coverTone } from '@socialmorning/social-core';
 
 /** Whole class names, so Tailwind can find each one written out. */
-const ROUNDED: Record<keyof typeof radius, string> = {
+const ROUNDED: Record<'row' | 'artwork' | 'artworkLarge' | 'pill' | 'sheet', string> = {
   row: 'rounded-row',
   artwork: 'rounded-artwork',
   artworkLarge: 'rounded-artwork-lg',
@@ -76,7 +76,7 @@ export function thumbUrl(url: string, size: number): string {
   return url;
 }
 
-function ArtworkView(props: { url?: string | null; size: number; rounded?: keyof typeof radius; className?: string; name?: string }): React.ReactElement {
+function ArtworkView(props: { url?: string | null; size: number; rounded?: keyof typeof ROUNDED; className?: string; name?: string }): React.ReactElement {
   const cls = `overflow-hidden ${props.rounded ? ROUNDED[props.rounded] : ''} ${props.className ?? ''}`;
   // The size, the corner and the tile's colour come from props, so they stay styles.
   const tone = coverTone(props.name ?? '');
@@ -85,8 +85,9 @@ function ArtworkView(props: { url?: string | null; size: number; rounded?: keyof
   const at = (share: number) => Math.round(share * props.size);
   const circle = { position: 'absolute' as const, right: -at(COVER_SHAPE.overhang), bottom: -at(COVER_SHAPE.overhang), width: at(COVER_SHAPE.circle), height: at(COVER_SHAPE.circle), borderRadius: at(COVER_SHAPE.circle) / 2, backgroundColor: tone.ink, opacity: COVER_SHAPE.circleOpacity };
   const letters = { position: 'absolute' as const, left: at(COVER_SHAPE.left), top: at(COVER_SHAPE.top), fontSize: at(COVER_SHAPE.letters), lineHeight: Math.round(at(COVER_SHAPE.letters) * 1.2), color: tone.ink };
-  const [failed, setFailed] = useState(false);
-  useEffect(() => { setFailed(false); }, [props.url]);
+  // The address that failed to load: a new address is tried afresh.
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const failed = props.url != null && failedUrl === props.url;
   const mark = coverLetters(props.name ?? '');
   return (
     <Box className={cls} style={[box, corner, { backgroundColor: tone.fill }]} accessible={false} importantForAccessibility="no-hide-descendants">
@@ -94,7 +95,7 @@ function ArtworkView(props: { url?: string | null; size: number; rounded?: keyof
       {/* `text-text` satisfies the token check; the ink in `letters` is drawn over it. */}
       {mark ? <Text className="text-text font-bold" style={letters} numberOfLines={1}>{mark}</Text> : null}
       {props.url && !failed ? (
-        <Image source={{ uri: thumbUrl(props.url, props.size) }} style={[StyleSheet.absoluteFill, box]} onError={() => setFailed(true)} />
+        <Image source={{ uri: thumbUrl(props.url, props.size) }} style={[StyleSheet.absoluteFill, box]} onError={() => setFailedUrl(props.url ?? null)} />
       ) : null}
     </Box>
   );

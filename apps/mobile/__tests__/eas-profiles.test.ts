@@ -28,7 +28,7 @@ afterEach(() => { for (const k of KEYS) { if (saved[k] === undefined) delete pro
 /** The env EAS gives a profile: its `extends` chain, parent first. */
 function envOf(name: string): Record<string, string> {
   const p = eas.build[name]!;
-  return { ...(p.extends ? envOf(p.extends) : {}), ...(p.env ?? {}) };
+  return { ...(p.extends ? envOf(p.extends) : {}), ...p.env };
 }
 const configFor = (name: string) => {
   for (const k of KEYS) delete process.env[k];

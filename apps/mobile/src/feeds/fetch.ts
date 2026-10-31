@@ -116,6 +116,13 @@ export async function refreshShow(
 
   const parsed = parseFeed(body, feedUrl, { hash });
 
+  // M32 T092: garbage or a truncated body parses to an empty result carrying a `not-rss` warning
+  // (it no longer throws). That must never replace a good cached copy — serve the copy, stale.
+  if (parsed.episodes.length === 0 && parsed.warnings.some((w) => w.code === 'not-rss')) {
+    const fallback = cached(cache, feedUrl, true);
+    if (fallback !== undefined) return fallback;
+  }
+
   // The cache is keyed by the url we ASKED for, never by `response.url`.
   // A publisher's 301 to a CDN mirror must not silently re-key the show and
   // orphan its subscription and its saved positions.

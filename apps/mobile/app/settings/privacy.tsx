@@ -15,30 +15,36 @@
  * listeners you muted, each with Unmute (GET /v1/me/mutes, DELETE /v1/me/mutes/:id).
  * M22 US3: then "Muted threads" (src/ui/social/MutedThreads.tsx).
  * M25 SB: then "Download my data" (an emailed 24-hour link to a JSON copy; once a day).
+ *
+ * M31 S-B (T060 part 2; design-pulse2 `settings-privacy--screen`, `--signed-out`, `--muted-empty`, `--muted-loading`, `--muted-error`,
+ * `toast--settings-privacy`, `toast--often-listened-switch`, `toast--muted-threads`; layout Panel): under LISTENING the hero tile —
+ * the eye 28 in hot-text, "Keep my listening private" in Unbounded 19, its line, a rule, then the state in mono 13 beside the switch —
+ * and the "Always public:" chips (Comments, Clips); under OTHERS SEE one group of five rows (the four switches and Hide "Often listened",
+ * lines kept); MUTED USERS (avatar 36, name, a quiet Unmute pill; Loading… with two ghost rows, the alert line, or the empty sentence
+ * inside the same tile); THREADS (the Muted threads group, unchanged); MY DATA (the download icon, "Download my data" in Unbounded 17, the
+ * line and a quiet "Email me a link" — "Asking…" while busy); BLOCKED (one row at the foot with the count in mono). Signed out shows
+ * only the hero's sign-in sentence, the chips and Blocked. Same API calls, toasts and names; the title is low in the bottom bar.
+ * Not as drawn: the count is the phone's own block list (blocks are kept on the phone), shown whenever signed in.
  */
-import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { Pressable } from '@/ui/lib/pressable';
 import { useSocial } from '@/social/context';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useColours } from '@/ui/kit/useColours';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Card, CardDivider } from '@/ui/kit/Card';
 import { Icon } from '@/ui/kit/Icon';
 import { Toggle } from '@/ui/kit/Toggle';
-import { hit } from '@/design';
+import { Type } from '@/ui/kit/Type';
 import { Avatar } from '@/ui/kit/Avatar';
+import { InfoGhost } from '@/ui/show/InfoGroup';
+import { PanelGroup } from '@/ui/me/Panel';
 import { privacySwitchesOf, useProfileApi, type PrivacySwitches } from '@/social/profile-api';
 import { useCommentExtrasApi, type MutedListener } from '@/social/comment-extras-api';
 import { MutedThreads } from '@/ui/social/MutedThreads';
 import { OftenListenedSwitch } from '@/ui/settings/OftenListenedSwitch';
 import { useAccountApi } from '@/social/account-api';
 import { ApiError } from '@/social/api';
-
-const TAP = { minHeight: hit.min };
+import { LinkRow, QuietPill, Section, SettingsPage, SwitchRow, Tile } from '@/ui/settings/panel';
+import { SET, SET_TYPE } from '@/ui/settings/measures';
 
 type SwitchName = keyof PrivacySwitches;
 /** M21 US10: the four "What others see" switches, in the order they are drawn. */
@@ -49,7 +55,7 @@ const SWITCHES: readonly { name: SwitchName; label: string; line: string }[] = [
   { name: 'privateSubscriptions', label: 'Keep my subscriptions private', line: 'Your profile does not list the shows you follow' },
 ];
 
-/** M21 US10: the four switches, read from GET /v1/me and each saved alone. */
+/** M21 US10: the four switches, read from GET /v1/me and each saved alone; the fifth row is "Often listened". */
 function WhatOthersSee(): React.ReactElement {
   const profile = useProfileApi();
   const toast = useToast();
@@ -69,19 +75,13 @@ function WhatOthersSee(): React.ReactElement {
     });
   };
   return (
-    <Card className="py-1">
+    <PanelGroup>
       {SWITCHES.map((sw) => (
-        <Box key={sw.name}>
-          <Box className="flex-row items-center gap-row py-row" style={TAP}>
-            <Box className="flex-1">
-              <Text className="text-text text-body font-semibold">{sw.label}</Text>
-              <Text className="text-muted text-xs mt-0.5">{sw.line}</Text>
-            </Box>
-            <Toggle value={values?.[sw.name] ?? false} onChange={(v) => change(sw.name, v)} label={sw.label} disabled={values === undefined} />
-          </Box>
-        </Box>
+        <SwitchRow key={sw.name} label={sw.label} line={sw.line} value={values?.[sw.name] ?? false} onChange={(v) => change(sw.name, v)} disabled={values === undefined} />
       ))}
-    </Card>
+      {/* M22 US17 item 6 */}
+      <OftenListenedSwitch />
+    </PanelGroup>
   );
 }
 
@@ -91,6 +91,7 @@ type MutedState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items:
 function MutedUsers(): React.ReactElement {
   const extras = useCommentExtrasApi();
   const toast = useToast();
+  const c = useColours();
   const [state, setState] = useState<MutedState>({ kind: 'loading' });
   useEffect(() => {
     let live = true;
@@ -106,23 +107,30 @@ function MutedUsers(): React.ReactElement {
       toast("Couldn't unmute — try again when you're online.");
     });
   };
+  const pad = { padding: SET.tilePad };
   return (
-    <Card className="py-1">
-      {state.kind === 'loading' ? <Text className="text-muted text-body py-row">Loading…</Text>
-        : state.kind === 'error' ? <Text className="text-muted text-body py-row">Couldn't load the listeners you muted.</Text>
-        : state.items.length === 0 ? <Text className="text-muted text-body py-row">You have not muted anyone. Mute someone from the ⋯ on their comment; they are never told.</Text>
-        : state.items.map((m) => (
-          <Box key={m.id}>
-            <Box className="flex-row items-center gap-row py-row" style={TAP}>
-              <Avatar url={m.avatarUrl} name={m.name} size={36} />
-              <Text className="text-text text-body font-semibold flex-1" numberOfLines={1}>{m.name}</Text>
-              <Pressable onPress={() => unmute(m)} accessibilityRole="button" accessibilityLabel={`Unmute ${m.name}`} className="px-row rounded-pill border border-border items-center justify-center" style={TAP}>
-                <Text className="text-text text-meta font-semibold">Unmute</Text>
-              </Pressable>
-            </Box>
+    <Box testID="muted-users" className="bg-raise overflow-hidden" style={{ borderRadius: SET.radius }}>
+      {state.kind === 'loading' ? (
+        <Box style={[pad, { gap: SET.tileGap }]} accessibilityLiveRegion="polite">
+          <Type step="mono" className="text-text2" style={SET_TYPE.mono13}>Loading…</Type>
+          <InfoGhost rows={2} />
+        </Box>
+      )
+        : state.kind === 'error' ? (
+          <Box className="flex-row items-center" style={[pad, { gap: SET.tileGap }]} accessibilityLiveRegion="polite">
+            <Icon name="alert-circle-outline" size={20} color={c.hotText} />
+            <Type step="note" className="flex-1 text-hotText">Couldn't load the listeners you muted.</Type>
+          </Box>
+        )
+        : state.items.length === 0 ? <Type step="note" className="text-text2 font-normal" style={pad}>You have not muted anyone. Mute someone from the ⋯ on their comment; they are never told.</Type>
+        : state.items.map((m, k) => (
+          <Box key={m.id} testID="muted-row" className={`flex-row items-center ${k > 0 ? 'border-t border-line' : ''}`} style={{ paddingVertical: SET.mutedRowPadY, paddingHorizontal: SET.rowPadX, gap: SET.rowGap }}>
+            <Avatar url={m.avatarUrl} name={m.name} size={SET.mutedAvatar} />
+            <Type step="row" className="text-text flex-1" numberOfLines={1}>{m.name}</Type>
+            <QuietPill label="Unmute" accessibilityLabel={`Unmute ${m.name}`} height={SET.pillUnmute} onPress={() => unmute(m)} />
           </Box>
         ))}
-    </Card>
+    </Box>
   );
 }
 
@@ -131,9 +139,10 @@ function MutedUsers(): React.ReactElement {
  * account keeps (profile, subscriptions, positions, comments, clips, statuses, lists, purchases,
  * tips). Once a day; the server says so when it is too soon.
  */
-function DownloadMyData(props: { iconColour: string }): React.ReactElement {
+function DownloadMyData(): React.ReactElement {
   const account = useAccountApi();
   const toast = useToast();
+  const c = useColours();
   const [busy, setBusy] = useState(false);
   const ask = () => {
     if (busy) return;
@@ -144,14 +153,21 @@ function DownloadMyData(props: { iconColour: string }): React.ReactElement {
       .finally(() => setBusy(false));
   };
   return (
-    <Card className="py-section gap-gap">
-      <Icon name="download-outline" size={28} color={props.iconColour} />
-      <Text className="text-text text-base font-display" accessibilityRole="header">Download my data</Text>
-      <Text className="text-muted text-body">A copy of what SocialNet keeps about you, as a file: your profile, subscriptions, listening, comments, clips, statuses, lists, purchases and tips. We email you a link; it works for 24 hours. Once a day.</Text>
-      <Pressable onPress={ask} disabled={busy} accessibilityRole="button" accessibilityLabel="Email me a link to my data" accessibilityState={{ disabled: busy, busy }} className="rounded-pill border border-border items-center justify-center mt-row" style={TAP}>
-        <Text className="text-text text-body font-semibold">{busy ? 'Asking…' : 'Email me a link'}</Text>
-      </Pressable>
-    </Card>
+    <Tile>
+      <Icon name="download-outline" size={SET.heroIcon} color={c.hotText} />
+      <Type step="heading" className="text-text" style={SET_TYPE.title17} accessibilityRole="header">Download my data</Type>
+      <Type step="caption" className="text-text2 font-normal" style={SET_TYPE.line12}>A copy of what SocialNet keeps about you, as a file: your profile, subscriptions, listening, comments, clips, statuses, lists, purchases and tips. We email you a link; it works for 24 hours. Once a day.</Type>
+      <QuietPill label={busy ? 'Asking…' : 'Email me a link'} accessibilityLabel="Email me a link to my data" height={SET.pillMail} busy={busy} alignSelf="flex-start" onPress={ask} />
+    </Tile>
+  );
+}
+
+/** A static chip (the drawn `.chip`): 36 tall, raise with a 1 px line, Geist 600 13. Not a control. */
+function StaticChip(props: { label: string }): React.ReactElement {
+  return (
+    <Box className="bg-raise border border-line rounded-pill items-center justify-center" style={{ height: SET.chipHeight, paddingHorizontal: SET.pillPad }}>
+      <Type step="caption" className="text-text font-semibold">{props.label}</Type>
+    </Box>
   );
 }
 
@@ -162,11 +178,14 @@ export default function PrivacySettings(): React.ReactElement {
   const [priv, setPriv] = useState(() => stores.settings.get('me.privateListening') === '1');
   useEffect(() => {
     if (!listener) return;
+    // A8: a late answer for a signed-out or replaced account must not write the mirror.
+    let live = true;
     void api.me().then((me) => {
-      if (me.privateListening === undefined) return;
+      if (!live || me.privateListening === undefined) return;
       setPriv(me.privateListening);
       stores.settings.set('me.privateListening', me.privateListening ? '1' : '0');
     }).catch(() => undefined); // offline: the mirror stands
+    return () => { live = false; };
   }, [api, listener, stores]);
   const blocked = stores.blocks.all().filter((b) => b.pending >= 0).length;
   const setPrivacy = async (v: boolean) => {
@@ -174,58 +193,45 @@ export default function PrivacySettings(): React.ReactElement {
     try { await api.setPrivacy(v); stores.settings.set('me.privateListening', v ? '1' : '0'); } catch { setPriv(!v); }
   };
   return (
-    <>
-    <PageHeader title="Privacy" />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-section">
-      <Card className="py-section gap-gap">
-        <Icon name="eye-off-outline" size={28} color={c.accent} />
-        <Text className="text-text text-base font-display" accessibilityRole="header">Keep my listening private</Text>
-        <Text className="text-muted text-body">Others will not see what you listen to, your listening time or recently played. Comments and clips stay public.</Text>
-        <CardDivider />
-        {listener ? (
-          <Box className="flex-row items-center gap-row" style={TAP}>
-            <Text className="text-text text-body font-semibold flex-1">{priv ? 'On — your listening is private' : 'Off — your listening is visible'}</Text>
-            <Toggle value={priv} onChange={(v) => { void setPrivacy(v); }} label="Keep my listening private" />
-          </Box>
-        ) : <Text className="text-muted text-body py-row">Sign in to choose who sees your listening.</Text>}
-      </Card>
+    <SettingsPage title="Privacy">
+      <Section label="Listening">
+        <Tile testID="privacy-hero">
+          <Icon name="eye-off-outline" size={SET.heroIcon} color={c.hotText} />
+          <Type step="heading" className="text-text" style={SET_TYPE.hero19} accessibilityRole="header">Keep my listening private</Type>
+          <Type step="caption" className="text-text2 font-normal">Others will not see what you listen to, your listening time or recently played. Comments and clips stay public.</Type>
+          <Box className="bg-line" style={{ height: 1 }} accessible={false} importantForAccessibility="no-hide-descendants" />
+          {listener ? (
+            <Box className="flex-row items-center" style={{ gap: SET.tileGap }}>
+              <Type step="mono" className="text-text flex-1" style={SET_TYPE.mono13}>{priv ? 'On — your listening is private' : 'Off — your listening is visible'}</Type>
+              <Toggle value={priv} onChange={(v) => { void setPrivacy(v); }} label="Keep my listening private" />
+            </Box>
+          ) : <Type step="note" className="text-text">Sign in to choose who sees your listening.</Type>}
+        </Tile>
+      </Section>
 
-      <Box className="flex-row items-center gap-gap" accessible accessibilityLabel="Always public: comments and clips">
-        <Text className="text-muted text-meta">Always public:</Text>
-        <Box className="bg-accentTint rounded-pill px-row py-1.5"><Text className="text-accent text-meta font-bold">Comments</Text></Box>
-        <Box className="bg-accentTint rounded-pill px-row py-1.5"><Text className="text-accent text-meta font-bold">Clips</Text></Box>
-      </Box>
+      <Section>
+        <Box className="flex-row flex-wrap items-center" style={{ gap: SET.footGap - 2 }} accessible accessibilityLabel="Always public: comments and clips">
+          <Type step="mono" className="text-text3">Always public:</Type>
+          <StaticChip label="Comments" />
+          <StaticChip label="Clips" />
+        </Box>
+      </Section>
 
       {listener ? (
         <>
-          <Text className="text-text text-base font-display-semibold" accessibilityRole="header">What others see</Text>
-          <WhatOthersSee />
-          {/* M22 US17 item 6 */}
-          <OftenListenedSwitch />
-          <Text className="text-text text-base font-display-semibold" accessibilityRole="header">Muted users</Text>
-          <MutedUsers />
+          <Section label="Others see"><WhatOthersSee /></Section>
+          <Section label="Muted users"><MutedUsers /></Section>
           {/* M22 US3 (FR-011): the notice threads muted from a notice's ⋯. */}
-          <Text className="text-text text-base font-display-semibold" accessibilityRole="header">Muted threads</Text>
-          <MutedThreads iconColour={c.accent} />
-          <DownloadMyData iconColour={c.accent} />
+          <Section label="Threads" spoken="Muted threads"><MutedThreads /></Section>
+          <Section label="My data"><DownloadMyData /></Section>
         </>
       ) : null}
 
-      <Card className="py-1">
-        <Link href="/settings/blocked" asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel="Blocked listeners" accessibilityValue={{ text: String(blocked) }} className="flex-row items-center gap-section py-section" style={TAP}>
-            {blocked > 0
-              ? <Text className="text-text text-hero font-display">{String(blocked)}</Text>
-              : <Icon name="person-remove-outline" size={24} color={c.accent} />}
-            <Box className="flex-1">
-              <Text className="text-text text-body font-bold">Blocked listeners</Text>
-              <Text className="text-muted text-xs mt-0.5">Manage who you blocked</Text>
-            </Box>
-            <Icon name="chevron-forward" size={16} color={c.muted} />
-          </Pressable>
-        </Link>
-      </Card>
-    </ScrollView>
-    </>
+      <Section label="Blocked">
+        <PanelGroup>
+          <LinkRow href="/settings/blocked" icon="person-remove-outline" label="Blocked listeners" line="Manage who you blocked" accessibilityValue={String(blocked)} {...(listener ? { right: <Type step="mono" className="text-text" style={SET_TYPE.mono15}>{String(blocked)}</Type> } : {})} />
+        </PanelGroup>
+      </Section>
+    </SettingsPage>
   );
 }

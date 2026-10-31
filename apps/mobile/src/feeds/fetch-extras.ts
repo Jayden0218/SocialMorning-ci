@@ -6,6 +6,7 @@
  * (srt > vtt > json), else the first html/text one.
  */
 import { parseChapters, parseTranscript, type Chapter, type Transcript } from '@socialmorning/player-core';
+import { FEED_TIMEOUT_MS, readFeedText } from '@socialmorning/feed-parser';
 import type { CachedEpisode, ExtrasStore } from '@/storage/types';
 
 export type Extras = { chapters?: Chapter[]; transcript?: Transcript; error?: string };
@@ -17,6 +18,30 @@ export type ExtrasDeps = {
   /** Re-fetch after this long (default 7 days). */
   maxAgeMs?: number;
 };
+
+/** M32 A5: publisher-controlled files get the feed's deadline and a smaller size cap. */
+export const EXTRAS_MAX_BYTES = 5 * 1024 * 1024;
+
+/** Fetch one extras file whole: 8 s for headers and body together, refused over the cap. */
+async function guardedText(deps: ExtrasDeps, url: string): Promise<{ res: Awaited<ReturnType<ExtrasDeps['fetch']>>; text: string }> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error('timed out')), FEED_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([
+      (async () => {
+        const res = await deps.fetch(url);
+        if (!res.ok) return { res, text: '' };
+        const text = await readFeedText(res, (label, fatal) => new TextDecoder(label, { fatal }), EXTRAS_MAX_BYTES, { stream: false });
+        return { res, text };
+      })(),
+      late,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 const PREFERENCE = ['application/srt', 'application/x-subrip', 'text/srt', 'text/vtt', 'application/json', 'text/html', 'text/plain'];
 
@@ -54,9 +79,9 @@ export async function fetchExtras(deps: ExtrasDeps, episode: Pick<CachedEpisode,
 
   if (episode.chaptersUrl) {
     try {
-      const res = await deps.fetch(episode.chaptersUrl);
+      const { res, text } = await guardedText(deps, episode.chaptersUrl);
       if (!res.ok) throw new Error(`chapters ${res.status}`);
-      out.chapters = parseChapters(JSON.parse(await res.text()));
+      out.chapters = parseChapters(JSON.parse(text));
     } catch (e) {
       errors.push(`chapters: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -65,10 +90,10 @@ export async function fetchExtras(deps: ExtrasDeps, episode: Pick<CachedEpisode,
   const pick = pickTranscript(episode.transcripts);
   if (pick) {
     try {
-      const res = await deps.fetch(pick.url);
+      const { res, text } = await guardedText(deps, pick.url);
       if (!res.ok) throw new Error(`transcript ${res.status}`);
       const mime = res.headers?.get('content-type') ?? pick.type;
-      const t = parseTranscript(await res.text(), pick.type === 'text/plain' && mime ? mime : pick.type);
+      const t = parseTranscript(text, pick.type === 'text/plain' && mime ? mime : pick.type);
       out.transcript = t;
     } catch (e) {
       errors.push(`transcript: ${e instanceof Error ? e.message : String(e)}`);

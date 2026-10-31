@@ -9,7 +9,7 @@
  * 15 of them ("Sign in to follow people.", the clip page messages, the stats labels) plus
  * text inputs whose typed text was black.
  *
- * Rule: every `<Text>` and `<TextInput>` names a token colour in its `className`
+ * Rule: every `<Text>`, `<Type>` and `<TextInput>` names a token colour in its `className`
  * (`text-text`, `text-muted`, `text-accent`…). The one exception is a `<Text>` nested in
  * a `<Text>` that has one: React Native passes the colour down. A `<TextInput>` never
  * inherits. This parses the TSX with the TypeScript compiler, so multi-line tags,
@@ -22,21 +22,25 @@ import ts from 'typescript';
 const ROOTS = ['app', 'src'];
 const TOKENS = [...readFileSync(path.join('src', 'design', 'tokens.ts'), 'utf8')
   .split('} as const')[0]
-  .matchAll(/^\s+([a-zA-Z]+):/gm)].map((m) => m[1]);
+  .matchAll(/^\s+([a-zA-Z0-9]+):/gm)].map((m) => m[1]);
 const COLOURED = new RegExp(`(?:^|[\\s'"\`])text-(?:${TOKENS.join('|')})(?=[\\s'"\`]|$)`);
+
+/** `Type` takes its colour from the caller's className (checked at each `<Type>`), so its own Text has none to find. */
+const EXEMPT = new Set([path.join('src', 'ui', 'kit', 'Type.tsx')]);
 
 const files = [];
 const walk = (dir) => {
   for (const name of readdirSync(dir)) {
     const p = path.join(dir, name);
     if (statSync(p).isDirectory()) { if (name !== 'node_modules') walk(p); continue; }
-    if (/\.tsx$/.test(p)) files.push(p);
+    if (p.endsWith('.tsx')) files.push(p);
   }
 };
 for (const r of ROOTS) walk(r);
 
 const findings = [];
 for (const file of files) {
+  if (EXEMPT.has(file)) continue;
   const text = readFileSync(file, 'utf8');
   const sf = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
 
@@ -93,14 +97,16 @@ for (const file of files) {
     let next = inColouredText;
     if (open) {
       const tag = open.tagName.getText(sf);
-      if (tag === 'Text' || tag === 'TextInput') {
+      // M31: `Type` (src/ui/kit/Type.tsx) is a Text with a step of the Pulse type scale — same rule.
+      const isText = tag === 'Text' || tag === 'Type';
+      if (isText || tag === 'TextInput') {
         const own = colouredTag(open);
-        const ok = own || (tag === 'Text' && inColouredText);
+        const ok = own || (isText && inColouredText);
         if (!ok) {
           const { line } = sf.getLineAndCharacterOfPosition(open.getStart(sf));
           findings.push(`${file}:${line + 1} <${tag}> names no token colour — it renders black on black`);
         }
-        next = tag === 'Text' && ok;
+        next = isText && ok;
       } else {
         next = false; // a colour does not pass through a View
       }

@@ -12,14 +12,14 @@
  * then the list, without its own background, with `onScroll`, `scrollEventThrottle` and
  * `refreshControl`.
  */
-import { useMemo, useRef } from 'react';
+import { useMemo, useState } from 'react';
 import { Animated, Platform, RefreshControl } from 'react-native';
 import { Loader } from './Loader';
 
 const GAP = 64;
 
 export function usePullRefresh(refreshing: boolean, onRefresh: () => void) {
-  const y = useRef(new Animated.Value(0)).current;
+  const [y] = useState(() => new Animated.Value(0));
   const onScroll = useMemo(() => Animated.event([{ nativeEvent: { contentOffset: { y } } }], { useNativeDriver: false }), [y]);
   const opacity = useMemo(() => y.interpolate({ inputRange: [-GAP, -8], outputRange: [1, 0], extrapolate: 'clamp' }), [y]);
 

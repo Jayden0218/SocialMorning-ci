@@ -23,11 +23,16 @@ module.exports = {
   // M25 G10: every src file is measured, and the rest of src/ has a floor that only goes up
   // (measured 2026-10-08, run 37746647372, without the two 100 % paths below: statements 55.16,
   // branches 51.67, functions 47.33, lines 57.57). Raise it when coverage rises; never lower it.
-  // Data and web shims live in __tests__/fixtures; jest's default testMatch would run the .ts shims as tests.
-  testPathIgnorePatterns: ['/node_modules/', '/__tests__/fixtures/'],
-  collectCoverageFrom: ['src/**/*.{ts,tsx}'],
+  // Data and web shims live in __tests__/fixtures (main) and __tests__/support (M31); jest's default testMatch would run the .ts shims as tests.
+  testPathIgnorePatterns: ['/node_modules/', '/__tests__/fixtures/', '/__tests__/support/'],
+  // M32 T060 (review F1): the ~107 route files in app/ are measured too (they were not counted at all).
+  collectCoverageFrom: ['src/**/*.{ts,tsx}', 'app/**/*.{ts,tsx}'],
   coverageThreshold: {
-    global: { statements: 55.1, branches: 51.6, functions: 47.3, lines: 57.5 },
+    // app/ is now counted in the report but has NO floor yet (measured 2026-10-28: about 22 % of the
+    // route files' statements, most files 0 %). The floor below is the same one `global` held when only
+    // src/ was measured; it is keyed to src/ so route files cannot pull it down. Give app/ its own
+    // floor here once the screens have tests. Never lower either.
+    './src/': { statements: 55.1, branches: 51.6, functions: 47.3, lines: 57.5 },
     './src/playback/': {
       branches: 100,
     },

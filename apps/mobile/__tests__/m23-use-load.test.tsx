@@ -45,9 +45,10 @@ it('an answer after the screen closed sets nothing', async () => {
 it('after a retry only the newest answer lands, even when the older one is slower', async () => {
   const calls: Deferred<{ n: number }>[] = [];
   let reload!: () => void;
+  const setReload = (f: () => void): void => { reload = f; };
   function Screen(): React.ReactElement {
     const [s, again] = useLoad(() => { const d = deferred<{ n: number }>(); calls.push(d); return d.promise; }, []);
-    reload = again;
+    setReload(again);
     return createElement(Text, null, label(s));
   }
   let r!: ReactTestRenderer;

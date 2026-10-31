@@ -1,620 +1,126 @@
-// The full player: artwork, the heat curve as the seek bar, transcript lines, controls, and a settings panel.
+// The full player: the reaction ring, the title, the controls and a tray; sheets for More, Playback, sleep and share.
 /**
- * Now Playing: position and duration updating live (FR-008), play/pause
- * (FR-005), -15 / +30 (FR-006), a seek bar (FR-007), and honest buffering
- * and error states (FR-015).
+ * Now Playing: position and duration updating live (FR-008), play/pause (FR-005), −15 / +30 (FR-006),
+ * a seek control (FR-007), and honest buffering and error states (FR-015).
  *
- * M7 restyled this screen and **changed none of that**. Large rounded artwork over a
- * gradient, the transport on one line, tokens instead of literals — and `Scrubber`,
- * `Rail` and `HeatCurve` recoloured in place, their props, structure and accessibility
- * output frozen (research R6). Every label a screen reader speaks here was verified on
- * the phone in M6's J5; none of them is touched.
+ * M31 T024 (constitution v4.0.0; design-pulse2 `index.html#player--screen` and `listen.html`): the page is the
+ * Pulse "Ring" player. From the top: close · the next-hot-moment pill · More; the ring (the reaction curve
+ * wrapped round the cover; drag to seek, avatar pins mark comments); the title block; the controls (speed,
+ * back 15, play, forward 30, the sleep moon); the 60 tall tray (Comments, React, Clip, Playlist, Share).
+ * Sheets: More (Clip, Share, Favourite, About, Transcript, Chapters — chapters and transcript MOVED here from
+ * the Playback sheet, recorded in m31/moves.json), Transcript, Playback (speed dial, sleep rings, More
+ * settings), and Share. Nothing playing, a failure and the end of an episode are states of this same page.
  *
- * Laid out after the owner's reference (2026-09-27), on the white theme: a chevron that
- * closes the player; the artwork; the title centred, the show's name beside a small
- * Subscribe; the current transcript line; elapsed on the left and time LEFT on the
- * right; the heat curve and the seek bar together in one grey box; then speed, −15,
- * play/pause, +30 and React on one line; then About, Playlist and Comments. Everything
- * the old screen had (chapters, transcript, sleep timer, clip, comment-at) is still here,
- * below the fold. "N listening now" came with M12 (FR-042, src/social/live.ts).
+ * The page itself is thin: `usePlayerScreen` (src/ui/player/usePlayerScreen.ts) decides the layout and the open
+ * sheet from the HEAD of the player state, and every part that draws the position or the social data is its own
+ * component under src/ui/player/ with its own selector — so a position TICK never re-renders this page
+ * (review C4 and D7; the render-count test). The history of the old page (M7 → M24) is in the git log.
  *
- * M17 (constitution v3.0.0): the page uses the light Editorial palette (`Player-B`), washed from
- * the show's Studio theme colour when it has one (`playerWash`), else the blurred cover under
- * the light veil. "N listening now" sits in the
- * top bar, and a star there favourites the episode.
- *
- * M17 T043 (`Player-B`): the artwork moves to the left of a "Now playing" eyebrow, a serif title
- * and the show + Subscribe; the current transcript line becomes a large serif quote; the comment
- * markers, heat curve, seek bar and times sit together in one white card under "What listeners
- * felt"; play/pause is a yellow disc, speed a bordered pill; About · Playlist · Comments become a
- * bottom bar under a hairline. Every action, label, handler and the Playback sheet are unchanged.
- *
- * M17 T102 (`PlaybackSheet-B`): the Playback sheet takes B's look — serif title, Chapters and
- * Transcript as cards, Done as a yellow pill at the bottom. Same actions and handlers.
- *
- * M21 US2 (spec story 2), after 小宇宙's player:
- *   - the page slides up and closes with a swipe down (app/_layout.tsx, guard G-M21-11);
- *   - the speed pill opens `SettingsPanel`, a full-screen panel in place of the Playback sheet:
- *     Loop, Skip silence, Speed (slider + "This show only"), Sleep, then Chapters / Transcript / Done;
- *   - the heat curve IS the seek bar (`HeatScrubber`); the separate Scrubber is gone;
- *   - two transcript lines (now, next): a tap expands the transcript in place, ⤢ opens it full
- *     screen; a long-press on a line can report a mistake;
- *   - turning 👍 on plays a short full-screen burst (`ClapBurst`).
- *
- * M21 US11: an Audio output button in the top bar (hidden when the phone has no route picker), and
- * the panel's Route and Voice boost rows (`AudioRows`); on iPhone an HLS episode greys out Skip
- * silence and Voice boost.
- *
- * M24 US19 (the owner: "the phone looks bad"; `Player-B`, `PlaybackSheet-B`, `EpisodeEnd-B`): the
- * hero sits right under the top bar (no empty band); the heat card has a real seek bar; the speed
- * pill opens B's short "Playback" sheet with M21's extras behind "More settings"; play/pause is the
- * strong yellow; at the end the page is B's "Finished" layout. Every action and label is kept.
+ * Owner, 2026-10-06 (kept): the page paints to the bottom edge, so this page (alone) keeps the tray above the
+ * home indicator itself — the root leaves its bottom strip to it (app/_layout.tsx, `edges: []` on /player).
  */
-import { reportAndDrop } from '@/telemetry/reportError';
-import { useEffect, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { useLayout } from '@/ui/shell/useLayout';
-import { Pressable } from '@/ui/lib/pressable';
-import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { Icon } from '@/ui/kit/Icon';
-import { BarButton, TAP, TopBar } from '@/ui/kit/TopBar';
-import { Image } from '@/ui/lib/image';
-import { Artwork } from '@/ui/kit/Artwork';
-import { mediaKindOf, plural } from '@socialmorning/social-core';
-import { VideoStage } from '@/ui/player/VideoStage';
-import { usePlayer, usePlayerState } from '@/playback/store';
-import { scrubberValue } from '@/ui/player/Scrubber';
-import { mmss } from '@/ui/kit/format';
-import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
-import { useSocial } from '@/social/context';
-import { usePoll } from '@/social/usePoll';
-import type { ComposerState } from '@/social/composer';
-import { ComposerSheet } from '@/ui/comments/Composer';
-import { ShareChooser } from '@/ui/clips/ShareChooser';
-import { useSwipeDownToClose } from '@/ui/player/swipe-close';
-import { useQueueSheet, useSwipeUpToOpen } from '@/ui/queue/QueueSheetHost';
-import { liveLabel, useListeningNow } from '@/social/live';
-import { MomentSheet } from '@/ui/comments/MomentSheet';
-import { Rail, railMarkers, type RailMarker } from '@/ui/player/Rail';
-import { Card } from '@/ui/kit/Card';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
-import { HeatScrubber } from '@/ui/player/HeatScrubber';
-import { SettingsPanel } from '@/ui/player/SettingsPanel';
-import { RouteButton, RouteRow, VoiceBoostRow, useEffectsBlocked } from '@/ui/settings/AudioRows';
-import { ClapBurst } from '@/ui/player/ClapBurst';
-import { MoonButton } from '@/ui/player/MoonButton';
-import { ChapterList, CurrentChapter } from '@/ui/player/ChapterList';
-import { TranscriptPane } from '@/ui/player/TranscriptPane';
-import { TranscriptPeek, TranscriptReportSheet } from '@/ui/player/TranscriptExtras';
-import type { TranscriptLine } from '@socialmorning/player-core';
-import { useQuoteShare, useQuoteVideo } from '@/ui/player/QuoteShare';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-/**
- * iPhone walk 2026-10-06 (B1 failed): iOS would not open the share sheet over the open Playback sheet
- * (a modal). M21: the settings panel is our own view, not a modal, and is gone at once — the share
- * still waits a moment for it to close.
- */
-const PANEL_CLOSE_MS = 50;
-import { getPref, setPref } from '@/settings/prefs';
-import { fetchExtras, readExtras, type Extras } from '@/feeds/fetch-extras';
-import { router } from 'expo-router';
-import { useNextUp } from '@/ui/player/NextUp';
-import { EndOffer } from '@/ui/player/EndOffer';
-import { endOffer } from '@/discover/end-offer';
-import { toPlayable } from '@/storage/playable';
-import { useDiscover } from '@/discover/useDiscover';
-import { size, tabular } from '@/design';
-import { LinearGradient } from '@/design/tailwind';
-import { playerWash, usePlayerPalette } from '@/ui/player/palette';
-import { episodeAndShow } from '@/ui/player/lookup';
-import { useShowExtras } from '@/ui/show/ShowExtras';
-import { isFavourite, toggleFavourite } from '@/me/favourites';
+import { Box } from '@/ui/lib/box';
+import { useLayout } from '@/ui/shell/useLayout';
+import { usePlayer } from '@/playback/store';
+import { useSwipeUpToOpen } from '@/ui/queue/QueueSheetHost';
+import { RouteRow, VoiceBoostRow } from '@/ui/settings/AudioRows';
+import { PlayerMoreSheet } from '@/ui/player/PlayerMoreSheet';
+import { NothingPlaying } from '@/ui/player/NothingPlaying';
+import { PlayerBackdrop } from '@/ui/player/PlayerBackdrop';
+import { PlayerBottom } from '@/ui/player/PlayerBottom';
+import { ClapHost, MomentHost, PollHost, ShareHost } from '@/ui/player/PlayerHosts';
+import { PlayerRing } from '@/ui/player/PlayerRing';
+import { PlayerTitleBlock } from '@/ui/player/PlayerTitleBlock';
+import { PlayerTopBar } from '@/ui/player/PlayerTopBar';
+import { PlayerTray } from '@/ui/player/PlayerTray';
+import { SettingsPanel } from '@/ui/player/SettingsPanel';
+import { TranscriptSheet } from '@/ui/player/TranscriptSheet';
+import { TranscriptReportSheet } from '@/ui/player/TranscriptExtras';
+import { PLAYER, playerLayout } from '@/ui/player/measures';
+import { useClip } from '@/ui/player/useClipAndComments';
+import { usePlayerScreen } from '@/ui/player/usePlayerScreen';
 
 /** M22 T071: the player's column on a wide window. */
 const WIDE_PANEL = { width: '100%', maxWidth: 640, alignSelf: 'center' } as const;
+const FULL = { left: 0, right: 0 } as const;
 
 export default function PlayerScreen(): React.ReactElement {
+  const s = usePlayerScreen();
   const player = usePlayer();
-  const state = usePlayerState();
-  // M12 FR-042: "N listening now" — before the early returns, as every hook must be.
-  const liveCount = useListeningNow(state.kind === 'idle' ? undefined : state.episodeId, state.kind === 'playing' || state.kind === 'buffering');
-  const stores = useStores();
-  // M17: the player uses the light Editorial palette (with the listener's accent).
-  const c = usePlayerPalette();
-  const { composer, reactToggle, refresh, useEpisodeSocial, listener, bump, api } = useSocial();
-  const [composing, setComposing] = useState<ComposerState | undefined>();
-  const [myBuckets, setMyBuckets] = useState<number[] | undefined>();
-  // M2 (US5): chapters + transcript, fetched once per episode, cached (research R5).
-  const [extras, setExtras] = useState<Extras | undefined>();
-  const [pane, setPane] = useState<'none' | 'chapters' | 'transcript'>('none');
-  const [openMarker, setOpenMarker] = useState<RailMarker | undefined>();
-  // M4: remember where the last clip ended so "Keep listening" is offered right there.
-  const [lastClipEnd, setLastClipEnd] = useState<number | undefined>();
-  const clipNow = player.clip();
-  useEffect(() => { if (clipNow) setLastClipEnd(clipNow.endMs); }, [clipNow]);
-  const currentEpisodeId = state.kind === 'idle' ? undefined : state.episodeId;
-  // Owner, 2026-10-01: the show's Studio theme colour (if set) tints the top of the page.
-  const [showExtras] = useShowExtras((currentEpisodeId ? episodeAndShow(stores.feeds, currentEpisodeId).episode?.feedUrl : undefined) ?? '');
-  const wash = playerWash(showExtras?.overrides?.themeColour);
-  // M5 (FR-010): the end-of-episode offer — fetched while the episode plays, shown at `ended` with an empty queue, never autoplayed.
-  const nextUp = useNextUp(currentEpisodeId);
-  const { open: discoverOpen } = useDiscover();
-  const offer = endOffer(state, stores.queue.list(), nextUp.items, currentEpisodeId);
-  const { cached, stale } = useEpisodeSocial(currentEpisodeId);
-  useEffect(() => {
-    setExtras(currentEpisodeId ? readExtras(stores.extras, currentEpisodeId) : undefined);
-    setPane('none');
-    setTranscriptOpen(false);
-    const ep = currentEpisodeId ? stores.feeds.getEpisode(currentEpisodeId) : undefined;
-    if (!ep || (!ep.chaptersUrl && ep.transcripts.length === 0)) return;
-    let live = true;
-    void fetchExtras({ fetch, store: stores.extras, now: () => Date.now() }, ep).then((x) => { if (live) setExtras(x); });
-    return () => { live = false; };
-  }, [currentEpisodeId, stores]);
-  const serverBuckets = cached?.social.myReactionBuckets;
-  const shownBuckets = myBuckets ?? serverBuckets ?? [];
-  // The 10 s poll runs while this screen is focused and the app is foreground (US2, T032/T033).
-  usePoll(currentEpisodeId);
-  const subscriptionSync = useSubscriptionSync();
-  const [, setTick] = useState(0);
-  // Speed, sleep timer, chapters and transcript live in one sheet behind the left
-  // control, so the screen itself is only what the reference shows (owner, 2026-09-27).
-  const [more, setMore] = useState(false);
-  // M21 US2: skip silence, kept in prefs (src/settings/prefs.ts) and applied at start-up (providers).
-  const [skipSilence, setSkipSilenceOn] = useState(() => getPref(stores.settings, 'skipSilence'));
-  // M21 US11: iPhone + an HLS episode → no audio tap, so skip silence and voice boost are greyed out.
-  const effectsBlocked = useEffectsBlocked();
-  // M21 US2: the transcript expanded in place under its two lines; a line being reported; the clap.
-  const [transcriptOpen, setTranscriptOpen] = useState(false);
-  const [reporting, setReporting] = useState<TranscriptLine | undefined>();
-  const [claps, setClaps] = useState(0);
-  // M19 T070 (US7, research R2): "Loop this episode" — the runtime turns it off on any load.
-  const [looping, setLooping] = useState(() => player.loop());
-  useEffect(() => { setLooping(player.loop()); }, [player, currentEpisodeId]);
-  // M12 FR-033: Share opens a first step (episode link · this moment · picture).
-  const [sharing, setSharing] = useState(false);
-  // M20 US1: lines picked from the transcript, shared as the server's quote card.
-  const shareQuote = useQuoteShare();
-  const insets = useSafeAreaInsets();
-  const shareQuoteVideo = useQuoteVideo();
-  // M12 FR-044: the queue opens as a sheet over the player (was a separate page). M21 US3: it is
-  // the one sheet the root holds (src/ui/queue/QueueSheetHost.tsx), also opened by a swipe up
-  // on the controls and the bar under them (FR-020).
-  const queueSheet = useQueueSheet();
   const swipeUp = useSwipeUpToOpen();
-  const screen = useWindowDimensions();
-  // M22 US16 (T071): on a tablet the player is a centred panel over the full-width wash, not a stretched phone page.
   const { wide } = useLayout();
-  const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
-  const swipeDown = useSwipeDownToClose(close);
+  const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const clip = useClip(s.episodeId);
+  const { head, episodeId, episode, show } = s;
+  const layout = playerLayout(window, insets);
+  const column = wide ? WIDE_PANEL : FULL;
 
-  if (state.kind === 'idle') {
+  // Nothing playing, or a failure with no episode: the empty ring and two shortcuts.
+  if (episodeId === undefined) {
     return (
-      <>
-      <SafeAreaView className={FILL}>
-        <TopBar back="down" onBack={close} />
-        <Box className={BODY}><Text className={SUBTITLE}>Nothing is playing yet.</Text></Box>
-      </SafeAreaView>
-      </>
-    );
-  }
-
-  if (state.kind === 'error') {
-    return (
-      <>
-      <SafeAreaView className={FILL}>
-        <TopBar back="down" onBack={close} />
-        <Box className={BODY}>
-          <Text className={`${TITLE} text-center`}>{state.message}</Text>
-          <Pressable className={PRIMARY} accessibilityRole="button" onPress={() => player.play()}>
-            <Text className={PRIMARY_TEXT}>Try again</Text>
-          </Pressable>
+      <Box className="flex-1 bg-void">
+        <PlayerBackdrop feedUrl={undefined} />
+        <Box className="absolute top-0 bottom-0" style={column}>
+          <Box testID="player-top-pos" {...s.swipeDown} className="absolute" style={{ top: layout.topBarTop, left: PLAYER.side, right: PLAYER.side }}><PlayerTopBar episodeId={undefined} onClose={s.close} onMore={undefined} /></Box>
+          <NothingPlaying layout={layout} {...(head.message !== undefined ? { message: head.message, onTryAgain: () => player.play() } : {})} />
         </Box>
-      </SafeAreaView>
-      </>
+      </Box>
     );
   }
-
-  // Read once per episode, not on every tick (src/ui/player/lookup.ts).
-  const { episode, show } = episodeAndShow(stores.feeds, state.episodeId);
-  const artworkUrl = episode?.imageUrl ?? show?.imageUrl;
-
-  const positionMs = state.kind === 'ended' ? (state.durationMs ?? 0) : state.positionMs;
-  const durationMs = state.kind === 'loading' ? episode?.durationMs : state.durationMs;
-  const isPlaying = state.kind === 'playing' || state.kind === 'buffering';
-  // The server buckets moments against the duration it was first told (the feed's,
-  // e.g. 50:49) which can differ from what the player measures (48:19). Every bucket
-  // computation on the phone uses the server's axis, or the toggle state is wrong
-  // (seen on the phone 2026-09-21: bucket 92 vs 88).
-  const heatAxisMs = cached?.social.episode.durationMs ?? durationMs;
-
-  const feedUrl = episode?.feedUrl;
-  const subscribed = feedUrl !== undefined && stores.subscriptions.has(feedUrl);
-  const subscribe = () => {
-    if (feedUrl === undefined || subscribed) return;
-    stores.subscriptions.add(feedUrl, Date.now());
-    subscriptionSync.push();
-    setTick((n) => n + 1);
-  };
-  const favourite = isFavourite(stores.settings, state.episodeId);
-  const live = liveLabel(liveCount);
-  const rate = player.rate();
-  // M10b US4 (FR-015): "Show transcript entry" off → no transcript button and no live line.
-  const showTranscript = getPref(stores.settings, 'transcriptEntry');
-  const timedTranscript = showTranscript && extras?.transcript && 'lines' in extras.transcript ? extras.transcript : undefined;
-  const reacted = reactToggle.isReacted(shownBuckets, positionMs, heatAxisMs);
-  const commentCount = (cached?.social.comments ?? []).reduce((n, c) => n + (c.deleted ? 0 : 1) + (c.replies ?? []).filter((r) => !r.deleted).length, 0);
-  const clip = () => {
-    if (!listener) { router.push('/auth/sign-in'); return; }
-    router.push({ pathname: '/clip/new', params: { episodeId: state.episodeId, positionMs: String(positionMs) } });
-  };
-
-  // M17 (`Player-B`): the artwork sits beside the title, 148 pt on a 390 pt phone.
-  // Owner, 2026-10-06: the artwork grows with the screen (184 pt on a 6.9" phone), no fixed 148 cap.
-  // M24 US19 (iPhone, docs/plans/m24-audit/phone/04-player.png): the hero sat ~140 pt below the top
-  // bar. It is now right under the bar, as B draws it. With no transcript line or chapter (`bare`)
-  // the cover grows a little and the card + controls sit in the middle of the space left, so
-  // neither a band above the cover nor one at the foot is left empty (`playerSpace`).
-  const bare = !timedTranscript && !(extras?.chapters && extras.chapters.length > 0);
-  const space = playerSpace(screen, bare);
-  const art = space.art;
-  // M24 US19 (`EpisodeEnd-B`): at the end the page is B's "Finished" layout — a compact header, the
-  // Next-up offer filling the middle — not the playing page with the offer squeezed in.
-  const ended = state.kind === 'ended';
-  const markerCount = railMarkers(cached?.social.comments ?? []).length;
-  // M12 FR-020 (found on the iPhone): the comment button opens the conversation, not the
-  // keyboard; the page's write box carries this moment.
-  const openComments = () =>
-    router.push({ pathname: '/comments/[episodeId]', params: { episodeId: state.episodeId, at: String(Math.round(positionMs)) } });
 
   return (
-    <>
-    <Box className={FILL}>
-    {/* The show's theme colour, laid lightly over the page while the text still reads on it. */}
-    {wash ? <LinearGradient colors={wash} className="absolute inset-0" accessible={false} /> : (
-      <>
-        {/* M12 FR-040: the cover, blurred, tints the whole player; the (dark) veil keeps the text readable. */}
-        {artworkUrl ? (
-          <Image source={{ uri: artworkUrl }} blurRadius={40} className="absolute inset-0" style={COVER} accessible={false} importantForAccessibility="no-hide-descendants" />
-        ) : null}
-        <Box className="absolute inset-0 bg-veil" accessible={false} />
-      </>
-    )}
-    <SafeAreaView className="flex-1" style={wide ? WIDE_PANEL : undefined}>
-    {/* M21: a drag down on the top area closes the player (src/ui/player/swipe-close.ts). */}
-    <Box {...swipeDown}>
-    <TopBar
-      back="down"
-      onBack={close}
-      middle={live ? (
-        // Owner, 2026-10-01: "N listening now" near the top, as a small pill with a dot.
-        <Box className="flex-1 items-center">
-          <Box className="flex-row items-center gap-1 bg-accentTint rounded-pill px-2 py-0.5" accessible accessibilityLabel={live}>
-            <Box className="w-1.5 h-1.5 rounded-pill bg-accent" />
-            <Text className="text-accent text-xs font-semibold">{live}</Text>
-          </Box>
+    <Box className="flex-1 bg-void">
+      <PlayerBackdrop feedUrl={episode?.feedUrl} />
+      <PollHost episodeId={episodeId} />
+      {/* The page is the drawing's: every part sits where `playerLayout` puts it (src/ui/player/measures.ts). */}
+      <Box testID="player-page" className="absolute top-0 bottom-0" style={column}>
+        {/* M21: a drag down on the top area closes the player (src/ui/player/swipe-close.ts). */}
+        <Box testID="player-top-pos" {...s.swipeDown} className="absolute" style={{ top: layout.topBarTop, left: PLAYER.side, right: PLAYER.side }}>
+          <PlayerTopBar episodeId={episodeId} onClose={s.close} onMore={() => s.open('more')} />
         </Box>
-      ) : undefined}
-    >
-      {/* M21 US11 (FR-100): the system audio-route picker under our own icon; absent when there is none. */}
-      <RouteButton colour={c.text} />
-      {/* Owner, 2026-10-01: a star in the bar favourites this episode (src/me/favourites). */}
-      <Pressable
-        onPress={() => { toggleFavourite(stores.settings, state.episodeId, Date.now()); setTick((n) => n + 1); }}
-        accessibilityRole="button"
-        accessibilityState={{ selected: favourite }}
-        accessibilityLabel={favourite ? 'Remove from favourites' : 'Add to favourites'}
-        className="items-center justify-center"
-        style={TAP}
-      >
-        <Icon name={favourite ? 'star' : 'star-outline'} size={24} color={favourite ? c.accent : c.text} />
-      </Pressable>
-      <BarButton label="Clip the last 30 seconds" onPress={clip}><Icon name="cut-outline" size={24} color={c.text} /></BarButton>
-      <BarButton label="Share this episode" onPress={() => setSharing(true)}>
-        <Icon name="share-outline" size={24} color={c.text} />
-      </BarButton>
-    </TopBar>
-    </Box>
-    {/* M17: the page reads top-down (hero, quote, card, controls); it scrolls only when a large font needs it. */}
-    <ScrollView className="flex-1" alwaysBounceVertical={false} contentContainerClassName="flex-grow px-screen-x pt-2 pb-section gap-section">
-      {ended ? (
-        // M24 US19 (`EpisodeEnd-B`): "FINISHED", a 52 pt cover, the title on one line, the show.
-        <Box className="flex-row items-center gap-row" accessible accessibilityLabel={`Finished: ${episode?.title ?? 'this episode'}`}>
-          <Artwork url={artworkUrl} size={52} name={show?.title} />
-          <Box className="flex-1 gap-0.5">
-            <Eyebrow>Finished</Eyebrow>
-            <Text className="text-[15px] font-bold text-text" numberOfLines={1}>{episode?.title ?? ''}</Text>
-            <Text className="text-meta text-muted" numberOfLines={1}>{show?.title ?? ''}</Text>
-          </Box>
+        <Box testID="player-ring-pos" className="absolute items-center" style={{ top: layout.ringTop, left: 0, right: 0 }}>
+          <PlayerRing episodeId={episodeId} episode={episode} show={show} size={layout.ring} onOpenMarker={s.setMarker} />
         </Box>
-      ) : (
-      <>
-      {/* The hero: artwork on the left; eyebrow, serif title, show and Subscribe on the right. */}
-      <Box className="flex-row items-end gap-section">
-        {/* M10b US5: a video episode shows its picture (muted, following the sound). */}
-        {episode && mediaKindOf(episode.enclosureType, episode.enclosureUrl) === 'video'
-          ? <VideoStage url={episode.enclosureUrl} positionMs={positionMs} playing={isPlaying} size={art} />
-          : <Artwork url={artworkUrl} size={art} name={show?.title} />}
-        <Box className="flex-1 gap-1">
-          <Eyebrow accent>Now playing</Eyebrow>
-          <Text className={TITLE} numberOfLines={4}>{episode?.title ?? 'Now playing'}</Text>
-          <Box className="flex-row items-center gap-2 flex-wrap">
-            {feedUrl === undefined ? <Text className={SUBTITLE} numberOfLines={1}>{show?.title ?? ''}</Text> : (
-              <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} className="justify-center flex-shrink" style={{ minHeight: TAP.minHeight }}>
-                <Text className="text-meta text-muted" numberOfLines={1}>{show?.title ?? ''}</Text>
-              </Pressable>
-            )}
-            {feedUrl === undefined || subscribed ? null : (
-              <Pressable onPress={subscribe} accessibilityRole="button" accessibilityLabel="Subscribe to this show" className="justify-center" style={{ minHeight: TAP.minHeight }}>
-                <Box className="bg-text rounded-pill px-2.5 py-1.5"><Text className="text-xs font-bold text-background">+ Subscribe</Text></Box>
-              </Pressable>
-            )}
-          </Box>
+        <Box testID="player-title-pos" className="absolute" style={{ left: PLAYER.side, right: PLAYER.side, bottom: layout.titleBottom }}>
+          <PlayerTitleBlock episodeId={episodeId} episode={episode} show={show} />
+        </Box>
+        {/* M21 FR-020: a swipe up on the controls and the tray opens the playlist sheet. */}
+        <PlayerBottom onOpenPlayback={() => s.open('playback')} layout={layout} swipe={swipeUp} />
+        <Box testID="player-tray-pos" {...swipeUp} className="absolute" style={{ left: PLAYER.traySide, right: PLAYER.traySide, bottom: layout.trayBottom }}>
+          <PlayerTray episodeId={episodeId} onShare={() => s.open('share')} />
         </Box>
       </Box>
 
-      {extras?.chapters && extras.chapters.length > 0 ? <CurrentChapter chapters={extras.chapters} positionMs={positionMs} /> : null}
-      {/* M21 US2: the line being spoken and the next (M10b US4: absent when the transcript entry is off).
-          A tap expands the transcript here; ⤢ opens it full screen. */}
-      {timedTranscript ? (
-        <TranscriptPeek transcript={timedTranscript} positionMs={positionMs} episodeId={state.episodeId} expanded={transcriptOpen} onToggle={() => setTranscriptOpen((v) => !v)} />
-      ) : null}
-      {timedTranscript && transcriptOpen ? (
-        <TranscriptPane transcript={timedTranscript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} onReport={setReporting} durationMs={durationMs}
-          onShareImage={(q) => { void shareQuote(episode, q); }}
-          onShareVideo={shareQuoteVideo ? (q) => shareQuoteVideo(episode ? toPlayable(stores, episode.id) : undefined, q) : undefined} />
-      ) : null}
-      </>
-      )}
-
-      {/* M24 US19 (`EpisodeEnd-B`): the offer is the middle of the Finished page, Play it at its foot. */}
-      {ended && offer ? (
-        <EndOffer fill item={offer} onPlay={() => {
-          const local = toPlayable(stores, offer.episode.id);
-          if (local) { player.load(local, 'play'); return; }
-          void discoverOpen(offer.episode);
-        }} />
-      ) : null}
-
-      {/* M24 US19 (`Player-B`): the card and the controls follow the quote, as B draws them; on a bare
-          page (no line, no chapter) they sit in the middle of the free space (`groupClass`). Short
-          phones and large fonts still scroll as before. */}
-      <Box className={`gap-section ${ended ? '' : space.groupClass}`}>
-      {/* What listeners felt: markers, heat curve, seek bar and times in one card. */}
-      <Card className="py-row gap-1">
-        <Box className="flex-row justify-between items-baseline">
-          <Eyebrow>What listeners felt</Eyebrow>
-          {markerCount > 0 ? <Text className="text-xs text-muted">{plural(markerCount, 'commented moment')}</Text> : null}
-        </Box>
-        <Rail
-          comments={cached?.social.comments ?? []}
-          durationMs={durationMs}
-          onTap={(m) => {
-            player.seek(m.offsetMs);
-            setOpenMarker(m);
-          }}
-        />
-        {/* M21 US2: the heat curve is the seek bar — drag or tap it; a tap on a commented moment opens it. */}
-        <HeatScrubber
-          heat={cached?.social.heat}
-          positionMs={positionMs}
-          durationMs={durationMs}
-          heatAxisMs={heatAxisMs}
-          myBuckets={shownBuckets}
-          onSeek={(ms) => player.seek(ms)}
-          onSkip={(d) => player.skip(d)}
-          onTap={(bucket, toMs) => {
-            player.seek(toMs);
-            const at = (cached?.social.comments ?? []).flatMap((c) => [c, ...(c.replies ?? [])])
-              .filter((c) => !c.deleted && c.offsetMs !== null && heatAxisMs !== undefined && Math.floor((c.offsetMs * 100) / heatAxisMs) === bucket);
-            if (at.length > 0) setOpenMarker({ second: Math.floor(toMs / 1000), offsetMs: toMs, comments: at });
-          }}
-        />
-        <Box className="flex-row justify-between mt-2" accessible accessibilityLabel={scrubberValue(positionMs, durationMs).text}>
-          <Text className="text-meta font-bold text-text" style={tabular}>{mmss(positionMs)}</Text>
-          <Text className="text-meta font-bold text-text" style={tabular}>{durationMs === undefined ? '--:--' : `-${mmss(durationMs - positionMs)}`}</Text>
-        </Box>
-      </Card>
-
-      {/* One status line at most, so the controls below never jump far. */}
-      {state.kind === 'buffering' ? <Text className={SUBTITLE}>Buffering…</Text>
-        : state.kind === 'loading' ? <Text className={SUBTITLE}>Loading…</Text>
-        : state.kind === 'paused' && state.by === 'output-lost' ? <Text className={SUBTITLE}>Paused — your headphones disconnected</Text>
-        : player.clip() ? <Text className={SUBTITLE}>Playing a clip · {mmss(player.clip()!.startMs)}–{mmss(player.clip()!.endMs)} · pauses at the end</Text>
-        : stale ? <Text className={SUBTITLE}>Couldn't refresh comments — showing the last copy</Text>
-        : null}
-      {!player.clip() && state.kind === 'paused' && lastClipEnd !== undefined && Math.abs(positionMs - lastClipEnd) <= 6_000 ? (
-        <Box className={CLIP_BANNER}>
-          <Text className={SUBTITLE}>The clip ended.</Text>
-          <Pressable className={SECONDARY} accessibilityRole="button" accessibilityLabel="Keep listening" onPress={() => { setLastClipEnd(undefined); player.play(); }}><Text className={SECONDARY_TEXT}>Keep listening</Text></Pressable>
-        </Box>
-      ) : null}
-      <Box className="flex-row items-center justify-between" {...swipeUp}>
-        <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel={`Speed ${rate.toFixed(1)}×, sleep timer and chapters`} className={SPEED}>
-          <Text className="text-meta font-bold text-text" style={tabular}>{rate.toFixed(1)}×</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Skip back 15 seconds" onPress={() => player.skip(-15_000)} className={ROUND}>
-          <Box style={MIRROR}><Icon name="refresh-outline" size={40} color={c.text} /></Box>
-          <Text className={SKIP_NUMBER}>15</Text>
-        </Pressable>
-        <Pressable
-          className={PLAY}
-          accessibilityRole="button"
-          accessibilityLabel={isPlaying ? 'Pause' : 'Play'}
-          onPress={() => (isPlaying ? player.pause() : player.play())}
-        >
-          <Icon name={isPlaying ? 'pause' : 'play'} size={34} color={c.onPlay} />
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Skip forward 30 seconds" onPress={() => player.skip(30_000)} className={ROUND}>
-          <Icon name="refresh-outline" size={40} color={c.text} />
-          <Text className={SKIP_NUMBER}>30</Text>
-        </Pressable>
-        <Pressable
-          className={ROUND}
-          accessibilityRole="button"
-          accessibilityLabel={reacted ? 'Remove your reaction here' : 'React at this moment'}
-          accessibilityState={{ selected: reacted }}
-          onPress={() => {
-            if (!listener) { router.push('/auth/sign-in'); return; }
-            // M21 US2: turning the reaction ON claps (a ≤ 1 s burst; none with Reduce Motion).
-            if (!reacted) setClaps((n) => n + 1);
-            const r = reactToggle.toggle(state.episodeId, shownBuckets, positionMs, heatAxisMs);
-            setMyBuckets(r.optimistic);
-            void r.settled.then((s) => { setMyBuckets(s.myBuckets); bump(state.episodeId); });
-          }}
-        >
-          {/* Filled vs outline, and the name — never hue alone (FR-016). */}
-          <Icon name={reacted ? 'thumbs-up' : 'thumbs-up-outline'} size={28} color={reacted ? c.accent : c.muted} />
-        </Pressable>
-      </Box>
-      </Box>
-    </ScrollView>
-
-    {/* About · Playlist · Comments: the page's bottom bar, under a hairline. Owner, 2026-10-06: the
-        wash reaches the bottom edge, so this page (alone) keeps the bar above the home indicator itself. */}
-    <Box className="flex-row mx-screen-x border-t-hairline border-separator" style={{ paddingBottom: insets.bottom }} {...swipeUp}>
-      {/* Owner's iPhone, 2026-10-07: "About" sat higher than its neighbours — it was a BarButton in a
-          Box; it is now the same item as Playlist, Comments and Sleep, so all four share one baseline. */}
-      <Pressable onPress={() => router.push({ pathname: '/episode/[id]', params: { id: state.episodeId } })} accessibilityRole="button" accessibilityLabel="About this episode" className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
-        <Icon name="information-circle-outline" size={22} color={c.text} />
-        <Text className={BAR_LABEL}>About</Text>
-      </Pressable>
-      <Pressable onPress={() => queueSheet.open()} accessibilityRole="button" accessibilityLabel="Playlist" className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
-        <Icon name="list" size={22} color={c.text} />
-        <Text className={BAR_LABEL}>Playlist</Text>
-      </Pressable>
-      <Pressable onPress={openComments} accessibilityRole="button" accessibilityLabel={`Comments, ${commentCount}`} className={BAR_ITEM} style={{ minHeight: TAP.minHeight }}>
-        <Icon name="chatbox-ellipses-outline" size={22} color={c.text} />
-        <Text className={BAR_LABEL}>Comments {commentCount}</Text>
-      </Pressable>
-      {/* M21 US1 (FR-001): the sleep timer, one tap away, with its countdown. */}
-      <MoonButton className={BAR_ITEM} colour={c.text} activeColour={c.accent} />
+      <PlayerMoreSheet
+        open={s.sheet === 'more'}
+        onClose={s.closeSheet}
+        episodeId={episodeId}
+        episode={episode}
+        show={show}
+        extras={s.extras}
+        onClip={() => { s.closeSheet(); clip(); }}
+        onShare={() => s.open('share')}
+        onTranscript={() => s.open('transcript')}
+      />
+      <TranscriptSheet open={s.sheet === 'transcript'} onClose={s.closeSheet} episodeId={episodeId} episode={episode} extras={s.extras} onReport={s.setReporting} />
+      <SettingsPanel
+        open={s.sheet === 'playback'}
+        onClose={s.closeSheet}
+        looping={s.looping}
+        onLoop={s.setLoop}
+        skipSilence={s.skipSilence}
+        onSkipSilence={s.setSkipSilence}
+        skipSilenceDisabled={s.effectsBlocked}
+        routeSlot={<RouteRow />}
+        voiceBoostSlot={<VoiceBoostRow />}
+      />
+      <TranscriptReportSheet episodeId={episodeId} line={s.reporting} onClose={() => s.setReporting(undefined)} />
+      <MomentHost episodeId={episodeId} marker={s.marker} onClose={() => s.setMarker(undefined)} />
+      <ShareHost open={s.sheet === 'share'} onClose={s.closeSheet} episodeId={episodeId} episode={episode} show={show} />
+      <ClapHost />
     </Box>
-    </SafeAreaView>
-
-    {/* M24 US19: the short "Playback" sheet again (B); M21's extras behind its "More settings" row.
-        Chapters and Transcript stay here as two cards; Done is the yellow pill at the foot. */}
-    <SettingsPanel
-      open={more}
-      onClose={() => setMore(false)}
-      looping={looping}
-      onLoop={(v) => { player.setLoop(v); setLooping(v); }}
-      skipSilence={skipSilence}
-      onSkipSilence={(v) => { setPref(stores.settings, 'skipSilence', v); player.setSkipSilence(v); setSkipSilenceOn(v); }}
-      skipSilenceDisabled={effectsBlocked}
-      routeSlot={<RouteRow />}
-      voiceBoostSlot={<VoiceBoostRow />}
-    >
-      {extras && (extras.chapters?.length || (showTranscript && extras.transcript)) ? (
-        <Box className="flex-row gap-gap">
-          {extras.chapters && extras.chapters.length > 0 ? (
-            <Pressable className={pane === 'chapters' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'chapters' ? 'none' : 'chapters')} accessibilityRole="button" accessibilityLabel={`Chapters (${extras.chapters.length})`} accessibilityState={{ expanded: pane === 'chapters' }}>
-              <Icon name="library-outline" size={22} color={pane === 'chapters' ? c.onPrimary : c.accent} />
-              <Text className={pane === 'chapters' ? TILE_ON_TITLE : TILE_TITLE}>Chapters</Text>
-              <Text className={pane === 'chapters' ? TILE_ON_DETAIL : TILE_DETAIL}>{plural(extras.chapters.length, 'chapter')}</Text>
-            </Pressable>
-          ) : null}
-          {showTranscript && extras.transcript ? (
-            <Pressable className={pane === 'transcript' ? TILE_ON : TILE} style={{ minHeight: TAP.minHeight }} onPress={() => setPane(pane === 'transcript' ? 'none' : 'transcript')} accessibilityRole="button" accessibilityLabel="Transcript" accessibilityState={{ expanded: pane === 'transcript' }}>
-              <Icon name="document-text-outline" size={22} color={pane === 'transcript' ? c.onPrimary : c.accent} />
-              <Text className={pane === 'transcript' ? TILE_ON_TITLE : TILE_TITLE}>Transcript</Text>
-              <Text className={pane === 'transcript' ? TILE_ON_DETAIL : TILE_DETAIL}>Follows the audio</Text>
-            </Pressable>
-          ) : null}
-        </Box>
-      ) : null}
-      {extras?.error ? <Text className="text-xs text-muted">Couldn't load {extras.error.includes('chapters') ? 'chapters' : 'the transcript'}</Text> : null}
-      {pane === 'chapters' && extras?.chapters ? <ChapterList chapters={extras.chapters} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} /> : null}
-      {showTranscript && pane === 'transcript' && extras?.transcript ? <TranscriptPane transcript={extras.transcript} positionMs={positionMs} onSeek={(ms) => player.seek(ms)} durationMs={durationMs} onReport={(l) => { setMore(false); setReporting(l); }} onShareImage={(q) => { setMore(false); setTimeout(() => { void shareQuote(episode, q); }, PANEL_CLOSE_MS); }} onShareVideo={shareQuoteVideo ? (q) => { setMore(false); setTimeout(() => shareQuoteVideo(episode ? toPlayable(stores, episode.id) : undefined, q), PANEL_CLOSE_MS); } : undefined} /> : null}
-      <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Close" className="items-center justify-center rounded-pill bg-primary mt-1" style={DONE}>
-        <Text className="text-sm font-bold text-onPrimary">Done</Text>
-      </Pressable>
-    </SettingsPanel>
-    <TranscriptReportSheet episodeId={state.episodeId} line={reporting} onClose={() => setReporting(undefined)} />
-    {/* M21 US2: the clap — over everything, never in the way of a tap. */}
-    <ClapBurst trigger={claps} />
-
-    {composing ? (
-      <ComposerSheet
-        initial={composing}
-        onClose={() => setComposing(undefined)}
-        onPosted={() => { void refresh(state.episodeId); }}
-      />
-    ) : null}
-    {openMarker ? (
-      <MomentSheet
-        episodeId={state.episodeId}
-        title={`At ${mmss(openMarker.offsetMs)}`}
-        comments={(cached?.social.comments ?? []).filter((c) => openMarker.comments.some((m) => m.id === c.id || c.replies?.some((r) => r.id === m.id)))}
-        onClose={() => setOpenMarker(undefined)}
-        onReply={(parentId) => {
-          setOpenMarker(undefined);
-          setComposing(composer.open({ episodeId: state.episodeId, offsetMs: positionMs, ...(durationMs !== undefined ? { durationMs } : {}) }, parentId));
-        }}
-      />
-    ) : null}
-    {episode ? (
-      <ShareChooser
-        open={sharing}
-        onClose={() => setSharing(false)}
-        episode={{ id: episode.id, title: episode.title, showTitle: show?.title ?? '' }}
-        atMs={positionMs}
-        onClip={clip}
-        onShared={() => void api.recordShare({ targetKind: 'episode', targetId: episode.id, feedUrl: episode.feedUrl }).catch(reportAndDrop('share.record'))}
-      />
-    ) : null}
-    </Box>
-    </>
   );
 }
-
-// The screen's classes, named once because several elements share them.
-const FILL = 'flex-1 bg-background';
-/** The blurred cover fills the screen behind the player (a style: it is a size, not a class). */
-const COVER = { width: '100%', height: '100%' } as const;
-const BODY = 'flex-1 p-section gap-2 items-center justify-center';
-/** The idle/error message; on the main page, the episode's serif title beside the artwork. */
-const TITLE = 'text-lg font-display text-text';
-const SUBTITLE = 'text-xs text-muted text-center';
-/** The round controls either side of play/pause. */
-const ROUND = 'w-14 h-14 items-center justify-center';
-/** M17: speed is a bordered pill showing the rate. */
-const SPEED = 'w-14 h-12 rounded-pill border border-border bg-surface items-center justify-center';
-/** M17: play/pause is the yellow disc. M24 US19 (owner, 2026-10-08): the strong yellow, the dark glyph. */
-const PLAY = 'w-[76px] h-[76px] rounded-pill bg-play items-center justify-center';
-const BAR_ITEM = 'flex-1 items-center justify-center py-1.5 gap-0.5';
-
-/**
- * The cover's size and where the card + controls sit. The hero is always right under the top bar
- * (M24 US19). Normally the cover is 42 % of the width, at most 20 % of the height (184 pt on a 6.9"
- * phone), and the card follows the quote. `bare` (no transcript line, no chapter): up to 46 % / 24 %,
- * and `my-auto` centres the card + controls in the space between the hero and the bottom bar.
- */
-function playerSpace(screen: { width: number; height: number }, bare: boolean): { art: number; groupClass: string } {
-  return bare
-    ? { art: Math.round(Math.min(screen.width * 0.46, screen.height * 0.24)), groupClass: 'my-auto' }
-    : { art: Math.round(Math.min(screen.width * 0.42, screen.height * 0.2)), groupClass: '' };
-}
-const BAR_LABEL = 'text-xs font-semibold text-text';
-/** The 15 / 30 inside the circular arrow. */
-const SKIP_NUMBER = 'absolute text-xs font-bold text-text';
-/** The back arrow is the forward arrow, mirrored. A transform, so a style. */
-const MIRROR = { transform: [{ scaleX: -1 }] };
-const PRIMARY = 'min-h-12 py-row px-screen-x rounded-pill bg-primary justify-center';
-const PRIMARY_TEXT = 'text-onPrimary font-bold text-sm';
-const CLIP_BANNER = 'flex-row gap-row items-center flex-wrap justify-center';
-const SECONDARY = 'min-h-12 py-2 px-section rounded-pill border border-separator justify-center';
-const SECONDARY_TEXT = 'font-semibold text-xs text-text';
-/** M17 (`PlaybackSheet-B`): Chapters / Transcript as half-width cards. Chosen is told apart by the yellow fill AND the pane opening — never by hue alone (FR-016). */
-// M24 US19: B's cards — 76 pt tall, 12 pt padding, 14/700 title, 12 pt detail.
-const TILE = 'flex-1 p-3 gap-1.5 min-h-[76px] rounded-row border border-border bg-surface';
-const TILE_ON = 'flex-1 p-3 gap-1.5 min-h-[76px] rounded-row border border-primary bg-primary';
-const TILE_TITLE = 'text-body font-bold text-text';
-const TILE_ON_TITLE = 'text-body font-bold text-onPrimary';
-const TILE_DETAIL = 'text-xs text-muted';
-const TILE_ON_DETAIL = 'text-xs text-onPrimary';
-/** The sheet's Done pill: B's 52 pt, as the token row height (50). A size, so a style. */
-const DONE = { minHeight: size.row };

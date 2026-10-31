@@ -28,7 +28,7 @@ if (!ON) {
   const { encode } = await import('../src/db/ddb/codec.ts');
   const K = await import('../src/db/ddb/keys.ts');
   const { del, get, wrapStore } = await import('../src/db/ddb/store.ts');
-  const { withConflicts } = await import('../src/db/ddb/test-wrappers.ts');
+  const { withConflicts } = await import('./ddb-wrappers.ts');
   const { drainOutbox } = await import('../src/jobs/outbox.ts');
   const { addHeatMark, heatCurve, removeHeatMark, repairHeat } = await import('../src/heat/ddb.ts');
   const { observeOne } = await import('../src/db/repos/library/ddb/positions.ts');
@@ -43,6 +43,7 @@ if (!ON) {
 
   test('G-M26-LB1: a reaction and a comment by one listener in one bucket count once, even racing with a conflict', async () => {
     const s = await freshStore();
+    const curve = async () => { await s.drain(); return heatCurve(s.store, EP); }; // M32 C6: the curve moves in the outbox
     try {
       const racing = withConflicts(s.store, (n) => n === 1);
       const at = '2026-10-10T01:00:00.000Z';
@@ -55,22 +56,22 @@ if (!ON) {
       assert.equal(racing.cancelled(), 1, 'one transaction was cancelled by the conflict and retried');
       assert.ok(await get(s.store, 'main', K.reaction(L, EP, 17)), 'the reaction is stored');
       assert.ok(await get(s.store, 'main', K.comment(EP, at, 'c1')), 'the comment is stored');
-      let b = await heatCurve(s.store, EP);
+      let b = await curve();
       assert.equal(b[17], 1, 'one listener, one bucket: counted once');
       assert.equal(b.reduce((x, y) => x + y, 0), 1);
       assert.equal(b.length, 100);
 
       await addHeatMark(s.store, { episodeId: EP, listenerId: M, bucket: 17 });
-      assert.equal((await heatCurve(s.store, EP))[17], 2, 'another listener in the same bucket counts');
+      assert.equal((await curve())[17], 2, 'another listener in the same bucket counts');
 
       await removeHeatMark(s.store, { episodeId: EP, listenerId: L, bucket: 17 }, (t) => t.delete('main', K.reaction(L, EP, 17), { condition: 'attribute_exists(PK)' }));
-      assert.equal((await heatCurve(s.store, EP))[17], 2, 'the comment still holds the bucket for L');
+      assert.equal((await curve())[17], 2, 'the comment still holds the bucket for L');
       await removeHeatMark(s.store, { episodeId: EP, listenerId: L, bucket: 17 });
-      b = await heatCurve(s.store, EP);
+      b = await curve();
       assert.equal(b[17], 1, 'only M is left');
       assert.equal((await repairHeat(s.store, EP)).fixed, false, 'the curve equals a recount from the marks');
       await removeHeatMark(s.store, { episodeId: EP, listenerId: L, bucket: 17 });
-      assert.equal((await heatCurve(s.store, EP))[17], 1, 'removing what is not there changes nothing');
+      assert.equal((await curve())[17], 1, 'removing what is not there changes nothing');
     } finally { await s.close(); }
   });
 

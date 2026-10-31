@@ -111,8 +111,8 @@ type Expr = { update: string; condition: string; names: Record<string, string>; 
 
 /** One job UpdateItem: SET `set` + updatedAt, ADD `add` + v, set or REMOVE the G4 queue keys; only on an existing job (and `cond`). */
 function jobExpr(store: Store, set: Record<string, NativeAttributeValue>, add: Record<string, number>, g4: G4Change, cond?: { expr: string; names: Record<string, string>; values: Record<string, NativeAttributeValue> }): Expr {
-  const names: Record<string, string> = { '#pk': 'PK', ...(cond?.names ?? {}) };
-  const values: Record<string, NativeAttributeValue> = { ...(cond?.values ?? {}) };
+  const names: Record<string, string> = { '#pk': 'PK', ...cond?.names };
+  const values: Record<string, NativeAttributeValue> = { ...cond?.values };
   const sets: string[] = [];
   const adds: string[] = [];
   let i = 0;

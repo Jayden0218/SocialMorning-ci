@@ -134,7 +134,7 @@ export async function promotionsDump(t: TestDb): Promise<string> {
 }
 
 /** The promotions' stored field names (G-L2: none may identify a person). */
-export async function promotionColumns(t: TestDb): Promise<string[]> {
+export async function promotionColumns(_t: TestDb): Promise<string[]> {
   const { ITEM_TYPES } = await import('../src/db/ddb/codec.ts');
   return [...(ITEM_TYPES.promotion.attrs as readonly string[])];
 }

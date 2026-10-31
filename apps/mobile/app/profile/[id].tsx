@@ -21,22 +21,27 @@
  * - The header collapses: once the name scrolls away, the bar shows the small photo and name.
  * - Likes "View all" → /profile/<id>/likes; others' Subscriptions cell → /profile/<id>/subscriptions
  *   (it says Private when they keep them private).
+ *
+ * M31 D-C (design-pulse2 `social.html` `profile--screen`, `--own`, `--host`, `--signed-out`, `--stats-empty`, `--suspended`, `--load-failed`,
+ * `--more-sheet`, `--block-dialog`, `--blocked`; layout pattern Stage, then a Mosaic): the Stage (glow, the person's stickers, the photo in
+ * a light ring, the name, their lines), then under the edge label "Numbers" the four number tiles, Listening time as a hot-tinted 2 x 1
+ * tile and "Often listened" as a 2 x 2 tile of covers; below, edge labels Stickers, Recent (a Thread), Likes · n (a Thread, "View all ›") and
+ * Playlists (a Deck). The bottom zone holds back and — on someone else's page — Follow (hot pill), Message and More (48 circles); on your own
+ * page back and the light Edit profile pill; on a blocked page the quiet "Unblock <name>" pill. The ⋯ sheet is the kit sheet with the
+ * name as its head, Block and Report under a rule in hot-text. The header ⋯ left for the More circle (same sheet); the collapsed name
+ * (photo 28 + name) joins the status-bar strip once the head scrolls away. The page's pieces are in `src/ui/profile/ProfilePage.tsx`.
+ * Reads stay in the `mine` memo and the `showOf` cache (034, C2); nothing here reads the local database in the render body.
  */
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
-import { SheetRow } from '@/ui/kit/SheetRow';
-import { BarButton } from '@/ui/kit/TopBar';
+import { MenuRow, MenuRule } from '@/ui/comments/MenuRows';
+import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { useConfirm } from '@/ui/kit/confirm';
 import { announce } from '@/safety/context';
 import { useUs8Api } from '@/social/us8-api';
 import { PlusBadge } from '@/ui/me/PlusCard';
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { hit, tabular } from '@/design';
-import { useColours } from '@/ui/kit/useColours';
-import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Link } from '@/design/tailwind';
@@ -51,16 +56,17 @@ import { useStores, useToast } from '@/ui/shell/providers';
 import { listeningHistory } from '@/me/history';
 import { latestEarned } from '@/me/stickers';
 import { myStickers, myTotals } from '@/me/my-stickers';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { goBack } from '@/ui/kit/PageHeader';
+import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
+import { Type } from '@/ui/kit/Type';
 import { RecentCard } from '@/ui/social/RecentCard';
 import { Placeholder } from '@/ui/comments/Placeholder';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { Pressable } from '@/ui/lib/pressable';
 import { ApiError, type FeedItem as Item, type Profile } from '@/social/api';
-import { EmptyState } from '@/ui/kit/EmptyState';
 import { plural } from '@socialmorning/social-core';
 import { ProfileStatRow, listenedLabel, type StatCell } from '@/ui/social/ProfileStatRow';
-import { Avatar } from '@/ui/kit/Avatar';
 import { LikeCard } from '@/ui/social/LikeCard';
 import { useProfileApi, type LikeItem } from '@/social/profile-api';
 import { useCardActions } from '@/discover/useDiscover';
@@ -70,24 +76,28 @@ import { useCommentExtrasApi } from '@/social/comment-extras-api';
 import { StickerLayer } from '@/ui/me/StickerLayer';
 import { theirStickers } from '@/me/my-stickers';
 import { OftenListened } from '@/ui/social/OftenListened';
+import { compactCount } from '@/ui/social/FollowList';
 import type { ProfileStickers } from '@/me/listening-api';
+import { Deck } from '@/ui/discover/Deck';
+import { EmptyState } from '@/ui/kit/EmptyState';
+import { ageLabel, LIST, ThreadNode } from '@/ui/me/lists';
+import { SpineLine, Tick } from '@/ui/comments/Spine';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
+import { ME_TYPE } from '@/ui/me/measures';
+import { CenterBlock, IconBlock } from '@/ui/profile/parts';
+import { StickerDisc } from '@/ui/profile/StickerDisc';
+import { PROFILE_PAGE } from '@/ui/profile/measures';
+import { CollapsedName, LANE, ListeningNote, ListeningTile, ProfileFoot, ProfileGlow, ProfileSection, ProfileStage, ProfileTile, TileLabel } from '@/ui/profile/ProfilePage';
 
-/** The eyebrow on the yellow card: spaced capitals (as `Eyebrow`, which only has muted/accent). */
-const CAPS = { letterSpacing: 1.2, textTransform: 'uppercase' as const };
-/** M21 US8: past this scroll (the photo and the name), the bar shows the name instead. */
-const COLLAPSE_AT = 150;
-const TAP = { minHeight: hit.min };
-const RING = { padding: 3 };
-/** A hosted show in the Podcasts row: a 96 pt cover with its name under it. */
-const POD = 96;
-const POD_ITEM = { width: POD };
+/** A hosted show or a played episode in a tile: a 92 cover with its name under it (the tile scrolls sideways when there are more than fit). */
+const POD_ITEM = { width: PROFILE_PAGE.podCover };
+const SHOWN_LIKES = 5;
 
 export default function ProfileScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { api, listener } = useSocial();
   const { safety, version, feed } = useSafety();
   const stores = useStores();
-  const c = useColours(stores.settings);
   const [profile, setProfile] = useState<Profile | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
@@ -109,7 +119,7 @@ export default function ProfileScreen(): React.ReactElement {
   const us8 = useUs8Api();
   const [confirm, confirmDialog] = useConfirm();
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const past = e.nativeEvent.contentOffset.y > COLLAPSE_AT;
+    const past = e.nativeEvent.contentOffset.y > PROFILE_PAGE.collapsedAt;
     if (past !== collapsed) setCollapsed(past);
   };
   useFocusEffect(useCallback(() => {
@@ -139,54 +149,83 @@ export default function ProfileScreen(): React.ReactElement {
     if (item.kind === 'clipped' && item.refId) router.push({ pathname: '/clip/[id]', params: { id: item.refId } });
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
   };
-  // M17: the bar's small centred title; no big serif title — the name below is the page's head.
-  // M21 US8: once the head scrolls away, the bar shows the small photo and name (collapsing header),
-  // and ⋯ on someone else's profile opens the action sheet.
-  const ownId = listener?.listenerId === String(id);
-  const middle = collapsed && profile
-    ? <Box className="flex-row items-center gap-2 flex-1 justify-center"><Avatar size={28} url={profile.avatarUrl} name={profile.displayName} /><Text className="text-text text-base font-bold" numberOfLines={1}>{profile.displayName}</Text></Box>
-    : <Text className="text-text text-base font-bold text-center flex-1" accessibilityRole="header">Profile</Text>;
-  const header = (
-    <PageHeader
-      middle={middle}
-      solid={collapsed}
-      {...(profile && !ownId && !profile.suspended ? { right: <BarButton label={`More for ${profile.displayName}`} onPress={() => setMore(true)}><Icon name="ellipsis-horizontal" size={22} color={c.text} /></BarButton> } : {})}
-    />
-  );
-  if (error) return <>{header}<Box className="p-4 gap-3"><Text className="text-text">{error}</Text></Box></>;
-  if (!profile) return <>{header}<Box className="p-4 items-center"><Loader /></Box></>;
+  // C2 (T032): the local-database reads are synchronous, so they run here once per profile load
+  // (and when the blocklist version moves), not on every render a scroll or a toggle causes.
+  const ownProfile = profile !== undefined && listener?.listenerId === profile.id;
+  const mine = useMemo(() => {
+    if (!ownProfile || !profile) return undefined;
+    const server = profile.stats?.all;
+    return {
+      totals: server ? myTotals(stores, server) : undefined,
+      history: listeningHistory(stores, 5),
+      earned: myStickers(stores, profile),
+      subs: stores.subscriptions.list().length,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownProfile, profile, stores, version]);
+  const showOf = useMemo(() => {
+    const seen = new Map<string, ReturnType<typeof stores.feeds.getShow>>();
+    return (feedUrl: string) => {
+      if (!seen.has(feedUrl)) seen.set(feedUrl, stores.feeds.getShow(feedUrl));
+      return seen.get(feedUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stores, profile, version]);
+  // Loading and a failed load: the title bar says "Profile" (design-pulse2 `profile--load-failed`: back and "Profile" in the bottom zone).
+  if (error) {
+    return (
+      <PushedPage title="Profile" tone="grey">
+        {(l) => <CenterBlock top={l.top} drawn={280}><IconBlock icon="wifi" failure line={error} /></CenterBlock>}
+      </PushedPage>
+    );
+  }
+  if (!profile) return <PushedPage title="Profile">{() => <Box className="items-center p-block"><Loader /></Box>}</PushedPage>;
   const own = listener?.listenerId === profile.id;
   const blocked = !own && safety.isBlocked(profile.id);
   const reported = !own && safety.isHidden('profile', profile.id);
-  if (profile.suspended) {
-    return <>{header}<Box className="p-4 gap-3"><Text className="text-text text-lg font-display">{profile.displayName}</Text><Text className="text-muted text-body">This account is suspended.</Text></Box></>;
-  }
-  if (blocked || reported) {
+  const name = profile.displayName;
+  const hostOf = profile.hostOf ?? [];
+  const isHost = hostOf.length > 0;
+  const back = <IconButton icon="chevron-back" label="Back" onPress={goBack} fill size={22} />;
+  // A suspended account, a blocked one and a reported one: the name and one line, back in the bottom zone (Unblock when blocked).
+  if (profile.suspended || blocked || reported) {
+    const look = profile.suspended ? 'suspended' : 'blocked';
     return (
-      <>
-      {header}
-      <Box className="p-4 gap-3">
-        <Text className="text-text text-lg font-display">{profile.displayName}</Text>
-        {reported ? <Placeholder kind="reported" /> : <Text className="text-muted">You blocked this listener.</Text>}
-        {blocked ? <BlockButton listenerId={profile.id} displayName={profile.displayName} /> : null}
-      </Box>
-      </>
+      <PushedPage title="Profile" bare tone="none">
+        {(l) => (
+          <Box className="flex-1">
+            <ProfileGlow look={look} />
+            <ProfileStage
+              top={l.top}
+              name={name}
+              avatarUrl={profile.avatarUrl}
+              look={look}
+              quiet={profile.suspended
+                ? <Type step="body" className="text-text2 text-center">This account is suspended.</Type>
+                : reported ? <Placeholder kind="reported" /> : <Type step="body" className="text-text2 text-center">You blocked this listener.</Type>}
+            />
+            <ProfileFoot bottom={l.titleBottom}>
+              {back}
+              {blocked && !profile.suspended ? <BlockButton listenerId={profile.id} displayName={name} look="bar" /> : null}
+            </ProfileFoot>
+          </Box>
+        )}
+      </PushedPage>
     );
   }
   // M12 FR-006 (B6): your own totals are at least what this phone has recorded. M16a bug 3: the
   // Stickers page reads the same two functions (src/me/my-stickers.ts), so the numbers agree.
   const server = profile.stats?.all;
-  const all = own && server ? { ...server, ...myTotals(stores, server) } : server;
-  const history = own ? listeningHistory(stores, 5) : [];
-  const earned = own ? myStickers(stores, profile) : [];
+  const all = own && server && mine?.totals ? { ...server, ...mine.totals } : server;
+  const history = own ? mine?.history ?? [] : [];
+  const earned = own ? mine?.earned ?? [] : [];
   const latest = latestEarned(earned);
-  const subs = own ? stores.subscriptions.list().length : undefined;
-  const hostOf = profile.hostOf ?? [];
+  const subs = own ? mine?.subs : undefined;
   const theirPrivate = !own && (theirSubs === 'private' || profile.privateSubscriptions === true);
   const time = listenedLabel(profile.stats === null ? undefined : all?.listenedMs ?? 0);
   const statCells: StatCell[] = [
-    { key: 'following', value: String(profile.following), label: 'Following', spoken: `${profile.following} following`, href: { pathname: '/profile/[id]/following', params: { id: profile.id, name: profile.displayName, count: String(profile.following) } } },
-    { key: 'followers', value: String(profile.followers), label: 'Followers', spoken: plural(profile.followers, 'follower'), href: { pathname: '/profile/[id]/followers', params: { id: profile.id, name: profile.displayName, count: String(profile.followers) } } },
+    { key: 'following', value: compactCount(profile.following), label: 'Following', spoken: `${profile.following} following`, href: { pathname: '/profile/[id]/following', params: { id: profile.id, name: profile.displayName, count: String(profile.following) } } },
+    { key: 'followers', value: compactCount(profile.followers), label: 'Followers', spoken: plural(profile.followers, 'follower'), href: { pathname: '/profile/[id]/followers', params: { id: profile.id, name: profile.displayName, count: String(profile.followers) } } },
     ...(subs !== undefined ? [{ key: 'subs', value: String(subs), label: 'Subscriptions', spoken: plural(subs, 'subscription'), href: '/subscriptions' }] : []),
     // M21 US8: someone else's subscriptions — a link, or "Private" when they keep them private.
     ...(!own ? [theirPrivate
@@ -201,7 +240,6 @@ export default function ProfileScreen(): React.ReactElement {
   const h = Math.floor((all?.listenedMs ?? 0) / 3_600_000);
   const m = Math.floor(((all?.listenedMs ?? 0) % 3_600_000) / 60_000);
   // M21 US8: the ⋯ sheet's actions (Block asks first, as the Block pill did).
-  const name = profile.displayName;
   const follow = async (next: boolean) => {
     setMore(false);
     if (!listener) { router.push('/auth/sign-in'); return; }
@@ -224,178 +262,222 @@ export default function ProfileScreen(): React.ReactElement {
       },
     });
   };
+  const nowMs = Date.now();
+  const recent = own ? [] : feed(profile.recent);
+  const emptyStats = profile.stats !== null && all !== undefined && all.listenedMs === 0 && all.finished === 0;
   return (
     <>
-    {header}
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-gap pb-24 gap-section" onScroll={onScroll} scrollEventThrottle={32}>
-      {/* M21 US9: sticker layer */}
-      {/* M17 (Profile-B): centred head — monogram, serif name, the two small lines. */}
-      <Box className="items-center gap-1.5">
-        <StickerLayer placements={deco.stickers} />
-        {/* M24 US20 (`Profile-B`): the 96 pt circle inside a 3 pt white ring. */}
-        <Box className="rounded-pill bg-surface" style={RING}><Avatar size={96} url={profile.avatarUrl} name={profile.displayName} /></Box>
-        <Text className="text-text text-display font-display text-center mt-gap" accessibilityRole="header">{profile.displayName}</Text>
-        {/* M20 US6 (FR-022): the PLUS badge, public like the name. */}
-        {profile.plus ? <PlusBadge /> : null}
-        {own ? <Text className="text-muted text-xs">This is you</Text> : null}
-        {/* M21 US8: the host line — the first show they host, and how many more. */}
-        {hostOf.length > 0 ? <Text className="text-accent text-meta font-semibold text-center">{`Host of 《${hostOf[0]!.title}》${hostOf.length > 1 ? ` and ${plural(hostOf.length - 1, 'more show')}` : ''}`}</Text> : null}
-        {/* M10b US7: "IP location" — the country from the last sign-in, public (the privacy policy says so). */}
-        {profile.country ? <Text className="text-muted text-xs">{`IP location: ${countryName(profile.country)}`}</Text> : null}
-        {profile.bio ? <Text className="text-text text-body text-center mt-1">{profile.bio}</Text> : null}
-        {/* M19 T013: Edit profile opens the profile editor (photo, name, bio); Settings stay on Me. */}
-        {own ? <Link href="/profile/edit" className="text-accent text-body font-semibold py-row" accessibilityRole="link">Edit profile</Link> : null}
-      </Box>
+    <PushedPage title="Profile" bare tone="none">
+      {(l) => (
+        <Box className="flex-1">
+          <ProfileGlow host={isHost} />
+          {collapsed ? <CollapsedName top={l.top} name={name} avatarUrl={profile.avatarUrl} /> : null}
+          <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: l.reserve }} onScroll={onScroll} scrollEventThrottle={32}>
+            {/* The Stage: the stickers float over it, the photo sits in a light ring, then the name and their lines. */}
+            <ProfileStage
+              top={l.top}
+              name={name}
+              avatarUrl={profile.avatarUrl}
+              stickers={<StickerLayer placements={deco.stickers} />}
+              /* M20 US6 (FR-022): the PLUS badge, public like the name. */
+              badge={profile.plus ? <PlusBadge /> : null}
+              lines={(
+                <>
+                  {own ? <Type step="mono" className="text-text3" style={ME_TYPE.node12}>This is you</Type> : null}
+                  {/* M21 US8: the host line — the first show they host, and how many more. */}
+                  {isHost ? <Type step="caption" className="text-hotText text-center" style={ME_TYPE.name13}>{`Host of 《${hostOf[0]!.title}》${hostOf.length > 1 ? ` and ${plural(hostOf.length - 1, 'more show')}` : ''}`}</Type> : null}
+                  {/* M10b US7: "IP location" — the country from the last sign-in, public (the privacy policy says so). */}
+                  {profile.country ? <Type step="tag" className="text-text3" style={ME_TYPE.mono11}>{`IP location: ${countryName(profile.country)}`}</Type> : null}
+                  {profile.bio ? <Type step="quote" className="text-text2 text-center">{profile.bio}</Type> : null}
+                </>
+              )}
+            />
+            <Box style={{ height: PROFILE_PAGE.gridGap }} />
 
-      {/* M17: the actions come before the numbers. M21 US8: Follow and Message stay; the rest are in ⋯. */}
-      {!own ? (
-        <Box className="flex-row gap-2.5 items-center">
-          <FollowButton key={String(profile.isFollowing)} className="flex-1" listenerId={profile.id} following={profile.isFollowing} onChange={(f) => setProfile({ ...profile, isFollowing: f, followers: profile.followers + (f ? 1 : -1) })} />
-          {/* Chat (owner, 2026-10-04): the conversation says if you can send (you both follow each other). */}
-          <Pressable onPress={() => router.push({ pathname: '/chat/[id]', params: { id: profile.id, name: profile.displayName } })} accessibilityRole="button" accessibilityLabel={`Message ${profile.displayName}`} className="w-12 min-h-12 rounded-pill border border-border bg-surface items-center justify-center">
-            <Icon name="chatbubble-outline" size={20} color={c.text} />
-          </Pressable>
-          <Pressable onPress={() => setMore(true)} accessibilityRole="button" accessibilityLabel={`More actions for ${profile.displayName}`} className="w-12 min-h-12 rounded-pill border border-border bg-surface items-center justify-center">
-            <Icon name="ellipsis-horizontal" size={20} color={c.text} />
-          </Pressable>
-        </Box>
-      ) : null}
+            {/* Numbers: the four tiles, Listening time, then covers. */}
+            <ProfileSection label="Numbers" edgeTop={20}>
+              <Box style={[LANE, { gap: ME_MOSAIC.gap }]}>
+                {/* M12 FR-064: the numbers in one row. */}
+                <ProfileStatRow cells={statCells} />
 
-      {/* M12 FR-064: the numbers in one row — M17: each one a white card. */}
-      <ProfileStatRow cells={statCells} />
+                {/* M21 US8: the shows they host, as covers (drawn as a 2 x 2 tile in place of Listening time). */}
+                {isHost ? (
+                  <ProfileTile rows={2} testID="podcasts-tile">
+                    <TileLabel text="PODCASTS" />
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: ME_MOSAIC.gap, marginTop: PROFILE_PAGE.tileLabelGap + 2 }}>
+                      {hostOf.map((s) => (
+                        <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${s.title}, hosted by ${profile.displayName}`} style={POD_ITEM}>
+                          <Box style={{ width: PROFILE_PAGE.podCover, height: PROFILE_PAGE.podCover, borderRadius: PROFILE_PAGE.podRadius, overflow: 'hidden' }}>
+                            <Artwork url={showOf(s.feedUrl)?.imageUrl} size={PROFILE_PAGE.podCover} name={s.title} />
+                          </Box>
+                          <Type step="chip" className="text-text" style={{ marginTop: 6 }} numberOfLines={2}>{s.title}</Type>
+                        </Pressable>
+                      ))}
+                    </ScrollView>
+                  </ProfileTile>
+                ) : null}
 
-      {/* M21 US8: the shows they host, as covers. */}
-      {hostOf.length > 0 ? (
-        <Box className="gap-row">
-          <Text className="text-text text-base font-display" accessibilityRole="header">Podcasts</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row">
-            {hostOf.map((s) => (
-              <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${s.title}, hosted by ${profile.displayName}`} style={POD_ITEM}>
-                <Artwork url={stores.feeds.getShow(s.feedUrl)?.imageUrl} size={POD} name={s.title} />
-                <Text className="text-text text-xs font-semibold mt-1" numberOfLines={2}>{s.title}</Text>
-              </Pressable>
-            ))}
+                {/* M6 (FR-019): the stats surface is the numbers, not the activity list below it. */}
+                {profile.stats === null ? (
+                  <ListeningNote line={own ? 'Your listening is private.' : 'Listening is private.'} />
+                ) : emptyStats ? (
+                  <ProfileTile testID="listening-note">
+                    <TileLabel text="LISTENING TIME" />
+                    <Box style={{ marginTop: PROFILE_PAGE.tileLabelGap }}><EmptyState surface="stats" tile /></Box>
+                  </ProfileTile>
+                ) : (
+                  <ListeningTile
+                    total={`${h} h ${m} min`}
+                    finished={all?.finished ?? 0}
+                    {...(profile.stats.last7.listenedMs > 0 ? { week: hms(profile.stats.last7.listenedMs) } : {})}
+                    spoken={`Total listening time ${h} hours ${m} minutes`}
+                  />
+                )}
+
+                {own ? (
+                  /* M12 FR-065: the stickers themselves, not a count — earned ones in colour, the next ones faint. */
+                  <Link href="/stickers" asChild>
+                    <Pressable accessibilityRole="button" accessibilityLabel={`My stickers: ${plural(earned.filter((x) => x.earned).length, 'sticker')} earned${latest ? `, latest ${latest.title}` : ''}. Open all stickers`}>
+                      <ProfileTile testID="my-stickers-tile">
+                        <TileLabel text={`MY STICKERS · ${earned.filter((x) => x.earned).length} EARNED`} />
+                        <Box className="flex-row items-center" style={{ marginTop: PROFILE_PAGE.tileLabelGap, gap: ME_MOSAIC.gap }}>
+                          {[...earned.filter((x) => x.earned).reverse(), ...earned.filter((x) => !x.earned)].slice(0, 5).map((x) => (
+                            <StickerDisc key={x.id} icon={x.icon} size={PROFILE_PAGE.stickerCircle} on={x.earned} ring={0} />
+                          ))}
+                          <Type step="caption" className="text-text2 ml-auto" style={ME_TYPE.node12}>all ›</Type>
+                        </Box>
+                      </ProfileTile>
+                    </Pressable>
+                  </Link>
+                ) : null}
+
+                {/* M22 US17 item 6: the shows they listened to most in the last 90 days. */}
+                <OftenListened listenerId={profile.id} name={name} own={own} />
+
+                {own ? (
+                  <ProfileTile rows={2} testID="recently-played-tile">
+                    <TileLabel text="RECENTLY PLAYED" />
+                    {history.length === 0 ? (
+                      <Type step="note" className="text-text2" style={{ marginTop: PROFILE_PAGE.tileLabelGap }}>Nothing played yet.</Type>
+                    ) : (
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: ME_MOSAIC.gap, marginTop: PROFILE_PAGE.tileLabelGap + 2 }}>
+                        {history.map((r) => (
+                          <Link key={r.episode.id} href={{ pathname: '/episode/[id]', params: { id: r.episode.id } }} asChild>
+                            <Pressable accessibilityRole="button" accessibilityLabel={r.episode.title} style={POD_ITEM}>
+                              <Box style={{ width: PROFILE_PAGE.podCover, height: PROFILE_PAGE.podCover, borderRadius: PROFILE_PAGE.podRadius, overflow: 'hidden' }}>
+                                <Artwork url={r.episode.imageUrl ?? showOf(r.episode.feedUrl)?.imageUrl} size={PROFILE_PAGE.podCover} name={showOf(r.episode.feedUrl)?.title} />
+                              </Box>
+<Type step="chip" className="text-text" style={{ marginTop: 6 }} numberOfLines={2}>{r.episode.title}</Type>
+                              {r.finished ? <Type step="tag" className="text-text3" style={ME_TYPE.mono11}>finished</Type> : null}
+                            </Pressable>
+                          </Link>
+                        ))}
+                      </ScrollView>
+                    )}
+                  </ProfileTile>
+                ) : null}
+              </Box>
+            </ProfileSection>
+
+            {/* M21 US9: their sticker library (earned ones only), unless they hide it (US10). */}
+            {library.length > 0 ? (
+              <ProfileSection label="Stickers" testID="stickers-section">
+                <Box style={LANE}>
+                  <ProfileTile testID="library-tile">
+                    <Box className="flex-row flex-wrap" style={{ gap: ME_MOSAIC.gap }} accessible accessibilityLabel={`${profile.displayName}'s stickers: ${library.map((x) => x.title).join(', ')}`}>
+                      {library.map((x) => (
+                        <Box key={x.id} className="items-center" style={{ width: PROFILE_PAGE.libraryCell, gap: 4 }}>
+                          <StickerDisc icon={x.icon} size={40} />
+                          <Type step="caption" className="text-text text-center" style={ME_TYPE.node12} numberOfLines={2}>{x.title}</Type>
+                        </Box>
+                      ))}
+                    </Box>
+                  </ProfileTile>
+                </Box>
+              </ProfileSection>
+            ) : null}
+
+            {/* Recent: a Thread of what they did. Your own page shows what you played, in the tile above. */}
+            {!own ? (
+              <ProfileSection label="Recent" testID="recent-section">
+                {recent.length === 0 ? (
+                  <Type step="caption" className="text-text2" style={LANE}>Nothing public yet.</Type>
+                ) : (
+                  <Box>
+                    <SpineLine />
+                    <Box style={{ paddingTop: LIST.top, paddingLeft: LIST.left, paddingRight: LIST.right, gap: LIST.nodeGap }}>
+                      {recent.map((item) => (
+                        <ThreadNode key={item.id} lead={<Tick text={ageLabel(Date.parse(item.createdAt), nowMs)} />}>
+                          <RecentCard item={item} onOpen={open} />
+                        </ThreadNode>
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </ProfileSection>
+            ) : null}
+
+            {likes.length > 0 ? (
+              <ProfileSection label={profile.likesCount !== undefined ? `Likes · ${profile.likesCount}` : 'Likes'} spoken="Likes" testID="likes-section">
+                <Box>
+                  <SpineLine />
+                  <Box style={{ paddingTop: LIST.top, paddingLeft: LIST.left, paddingRight: LIST.right, gap: LIST.nodeGap }}>
+                    {likes.slice(0, SHOWN_LIKES).map((l2) => (
+                      <ThreadNode key={`${l2.episode.id}|${l2.createdAt}`} lead={<Tick text={ageLabel(Date.parse(l2.createdAt), nowMs)} />}>
+                        <LikeCard item={{ ...l2, listener: undefined }} onOpen={(c2) => void cards.open(c2)} onPlay={(c2) => void cards.play(c2)} />
+                      </ThreadNode>
+                    ))}
+                  </Box>
+                </Box>
+                <Pressable onPress={() => router.push({ pathname: '/profile/[id]/likes', params: { id: profile.id, name: profile.displayName } })} accessibilityRole="link" accessibilityLabel={`View all of ${profile.displayName}'s likes`} hitSlop={{ top: 15, bottom: 15, left: 8, right: 8 }} className="self-start" style={{ marginTop: 10, marginLeft: ME_MOSAIC.lane }}>
+                  <Type step="caption" className="text-hotText font-semibold">View all ›</Type>
+                </Pressable>
+              </ProfileSection>
+            ) : null}
+
+            {playlists.length > 0 ? (
+              <ProfileSection label="Playlists" testID="playlists-section">
+                <Deck width={PROFILE_PAGE.playlistWidth} height={PROFILE_PAGE.playlistHeight}>
+                  {playlists.map((p) => <PlaylistCard key={p.id} playlist={p} />)}
+                </Deck>
+              </ProfileSection>
+            ) : null}
+            <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
           </ScrollView>
-        </Box>
-      ) : null}
 
-      {/* M22 US17 item 6: the shows they listened to most in the last 90 days. */}
-      <OftenListened listenerId={profile.id} name={profile.displayName} own={own} />
-
-      {/* M6 (FR-019): the stats surface is the numbers, not the activity list below it.
-          M17: a yellow card, the eyebrow and the total on the left, the two small facts right. */}
-      {profile.stats === null || (all && all.listenedMs === 0 && all.finished === 0) ? (
-        <Box className="gap-row">
-          <Text className="text-text text-base font-display" accessibilityRole="header">Listening time</Text>
-          {profile.stats === null
-            ? <Text className="text-muted text-sm">{own ? 'Your listening is private.' : 'Listening is private.'}</Text>
-            : <EmptyState surface="stats" />}
-        </Box>
-      ) : (
-        <Box className="bg-primary rounded-row px-section py-section flex-row items-end justify-between gap-row" accessible accessibilityLabel={`Total listening time ${h} hours ${m} minutes`}>
-          <Box className="flex-1">
-            <Text className="text-onPrimary text-xs font-bold" style={CAPS} accessibilityRole="header">Listening time</Text>
-            <Text className="text-onPrimary text-hero font-display mt-1" style={tabular}>{`${h} h ${m} min`}</Text>
-          </Box>
-          <Box className="items-end">
-            <Text className="text-onPrimary text-xs">{`${all?.finished ?? 0} finished`}</Text>
-            {profile.stats.last7.listenedMs > 0 ? <Text className="text-onPrimary text-xs text-right">This week: {hms(profile.stats.last7.listenedMs)}</Text> : null}
-          </Box>
+          {/* The bottom zone: back, then Follow · Message · More (someone else) or Edit profile (you). */}
+          <ProfileFoot bottom={l.titleBottom}>
+            {back}
+            {own ? (
+              <Link href="/profile/edit" asChild>
+                <PulseButton label="Edit profile" kind="light" icon="create-outline" className="flex-1" onPress={() => undefined} />
+              </Link>
+            ) : (
+              <>
+                <FollowButton key={String(profile.isFollowing)} className="flex-1" listenerId={profile.id} following={profile.isFollowing} onChange={(f) => setProfile({ ...profile, isFollowing: f, followers: profile.followers + (f ? 1 : -1) })} />
+                {/* Chat (owner, 2026-10-04): the conversation says if you can send (you both follow each other). */}
+                <IconButton icon="chatbubble-outline" label={`Message ${profile.displayName}`} onPress={() => router.push({ pathname: '/chat/[id]', params: { id: profile.id, name: profile.displayName } })} fill size={22} diameter={PROFILE_PAGE.barCircle} />
+                <IconButton icon="ellipsis-horizontal" label={`More actions for ${profile.displayName}`} onPress={() => setMore(true)} fill size={22} diameter={PROFILE_PAGE.barCircle} />
+              </>
+            )}
+          </ProfileFoot>
         </Box>
       )}
-
-      {own ? (
-        <Box className="gap-row">
-          <Text className="text-text text-base font-display" accessibilityRole="header">My stickers</Text>
-          {/* M12 FR-065: the stickers themselves, not a count — earned ones in colour, the next
-              ones faint, so there is something to see from the first day. */}
-          <Link href="/stickers" asChild>
-            <Pressable accessibilityRole="button" accessibilityLabel={`My stickers: ${plural(earned.filter((x) => x.earned).length, 'sticker')} earned${latest ? `, latest ${latest.title}` : ''}. Open all stickers`} className="bg-surface border border-border rounded-row p-section">
-              <Box className="flex-row gap-row">
-                {[...earned.filter((x) => x.earned).reverse(), ...earned.filter((x) => !x.earned)].slice(0, 5).map((x) => (
-                  <Box key={x.id} className="flex-1 items-center gap-1">
-                    <Box className={`w-12 h-12 rounded-pill items-center justify-center ${x.earned ? 'bg-accentTint' : 'bg-background'}`}>
-                      <Icon name={x.icon} size={24} color={x.earned ? c.accent : c.muted} />
-                    </Box>
-                    <Text className={x.earned ? 'text-text text-xs text-center' : 'text-muted text-xs text-center'} numberOfLines={2}>{x.title}</Text>
-                  </Box>
-                ))}
-              </Box>
-              <Text className="text-muted text-xs mt-row">{latest ? `Latest: ${latest.title} · all stickers ›` : 'Listen for an hour to earn the first · all stickers ›'}</Text>
-            </Pressable>
-          </Link>
-        </Box>
-      ) : null}
-
-      {/* M21 US9: their sticker library (earned ones only), unless they hide it (US10). */}
-      {library.length > 0 ? (
-        <Box className="gap-row">
-          <Text className="text-text text-base font-display" accessibilityRole="header">Stickers</Text>
-          <Box className="flex-row flex-wrap gap-row bg-surface border border-border rounded-row p-section" accessible accessibilityLabel={`${profile.displayName}'s stickers: ${library.map((x) => x.title).join(', ')}`}>
-            {library.map((x) => (
-              <Box key={x.id} className="items-center gap-1" style={{ width: 72 }}>
-                <Box className="w-12 h-12 rounded-pill items-center justify-center bg-accentTint">
-                  <Icon name={x.icon} size={24} color={c.accent} />
-                </Box>
-                <Text className="text-text text-xs text-center" numberOfLines={2}>{x.title}</Text>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      ) : null}
-
-      <Box className="gap-row">
-      <Text className="text-text text-base font-display" accessibilityRole="header">{own ? 'Recently played' : 'Recent'}</Text>
-      {own
-        ? (history.length === 0 ? <Text className="text-muted text-sm">Nothing played yet.</Text> : history.map((r) => (
-            <Link key={r.episode.id} href={{ pathname: '/episode/[id]', params: { id: r.episode.id } }} asChild>
-              <Pressable accessibilityRole="button" accessibilityLabel={r.episode.title} className="flex-row gap-row p-row items-center bg-surface border border-border rounded-row">
-                <Artwork url={r.episode.imageUrl ?? stores.feeds.getShow(r.episode.feedUrl)?.imageUrl} size={52} name={stores.feeds.getShow(r.episode.feedUrl)?.title} />
-                <Box className="flex-1 gap-0.5">
-                  <Text className="text-text text-sm font-display" numberOfLines={2}>{r.episode.title}</Text>
-                  <Text className="text-muted text-xs" numberOfLines={1}>{stores.feeds.getShow(r.episode.feedUrl)?.title ?? ''}{r.finished ? ' · finished' : ''}</Text>
-                </Box>
-              </Pressable>
-            </Link>
-          )))
-        : (profile.recent.length === 0 ? <Text className="text-muted text-sm">Nothing public yet.</Text> : feed(profile.recent).map((item) => <RecentCard key={item.id} item={item} onOpen={open} />))}
-      </Box>
-      {likes.length > 0 ? (
-        <Box className="gap-row">
-          <Box className="flex-row items-center justify-between">
-            <Text className="text-text text-base font-display" accessibilityRole="header">{profile.likesCount !== undefined ? `Likes · ${profile.likesCount}` : 'Likes'}</Text>
-            <Pressable onPress={() => router.push({ pathname: '/profile/[id]/likes', params: { id: profile.id, name: profile.displayName } })} accessibilityRole="link" accessibilityLabel={`View all of ${profile.displayName}'s likes`} className="justify-center px-1.5" style={TAP}>
-              <Text className="text-accent text-meta font-semibold">View all ›</Text>
-            </Pressable>
-          </Box>
-          {likes.map((l) => <LikeCard key={`${l.episode.id}|${l.createdAt}`} item={{ ...l, listener: undefined }} onOpen={(c) => void cards.open(c)} onPlay={(c) => void cards.play(c)} />)}
-        </Box>
-      ) : null}
-      {playlists.length > 0 ? (
-        <Box className="gap-row">
-          <Text className="text-text text-base font-display" accessibilityRole="header">Playlists</Text>
-          {playlists.map((p) => <PlaylistCard key={p.id} playlist={p} mutedColour={c.muted} />)}
-        </Box>
-      ) : null}
-      <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
-    </ScrollView>
-    {/* M21 US8: the ⋯ sheet — Follow, Message, Block, Report, Mute. */}
+    </PushedPage>
+    {/* M21 US8: the ⋯ sheet — Follow, Message, Mute, then Block and Report under a rule. */}
     {!own ? (
-      <Actionsheet isOpen={more} onClose={() => setMore(false)}>
-        <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-        <ActionsheetContent className="px-screen-x pt-row items-stretch">
-          <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-          <Text className="text-sm font-bold text-text py-row" numberOfLines={1}>{name}</Text>
-          <SheetRow icon={profile.isFollowing ? 'person-remove-outline' : 'person-add-outline'} label={profile.isFollowing ? 'Unfollow' : 'Follow'} iconColour={c.accent} onPress={() => void follow(!profile.isFollowing)} />
-          <SheetRow icon="chatbubble-outline" label="Message" accessibilityLabel={`Message ${name}`} iconColour={c.accent} onPress={() => { setMore(false); router.push({ pathname: '/chat/[id]', params: { id: profile.id, name } }); }} />
-          <SheetRow icon={muted ? 'volume-high-outline' : 'volume-mute-outline'} label={muted ? 'Unmute' : 'Mute'} accessibilityLabel={`${muted ? 'Unmute' : 'Mute'} ${name}`} detail="Only you" iconColour={c.muted} onPress={() => { setMore(false); void toggleMute(name); }} />
-          <SheetRow icon="ban-outline" label="Block" accessibilityLabel={`Block ${name}`} iconColour={c.muted} onPress={block} />
-          <SheetRow icon="flag-outline" label="Report" accessibilityLabel={`Report ${name}`} iconColour={c.muted} onPress={() => { setMore(false); setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' }); }} />
-          <Pressable onPress={() => setMore(false)} accessibilityRole="button" accessibilityLabel="Cancel" className="items-center justify-center mt-row" style={TAP}>
-            <Text className="text-accent text-sm font-bold">Cancel</Text>
-          </Pressable>
-        </ActionsheetContent>
-      </Actionsheet>
+      <ActionSheet open={more} onClose={() => setMore(false)} label={`More for ${name}`}>
+        <Type step="lede" className="text-text" accessibilityRole="header" numberOfLines={1}>{name}</Type>
+        <Box>
+          <MenuRow icon={profile.isFollowing ? 'person-remove-outline' : 'person-add-outline'} label={profile.isFollowing ? 'Unfollow' : 'Follow'} onPress={() => void follow(!profile.isFollowing)} />
+          <MenuRow icon="chatbubble-outline" label="Message" accessibilityLabel={`Message ${name}`} onPress={() => { setMore(false); router.push({ pathname: '/chat/[id]', params: { id: profile.id, name } }); }} />
+          <MenuRow icon={muted ? 'volume-high-outline' : 'volume-mute-outline'} label={muted ? 'Unmute' : 'Mute'} accessibilityLabel={`${muted ? 'Unmute' : 'Mute'} ${name}`} detail="Only you" onPress={() => { setMore(false); void toggleMute(name); }} />
+          <MenuRule />
+          <MenuRow icon="ban-outline" label="Block" accessibilityLabel={`Block ${name}`} danger onPress={block} />
+          <MenuRow icon="flag-outline" label="Report" accessibilityLabel={`Report ${name}`} danger onPress={() => { setMore(false); setReporting({ kind: 'profile', id: profile.id, authorId: profile.id, label: 'profile' }); }} />
+        </Box>
+        <PulseButton label="Cancel" kind="quiet" full onPress={() => setMore(false)} />
+      </ActionSheet>
     ) : null}
     {confirmDialog}
     </>

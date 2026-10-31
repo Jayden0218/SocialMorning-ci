@@ -23,6 +23,11 @@ export function minutesLabel(minutes: number): string {
   return r === 0 ? `${h} h` : `${h} h ${r} min`;
 }
 
+/** The page's big total: minutes on 30 days ("612 min", me-listening--30-days), hours and minutes on All time ("94 h 12 min"). */
+export function totalLabel(minutes: number, range: '30d' | 'all'): string {
+  return range === '30d' ? `${Math.round(minutes)} min` : minutesLabel(minutes);
+}
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** "5 Oct" for a day (`YYYY-MM-DD`), "Oct 2026" for a month (`YYYY-MM`); anything else unchanged. */

@@ -33,7 +33,7 @@ export const toPublic = (r: LibraryRow): LibraryOut => ({
 
 /** A moment's note is capped; nothing else in a payload is trusted to be small. */
 function clean(i: LibraryIn): Record<string, unknown> {
-  const p = { ...(i.payload ?? {}) };
+  const p = { ...i.payload };
   if (i.kind === 'moment' && typeof p['note'] === 'string') p['note'] = (p['note'] as string).slice(0, NOTE_MAX);
   return p;
 }

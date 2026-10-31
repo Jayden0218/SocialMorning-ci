@@ -17,6 +17,7 @@ import { apiBaseUrl } from '@/social/base-url';
 import { secureToken } from '@/social/token';
 import { useStores } from '@/ui/shell/providers';
 import { createConfigApi, type ConfigApi, type ContentKind, type ServerPage } from './api';
+import { nowMs as clockMs } from '@/ui/kit/clock';
 
 export type ArticleView = { slug: string; title: string; summary: string; tab?: string; sections: { heading: string; blocks: MdBlock[] }[] };
 export type FaqView = { slug: string; q: string; tag: string; blocks: MdBlock[] };
@@ -80,7 +81,7 @@ export function createContentLoader(deps: { api: Pick<ConfigApi, 'content'>; cac
 function useContent(kind: ContentKind): ServerPage[] | undefined {
   const stores = useStores();
   const loader = useMemo(() => createContentLoader({
-    api: createConfigApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), cache: stores.feedCache, now: () => Date.now(),
+    api: createConfigApi({ baseUrl: apiBaseUrl(), fetch, getToken: secureToken.get }), cache: stores.feedCache, now: clockMs,
   }), [stores.feedCache]);
   const [items, setItems] = useState<ServerPage[] | undefined>(() => loader.cached(kind));
   useEffect(() => {

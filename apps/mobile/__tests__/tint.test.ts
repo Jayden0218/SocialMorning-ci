@@ -37,14 +37,16 @@ it('G-M21-5: and against each accent theme alone (what a screen passes)', () => 
   }
 });
 
-it('the strongest mix that reads is taken: navy stops at 12 % with the brand accent (accent is 3.92 at 20 %)', () => {
-  expect(tintFor('#1e3a8a', [colour.accent])).toBe(mixOverPage('#1e3a8a', 0.12));
-  expect(wordsReadOn(mixOverPage('#1e3a8a', 0.2)!, [colour.accent])).toBe(false);
-  // A light cover is tinted, not left plain.
+it('the strongest mix that reads is taken: a dark navy takes the full 30 % on the near-black page; a bright cover steps down (secondary text is under 4.5 at 30 %)', () => {
+  expect(tintFor('#1e3a8a', [colour.accent])).toBe(mixOverPage('#1e3a8a', 0.3));
+  // M31 (dark only): white laid on the black page at 30 % greys it until the secondary text fails.
+  expect(wordsReadOn(mixOverPage('#ffffff', 0.3)!, [colour.accent])).toBe(false);
+  expect(tintFor('#ffffff', [colour.accent])).toBe(mixOverPage('#ffffff', 0.2));
+  // A bright cover is tinted, not left plain.
   expect(tintFor('#f4d03f', [colour.accent])).not.toBe(colour.background);
 });
 
-it('no tint, or one that is not a six-digit colour, gives the paper page', () => {
+it('no tint, or one that is not a six-digit colour, gives the plain page', () => {
   expect(tintFor(null)).toBe(colour.background);
   expect(tintFor(undefined)).toBe(colour.background);
   expect(tintFor('')).toBe(colour.background);

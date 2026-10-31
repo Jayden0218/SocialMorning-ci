@@ -13,7 +13,7 @@ import { Box } from '@/ui/lib/box';
 
 const TONE = { surface: 'bg-surface', page: 'bg-background' } as const;
 const LINE = { hairline: 'border-t-hairline border-separator', border: 'border-t border-border' } as const;
-const PAD = { none: 'py-0', row: 'py-row', section: 'py-section' } as const;
+const PAD = { none: '', row: 'py-row', section: 'py-section' } as const;
 
 /**
  * `tone`: white (`surface`) or the page colour. `line`: the hairline (most bars) or the card

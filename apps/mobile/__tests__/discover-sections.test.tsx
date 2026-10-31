@@ -5,12 +5,15 @@
  * `PlayButton`'s onPress in `src/ui/discover/parts.tsx` call nothing.
  */
 import { createElement } from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { ChartSection, PicksSection, SaidSection } from '@/ui/discover/sections';
 import type { EpisodeCard } from '@/social/api';
 // M10b US4: the component reads its palette through useStores(); pin it to light so the
 // colour assertions compare against `colour`, whatever the runner's system scheme is.
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => 'light' } }) }));
+// The decks read no heat curve here (a card that wants one asks the server).
+jest.mock('@/ui/discover/useEpisodeHeat', () => ({ useEpisodeHeat: () => ({ buckets: undefined, durationMs: undefined, comments: undefined, mine: undefined }) }));
 
 const card = (id: string): EpisodeCard => ({ id, feedUrl: `https://f/${id}.xml`, guid: id, title: `Title ${id}`, showTitle: `Show ${id}`, enclosureUrl: `https://a/${id}.mp3` });
 const byLabel = (r: ReactTestRenderer, label: string): ReactTestInstance =>
@@ -37,21 +40,35 @@ it('a pick: + adds it to the queue (owner 2026-10-05), the design\'s Play pill p
   expect(onOpen).toHaveBeenCalledWith(card('p1'));
   expect(text(r)).toContain('Because.');
   expect(text(r)).toContain('4 listened');
-  expect(text(r)).toContain('2 comments');
+  expect(text(r)).not.toContain('2 comments'); // F2a (home--fold-a): the pick card says "n listened" only
 });
 
-it('the chart: rows are numbered, and a tab switches the list', () => {
+it('the charts: a card each (T030), rows numbered from 1, pages of three with a "1 / 2" that turns the page', () => {
   let r!: ReactTestRenderer;
+  const many = ['a', 'b', 'c', 'd', 'e'].map(card);
   const tabs = [
-    { key: 'top' as const, label: 'Top', rows: [card('a'), card('b')] },
+    { key: 'top' as const, label: 'Top', rows: many },
     { key: 'talked' as const, label: 'Talked about', rows: [card('z')] },
   ];
-  act(() => { r = create(createElement(ChartSection, { tabs, onOpen: jest.fn(), onPlay: jest.fn() })); });
+  const onOpen = jest.fn();
+  act(() => { r = create(createElement(ChartSection, { tabs, onOpen, onPlay: jest.fn() })); });
+  // Both charts are on the page at once — the deck holds a card per chart, no tab hides the other.
   expect(text(r)).toContain('Title a');
-  expect(text(r)).not.toContain('Title z');
-  act(() => { byLabel(r, 'Talked about chart').props['onPress'](); });
   expect(text(r)).toContain('Title z');
-  expect(text(r)).not.toContain('Title a');
+  expect(r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'deck-card')).toHaveLength(2);
+  // The drawn card size: 270 x 220, a card per chart.
+  const deck = r.root.find((n) => typeof n.type === 'string' && n.props['testID'] === 'deck');
+  expect(deck.props['snapToInterval']).toBe(280);
+  expect(StyleSheet.flatten(deck.props['style']).height).toBe(220);
+  // Top has two pages (ranks 1-3, 4-5): the control says "1 / 2" and names the next page.
+  expect(text(r)).toContain('1 / 2 →');
+  act(() => { byLabel(r, 'Next page').props['onPress'](); });
+  expect(text(r)).toContain('2 / 2 ←');
+  act(() => { byLabel(r, 'Previous page').props['onPress'](); });
+  expect(text(r)).toContain('1 / 2 →');
+  // A row opens its episode.
+  act(() => { byLabel(r, 'Title a, Show a').props['onPress'](); });
+  expect(onOpen).toHaveBeenCalledWith(many[0]);
 });
 
 it('no rows, no section', () => {
@@ -64,21 +81,23 @@ it('no rows, no section', () => {
 
 it('a comment card names nobody (G6)', () => {
   let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(SaidSection, { items: [{ commentId: 'm', authorId: 'l1', body: 'Loved the ending', createdAt: '2026-09-27T00:00:00Z', episode: card('e') }], now: Date.parse('2026-09-27T05:00:00Z'), onOpen: jest.fn(), onPlay: jest.fn() })); });
+  act(() => { r = create(createElement(SaidSection, { items: [{ commentId: 'm', authorId: 'listener-7f3a', body: 'Loved the ending', createdAt: '2026-09-27T00:00:00Z', episode: card('e') }], now: Date.parse('2026-09-27T05:00:00Z'), onOpen: jest.fn(), onPlay: jest.fn() })); });
   expect(text(r)).toContain('A listener · 5 h ago');
   expect(text(r)).toContain('Loved the ending');
-  expect(text(r)).not.toContain('l1');
+  // A sentinel no markup can contain by chance (the drawn icons' path data holds "l1…"): the author's id must not be drawn anywhere.
+  expect(text(r)).not.toContain('listener-7f3a');
 });
 
-// M12 guard G-D2 (FR-070, FR-071): Discover links to past picks and the full chart. The break:
-// drop the "Past picks →" link from PicksSection's card (M24: inside the card), or the "Full chart" link from ChartSection.
-it('Editor\'s picks links to past picks; the chart links to the full chart', () => {
-  const onPast = jest.fn();
+// M12 guard G-D2 (FR-070, FR-071): Discover links to today's picks (with every note) and the full chart. The break:
+// drop the "Today's picks, with every note" link from PicksSection's deck, or the "Full chart" link from ChartSection.
+// ("Past picks →" is in the pick tile at the top of the page since T025/T030: m31-discover-mosaic.test.tsx.)
+it('Editor\'s picks links to the day\'s page; the chart links to the full chart', () => {
+  const onDaily = jest.fn();
   const onFull = jest.fn();
   let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode: card('p1') }], onOpen: jest.fn(), onPlay: jest.fn(), onQueue: jest.fn(), onPast })); });
-  act(() => { byLabel(r, 'Past picks').props['onPress'](); });
-  expect(onPast).toHaveBeenCalledTimes(1);
+  act(() => { r = create(createElement(PicksSection, { items: [{ kind: 'pick', key: 'p1', episode: card('p1') }], onOpen: jest.fn(), onPlay: jest.fn(), onQueue: jest.fn(), onDaily })); });
+  act(() => { byLabel(r, "Today's picks, with every note").props['onPress'](); });
+  expect(onDaily).toHaveBeenCalledTimes(1);
   act(() => { r = create(createElement(ChartSection, { tabs: [{ key: 'top' as const, label: 'Top', rows: [card('a')] }], onOpen: jest.fn(), onPlay: jest.fn(), onFull })); });
   act(() => { byLabel(r, 'Full chart').props['onPress'](); });
   expect(onFull).toHaveBeenCalledTimes(1);

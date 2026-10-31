@@ -55,9 +55,10 @@ const episode: PlayableEpisode = {
 
 function rowsFor(clip: { startMs: number; endMs: number }, ep: PlayableEpisode = episode): ShareOption[] {
   let rows: ShareOption[] = [];
+  const setRows = (v: ShareOption[]): void => { rows = v; };
   function Probe(): null {
     const make = useClipVideoRows();
-    rows = make(clip, ep);
+    setRows(make(clip, ep));
     return null;
   }
   act(() => { create(createElement(Probe)); });

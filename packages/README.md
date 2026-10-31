@@ -57,6 +57,7 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `index.ts` | Entry point exporting the shared rules the phone and server both use. |
 | `intervals.ts` | Turns player ticks into listened time ranges and measures total time without double counting. |
 | `limits.ts` | The limits the server checks and the Studio shows, kept in one place so they never drift. |
+| `categories.ts` | Apple's podcast categories (id and name) shared by the phone, the server and the Studio. |
 | `lockout.ts` | After repeated wrong passwords, locks sign-in for a growing time, at most 15 minutes. |
 | `push-rules.ts` | Whether a reply, like, follow or status notice also becomes a phone push. |
 | `media.ts` | Decides if an episode is audio or video from its declared type or extension. |
@@ -77,5 +78,6 @@ Every code file, one plain line each. Each file also starts with the same senten
 | `stats.ts` | Listening totals for the last 7 days and all time, top shows, and minutes per day or month. |
 | `stickers.ts` | The sticker catalogue, the rules for placing stickers on a profile, and the day each listening sticker was earned. |
 | `swing.ts` | Measures how similar two shows are from the people who like both. |
+| `time-format.ts` | Formats a millisecond position as mm:ss, or h:mm:ss past an hour. |
 | `translate-budget.ts` | Keeps Groq calls under 90 % of the free limits and cuts a transcript into chunks for translation. |
 | `types.ts` | Shared data shapes for positions, playback snapshots, moments and comment order. |

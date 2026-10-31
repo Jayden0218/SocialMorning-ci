@@ -56,5 +56,5 @@ export function decodeCursor(cursor: string | null | undefined, secret: string):
  * attributes (e.g. `{ G1PK: 'AUTH#…', G1SK: 'comment#…' }`) for a GSI query.
  */
 export function startKeyFromSk(pk: string, sk: string, index?: Record<string, string>): StartKey {
-  return { PK: pk, SK: sk, ...(index ?? {}) };
+  return { PK: pk, SK: sk, ...index };
 }

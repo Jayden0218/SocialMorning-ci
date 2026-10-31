@@ -31,19 +31,29 @@ it('G-E4: a load that hangs gives up after the wait, and the system fonts stay',
   jest.useRealTimers();
 });
 
-it('six faces, each registered under its PostScript name', () => {
-  expect(Object.keys(FACES).sort()).toEqual(['Lora-Bold', 'Lora-SemiBold', 'Manrope-Bold', 'Manrope-Medium', 'Manrope-Regular', 'Manrope-SemiBold']);
+it('ten Pulse faces, each registered under its PostScript name, and no Editorial alias left', () => {
+  expect(Object.keys(FACES).sort()).toEqual([
+    'Geist-Bold', 'Geist-Medium', 'Geist-Regular', 'Geist-SemiBold',
+    'GeistMono-Medium', 'GeistMono-Regular', 'GeistMono-SemiBold',
+    'Unbounded-Bold', 'Unbounded-ExtraBold', 'Unbounded-SemiBold',
+  ]);
 });
 
-it('a weight class picks its face; display classes pick the serif', () => {
-  expect(familyFor('text-text text-sm')).toBe('Manrope-Regular');
-  expect(familyFor('text-text font-medium')).toBe('Manrope-Medium');
-  expect(familyFor('text-text font-semibold')).toBe('Manrope-SemiBold');
-  expect(familyFor('text-text font-bold')).toBe('Manrope-Bold');
-  expect(familyFor('text-text font-extrabold')).toBe('Manrope-Bold');
-  expect(familyFor('text-text font-display text-display')).toBe('Lora-Bold');
-  expect(familyFor('text-text font-display-semibold')).toBe('Lora-SemiBold');
-  expect(familyFor(undefined)).toBe('Manrope-Regular');
+it('a weight class picks its face; display classes pick Unbounded, mono classes Geist Mono', () => {
+  expect(familyFor('text-text text-sm')).toBe('Geist-Regular');
+  expect(familyFor('text-text font-medium')).toBe('Geist-Medium');
+  expect(familyFor('text-text font-semibold')).toBe('Geist-SemiBold');
+  expect(familyFor('text-text font-bold')).toBe('Geist-Bold');
+  expect(familyFor('text-text font-extrabold')).toBe('Geist-Bold');
+  expect(familyFor('text-text font-display text-display')).toBe('Unbounded-Bold');
+  expect(familyFor('text-text font-display-semibold')).toBe('Unbounded-SemiBold');
+  expect(familyFor('text-text font-display font-semibold')).toBe('Unbounded-SemiBold');
+  expect(familyFor('text-text font-display font-extrabold')).toBe('Unbounded-ExtraBold');
+  expect(familyFor('text-text font-mono')).toBe('GeistMono-Medium');
+  expect(familyFor('text-text font-mono font-normal')).toBe('GeistMono-Regular');
+  expect(familyFor('text-text font-mono font-semibold')).toBe('GeistMono-SemiBold');
+  expect(familyFor('text-text font-mono font-bold')).toBe('GeistMono-SemiBold');
+  expect(familyFor(undefined)).toBe('Geist-Regular');
 });
 
 it('fonts that arrive after the wait still switch on (owner, 2026-10-04: the font "changed back")', async () => {

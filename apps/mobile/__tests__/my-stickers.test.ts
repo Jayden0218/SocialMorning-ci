@@ -38,12 +38,8 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => mockStores }));
 jest.mock('@/social/context', () => ({ useSocial: () => mockSocial }));
 jest.mock('@/me/listening-api', () => ({ useListeningApi: () => mockListening }));
-// The bar and the closed sticker card are not what this guard is about.
-jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null }));
-jest.mock('@/ui/lib/actionsheet', () => ({
-  Actionsheet: () => null, ActionsheetBackdrop: () => null, ActionsheetContent: () => null,
-  ActionsheetDragIndicator: () => null, ActionsheetDragIndicatorWrapper: () => null,
-}));
+// The page's frame (where the toast and the title bar sit) is not what this guard is about.
+jest.mock('@/ui/shell/toastPlacement', () => ({ useToastPlacement: () => ({ tabs: false, now: false, player: false }) }));
 
 import StickersScreen from '../app/stickers';
 

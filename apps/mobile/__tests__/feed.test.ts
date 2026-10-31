@@ -55,8 +55,7 @@ it('unread counts items newer than the last open; markOpened clears it; a signed
   t.feed.markOpened();
   expect(t.settings.get(FEED_LAST_OPENED_KEY)).toBe('1001');
   expect(await t.feed.more('cursor')).toEqual({ items: [item(0, '2026-09-21T09:00:00Z')] });
-  const out = build();
-  (out as unknown as { feed: { refresh: () => Promise<unknown> } });
+  build();
   const api = { feed: async () => { throw new ApiError('unauthenticated', 'no', 401); } } as unknown as ApiClient;
   const f = createFeed({ api, cache: createMemoryFeedCacheStore(), settings: createMemorySettingsStore(), now: () => 1 });
   expect(await f.refresh()).toEqual({ items: [], stale: false });

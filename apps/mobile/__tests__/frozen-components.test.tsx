@@ -70,7 +70,7 @@ it('G6: a Rail marker still says the moment the way people read it, and who wrot
 });
 
 it('G6: the HeatCurve still says where the reactions are, and the bars clear the 3:1 floor', () => {
-  const buckets = new Array<number>(100).fill(0);
+  const buckets = Array.from({ length: 100 }, () => 0);
   buckets[87] = 1;
   const label = heatLabel({ available: true, buckets }, 2_057_000);
   expect(label).toMatch(/Most reactions at/);

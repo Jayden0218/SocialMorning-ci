@@ -44,7 +44,7 @@ export function applyMerged(s: SettingsStore, items: readonly LogItem[]): void {
   const live = items.filter((i) => i.deletedAt === undefined).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const ms = (iso: string) => Date.parse(iso);
   s.set('me.favourites', JSON.stringify(live.filter((i) => i.kind === 'fav_episode').map((i) => ({ episodeId: i.key, at: ms(i.updatedAt) }))));
-  s.set('me.favComments', JSON.stringify(live.filter((i) => i.kind === 'fav_comment').map((i) => ({ commentId: i.key, ...(i.payload ?? {}), at: ms(i.updatedAt) }))));
+  s.set('me.favComments', JSON.stringify(live.filter((i) => i.kind === 'fav_comment').map((i) => ({ commentId: i.key, ...i.payload, at: ms(i.updatedAt) }))));
   s.set('me.moments', JSON.stringify(live.filter((i) => i.kind === 'moment').map((i) => ({ id: i.key, episodeId: String(i.payload?.['episodeId'] ?? ''), atMs: Number(i.payload?.['atMs'] ?? 0), note: String(i.payload?.['note'] ?? ''), savedAt: Number(i.payload?.['savedAt'] ?? ms(i.updatedAt)) }))));
   s.set('search.history', JSON.stringify(live.filter((i) => i.kind === 'search').map((i) => String(i.payload?.['term'] ?? i.key)).slice(0, 12)));
 }

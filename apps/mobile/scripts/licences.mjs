@@ -48,7 +48,7 @@ export function runtimeTree(packages, start) {
     const at = queue.shift();
     const p = packages[at];
     if (!p) continue;
-    const deps = { ...(p.dependencies ?? {}), ...(p.optionalDependencies ?? {}), ...(p.peerDependencies ?? {}) };
+    const deps = { ...p.dependencies, ...p.optionalDependencies, ...p.peerDependencies };
     for (const name of Object.keys(deps)) {
       if (BUILD_ONLY.test(name)) continue;
       let key = resolve(packages, at, name);

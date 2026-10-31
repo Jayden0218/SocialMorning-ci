@@ -9,7 +9,7 @@
 # CI speed (2026-10-31): this file is the ONE list of what the gate runs. ci/workflows/gate.yml calls it once per job,
 # with a group name, so the jobs still run side by side:
 #   scripts/gate.sh                  every group (a Linux session with DynamoDB Local up; never the owner's laptop)
-#   scripts/gate.sh typecheck        typecheck + oxlint
+#   scripts/gate.sh typecheck        typecheck + oxlint + eslint + the Studio's no-Node-globals check
 #   scripts/gate.sh api              the API tests; GATE_API_SHARD=1/3 runs one node --test shard (needs DDB_ENDPOINT)
 #   scripts/gate.sh checks           everything else
 # It drifted twice while gate.yml kept its own copy of the list (M7: no a11y audit on a runner; 2026-10: no audit-gate or
@@ -46,6 +46,12 @@ if wants typecheck; then
   # oxlint (root devDependency, one .oxlintrc.json per workspace) in api, mobile, studio and the three packages, each with
   # --max-warnings at the count measured when it was added (2026-10-31). It may be lowered, never raised.
   run lint npm run lint --workspaces --if-present
+  # M32 T021 (review D1): eslint over the whole repo (root `npm run lint`); rules-of-hooks is an error, the rest warnings
+  # (eslint.config.mjs). It stays beside oxlint: it carries the react-hooks and jsx-a11y rules M32 chose.
+  run eslint npm run lint
+  # Node globals in browser code: the Studio's src has no Node types (tsconfig.json), but a dependency (@vercel/blob -> undici) pulls
+  # @types/node into the program anyway, so `process` / `Buffer` would still compile. This looks at the source instead (M32 T056).
+  run studio-src-globals sh -c '! grep -rnE "\b(process\.|Buffer\.)" apps/studio/src'
 fi
 
 if wants api; then
@@ -62,12 +68,14 @@ if wants checks; then
   run mobile-coverage sh -c 'cd apps/mobile && npx jest --coverage'
   run studio npm test --workspace=@socialmorning/studio
   run feed-parser npm test -w packages/feed-parser
+  run contracts sh -c 'npx tsx --test packages/contracts/test/*.test.ts'
   run social-core npm run test:coverage -w packages/social-core
   run player-core npm run test:coverage -w packages/player-core
   # M6 FR-022: no interactive element without a name a screen reader can speak.
   run a11y sh -c 'cd apps/mobile && node scripts/a11y-audit.mjs'
   # M7 FR-002 (guard G1): every colour comes from src/design/tokens.ts.
-  run tokens sh -c 'cd apps/mobile && node scripts/token-check.mjs'
+  # M31/M32 add the retired-pattern check, the reduce-motion check and the action replay (G-E3 against m31/actions-before.json).
+  run tokens sh -c 'cd apps/mobile && node scripts/token-check.mjs && node --test scripts/retired-check.test.mjs && node scripts/retired-check.mjs && node scripts/reduce-motion-check.mjs && node --test scripts/reduce-motion-check.test.mjs && node --test scripts/action-replay.test.mjs scripts/action-replay-moved.test.mjs scripts/action-replay-passer.test.mjs && node scripts/action-replay.mjs'
   # 2026-09-27: every <Text> and <TextInput> names a token colour — a bare <Text> sets no style, so token-check cannot see it.
   run text-colour sh -c 'cd apps/mobile && node scripts/text-colour-check.mjs'
   # Screen capture FR-003: every screen and popup in the code has a capture entry (and the guard's own tests).

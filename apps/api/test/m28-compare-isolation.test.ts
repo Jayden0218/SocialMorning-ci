@@ -29,7 +29,7 @@ export function reach(entries: readonly string[] = ENTRIES, root = API): Map<str
     for (const m of text.matchAll(SPEC)) {
       const spec = m[2]!;
       const base = resolve(dirname(file), spec);
-      const cand = [base, `${base}.ts`, join(base, 'index.ts')].find((c) => /\.ts$/.test(c) && existsSync(c));
+      const cand = [base, `${base}.ts`, join(base, 'index.ts')].find((c) => c.endsWith('.ts') && existsSync(c));
       if (cand) queue.push({ file: cand, via: `${via} -> ${relative(root, cand)}` });
     }
   }

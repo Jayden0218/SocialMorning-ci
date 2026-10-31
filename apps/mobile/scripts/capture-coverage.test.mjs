@@ -33,3 +33,9 @@ test('the reader finds every kind in the real code', () => {
   assert.equal(s.filter((x) => x.kind === 'route').length, 105);
   assert.ok(s.some((x) => x.id === 'src/ui/queue/QueueSheet.tsx::dialog::Clear the playlist?'));
 });
+test('the reader counts the M31 kit <ActionSheet> and <Dialog> uses, not their definitions', () => {
+  const ids = scan().map((x) => x.id);
+  assert.ok(ids.includes('src/ui/player/MoonButton.tsx::sheet::#1'));
+  assert.ok(ids.includes('src/ui/me/SignOut.tsx::dialog::Sign out?'));
+  assert.ok(!ids.some((i) => i.startsWith('src/ui/kit/ActionSheet.tsx::') || i.startsWith('src/ui/kit/Dialog.tsx::')));
+});

@@ -38,7 +38,8 @@ it('measures first, frees the same, and keeps downloads and launch images', () =
 
 it('says the size in KB below a megabyte', () => {
   expect(sizeLabel(0)).toBe('0 KB');
-  expect(sizeLabel(320 * 1024)).toBe('320 KB');
-  expect(sizeLabel(4.2 * 1024 * 1024)).toBe('4.2 MB');
-  expect(sizeLabel(1.1 * 1024 * 1024 * 1024)).toBe('1.1 GB');
+  // M31 F8: decimal units, as the drawings write them.
+  expect(sizeLabel(320_000)).toBe('320 KB');
+  expect(sizeLabel(4_200_000)).toBe('4.2 MB');
+  expect(sizeLabel(1_100_000_000)).toBe('1.1 GB');
 });

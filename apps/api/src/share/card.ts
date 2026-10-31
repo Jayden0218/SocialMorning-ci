@@ -16,6 +16,7 @@
  */
 import { readFile } from 'node:fs/promises';
 import satori from 'satori';
+import { mmss } from '@socialmorning/social-core';
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 
 export type Font = { name: string; data: ArrayBuffer; weight: 400 | 700 | 800; style: 'normal' };
@@ -102,12 +103,7 @@ export type CardInput = { title: string; show: string | null; atMs?: number; art
 /** M20 US1 (FR-001): the most a quote card carries; the route refuses more. */
 export const QUOTE_MAX = 280;
 
-export const mmss = (ms: number) => {
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${m}:${String(s % 60).padStart(2, '0')}`;
-};
+export { mmss };
 
 export const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 

@@ -93,14 +93,15 @@ it('busy is not dimmed, even when the button is also disabled', () => {
 describe('AuthButton', () => {
   const auth = (busy: boolean, extra: Partial<Parameters<typeof AuthButton>[0]> = {}): ReactTestRenderer => {
     let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(AuthButton, { label: 'Continue', trail: 'chevron-forward', disabled: false, busy, onPress: () => undefined, ...extra })); });
+    act(() => { r = create(createElement(AuthButton, { label: 'Continue', mark: { icon: 'mail-outline' }, disabled: false, busy, onPress: () => undefined, ...extra })); });
     return r;
   };
-  const arrow = (r: ReactTestRenderer) => r.root.findAll((n) => n.props['name'] === 'chevron-forward');
+  // M31 S-C: the sign-in pill's mark (the mail glyph, pinned 20 from the left) is what sits beside the words.
+  const arrow = (r: ReactTestRenderer) => r.root.findAll((n) => n.props['name'] === 'mail-outline');
   const host = (r: ReactTestRenderer, label: string) =>
     r.root.findAll((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function')[0]!;
 
-  it('keeps its words and arrow while busy, draws the bars over them, and is not dimmed', () => {
+  it('keeps its words and mark while busy, draws the bars over them, and is not dimmed', () => {
     const idle = auth(false);
     expect(words(idle, 'Continue')).toBe(true);
     expect(arrow(idle).length).toBeGreaterThan(0);
@@ -110,7 +111,7 @@ describe('AuthButton', () => {
     expect(words(busy, 'Continue')).toBe(true);
     expect(arrow(busy).length).toBeGreaterThan(0);
     expect(bars(busy)).toHaveLength(1);
-    // The words and the arrow are kept in place, hidden (BusyContent), so the size stays.
+    // The words and the mark are kept in place, hidden (BusyContent), so the size stays.
     expect(busy.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'busy-hidden')).toHaveLength(1);
     const b = host(busy, 'Continue');
     expect(b.props['accessibilityState']).toMatchObject({ busy: true, disabled: true });
@@ -143,7 +144,8 @@ describe('the email page: sending a code never makes "Continue" or "Create accou
   };
   /** Lets `run`'s await → state → finally chain settle. */
   const flush = async () => { for (let i = 0; i < 5; i += 1) await act(async () => { await Promise.resolve(); }); };
-  const busyOf = (r: ReactTestRenderer, label: string): boolean => find(r, label).props['accessibilityState']?.busy === true;
+  // M31 S-C: a busy PulseButton drops its press handler (the press is refused while busy), so it is found by its state, not by `onPress`.
+  const busyOf = (r: ReactTestRenderer, label: string): boolean => r.root.findAll((x) => x.props['accessibilityLabel'] === label && x.props['accessibilityState'] !== undefined)[0]?.props['accessibilityState']?.busy === true;
   const type = (r: ReactTestRenderer, label: string, text: string) => {
     const n = r.root.findAll((x) => x.props['accessibilityLabel'] === label && typeof x.props['onChangeText'] === 'function')[0];
     if (!n) throw new Error(`no field "${label}"`);
@@ -204,7 +206,7 @@ describe('the email page: sending a code never makes "Continue" or "Create accou
 function files(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = join(dir, name);
-    return statSync(path).isDirectory() ? files(path) : /\.tsx$/.test(name) ? [path] : [];
+    return statSync(path).isDirectory() ? files(path) : name.endsWith('.tsx') ? [path] : [];
   });
 }
 

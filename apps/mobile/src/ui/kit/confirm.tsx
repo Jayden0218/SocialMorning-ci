@@ -1,4 +1,4 @@
-// A "Are you sure?" sheet from the bottom with the action and Cancel.
+// An "Are you sure?" dialog with Cancel and the action (the kit Dialog).
 /**
  * M16a T003 (FR-013, owner 2026-10-02): the app asks its own questions — never the iOS native
  * alert. One helper on gluestack's AlertDialog, the look SignOut already has: a title, a line,
@@ -17,17 +17,16 @@
  * the full-width yellow pill and Cancel as a bold accent text button under it. Wave 0 had left it
  * a centred card with the buttons side by side. Now gluestack's Actionsheet (as the consent
  * sheet); the backdrop and a drag down still cancel. Same two buttons, same names and handlers.
+ *
+ * M31 W3-D (design-pulse2 `dialog`: listen.html `player--queue-clear-dialog`, `downloads--delete-dialog`,
+ * `history--clear-dialog`, `playlist--delete-dialog`; social.html block / delete dialogs): the question is
+ * the Pulse centred dialog (`kit/Dialog`), not a bottom sheet — Cancel on the left (quiet), the action on
+ * the right (`hot` when it destroys: Delete, Clear, Remove, Block, Leave, Sign out…, else `light`), a
+ * one-button notice is a lone light OK. Same two buttons, same names and handlers; the scrim, Back
+ * and a screen reader's escape still cancel.
  */
 import { useCallback, useState } from 'react';
-import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
-import { Box } from '@/ui/lib/box';
-import { Actionsheet, ActionsheetBackdrop, ActionsheetContent, ActionsheetDragIndicator, ActionsheetDragIndicatorWrapper } from '@/ui/lib/actionsheet';
-import { hit } from '@/design';
-
-const TAP = { minHeight: hit.min };
-/** B's primary pill: 52 pt. */
-const PILL = { minHeight: 52 };
+import { Dialog } from './Dialog';
 
 export type ConfirmRequest = {
   title: string;
@@ -36,31 +35,33 @@ export type ConfirmRequest = {
   action?: string;
   /** The cancel word; `null` for a notice with one button. Defaults to "Cancel". */
   cancel?: string | null;
+  /** Force the action's colour: hot (true) or light (false). Left out, the action's word decides. */
+  danger?: boolean;
   onConfirm?: () => void;
 };
 
-export function ConfirmDialog(props: { request: ConfirmRequest | undefined; onClose: () => void }): React.ReactElement {
+/** Words that destroy or remove something are drawn hot (design-pulse2); the word, not colour alone, says so. */
+const DESTRUCTIVE = /^(delete|clear|remove|block|leave|discard|sign out|log out|unsubscribe|report|stop|reset|erase|close account)\b/i;
+
+export function isDestructive(r: Pick<ConfirmRequest, 'action' | 'danger'>): boolean {
+  return r.danger ?? DESTRUCTIVE.test(r.action ?? 'OK');
+}
+
+export function ConfirmDialog(props: { request: ConfirmRequest | undefined; onClose: () => void }): React.ReactElement | null {
   const r = props.request;
   const action = r?.action ?? 'OK';
   const cancel = r?.cancel === undefined ? 'Cancel' : r.cancel;
   return (
-    <Actionsheet isOpen={r !== undefined} onClose={props.onClose}>
-      <ActionsheetBackdrop accessibilityRole="button" accessibilityLabel="Close" />
-      <ActionsheetContent className="px-screen-x pt-gap items-stretch" accessibilityViewIsModal>
-        <ActionsheetDragIndicatorWrapper><ActionsheetDragIndicator /></ActionsheetDragIndicatorWrapper>
-        <Text className="text-text font-display text-[30px] leading-[39px] mt-row" accessibilityRole="header">{r?.title ?? ''}</Text>
-        {r?.message ? <Text className="text-muted text-[15px] leading-[22px] mt-gap">{r.message}</Text> : null}
-        <Pressable onPress={() => { props.onClose(); r?.onConfirm?.(); }} accessibilityRole="button" accessibilityLabel={action} className="items-center justify-center rounded-pill bg-primary mt-screen-x" style={PILL}>
-          <Text className="text-onPrimary text-[15px] font-bold">{action}</Text>
-        </Pressable>
-        {cancel !== null ? (
-          <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel={cancel} className="items-center justify-center mt-1" style={TAP}>
-            <Text className="text-accent text-body font-bold">{cancel}</Text>
-          </Pressable>
-        ) : null}
-        <Box className="h-row" />
-      </ActionsheetContent>
-    </Actionsheet>
+    <Dialog
+      open={r !== undefined}
+      title={r?.title ?? ''}
+      body={r?.message}
+      onClose={props.onClose}
+      buttons={[
+        ...(cancel !== null ? [{ label: cancel, kind: 'quiet' as const, onPress: props.onClose }] : []),
+        { label: action, kind: r !== undefined && isDestructive(r) ? ('hot' as const) : ('light' as const), onPress: () => { props.onClose(); r?.onConfirm?.(); } },
+      ]}
+    />
   );
 }
 

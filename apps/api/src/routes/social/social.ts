@@ -57,7 +57,7 @@ social.get('/:id/social', optionalAuth, async (c) => {
   let heat: { available: true; buckets: number[] } | { available: false } = { available: false };
   if (episode.duration_ms !== null) {
     const rows = await episodeHeatRows(db, episodeId);
-    const counts = new Array<number>(100).fill(0);
+    const counts = Array.from({ length: 100 }, () => 0);
     for (const r of rows) counts[Number(r.bucket)] = Number(r.distinct_listeners);
     heat = { available: true, buckets: normaliseHeat(counts) };
   }

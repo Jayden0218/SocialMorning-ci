@@ -21,6 +21,8 @@ on:
 concurrency:
   group: studio-e2e-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+permissions:
+  contents: read
 jobs:
   e2e:
     runs-on: ubuntu-latest
@@ -35,13 +37,13 @@ jobs:
       API_URL: http://localhost:8787 # the Studio preview's /api proxy (apps/studio/vite.config.ts)
       JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22, cache: npm, cache-dependency-path: package-lock.json }
       # node_modules restored whole when package-lock.json, the package.json files and patches/ are unchanged
       # (exact key only: a near match is never used); a miss runs npm ci and saves right after it, before any
       # test or build writes into node_modules. ~/.npm (setup-node's cache) still speeds up the miss.
-      - uses: actions/cache/restore@v6
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: node-modules
         with:
           path: |
@@ -52,7 +54,7 @@ jobs:
       - if: steps.node-modules.outputs.cache-hit != 'true'
         run: npm ci --no-audit --no-fund
       - if: steps.node-modules.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             node_modules
@@ -60,11 +62,11 @@ jobs:
             packages/*/node_modules
           key: ${{ steps.node-modules.outputs.cache-primary-key }}
       # DynamoDB Local from Maven Central (scripts/ddb-local.sh): the image registry rate-limited the service container (2026-10-12).
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
         with: { distribution: temurin, java-version: '21' }
       # The DynamoDB Local jars scripts/ddb-local.sh fetches from Maven Central (51 MB): cached by the script's hash,
       # which pins the version. The script skips the fetch when its .complete-<version> marker came back with them.
-      - uses: actions/cache@v6
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/socialmorning/ddb-local/lib
           key: ddb-local-${{ runner.os }}-${{ hashFiles('scripts/ddb-local.sh') }}
@@ -85,7 +87,7 @@ jobs:
         run: npx playwright test
         working-directory: apps/studio
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: studio-e2e
           path: |

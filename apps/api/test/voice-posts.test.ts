@@ -36,13 +36,13 @@ const box = (type: string, body: number[]) => [...be32(8 + body.length), ...[...
 /** A minimal M4A: ftyp + moov/mvhd (version 0) — all the server reads. */
 function m4a(ms: number, timescale = 44_100): Uint8Array {
   const dur = Math.round((ms * timescale) / 1000);
-  const mvhd = box('mvhd', [0, 0, 0, 0, ...be32(0), ...be32(0), ...be32(timescale), ...be32(dur), ...new Array(80).fill(0)]);
+  const mvhd = box('mvhd', [0, 0, 0, 0, ...be32(0), ...be32(0), ...be32(timescale), ...be32(dur), ...Array.from({ length: 80 }, () => 0)]);
   return new Uint8Array([...box('ftyp', [...'M4A '].map((c) => c.charCodeAt(0)).concat([0, 0, 0, 0])), ...box('moov', mvhd)]);
 }
 /** Raw AAC: `frames` ADTS frames at 44.1 kHz (1024 samples each), each 7 + 9 bytes. */
 function adts(frames: number, id3 = false): Uint8Array {
   const len = 16;
-  const frame = [0xff, 0xf1, 0x50, 0x40 | (len >> 11), (len >> 3) & 0xff, ((len & 7) << 5) | 0x1f, 0xfc, ...new Array(9).fill(0)];
+  const frame = [0xff, 0xf1, 0x50, 0x40 | (len >> 11), (len >> 3) & 0xff, ((len & 7) << 5) | 0x1f, 0xfc, ...Array.from({ length: 9 }, () => 0)];
   const tag = id3 ? [0x49, 0x44, 0x33, 4, 0, 0, 0, 0, 0, 2, 0, 0] : [];
   return new Uint8Array([...tag, ...Array.from({ length: frames }, () => frame).flat()]);
 }
@@ -145,16 +145,16 @@ test('FR-104: followed people and yourself only, never across a block; the autho
 test('duration: mp4 v0/v1, 64-bit and to-end box sizes, ADTS with and without ID3; anything else is unreadable', () => {
   assert.equal(audioDurationMs(m4a(12_345, 1000)), 12_345);
   // version 1 mvhd, in a 64-bit-sized moov
-  const v1 = box('mvhd', [1, 0, 0, 0, ...new Array(16).fill(0), ...be32(1000), ...be32(0), ...be32(30_000), ...new Array(80).fill(0)]);
+  const v1 = box('mvhd', [1, 0, 0, 0, ...Array.from({ length: 16 }, () => 0), ...be32(1000), ...be32(0), ...be32(30_000), ...Array.from({ length: 80 }, () => 0)]);
   const ftyp = box('ftyp', [...'isom'].map((ch) => ch.charCodeAt(0)).concat([0, 0, 0, 0]));
   const big = [0, 0, 0, 1, ...[...'moov'].map((ch) => ch.charCodeAt(0)), ...be32(0), ...be32(16 + v1.length), ...v1];
   assert.equal(audioDurationMs(new Uint8Array([...ftyp, ...big])), 30_000);
-  const toEnd = [0, 0, 0, 0, ...[...'moov'].map((ch) => ch.charCodeAt(0)), ...box('mvhd', [0, 0, 0, 0, ...be32(0), ...be32(0), ...be32(1000), ...be32(7000), ...new Array(80).fill(0)])];
+  const toEnd = [0, 0, 0, 0, ...[...'moov'].map((ch) => ch.charCodeAt(0)), ...box('mvhd', [0, 0, 0, 0, ...be32(0), ...be32(0), ...be32(1000), ...be32(7000), ...Array.from({ length: 80 }, () => 0)])];
   assert.equal(audioDurationMs(new Uint8Array([...ftyp, ...toEnd])), 7000);
   assert.equal(audioDurationMs(new Uint8Array([...ftyp, ...box('mdat', [1, 2, 3])])), undefined, 'no moov');
   assert.equal(audioDurationMs(new Uint8Array([...ftyp, ...box('moov', box('trak', []))])), undefined, 'no mvhd');
   assert.equal(audioDurationMs(new Uint8Array([...ftyp, ...box('moov', box('mvhd', [0, 0, 0, 0]))])), undefined, 'mvhd cut short');
-  assert.equal(audioDurationMs(new Uint8Array([...ftyp, ...box('moov', box('mvhd', [0, 0, 0, 0, ...be32(0), ...be32(0), ...be32(0), ...be32(5), ...new Array(80).fill(0)]))])), undefined, 'timescale 0');
+  assert.equal(audioDurationMs(new Uint8Array([...ftyp, ...box('moov', box('mvhd', [0, 0, 0, 0, ...be32(0), ...be32(0), ...be32(0), ...be32(5), ...Array.from({ length: 80 }, () => 0)]))])), undefined, 'timescale 0');
   assert.equal(audioDurationMs(new Uint8Array([...ftyp, 0, 0, 0, 99, 1, 2, 3, 4])), undefined, 'a box running past the end');
   assert.equal(audioDurationMs(new Uint8Array([...ftyp, 0, 0, 0, 1, ...[...'moov'].map((ch) => ch.charCodeAt(0)), 0, 0])), undefined, 'a 64-bit size cut short');
   assert.equal(audioDurationMs(adts(87)), 2020);

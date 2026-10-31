@@ -14,6 +14,7 @@ import { isMutedOn } from '../../db/repos/studio/studio-subscribers.ts';
 import { unlike } from '../../db/repos/social/comment-likes.ts';
 import { setPinned, setPinnedBottom, setUnfriendly, thread } from '../../db/repos/social/comment-extras.ts';
 import { commentControl } from '../../db/repos/studio/comment-policy.ts';
+import { log } from '../../log.ts';
 
 const commentBody = z.object({
   body: z.string().trim().min(1).max(2000),
@@ -72,9 +73,9 @@ commentById.delete('/:id', requireAuth, async (c) => {
   if (existing.author_id !== listener.id) throw new ApiError('forbidden', 'Only the author can delete a comment.');
   const result = await deleteCommentInTx(db, id);
   // M19 US6 (FR-045): a voice comment's recording leaves the store with it.
-  if (existing.voice_url) { try { await c.get('voice').remove(existing.voice_url); } catch (e) { console.error(c.get('requestId'), 'voice comment remove', e); } }
+  if (existing.voice_url) { try { await c.get('voice').remove(existing.voice_url); } catch (e) { log.error('voice_comment_remove_failed', { requestId: c.get('requestId'), error: e }); } }
   // M20 US9 (FR-055, G-M20-8): its image leaves the store with it; a failure is swept by the internal cycle.
-  if (existing.image_path) { try { await c.get('images').remove(existing.image_path); } catch (e) { console.error(c.get('requestId'), 'comment image remove', e); } }
+  if (existing.image_path) { try { await c.get('images').remove(existing.image_path); } catch (e) { log.error('comment_image_remove_failed', { requestId: c.get('requestId'), error: e }); } }
   return c.json({ placeholder: result.placeholder });
 });
 

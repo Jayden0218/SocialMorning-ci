@@ -20,6 +20,7 @@ import { IMAGE_DAYS, IMAGES_MAX, type FeedbackRow, type ImageIn } from '../feedb
 import { ERROR_DAYS, MESSAGE_MAX, SCOPE_MAX, STACK_MAX, type ErrorIn, type ErrorRow } from '../error-reports.ts';
 import { sweepRateCounters } from '../../../../auth/rate.ts';
 import { DAY_MS, iso, nowMs, queueBefore, queueNewest, upd, adel, txa, type Ctx } from './common.ts';
+import { swallow } from '../../../../log.ts';
 
 const BYTES = K.config('bytes');
 const FBIMG = (id: string) => ({ PK: K.L(id), SK: 'FBIMG' });
@@ -148,7 +149,7 @@ export async function sweepErrorReports(h: Ctx): Promise<number> {
   let n = 0;
   for (const it of old) {
     // Only if it was not seen again since the (eventually consistent) index was read.
-    const gone = await adel(h.store, 'main', { PK: String(it['PK']), SK: String(it['SK']) }, { condition: 'lastSeen < :cut', values: { ':cut': iso(nowMs(h) - ERROR_DAYS * DAY_MS) }, returnOld: true }).catch(() => undefined);
+    const gone = await adel(h.store, 'main', { PK: String(it['PK']), SK: String(it['SK']) }, { condition: 'lastSeen < :cut', values: { ':cut': iso(nowMs(h) - ERROR_DAYS * DAY_MS) }, returnOld: true }).catch(swallow('feedback_error_prune_failed'));
     if (gone) n++;
   }
   await sweepRateCounters(h.db);

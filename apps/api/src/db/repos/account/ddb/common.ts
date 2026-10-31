@@ -51,7 +51,7 @@ export function alias(expr: string | undefined, names: Record<string, string>): 
 type ExprOpts = { update?: string; condition?: string; names?: Record<string, string>; values?: Record<string, unknown>; label?: string; returnOld?: boolean; returnValues?: 'ALL_NEW' | 'UPDATED_NEW' | 'ALL_OLD' };
 /** The same options with every attribute name aliased. */
 export function xo<T extends ExprOpts>(o: T): T {
-  const n: Record<string, string> = { ...(o.names ?? {}) };
+  const n: Record<string, string> = { ...o.names };
   const out = { ...o, ...(o.update !== undefined ? { update: alias(o.update, n) } : {}), ...(o.condition !== undefined ? { condition: alias(o.condition, n) } : {}) };
   return (Object.keys(n).length ? { ...out, names: n } : out) as T;
 }

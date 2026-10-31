@@ -7,6 +7,7 @@ import { showImageRows } from '../../db/repos/social/public-pages.ts';
 import { QUOTE_MAX, renderCard, type CardInput } from '../../share/card.ts';
 import { fetchImage } from '../../share/fetch-image.ts';
 import { RECAP_MINUTES_MAX, RECAP_SHOW_MAX, RECAP_SHOWS, renderRecap } from '../../share/recap.ts';
+import { log } from '../../log.ts';
 
 /**
  * M12 FR-034 — mounted at /v1/share. GET /episode/:id.png?t=<ms>: the share card. Public,
@@ -68,7 +69,7 @@ async function drawCard(c: Context<AuthEnv>, quote?: string): Promise<Response> 
   } catch (e) {
     // An image the renderer cannot decode is not a reason to fail the share: draw the plain card.
     if (!art) throw e;
-    console.warn(c.get('requestId'), 'share card: artwork not drawable', e instanceof Error ? e.message : String(e));
+    log.warn('share_card_artwork_not_drawable', { requestId: c.get('requestId'), error: e });
     png = await renderCard(base, f);
   }
   return c.body(png as unknown as ArrayBuffer, 200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' });

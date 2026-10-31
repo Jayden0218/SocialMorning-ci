@@ -20,30 +20,35 @@
  * (`EpisodeRowSheet`), with two Updates-only actions: Remove from Updates (this phone's list;
  * the show stays subscribed) and Star / Unstar this show (as on /subscriptions).
  *
+ * M31 D-A (T031; design-pulse2 `index.html#updates--screen`, `library--*`; layout pattern Deck): the page is the Deck — a Voice edge label over the
+ * 56-circle status row (signed in), a Starred edge label over 52 covers, then the new episodes as 290 x 350 cards that snap, the next one
+ * peeking in (`UpdateEpisodeRow`). "Updates" and "My subscriptions · n ›" sit low in the title bar (rule 1; the link opens /subscriptions). A
+ * card swipes up to mark played and down to remove (the old row swipes, turned for a sideways deck). The caption "n shows could not refresh"
+ * sits above the deck. With no subscriptions the deck is replaced by Discover's sections under the empty block, as before. The refresh,
+ * the counts, the sheet and every handler are unchanged.
+ *
  * M21 US8 (FR-070): the status row starts with my own avatar "+" (Voice or Text); a row of my
  * starred shows sits above "New from your shows"; video episodes carry a video mark (the row).
  */
-import type { FlatList as RNFlatList } from 'react-native';
-import { Link, useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
+import { useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
 import { useCallback, useEffect, useState, useRef } from 'react';
-import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { SafeAreaView } from '@/ui/lib/safe-area-view';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
 import { useColours } from '@/ui/kit/useColours';
-import { Icon } from '@/ui/kit/Icon';
 import { enqueue } from '@socialmorning/player-core';
 import { useDiscover } from '@/discover/useDiscover';
-import { PER_FEED_TIMEOUT_MS, refreshAll } from '@/feeds/refresh-all';
+import { refreshFeeds } from '@/feeds/refresh-service';
 import { hideFromUpdates, updatesSnapshot, type UpdateRow } from '@/me/updates';
 import { usePlayer } from '@/playback/store';
 import { useSafety } from '@/safety/context';
 import { toPlayable } from '@/storage/playable';
-import { hit } from '@/design';
+import { gutter } from '@/design';
+import { useWindowDimensions } from 'react-native';
 import { DiscoverSections } from '@/ui/discover/DiscoverSections';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { UpdateEpisodeRow } from '@/ui/episode/UpdateEpisodeRow';
+import { useEpisodeHotMoments } from '@/ui/episode/useEpisodeHotMoments';
 import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
 import { useDownloads, usePositionSync, useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
 // M22 lane 3 (US12): swipe actions on the rows and the one-time hint.
@@ -52,29 +57,30 @@ import { useSocial } from '@/social/context';
 import { useM12Api } from '@/social/m12-api';
 import { VoicePosts } from '@/ui/social/VoicePosts';
 import { ScrollView } from '@/ui/lib/scroll-view';
-import { Artwork } from '@/ui/kit/Artwork';
+import { Deck } from '@/ui/discover/Deck';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
+import { Fade } from '@/ui/kit/Fade';
+import { PageGlow } from '@/ui/kit/PageGlow';
+import { TitleBar } from '@/ui/kit/TitleBar';
+import { Type } from '@/ui/kit/Type';
+import { Cover } from '@/ui/library/parts';
+import { STARRED_PITCH, UPDATES, VOICE_PITCH } from '@/ui/library/measures';
+import { DRAWN } from '@/ui/me/lists';
+import { tabTitleReserve, useTabTitleBottom } from '@/ui/me/useTabTitle';
 import { useMyAvatar } from '@/me/my-avatar';
 import { useProfileApi } from '@/social/profile-api';
-import { TAB_PAGE_END } from '@/ui/kit/Screen';
 import { plural } from '@socialmorning/social-core';
-import { EndOfList } from '@/ui/kit/EndOfList';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
+import { nowMs as clockMs } from '@/ui/kit/clock';
 
-/** Opening Updates refreshes the feeds at most this often (pull to refresh always does). */
-const FOCUS_REFRESH_MS = 15 * 60_000;
-let lastFocusRefresh = 0;
 /** The native page push is about 350 ms; start the network work after it. */
 const AFTER_TRANSITION_MS = 400;
 
-const TAP = { minHeight: hit.min, minWidth: hit.min };
-/** M21 US8: a starred show in the row above the feed — a 72 pt cover with its name under it. */
-const STAR_ART = 72;
-const STAR_ITEM = { width: STAR_ART, minHeight: hit.min };
 /** M22 US12 (data-model "New settings keys"): '1' once the swipe hint has been shown. */
 const SWIPE_HINT_KEY = 'updates.swipeHintShown';
 
 export default function UpdatesScreen(): React.ReactElement {
-  const top = useRef<RNFlatList<UpdateRow>>(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
+  const top = useRef(null); useScrollToTop(top); // M21 T082: pressing this tab again scrolls to the top.
   const stores = useStores();
   const c = useColours(stores.settings);
   const router = useRouter();
@@ -82,6 +88,12 @@ export default function UpdatesScreen(): React.ReactElement {
   const downloads = useDownloads();
   const toast = useToast();
   const { hiddenFeeds } = useSafety();
+  const titleBottom = useTabTitleBottom();
+  const { width } = useWindowDimensions();
+  const [dragging, setDragging] = useState(false);
+  // F10: the turned edge labels' lengths, so their blocks are at least that tall (no overlap at 200 % text).
+  const [voiceLen, setVoiceLen] = useState(0);
+  const [starLen, setStarLen] = useState(0);
   const discover = useDiscover();
   // Defect 5 (2026-10-07): the first render already shows the local shows and episodes.
   const [first] = useState(() => updatesSnapshot(stores, hiddenFeeds));
@@ -109,12 +121,10 @@ export default function UpdatesScreen(): React.ReactElement {
     read();
     // The lag audit (2026-10-04, branch perf): every visit fetched every subscribed feed again, one
     // after another, parsing the XML while the page was still sliding in. Now: at most once per
-    // FOCUS_REFRESH_MS, and only after the transition (React Native 0.88 has no InteractionManager,
+    // REFRESH_THROTTLE_MS (src/feeds/refresh-service.ts), and only after the transition (React Native 0.88 has no InteractionManager,
     // so a timer waits it out).
-    if (Date.now() - lastFocusRefresh < FOCUS_REFRESH_MS) return () => { live = false; };
     const task = setTimeout(() => {
-      lastFocusRefresh = Date.now();
-      void refreshAll(stores, Date.now(), PER_FEED_TIMEOUT_MS, social.api?.hiddenEpisodes).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
+      void refreshFeeds(stores, { hiddenOf: social.api?.hiddenEpisodes }).then((r) => { if (!live) return; setStale(r.stale.length); read(); });
     }, AFTER_TRANSITION_MS);
     return () => { live = false; clearTimeout(task); };
   }, [read, stores, social.api]));
@@ -139,7 +149,7 @@ export default function UpdatesScreen(): React.ReactElement {
     void subscriptionSync.reconcile().catch(() => undefined).then(async () => {
       if (!live) return;
       read();
-      const r = await refreshAll(stores, Date.now(), PER_FEED_TIMEOUT_MS, social.api?.hiddenEpisodes);
+      const r = await refreshFeeds(stores, { force: true, hiddenOf: social.api?.hiddenEpisodes });
       if (!live) return;
       setStale(r.stale.length);
       read();
@@ -153,6 +163,8 @@ export default function UpdatesScreen(): React.ReactElement {
   const m12 = useM12Api();
   const [counts, setCounts] = useState<{ counts: Record<string, number>; listeners?: Record<string, number> }>({ counts: {} });
   const [menuFor, setMenuFor] = useState<UpdateRow | undefined>(undefined);
+  // Wave 5b: the first hot moment of each card, one read per show in the deck.
+  const hotMoments = useEpisodeHotMoments(rows.slice(0, 100).map((r) => r.episode.feedUrl));
   const loadVoice = useCallback(() => m12.voicePosts(), [m12]);
   const ids = rows.slice(0, 100).map((r) => r.episode.id).join(',');
   useEffect(() => {
@@ -164,7 +176,7 @@ export default function UpdatesScreen(): React.ReactElement {
 
   const play = (id: string) => { const p = toPlayable(stores, id); if (p) player.load(p, 'play'); };
   // Owner, 2026-10-05: each row shows whether it is queued / downloaded; re-read on every change.
-  const [marks, setMarks] = useState(0);
+  const [, setMarks] = useState(0);
   useEffect(() => downloads.subscribe(() => setMarks((n) => n + 1)), [downloads]);
   useFocusEffect(useCallback(() => setMarks((n) => n + 1), []));
   const queuedIds = new Set(stores.queue.list());
@@ -176,13 +188,17 @@ export default function UpdatesScreen(): React.ReactElement {
     if (queuedIds.has(id)) { toast('Already in the queue.'); return; }
     const r = enqueue(stores.queue.list(), id, 'end');
     if (r.refused) { toast('The queue is full (300).'); return; }
-    stores.queue.replace(r.queue, Date.now());
+    stores.queue.replace(r.queue, clockMs());
     setMarks((n) => n + 1);
     toast('Added to the queue.');
   };
   // M21 US4 (FR-036): the two Updates-only actions in the shared sheet.
   const starred = (feedUrl: string) => stores.subscriptions.list().some((s) => s.feedUrl === feedUrl && s.starred);
   const updatesActions = (row: UpdateRow) => [
+    {
+      icon: 'checkmark-done-outline' as const, label: 'Mark as played',
+      onPress: () => { setMenuFor(undefined); markPlayed(stores, row.episode.id, Date.now()); void positionSync.flush(); read(); toast('Marked as played.'); },
+    },
     {
       icon: 'eye-off-outline' as const, label: 'Remove from Updates',
       onPress: () => { setMenuFor(undefined); hideFromUpdates(stores.settings, row.episode.id); read(); toast('Removed from Updates. The show stays subscribed.'); },
@@ -197,84 +213,89 @@ export default function UpdatesScreen(): React.ReactElement {
     void downloads.request(id).then((r) => toast(r.kind === 'budget' ? 'Not enough space for this download.' : 'Downloading.'));
   };
 
+  const row = (item: UpdateRow): React.ReactElement => {
+    const e = item.episode;
+    return (
+      <UpdateEpisodeRow
+        key={e.id}
+        item={item}
+        plays={counts.listeners?.[e.id]}
+        comments={counts.counts[e.id]}
+        hot={hotMoments.get(e.id)}
+        now={clockMs()}
+        iconColour={c.muted}
+        doneColour={c.accent}
+        queued={queuedIds.has(e.id)}
+        download={downloadOf(e.id)}
+        onOpenShow={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } })}
+        onOpenEpisode={() => (inPane ? setPaneId(e.id) : openEpisodePage(e.id))}
+        onQueue={() => queue(e.id)}
+        onComments={() => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: e.id } })}
+        onDownload={() => download(e.id)}
+        onMore={() => setMenuFor(item)}
+        onLongPress={() => setMenuFor(item)}
+        onPlay={() => play(e.id)}
+        onDragging={setDragging}
+        onRemoveFromUpdates={() => { hideFromUpdates(stores.settings, e.id); read(); toast('Removed from Updates. The show stays subscribed.'); }}
+        onMarkPlayed={() => { markPlayed(stores, e.id, Date.now()); void positionSync.flush(); read(); toast('Marked as played.'); }}
+      />
+    );
+  };
+  const side = gutter(width);
+
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-void">
       <ListDetail
         placeholder="Choose an episode to see it here."
         detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => openEpisodePage(paneId)} /> : undefined}
         list={
-      <FlatList
-        ref={top}
-        data={rows}
-        // Owner, 2026-10-05: the bottom of a fetched list says so.
-        ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
-        keyExtractor={(r) => r.episode.id}
-        extraData={[counts, marks]} // the counts and marks arrive after the rows; without this a row keeps its old look
-        contentContainerStyle={{ paddingBottom: TAB_PAGE_END }}
-        ListHeaderComponent={
-          <Box>
-            <Box className="px-screen-x pt-section">
-              <Text className="font-display text-display text-text" accessibilityRole="header">Updates</Text>
-              <Link href="/subscriptions" asChild>
-                <Pressable accessibilityRole="link" accessibilityLabel={`My subscriptions, ${subscribed}`} className="self-start flex-row items-center gap-2" style={TAP}>
-                  <Icon name="library-outline" size={16} color={c.accent} />
-                  <Text className="text-accent text-meta font-semibold">{`My subscriptions · ${subscribed} ›`}</Text>
-                </Pressable>
-              </Link>
-            </Box>
-            {/* Owner, 2026-10-05: no Continue listening card — the same episodes are in the list below. */}
-            {/* M12 FR-104: voice statuses from you and the people you follow (signed in only). */}
-            {listenerId !== undefined ? <VoicePosts load={loadVoice} remove={m12.deleteVoicePost} pauseEpisode={player.pause} colours={c} me={{ name: me?.displayName ?? '', avatarUrl: myAvatar }} /> : null}
-            {starredShows.length > 0 ? (
-              <Box className="pt-section">
-                <Text className="font-display text-base text-text px-screen-x" accessibilityRole="header">Starred shows</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-row px-screen-x" className="pt-2">
-                  {starredShows.map((s) => (
-                    <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${s.title}, starred`} style={STAR_ITEM}>
-                      <Artwork url={s.imageUrl} size={STAR_ART} name={s.title} />
-                      <Text className="text-text text-xs font-semibold mt-1" numberOfLines={1}>{s.title}</Text>
-                    </Pressable>
-                  ))}
-                </ScrollView>
-              </Box>
-            ) : null}
-            <Box className="px-screen-x">
-              {stale > 0 ? <Text className="text-muted text-xs mt-row">{plural(stale, 'show')} could not refresh — showing the saved copy.</Text> : null}
-              {subscribed === 0 && discover.view ? (
-                <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(c) => void discover.open(c)} />
+          <Box className="flex-1">
+            <PageGlow flip top={-200} strength={0.35} />
+            <ScrollView
+              ref={top}
+              scrollEnabled={!dragging}
+              testID="updates-page"
+              contentContainerStyle={{ paddingTop: UPDATES.voiceTop - DRAWN.status, paddingBottom: tabTitleReserve(titleBottom) }}
+            >
+              {/* M12 FR-104: voice statuses from you and the people you follow (signed in only). */}
+              {listenerId !== undefined ? (
+                <Box testID="voice-block" style={{ minHeight: Math.max(VOICE_PITCH, voiceLen + 2) }}>
+                  <EdgeLabel label="Voice" top={4} onLength={setVoiceLen} />
+                  <VoicePosts variant="updates" load={loadVoice} remove={m12.deleteVoicePost} pauseEpisode={player.pause} colours={c} me={{ name: me?.displayName ?? '', avatarUrl: myAvatar }} />
+                </Box>
               ) : null}
-              {rows.length > 0 ? <Text className="font-display text-base text-text mt-section" accessibilityRole="header">New from your shows</Text> : null}
-              {rows.length > 0 && swipeHint ? <Text className="text-muted text-xs mt-1">Swipe a row for more</Text> : null}
-            </Box>
+              {starredShows.length > 0 ? (
+                <Box testID="starred-block" style={{ minHeight: Math.max(STARRED_PITCH, starLen + 2) }}>
+                  <EdgeLabel label="Starred" top={0} onLength={setStarLen} />
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: UPDATES.lane, paddingRight: side, gap: UPDATES.starred.gap }}>
+                    {starredShows.map((s) => (
+                      <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={`Open ${s.title}, starred`} hitSlop={UPDATES.starred.gap - 1}>
+                        <Cover url={s.imageUrl} name={s.title} size={UPDATES.starred.cover} radius={UPDATES.starred.radius} />
+                      </Pressable>
+                    ))}
+                  </ScrollView>
+                </Box>
+              ) : null}
+              {stale > 0 ? <Type step="caption" className="text-text2" style={{ paddingHorizontal: side, paddingBottom: UPDATES.card.gap }}>{plural(stale, 'show')} could not refresh — showing the saved copy.</Type> : null}
+              {rows.length > 0 && swipeHint ? <Type step="caption" className="text-text2" style={{ paddingHorizontal: side, paddingBottom: UPDATES.card.gap }}>Swipe a card up to mark it played, down to remove it</Type> : null}
+              {rows.length > 0 ? (
+                <Deck width={UPDATES.card.width} height={UPDATES.card.height} lead={UPDATES.card.lead} accessibilityLabel="New from your shows">
+                  {rows.map(row)}
+                </Deck>
+              ) : subscribed === 0 ? (
+                <Box>
+                  <EmptyState surface="library" page />
+                  {discover.view ? (
+                    <DiscoverSections body={discover.view.body} stale={discover.view.stale} fetchedAt={discover.view.fetchedAt} onOpen={(card) => void discover.open(card)} />
+                  ) : null}
+                </Box>
+              ) : (
+                <Type step="body" className="text-text2" style={{ paddingHorizontal: side }}>No episodes yet.</Type>
+              )}
+            </ScrollView>
+            <Fade bottom={0} height={300} />
+            <TitleBar title="Updates" subtitle={`My subscriptions · ${subscribed} ›`} onSubtitle={() => router.push('/subscriptions')} bottom={titleBottom} />
           </Box>
-        }
-        ListEmptyComponent={subscribed === 0 ? <Box className="px-screen-x"><EmptyState surface="library" /></Box> : <Text className="text-muted text-sm px-screen-x mt-section">No episodes yet.</Text>}
-        renderItem={({ item }) => {
-          const e = item.episode;
-          return (
-            <UpdateEpisodeRow
-              item={item}
-              plays={counts.listeners?.[e.id]}
-              comments={counts.counts[e.id]}
-              now={Date.now()}
-              iconColour={c.muted}
-              doneColour={c.accent}
-              queued={queuedIds.has(e.id)}
-              download={downloadOf(e.id)}
-              onOpenShow={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(e.feedUrl) } })}
-              onOpenEpisode={() => (inPane ? setPaneId(e.id) : openEpisodePage(e.id))}
-              onQueue={() => queue(e.id)}
-              onComments={() => router.push({ pathname: '/comments/[episodeId]', params: { episodeId: e.id } })}
-              onDownload={() => download(e.id)}
-              onMore={() => setMenuFor(item)}
-              onLongPress={() => setMenuFor(item)}
-              onPlay={() => play(e.id)}
-              onRemoveFromUpdates={() => { hideFromUpdates(stores.settings, e.id); read(); toast('Removed from Updates. The show stays subscribed.'); }}
-              onMarkPlayed={() => { markPlayed(stores, e.id, Date.now()); void positionSync.flush(); read(); toast('Marked as played.'); }}
-            />
-          );
-        }}
-      />
         }
       />
       {/* "⋯" more (Owner, 2026-10-01): the same sheet as a show page's episode row — M21: the shared one. */}

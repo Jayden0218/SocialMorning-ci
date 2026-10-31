@@ -47,7 +47,7 @@ export type SignInput = {
 /** The Authorization header of AWS Signature Version 4 (header-based, no query string). */
 export function sigV4(i: SignInput): string {
   const day = i.amzDate.slice(0, 8);
-  const all: Record<string, string> = { host: i.host, 'x-amz-date': i.amzDate, ...(i.headers ?? {}) };
+  const all: Record<string, string> = { host: i.host, 'x-amz-date': i.amzDate, ...i.headers };
   const names = Object.keys(all).map((n) => n.toLowerCase()).sort();
   const lower = Object.fromEntries(Object.entries(all).map(([k, v]) => [k.toLowerCase(), v]));
   const canonicalHeaders = names.map((n) => `${n}:${String(lower[n]).trim().replace(/\s+/g, ' ')}\n`).join('');

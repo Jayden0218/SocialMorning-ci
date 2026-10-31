@@ -7,53 +7,55 @@
  * the question as a serif heading, the answer under it; the closed ones sit two to a row with
  * their number and question. Tapping a card opens it, tapping the open one closes it — the
  * same toggle as before, the same names.
+ *
+ * M31 S-A (T060; design-pulse2 `settings-how-for-you--screen`; Mosaic): the six questions as numbered tiles. Closed = half width (104 at least, radius 22): the number in mono 20
+ * text-3, the question 14 / 600. The open one spans both columns, tinted with a hot ring: the number in Unbounded 34, the question in Unbounded 17, the answer 14 / 21. The first is open on
+ * arrival (as before); a tap opens a tile and closes the other. The eyebrow "Discover › For You" sits above the title in the bottom zone, with the subtitle under it. No edge lane
+ * (16 on each side). RN has no gradient text, so the number is hot-text.
  */
 import { useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
-import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { size } from '@/design';
 import { HOW_FOR_YOU } from '@/settings/how-for-you';
-import { PageHeader } from '@/ui/kit/PageHeader';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
-
-const ROW = { minHeight: size.row };
-/** Two closed cards to a row; the gap between them is `gap-row` (12 pt). */
-const HALF = { width: '48%' as const, minHeight: 104 };
+import { drawnType } from '@/design/type-px';
+import { settingsColour } from '@/design/tokens';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { Type } from '@/ui/kit/Type';
+import { SetPage } from '@/ui/settings/hub-parts';
+import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
 const two = (i: number): string => String(i + 1).padStart(2, '0');
+/** The eyebrow is one mono line (22 line + the title bar's 8) above the title. */
+const EYEBROW_ABOVE = 30;
 
 export default function HowForYou(): React.ReactElement {
   const [open, setOpen] = useState<number | undefined>(0);
+  const eyebrow = <Type step="mono" className="text-hotText" style={drawnType.trackMono}>{'Discover › For You'.toUpperCase()}</Type>;
   return (
-    <>
-    {/* M17: an empty middle, so the page draws its own eyebrow above the title. */}
-    <PageHeader middle={<Box />} />
-    <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pt-1 pb-24">
-      <Eyebrow accent>Discover › For You</Eyebrow>
-      <Text className="text-text text-display font-display mt-1" numberOfLines={2} accessibilityRole="header">How For You works</Text>
-      <Text className="text-muted text-meta mt-1 mb-section">What it uses, and what it never uses</Text>
-      <Box className="flex-row flex-wrap justify-between gap-y-row">
-        {HOW_FOR_YOU.map((item, i) => {
-          const shown = open === i;
-          return shown ? (
-            <Pressable key={item.q} onPress={() => setOpen(undefined)} accessibilityRole="button" accessibilityState={{ expanded: true }} accessibilityLabel={item.q}
-              className="w-full bg-surface border border-border rounded-row p-section" style={ROW}>
-              <Text className="text-accent text-display font-display" maxFontSizeMultiplier={1.3}>{two(i)}</Text>
-              <Text className="text-text text-base font-display mt-1">{item.q}</Text>
-              <Text className="text-muted text-body mt-gap leading-[21px]">{item.a}</Text>
-            </Pressable>
-          ) : (
-            <Pressable key={item.q} onPress={() => setOpen(i)} accessibilityRole="button" accessibilityState={{ expanded: false }} accessibilityLabel={item.q}
-              className="bg-surface border border-border rounded-row p-section justify-between" style={HALF}>
-              <Text className="text-accent text-base font-display" maxFontSizeMultiplier={1.3}>{two(i)}</Text>
-              <Text className="text-text text-xs font-semibold mt-row">{item.q}</Text>
-            </Pressable>
-          );
-        })}
-      </Box>
-    </ScrollView>
-    </>
+    <PushedPage title="How For You works" subtitle="What it uses, and what it never uses" size={28} extra={eyebrow} extraAbove={EYEBROW_ABOVE}>
+      {(layout) => (
+        <SetPage layout={layout} lane={false}>
+          <Box className="flex-row flex-wrap justify-between" style={{ rowGap: SET.bigGap }}>
+            {HOW_FOR_YOU.map((item, i) => {
+              const shown = open === i;
+              return shown ? (
+                <Pressable key={item.q} onPress={() => setOpen(undefined)} accessibilityRole="button" accessibilityState={{ expanded: true }} accessibilityLabel={item.q}
+                  testID="how-open" style={{ width: '100%', borderRadius: SET.radius, padding: SET.tilePad, gap: SET.gap, backgroundColor: settingsColour.wash, borderWidth: 1, borderColor: settingsColour.ring }}>
+                  <Type step="figure" className="text-hotText" style={SET_TYPE.number34} maxFontSizeMultiplier={1.3}>{two(i)}</Type>
+                  <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>{item.q}</Type>
+                  <Type step="body" className="text-text2" style={SET_TYPE.note14}>{item.a}</Type>
+                </Pressable>
+              ) : (
+                <Pressable key={item.q} onPress={() => setOpen(i)} accessibilityRole="button" accessibilityState={{ expanded: false }} accessibilityLabel={item.q}
+                  testID="how-closed" className="bg-raise justify-between" style={{ width: '48.5%', minHeight: 104, borderRadius: SET.radius, padding: SET.bigPad }}>
+                  <Type step="mono" className="text-text3" style={SET_TYPE.mono20} maxFontSizeMultiplier={1.3}>{two(i)}</Type>
+                  <Type step="compact" className="text-text" style={{ marginTop: SET.rowGap }}>{item.q}</Type>
+                </Pressable>
+              );
+            })}
+          </Box>
+        </SetPage>
+      )}
+    </PushedPage>
   );
 }

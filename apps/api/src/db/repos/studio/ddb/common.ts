@@ -96,7 +96,7 @@ export function byPublishedDesc(a: Item, b: Item): number {
 
 /** Runs `fn` over `xs` with at most `n` at once (per-episode and per-listener reads on a big show). */
 export async function mapLimit<T, R>(xs: readonly T[], n: number, fn: (x: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(xs.length);
+  const out: R[] = Array.from({ length: xs.length }) as R[];
   let next = 0;
   const worker = async () => { for (;;) { const i = next++; if (i >= xs.length) return; out[i] = await fn(xs[i]!); } };
   await Promise.all(Array.from({ length: Math.min(n, xs.length) }, worker));

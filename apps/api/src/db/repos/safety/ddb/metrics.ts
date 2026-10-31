@@ -25,6 +25,7 @@ import type { NativeAttributeValue } from '@aws-sdk/lib-dynamodb';
 import { encode, ttlAfter } from '../../../ddb/codec.ts';
 import * as K from '../../../ddb/keys.ts';
 import { queryAll, countAll } from '../../../ddb/paginate.ts';
+import { queryDay } from '../../../ddb/day-index.ts';
 import { isConditionFailed } from '../../../ddb/retry.ts';
 import { get, put, queryPage, update } from '../../../ddb/store.ts';
 import { deleteCacheKey } from '../../cache.ts';
@@ -35,6 +36,7 @@ import {
 } from '../../admin/metrics.ts';
 import { DASH_METRICS, dashKey, type DashMetric } from './dash.ts';
 import { DAY_MS, getMany, iso, keyOf, queue, queueCount, type Db, type Item, type Store } from './common.ts';
+import { log } from '../../../../log.ts';
 
 const STUDIO = 'studio-web';
 /** How far back `recordedSince` looks: the sweep keeps 400 days (old-rows-sweep.ts). */
@@ -156,9 +158,7 @@ const library = (store: Store, days: string[]) => section('library', async () =>
   // The UTC days that hold the range's instants: the day before the first UTC+8 day (its 16:00Z start) … the last.
   const utcDays: string[] = [];
   for (let d = start.slice(0, 10); d <= days[days.length - 1]!; d = plusDays(d, 1)) utcDays.push(d);
-  const keys = (await fan(utcDays, async (d) => (await queryAll(store, 'events', {
-    IndexName: K.INDEX.E1, KeyConditionExpression: 'E1PK = :d AND begins_with(E1SK, :se)', ExpressionAttributeValues: { ':d': `DAY#${d}`, ':se': 'se#' },
-  })).items.map(keyOf))).flat();
+  const keys = (await fan(utcDays, async (d) => (await queryDay(store, d, { condition: 'begins_with(E1SK, :se)', values: { ':se': 'se#' } })).map(keyOf))).flat();
   const added = new Map<string, number>();
   const removed = new Map<string, number>();
   for (const ev of await getMany(store, 'events', keys)) {
@@ -313,7 +313,7 @@ export async function checkDashboard(store: Store, _db: Db, day?: string): Promi
         if (isConditionFailed(e)) continue; // an event moved it meanwhile: next night
         throw e;
       }
-      console.warn(`[dashboard check] ${metric} ${key.SK}: counter ${got ?? 0} → recount ${want}`);
+      log.warn('dashboard_counter_mismatch', { metric, sk: key.SK, counter: got ?? 0, recount: want });
       fixed++;
     }
   }

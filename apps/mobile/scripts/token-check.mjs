@@ -9,6 +9,7 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { PENDING, STRICT_STYLE_FILES, WAVE_FILES, styleFindings, waveFindings } from './token-waves.mjs';
 
 const ROOTS = ['app', 'src'];
 const ALLOWED = path.join('src', 'design', 'tokens.ts');
@@ -75,7 +76,7 @@ for (const file of files) {
  */
 const TOKENS = [...readFileSync(ALLOWED, 'utf8')
   .slice(0, readFileSync(ALLOWED, 'utf8').indexOf('} as const'))
-  .matchAll(/^\s+([a-zA-Z]+):/gm)].map((m) => m[1]);
+  .matchAll(/^\s+([a-zA-Z0-9]+):/gm)].map((m) => m[1]);
 const PALETTE =
   /\b(?:bg|text|border(?:-[trblxy])?|tint|placeholder|decoration|shadow|fill|stroke|divide|ring|outline)-(?:(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-\d{2,3}|white|black)\b/g;
 const TYPE = /(?:^|\s)(?:text-(?:xs|sm|base|lg|\[\d+px\])|font-(?:thin|light|normal|medium|semibold|bold|extrabold|black)|leading-\S+)(?=\s|$)/;
@@ -131,6 +132,43 @@ for (const file of files) {
     if (/contentContainerClassName=["'`][^"'`]*(?:^|\s|["'`])(?:p|px)-\d/.test(lines[i])) classes.push(`${file}:${i + 1} a page margin written as a number — use px-screen-x`);
   }
 }
+/**
+ * The fifth class, M31 T021 (2026-10-27): the Pulse scale, in the files a wave has redrawn.
+ *
+ * Spec 033 redraws the app wave by wave, so these rules apply to `WAVE_FILES` (scripts/token-waves.mjs)
+ * and grow with each wave. In a wave file a class string may not carry an arbitrary text size
+ * (`text-[15px]`, `leading-[22px]`) or a number spacing (`p-3`, `gap-2`, `mt-[13px]`): sizes come
+ * from the type scale (`text-pulse-row`), spacing from the named scale (`p-gap`, `px-screen-x`).
+ * A wave file that has not been redrawn yet is listed in PENDING; it is skipped, and the check
+ * fails if a PENDING file is already clean (remove it) so the list only shrinks.
+ */
+const norm = (f) => f.split(path.sep).join('/');
+const inWave = (f) => WAVE_FILES.some((w) => (w.endsWith('/') ? norm(f).startsWith(w) : norm(f) === w));
+const waveFiles = files.filter((f) => !f.startsWith(LIB) && inWave(f));
+const pending = new Set(PENDING);
+const listing = [];
+for (const file of waveFiles) {
+  const found = waveFindings(file, readFileSync(file, 'utf8').split('\n'));
+  if (found.length > 0) listing.push(norm(file));
+  if (pending.has(norm(file))) {
+    if (found.length === 0) classes.push(`${file} is in PENDING (scripts/token-waves.mjs) but follows the Pulse rules now — remove it from the list`);
+    continue;
+  }
+  for (const f of found) classes.push(f);
+}
+for (const p of PENDING) if (!waveFiles.some((f) => norm(f) === p)) classes.push(`${p} is in PENDING (scripts/token-waves.mjs) but is not a wave file that exists — remove it`);
+// Wave-2 fix: numbers for type written in a style, in the files waves 1 and 2 finished.
+const inStrict = (f) => STRICT_STYLE_FILES.some((w) => (w.endsWith('/') ? norm(f).startsWith(w) : norm(f) === w));
+for (const file of files) {
+  if (file.startsWith(LIB) || !inStrict(file)) continue;
+  for (const f of styleFindings(file, readFileSync(file, 'utf8').split('\n'))) classes.push(f);
+}
+for (const p of STRICT_STYLE_FILES) if (!files.some((f) => (p.endsWith('/') ? norm(f).startsWith(p) : norm(f) === p))) classes.push(`${p} is in STRICT_STYLE_FILES (scripts/token-waves.mjs) but matches no file — remove it`);
+if (process.argv.includes('--list-pending')) {
+  console.log(['export const PENDING = [', ...listing.sort().map((f) => `  '${f}',`), '];'].join('\n'));
+  process.exit(0);
+}
+
 if (classes.length > 0) {
   console.error(`token check: ${classes.length} class string(s) break the token rule`);
   for (const f of classes) console.error('  ' + f);

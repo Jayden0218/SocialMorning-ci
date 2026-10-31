@@ -75,7 +75,7 @@ test('G-E1: the episodes CSV carries exactly the numbers the table shows', async
   assert.match(res.headers.get('content-disposition') ?? '', /attachment; filename=".+-episodes\.csv"/);
   assert.equal(res.headers.get('cache-control'), 'private, no-store');
   const bytes = new Uint8Array(await res.arrayBuffer());
-  assert.deepEqual([...bytes.slice(0, 3)], [0xef, 0xbb, 0xbf], 'a UTF-8 BOM, so spreadsheets read Chinese titles (res.text() would strip it)');
+  assert.deepEqual(Array.from(bytes.slice(0, 3)), [0xef, 0xbb, 0xbf], 'a UTF-8 BOM, so spreadsheets read Chinese titles (res.text() would strip it)');
   const lines = new TextDecoder().decode(bytes).trim().split('\r\n');
   assert.equal(lines[0], 'Title,Published,Plays,Completion %,Comments,Shares,Saves,Likes');
   assert.equal(lines.length - 1, table.items.length);

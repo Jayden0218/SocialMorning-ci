@@ -14,6 +14,7 @@ import Animated, {
   FadeOut,
   ZoomIn
 } from 'react-native-reanimated';
+import { useReducedMotion } from '@/ui/kit/useReducedMotion';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const AnimatedView = Animated.createAnimatedComponent(View);
@@ -134,11 +135,12 @@ const ModalContent = React.forwardRef<
   IModalContentProps
 >(function ModalContent({ className, size, ...props }, ref) {
   const { size: parentSize } = useStyleContext(SCOPE);
+  const reduce = useReducedMotion(); // M31 T081: fades only under Reduce Motion
 
   return (
     <UIModal.Content
       ref={ref}
-      entering={ZoomIn.duration(200).withInitialValues({
+      entering={reduce ? FadeIn.duration(200) : ZoomIn.duration(200).withInitialValues({
         transform: [{ scale: 0.9 }],
         opacity: 0,
         // M9: reanimated 4.7 types the initial values by the animation (scale only); the
