@@ -40,6 +40,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { generateClientTokenFromReadWriteToken } from '@vercel/blob/client';
 import type { EpisodeStorage } from '../src/storage/episodes-blob.ts';
+import { withRequestLog } from './request-log.ts';
 
 export const E2E_STORE = process.env['E2E_STORE_BASE'] ?? 'https://e2estore.public.blob.vercel-storage.com/';
 const SERVED_STORE = '/__e2e/store/';
@@ -153,7 +154,8 @@ function faultFor(pathname: string): { mode: 'slow' | 'fail'; ms: number } | und
 // Test-only window into what was deleted from the store (never mounted in production).
 const port = Number(process.env['PORT'] ?? 8787);
 serve({
-  fetch: async (req, env) => {
+  // ios-journey: one arrival line and one finish line per request in api.log (method, path, status, ms, id; no bodies, headers or tokens).
+  fetch: withRequestLog(async (req, env) => {
     const url = new URL(req.url);
     if (url.pathname === '/__e2e/fault' && req.method === 'POST') return e2eFault(req);
     const fault = faultFor(url.pathname);
@@ -166,7 +168,7 @@ serve({
       return code ? Response.json({ code }) : Response.json({ error: 'no code yet' }, { status: 404 });
     }
     return servedFile(req) ?? app.fetch(req, env);
-  },
+  }),
   port,
   hostname: process.env['E2E_HOST'] ?? '0.0.0.0',
 }, () => console.log(`e2e api on :${port}${ownerListenerId ? ' (moderator set)' : ''}`));
