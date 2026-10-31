@@ -4,15 +4,15 @@
  * Coming soon designs with no entry point, FR-016), each naming a stored B design and an entry
  * file that exists.
  *
- * The break that turns it red: remove one name from m17/designs.json (or one file the registry
+ * The break that turns it red: remove one name from __tests__/fixtures/m17/designs.json (or one file the registry
  * names).
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ROOT = join(__dirname, '..');
-const surfaces = JSON.parse(readFileSync(join(ROOT, 'm17', 'surfaces.json'), 'utf8')) as { name: string; design: string; entry: string; wave: string }[];
-const designs = new Set(JSON.parse(readFileSync(join(ROOT, 'm17', 'designs.json'), 'utf8')) as string[]);
+const surfaces = JSON.parse(readFileSync(join(ROOT, '__tests__', 'fixtures', 'm17', 'surfaces.json'), 'utf8')) as { name: string; design: string; entry: string; wave: string }[];
+const designs = new Set(JSON.parse(readFileSync(join(ROOT, '__tests__', 'fixtures', 'm17', 'designs.json'), 'utf8')) as string[]);
 
 it('G-E6: 84 surfaces in six waves, each with its design and entry file', () => {
   expect(surfaces).toHaveLength(84);

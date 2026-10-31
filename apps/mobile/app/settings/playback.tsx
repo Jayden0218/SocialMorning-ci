@@ -2,7 +2,7 @@
 /**
  * M21 US10 (T110, spec story 10 "Settings"): a "Playback" page holds every playback setting
  * that was in Settings › More — the same switches, the same prefs, the same player calls, moved
- * here unchanged (G-E3 moves recorded in m17/moves.json). Opened from Settings (a tile) and from
+ * here unchanged (G-E3 moves recorded in __tests__/fixtures/m17/moves.json). Opened from Settings (a tile) and from
  * More (a row where the rows used to be).
  *
  * The rows' history: "Comments on lock screen" (M20 US2, FR-005, on by default); "Music mode"

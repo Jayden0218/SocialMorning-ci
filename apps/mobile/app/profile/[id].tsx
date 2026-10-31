@@ -16,7 +16,7 @@
  * my pages only; they are never told.
  * M21 US8 (FR-074):
  * - Follow stays a pill; ⋯ opens a sheet holding Follow / Message / Block / Report / Mute (Block,
- *   Report and Mute were inline — moves recorded in m17/moves.json).
+ *   Report and Mute were inline — moves recorded in __tests__/fixtures/m17/moves.json).
  * - "Host of 《show》" under the name, and a Podcasts row of the shows they host (`hostOf`).
  * - The header collapses: once the name scrolls away, the bar shows the small photo and name.
  * - Likes "View all" → /profile/<id>/likes; others' Subscriptions cell → /profile/<id>/subscriptions

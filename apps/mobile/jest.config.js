@@ -23,6 +23,8 @@ module.exports = {
   // M25 G10: every src file is measured, and the rest of src/ has a floor that only goes up
   // (measured 2026-10-08, run 37746647372, without the two 100 % paths below: statements 55.16,
   // branches 51.67, functions 47.33, lines 57.57). Raise it when coverage rises; never lower it.
+  // Data and web shims live in __tests__/fixtures; jest's default testMatch would run the .ts shims as tests.
+  testPathIgnorePatterns: ['/node_modules/', '/__tests__/fixtures/'],
   collectCoverageFrom: ['src/**/*.{ts,tsx}'],
   coverageThreshold: {
     global: { statements: 55.1, branches: 51.6, functions: 47.3, lines: 57.5 },

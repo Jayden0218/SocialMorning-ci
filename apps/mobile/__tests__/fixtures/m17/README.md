@@ -1,7 +1,7 @@
 # M17 — Editorial: data the cloud gate reads
 
 The CI mirror copies `apps/` but never `specs/`, so the files M17's guards read live here.
-The design pictures themselves stay in `specs/018-m17-editorial/designs/`.
+The design pictures themselves stay in `specs/018-m17-editorial/designs/`. These files moved here from `apps/mobile/m17/` (2026-10-31).
 
 | File | What | Guard |
 |---|---|---|

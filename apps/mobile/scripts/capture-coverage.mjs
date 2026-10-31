@@ -2,7 +2,7 @@
 // Fails when a screen or popup in the code has no capture entry, or an entry points at code that is gone.
 /**
  * M27 (specs/031-m29-screen-capture, FR-003, guard G-M27-1…4). Reads the code (capture-sites.mjs)
- * and the inventory (m27/inventory/*.json) and checks:
+ * and the inventory (__tests__/fixtures/m27/inventory/*.json) and checks:
  *
  *   1. every site in the code is covered by some entry           → "NEW: <file>:<line> <kind> <key>"
  *   2. every covered id is a site that still exists               → "STALE: entry <name> covers <id>"
@@ -23,7 +23,7 @@ export const STATUSES = ['CAPTURE', 'NOT_CAPTURABLE', 'EXCLUDED'];
 const STEP_KEYS = ['open', 'tap', 'type', 'see', 'key', 'fault', 'back'];
 export const MAX_NON_CAPTURE = 0.05;
 
-export function loadInventory(dir = path.join(MOBILE, 'm27', 'inventory')) {
+export function loadInventory(dir = path.join(MOBILE, '__tests__', 'fixtures', 'm27', 'inventory')) {
   if (!existsSync(dir)) return [];
   return readdirSync(dir).filter((f) => f.endsWith('.json')).sort()
     .flatMap((f) => JSON.parse(readFileSync(path.join(dir, f), 'utf8')).map((e) => ({ ...e, _file: f })));
@@ -67,7 +67,7 @@ export function check(sites, entries, designs) {
 if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
   const sites = scan();
   const entries = loadInventory();
-  const designs = JSON.parse(readFileSync(path.join(MOBILE, 'm17', 'designs.json'), 'utf8'));
+  const designs = JSON.parse(readFileSync(path.join(MOBILE, '__tests__', 'fixtures', 'm17', 'designs.json'), 'utf8'));
   if (process.argv.includes('--list')) {
     const c = {};
     for (const e of entries) { c[e.kind] ??= {}; c[e.kind][e.status] = (c[e.kind][e.status] ?? 0) + 1; }
