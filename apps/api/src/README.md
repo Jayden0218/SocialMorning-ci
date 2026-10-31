@@ -611,7 +611,6 @@ here or a line does not match its file.
 | File | What it does |
 |---|---|
 | `ddb.ts` | The heat curve on DynamoDB: 100 buckets per episode, a listener counted once per bucket, kept in the writing transaction. |
-| `rebuild.ts` | An episode's heat curve is kept live by the writes themselves (heat/ddb.ts); there is nothing to rebuild. |
 
 ### `billing/` — selling through the stores
 

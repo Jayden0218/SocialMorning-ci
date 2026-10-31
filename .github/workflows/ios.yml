@@ -39,10 +39,11 @@ jobs:
       APP_VARIANT: ${{ inputs.variant == 'dev' && 'dev' || 'prod' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
       - run: npm ci --no-audit --no-fund
       - name: prebuild (generate the ios/ project from app.json)
         working-directory: apps/mobile

@@ -4,8 +4,13 @@
 # mirror's settings (T055) so this workflow is the only one.
 name: codeql
 on:
+  # The weekly run scans everything; a push scans only when the server or shared packages change (CI speed, 2026-10-31).
   push:
     branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - '.github/workflows/codeql.yml'
   schedule:
     - cron: '17 3 * * 1'   # weekly, Monday 03:17 UTC
   workflow_dispatch:

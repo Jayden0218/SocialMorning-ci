@@ -11,7 +11,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "postinstall": "if [ -x node_modules/.bin/patch-package ]; then patch-package; else echo 'postinstall: patch-package not installed (production install) — skipped'; fi",
-    "check:health": "knip --include files,dependencies,devDependencies,unlisted,unresolved,binaries,duplicates --max-issues 90 --no-progress && depcruise apps packages --config .dependency-cruiser.cjs --ignore-known --output-type err && jscpd apps packages --silent --threshold 0.6 --format \"typescript,tsx,javascript,jsx\" --ignore \"**/*.test.ts,**/*.test.tsx,**/*.json,**/ios/**,**/android/**,**/node_modules/**,**/dist/**,**/*.d.ts,**/__mocks__/**,**/*.generated.*\" --min-tokens 70"
+    "check:health": "knip --include files,dependencies,devDependencies,unlisted,unresolved,binaries,duplicates --max-issues 89 --no-progress && depcruise apps packages --config .dependency-cruiser.cjs --ignore-known --output-type err && jscpd apps packages --silent --threshold 0.6 --format \"typescript,tsx,javascript,jsx\" --ignore \"**/*.test.ts,**/*.test.tsx,**/*.json,**/ios/**,**/android/**,**/node_modules/**,**/dist/**,**/*.d.ts,**/__mocks__/**,**/*.generated.*\" --min-tokens 70"
   },
   "overrides": {
     "react": "19.2.3",
@@ -31,6 +31,7 @@
     "dependency-cruiser": "18.7.0",
     "jscpd": "4.3.0",
     "knip": "6.44.0",
+    "oxlint": "1.90.0",
     "patch-package": "8.0.1"
   }
 }

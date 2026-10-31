@@ -11,7 +11,8 @@
   },
   "scripts": {
     "test": "c8 tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json",
+    "lint": "oxlint --max-warnings 0 ."
   },
   "dependencies": {
     "fast-xml-parser": "^5.3.1"

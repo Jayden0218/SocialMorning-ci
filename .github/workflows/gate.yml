@@ -1,7 +1,9 @@
 # The gate, run on GitHub's runners (the owner's laptop must not run tests — 2026-09-21).
 # This file lives in the PRIVATE repo under ci/workflows/ and is copied by
 # scripts/push-ci.sh into the PUBLIC mirror's .github/workflows/, where Actions
-# minutes are unlimited. It runs exactly what scripts/gate.sh runs.
+# minutes are unlimited. It runs scripts/gate.sh, one group per job: the list of suites lives ONLY
+# in gate.sh (CI speed, 2026-10-31 — the two copies of the list drifted twice). This file only sets up
+# each job (Node, node_modules, Java + DynamoDB Local for the API shards).
 #
 # M23 US12 (T050): one 12.5-minute job became three kinds of job running side by side —
 #   typecheck  fails fast on its own;
@@ -26,14 +28,35 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
+          cache-dependency-path: package-lock.json
+      # node_modules restored whole when package-lock.json, the package.json files and patches/ are unchanged
+      # (exact key only: a near match is never used); a miss runs npm ci and saves right after it, before any
+      # test or build writes into node_modules. ~/.npm (setup-node's cache) still speeds up the miss.
+      - uses: actions/cache/restore@v6
+        id: node-modules
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('package-lock.json', 'package.json', 'apps/*/package.json', 'packages/*/package.json', 'patches/**') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
       # Each package also checks its src/ alone with no Node or DOM types (tsconfig.src.json, T054).
-      - name: typecheck (every workspace; packages' src without Node or DOM types)
-        run: npm run typecheck
+      - name: scripts/gate.sh typecheck (typecheck + oxlint)
+        run: sh scripts/gate.sh typecheck
 
   api:
     runs-on: ubuntu-latest
@@ -50,13 +73,40 @@ jobs:
       AWS_REGION: ap-southeast-1
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
+          cache-dependency-path: package-lock.json
+      # node_modules restored whole when package-lock.json, the package.json files and patches/ are unchanged
+      # (exact key only: a near match is never used); a miss runs npm ci and saves right after it, before any
+      # test or build writes into node_modules. ~/.npm (setup-node's cache) still speeds up the miss.
+      - uses: actions/cache/restore@v6
+        id: node-modules
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('package-lock.json', 'package.json', 'apps/*/package.json', 'packages/*/package.json', 'patches/**') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21' }
+      # The DynamoDB Local jars scripts/ddb-local.sh fetches from Maven Central (51 MB): cached by the script's hash,
+      # which pins the version. The script skips the fetch when its .complete-<version> marker came back with them.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/socialmorning/ddb-local/lib
+          key: ddb-local-${{ runner.os }}-${{ hashFiles('scripts/ddb-local.sh') }}
       - name: start DynamoDB Local
         run: scripts/ddb-local.sh
         working-directory: .
@@ -68,67 +118,43 @@ jobs:
             sleep 1
           done
           echo "DynamoDB Local did not start" >&2; exit 1
-      - name: api tests, shard ${{ matrix.shard }} of 3
-        run: npx tsx --test --test-timeout=120000 --test-shard=${{ matrix.shard }}/3 test/*.test.ts
-        working-directory: apps/api
+      - name: scripts/gate.sh api, shard ${{ matrix.shard }} of 3
+        run: sh scripts/gate.sh api
+        env:
+          GATE_API_SHARD: ${{ matrix.shard }}/3
 
   checks:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
-      - name: mobile tests with the coverage threshold (src/playback 100 % branches)
-        run: npx jest --coverage
-        working-directory: apps/mobile
-      - name: studio tests
-        run: npm test --workspace=@socialmorning/studio
-      - name: feed-parser tests
-        run: npm test -w packages/feed-parser
-      - name: social-core + player-core tests, 100 % branches
-        run: |
-          npm run test:coverage -w packages/social-core
-          npm run test:coverage -w packages/player-core
-      # Added 2026-09-25 (M7 T020). Both of these were in `scripts/gate.sh` and the header
-      # above claimed this file ran "exactly what scripts/gate.sh runs" — it did not.
-      # The a11y audit had therefore never run on a runner, only by hand during M6; and
-      # G1 stayed green with a colour literal deliberately put back, which is how the
-      # omission was found.
-      - name: a11y audit (M6 FR-022 — no unnamed interactive element)
-        run: node scripts/a11y-audit.mjs
-        working-directory: apps/mobile
-      - name: token check (M7 FR-002 / G1 — every colour from tokens.ts)
-        run: node scripts/token-check.mjs
-        working-directory: apps/mobile
-      # Added 2026-09-27 with Tailwind: a <Text> with no style at all is black on this
-      # black app, and token-check has nothing to find in it. 20 were found.
-      - name: text colour check (every Text and TextInput names a token colour)
-        run: node scripts/text-colour-check.mjs
-        working-directory: apps/mobile
-      # M27 (FR-003): every screen and popup in the code has a capture entry, and no entry is stale.
-      - name: capture coverage (M27 — every screen, sheet, dialog, toast has an entry)
-        run: node --test scripts/capture-coverage.test.mjs && node scripts/capture-coverage.mjs
-        working-directory: apps/mobile
-      # M23 US13 (G-M23-10): the nightly backup (private repo only) refuses to run without
-      # its database address or its encryption key, and never prints the address.
-      - name: backup preflight refuses without its key (G-M23-10)
-        run: sh scripts/backup-preflight.test.sh
-      # M27 G-DV4: the commit script's verdict is the worst run of the commit, not the gate's alone.
-      - name: commit-gated verdict logic (G-DV4)
-        run: node --test scripts/gate-verdict.test.mjs
-      # M28 US5 (G-M28-AUDIT, G-M28-ALLOW): a high/critical advisory not on security/audit-allow.json, an expired or
-      # reasonless entry, or a fixable server-scope entry fails; so does an unreachable registry. Needs the network.
-      - name: security — dependency audit (G-M28-AUDIT)
-        run: |
-          node --test scripts/audit-gate.test.mjs
-          node scripts/audit-gate.mjs
-      # M11 (research R9 open item): recharts 3 was reported to resolve react-is@18 under
-      # React 19. List what it resolves; the Studio's own tests (above) render its charts.
-      - name: studio — react-is resolved under React 19
-        run: npm ls react-is --workspace=@socialmorning/studio
-      - name: studio — production build
-        run: npm run build --workspace=@socialmorning/studio
+          cache-dependency-path: package-lock.json
+      # node_modules restored whole when package-lock.json, the package.json files and patches/ are unchanged
+      # (exact key only: a near match is never used); a miss runs npm ci and saves right after it, before any
+      # test or build writes into node_modules. ~/.npm (setup-node's cache) still speeds up the miss.
+      - uses: actions/cache/restore@v6
+        id: node-modules
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('package-lock.json', 'package.json', 'apps/*/package.json', 'packages/*/package.json', 'patches/**') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
+      # mobile jest with coverage, studio, feed-parser, social-core + player-core (100 % branches), a11y audit, token and
+      # text-colour checks, capture coverage, backup preflight, verdict logic, dependency audit, react-is, Studio build.
+      - name: scripts/gate.sh checks
+        run: sh scripts/gate.sh checks

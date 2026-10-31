@@ -6,12 +6,17 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const BAD = new Set(['failure', 'timed_out', 'startup_failure', 'action_required']);
+// Workflows that run on EVERY push. The others (studio-e2e, infra, codeql, android-compile) have path filters: no run for
+// them on a commit means their paths did not change, and is not waited for. A required one missing means GitHub has not
+// listed it yet: PENDING, never GREEN.
+export const REQUIRED = ['gate'];
 /** Conclusions that do not make a commit red: success, skipped, neutral; `cancelled` only counts as red when nothing newer replaced it (the caller decides). */
 export function verdict(runs) {
   if (!Array.isArray(runs) || runs.length === 0) return 'NONE';
   const done = runs.filter((r) => r.status === 'completed');
   if (done.some((r) => BAD.has(r.conclusion) || r.conclusion === 'cancelled')) return 'RED';
   if (done.length < runs.length) return 'PENDING';
+  if (REQUIRED.some((name) => !runs.some((r) => r.name === name))) return 'PENDING';
   return 'GREEN';
 }
 

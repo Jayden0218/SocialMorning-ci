@@ -48,12 +48,18 @@ jobs:
       MAESTRO_DRIVER_STARTUP_TIMEOUT: '240000'
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: npm, cache-dependency-path: package-lock.json }
       - run: npm ci --no-audit --no-fund
       # macOS runners have no service containers: DynamoDB Local runs from Maven Central (scripts/ddb-local.sh), in memory.
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21' }
+      # The DynamoDB Local jars scripts/ddb-local.sh fetches from Maven Central (51 MB): cached by the script's hash,
+      # which pins the version. The script skips the fetch when its .complete-<version> marker came back with them.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/socialmorning/ddb-local/lib
+          key: ddb-local-${{ runner.os }}-${{ hashFiles('scripts/ddb-local.sh') }}
       - name: start DynamoDB Local
         run: scripts/ddb-local.sh
       - name: start the test server (DynamoDB Local) and seed 50 listeners

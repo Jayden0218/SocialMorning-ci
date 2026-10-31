@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
+    "lint": "oxlint --max-warnings 16 .",
     "test": "c8 vitest run --pool=threads",
     "e2e": "playwright test"
   },

@@ -266,6 +266,10 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `memory.ts` | In-memory copy of the storage, used by tests instead of the database. |
 | `playable.ts` | Turns a saved episode into what the player needs, using downloads first. |
 | `schema.ts` | Creates and upgrades the phone database tables. |
+| `sqlite-feeds.ts` | SQLite stores for shows, episodes, the raw feed cache, subscriptions and chapters/transcripts. |
+| `sqlite-open.ts` | Opens the phone's SQLite database and runs the migrations; the shared row helper. |
+| `sqlite-playback.ts` | SQLite stores for positions, the session, downloads, the queue and its backups, speed, listened ranges, the inbox. |
+| `sqlite-social.ts` | SQLite stores for sign-in, settings, the social cache, drafts, pending clips, hidden items, blocks, the rec outbox. |
 | `sqlite.ts` | Reads and writes app data in the phone's SQLite database. |
 | `types.ts` | Defines the shapes of all saved data and storage functions. |
 

@@ -13,15 +13,36 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: package-lock.json
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
-      - run: npm ci --no-audit --no-fund
+      # node_modules restored whole when package-lock.json, the package.json files and patches/ are unchanged
+      # (exact key only: a near match is never used); a miss runs npm ci and saves right after it, before any
+      # test or build writes into node_modules. ~/.npm (setup-node's cache) still speeds up the miss.
+      - uses: actions/cache/restore@v6
+        id: node-modules
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('package-lock.json', 'package.json', 'apps/*/package.json', 'packages/*/package.json', 'patches/**') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
       - name: expo prebuild (android)
         run: npx expo prebuild -p android --no-install --clean
         working-directory: apps/mobile

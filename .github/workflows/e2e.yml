@@ -5,7 +5,22 @@
 name: studio-e2e
 on:
   workflow_dispatch:
+  # Only when what it drives changes (CI speed, 2026-10-31). No run on a commit is fine: scripts/gate-verdict.mjs waits only
+  # for the runs that exist, plus `gate`, which runs on every push.
   push:
+    paths:
+      - 'apps/studio/**'
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'package-lock.json'
+      - 'patches/**'
+      - 'scripts/ddb-local.sh'
+      - '.github/workflows/e2e.yml'
+# A newer push cancels an older run of the same ref — except on main, where every session mirrors its own tree, so the
+# run before yours is another session's proof (the same rule as gate.yml and infra.yml).
+concurrency:
+  group: studio-e2e-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 jobs:
   e2e:
     runs-on: ubuntu-latest
@@ -21,12 +36,38 @@ jobs:
       JOURNEY_OUT: ${{ github.workspace }}/apps/api/journey.json
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci --no-audit --no-fund
+      - uses: actions/setup-node@v7
+        with: { node-version: 22, cache: npm, cache-dependency-path: package-lock.json }
+      # node_modules restored whole when package-lock.json, the package.json files and patches/ are unchanged
+      # (exact key only: a near match is never used); a miss runs npm ci and saves right after it, before any
+      # test or build writes into node_modules. ~/.npm (setup-node's cache) still speeds up the miss.
+      - uses: actions/cache/restore@v6
+        id: node-modules
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('package-lock.json', 'package.json', 'apps/*/package.json', 'packages/*/package.json', 'patches/**') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
       # DynamoDB Local from Maven Central (scripts/ddb-local.sh): the image registry rate-limited the service container (2026-10-12).
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '21' }
+      # The DynamoDB Local jars scripts/ddb-local.sh fetches from Maven Central (51 MB): cached by the script's hash,
+      # which pins the version. The script skips the fetch when its .complete-<version> marker came back with them.
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/socialmorning/ddb-local/lib
+          key: ddb-local-${{ runner.os }}-${{ hashFiles('scripts/ddb-local.sh') }}
       - name: start DynamoDB Local
         run: scripts/ddb-local.sh
       - name: start the API

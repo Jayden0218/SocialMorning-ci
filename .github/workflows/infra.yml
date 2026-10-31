@@ -5,7 +5,14 @@
 # staging deploy, which is the owner's to run.
 name: infra
 on:
+  # Only when the template, its builder, its test or the DynamoDB schema they read changes (CI speed, 2026-10-31); the infra stack lives in apps/api/infra/.
   push:
+    paths:
+      - 'apps/api/infra/**'
+      - 'apps/api/test/infra-stack.test.ts'
+      - 'apps/api/src/db/ddb/**'   # the builder and the test read schema.ts and keys.ts
+      - 'package-lock.json'
+      - '.github/workflows/infra.yml'
   workflow_dispatch:
 concurrency:
   group: infra-${{ github.ref }}
@@ -22,11 +29,32 @@ jobs:
       - run: pip install cfn-lint==1.57.2
       - name: lint the stack template
         run: cfn-lint --regions ap-southeast-1 -- apps/api/infra/stack.json
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
-      - run: npm ci --no-audit --no-fund
+          cache-dependency-path: package-lock.json
+      # node_modules restored whole when package-lock.json, the package.json files and patches/ are unchanged
+      # (exact key only: a near match is never used); a miss runs npm ci and saves right after it, before any
+      # test or build writes into node_modules. ~/.npm (setup-node's cache) still speeds up the miss.
+      - uses: actions/cache/restore@v6
+        id: node-modules
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: node-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('package-lock.json', 'package.json', 'apps/*/package.json', 'packages/*/package.json', 'patches/**') }}
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        run: npm ci --no-audit --no-fund
+      - if: steps.node-modules.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: ${{ steps.node-modules.outputs.cache-primary-key }}
       - name: template tests (staging and prod render, retain, schedules, Stream filter)
         working-directory: apps/api
         run: npx tsx --test --test-timeout=120000 test/infra-stack.test.ts

@@ -1,0 +1,6 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "unicorn", "oxc"],
+  "categories": { "correctness": "warn" },
+  "ignorePatterns": ["coverage/**", "dist/**", "ios/**", "android/**", "e2e-results/**", "e2e-report/**", "node_modules/**"]
+}
