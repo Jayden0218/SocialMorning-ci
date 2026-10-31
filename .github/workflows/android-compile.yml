@@ -20,6 +20,11 @@ on:
         type: choice
         options: [prod, dev]
         default: prod
+      dev_api_url:
+        # M30: a dev app talks to its own API, never production — app.config.js throws without an https address. Required when variant=dev.
+        description: 'variant=dev only: the https address of the dev API (e.g. the dev-api project)'
+        type: string
+        default: ''
 permissions:
   contents: read
 jobs:
@@ -28,7 +33,13 @@ jobs:
     timeout-minutes: 60
     env:
       APP_VARIANT: ${{ inputs.variant == 'dev' && 'dev' || 'prod' }}
+      SOCIALNET_DEV_API_BASE_URL: ${{ inputs.dev_api_url }}
     steps:
+      - name: a dev app needs its API address (fail in seconds, not at prebuild)
+        if: ${{ inputs.variant == 'dev' && inputs.dev_api_url == '' }}
+        run: |
+          echo "::error::variant=dev needs the dev_api_url input (the https address of the dev API); without it the app would use the production API"
+          exit 1
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:

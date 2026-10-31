@@ -6,7 +6,7 @@
   "description": "M11 — the Studio: the creator website (specs/011-m11-studio). Vite + React; calls the API as /api through its own host.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/build-output.mjs",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.node.json",
     "lint": "oxlint --max-warnings 12 .",
     "test": "c8 vitest run --pool=threads",

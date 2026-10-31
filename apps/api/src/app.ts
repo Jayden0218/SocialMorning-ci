@@ -304,16 +304,18 @@ export function createApp(deps: AppDeps) {
   // M25 S11: the health check touches the database (one read) and says so: `db: 'ok'`, or
   // `{ ok: false, db: 'fail' }` with 503 so an uptime check sees a dead database.
   app.get('/v1/health', async (c) => {
+    // M30 T011: which environment and build answered (a deploy check can tell qa from prod).
+    const who = { env: process.env['APP_ENV'] ?? (process.env['VERCEL_ENV'] === 'production' ? 'prod' : 'dev'), commit: process.env['VERCEL_GIT_COMMIT_SHA'] || process.env['BUILD_COMMIT'] || (typeof __BUILD_COMMIT__ !== 'undefined' && __BUILD_COMMIT__ ? __BUILD_COMMIT__ : 'unknown'), builtAt: process.env['BUILD_TIME'] || (typeof __BUILD_TIME__ !== 'undefined' && __BUILD_TIME__ ? __BUILD_TIME__ : null) };
     const dbOk = await ping(deps.db).then(() => true, () => false);
     if (!dbOk) return c.json({ ok: false, db: 'fail' }, 503);
     const until = process.env['MAINTENANCE_UNTIL'];
     const at = until ? Date.parse(until) : NaN;
     if (!Number.isFinite(at) || at <= Date.now()) {
       const m = await activeMaintenance(deps.db).catch(() => null);
-      return c.json(m ? { ok: true, db: 'ok', maintenance: m } : { ok: true, db: 'ok' });
+      return c.json(m ? { ok: true, db: 'ok', ...who, maintenance: m } : { ok: true, db: 'ok', ...who });
     }
     const message = process.env['MAINTENANCE_MESSAGE'] || 'SocialNet is being updated.';
-    return c.json({ ok: true, db: 'ok', maintenance: { until: new Date(at).toISOString(), message } });
+    return c.json({ ok: true, db: 'ok', ...who, maintenance: { until: new Date(at).toISOString(), message } });
   });
   // M25 S9: the bare address answered 500 FUNCTION_INVOCATION_FAILED live; now a small JSON.
   app.get('/', (c) => c.json({ name: 'SocialNet API', health: '/v1/health' }));

@@ -19,7 +19,7 @@ import { gmailMailer } from './mail/mailer.ts';
 import type { Db } from './db/db.ts';
 import { loadSecrets, type Secrets, type SsmLike } from './secrets.ts';
 
-export type AppEnv = 'dev' | 'staging' | 'prod';
+export type AppEnv = 'dev' | 'qa' | 'staging' | 'prod';
 type Env = Record<string, string | undefined>;
 
 export const DEFAULT_AWS_REGION = 'ap-southeast-1';
@@ -52,12 +52,12 @@ function localEndpoint(endpoint: string): boolean {
  */
 export function testPurchasesAllowed(env: Env = process.env): boolean {
   const appEnv = env['APP_ENV'] ?? (env['VERCEL_ENV'] === 'production' ? 'prod' : 'dev');
-  return appEnv === 'dev' || appEnv === 'staging' || env['ALLOW_TEST_PURCHASES'] === '1';
+  return appEnv === 'dev' || appEnv === 'qa' || appEnv === 'staging' || env['ALLOW_TEST_PURCHASES'] === '1';
 }
 
 export function readConfig(env: Env = process.env): Config {
   const rawEnv = env['APP_ENV'] ?? (env['VERCEL_ENV'] === 'production' ? 'prod' : 'dev');
-  if (rawEnv !== 'dev' && rawEnv !== 'staging' && rawEnv !== 'prod') bad('APP_ENV', `"${rawEnv}" is not one of dev, staging, prod`);
+  if (rawEnv !== 'dev' && rawEnv !== 'qa' && rawEnv !== 'staging' && rawEnv !== 'prod') bad('APP_ENV', `"${rawEnv}" is not one of dev, qa, staging, prod`);
   const appEnv = rawEnv as AppEnv;
 
   // There is no other data layer: a leftover DATA_BACKEND=pg must not be read as "use Postgres".
@@ -70,12 +70,12 @@ export function readConfig(env: Env = process.env): Config {
   if (appEnv === 'prod' && ddbEndpoint) bad('DDB_ENDPOINT', 'must not be set when APP_ENV=prod (it would point production at a local DynamoDB)');
   if (ddbEndpoint && !localEndpoint(ddbEndpoint)) bad('DDB_ENDPOINT', `"${ddbEndpoint}" is not a local endpoint; real AWS is reached with no endpoint, inside Lambda`);
 
-  const owned = appEnv === 'dev' ? undefined : ENV_PREFIX[appEnv];
+  const owned = appEnv === 'dev' || appEnv === 'qa' ? undefined : ENV_PREFIX[appEnv];
   const given = env['DDB_TABLE_PREFIX'] || undefined;
   if (given && !/^[a-z][a-z0-9_]{0,30}$/.test(given)) bad('DDB_TABLE_PREFIX', `"${given}" must be lowercase letters, digits or _ and start with a letter`);
   if (owned && given && given !== owned) bad('DDB_TABLE_PREFIX', `"${given}" does not match APP_ENV=${appEnv} (its tables start "${owned}-")`);
   if (!owned && given && Object.values(ENV_PREFIX).includes(given)) bad('DDB_TABLE_PREFIX', `"${given}" belongs to an AWS environment; APP_ENV=dev must not use it`);
-  const tablePrefix = given ?? owned ?? 'dev';
+  const tablePrefix = given ?? owned ?? (appEnv === 'qa' ? 'qa' : 'dev');
 
   // 027's client.ts rule kept: without a local endpoint the DynamoDB client is refused unless we run inside Lambda.
   if (!ddbEndpoint && !inLambda) bad('DDB_ENDPOINT', 'outside AWS Lambda the API needs a local DDB_ENDPOINT outside AWS Lambda (no AWS account is approved for local runs)');

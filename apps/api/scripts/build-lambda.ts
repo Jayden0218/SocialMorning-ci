@@ -9,6 +9,7 @@
  * Env:   LAMBDA_ZIP_LIMIT_BYTES               → override the limit (the guard test lowers it).
  */
 import { build } from 'esbuild';
+import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -50,8 +51,16 @@ export function zipOne(name: string, data: Buffer): Buffer {
   return Buffer.concat([local, central, end]);
 }
 
+/** M30 T080: the commit and time baked into the bundle (health reads them when no env says otherwise). */
+function stamp(): { __BUILD_COMMIT__: string; __BUILD_TIME__: string } {
+  let commit = 'unknown';
+  try { commit = execSync('git rev-parse HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'unknown'; } catch { /* no .git */ }
+  return { __BUILD_COMMIT__: JSON.stringify(commit), __BUILD_TIME__: JSON.stringify(new Date().toISOString().replace(/\.\d+Z$/, 'Z')) };
+}
+
 async function bundle(entry: string, outfile: string): Promise<void> {
   await build({
+    define: stamp(),
     entryPoints: [`${ROOT}src/${entry}`], bundle: true, platform: 'node', format: 'esm', target: 'node22', outfile,
     loader: { '.wasm': 'binary', '.woff': 'binary' },
     banner: { js: "import { createRequire } from 'node:module'; const require = createRequire(import.meta.url);" },

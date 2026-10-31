@@ -19,6 +19,7 @@ import { cancelDeletion, requestDeletion } from '../src/db/repos/account/deletio
 
 const ep = { feedUrl: 'https://feeds.example.com/x.xml', guid: 'g1', title: 'Ep', showTitle: 'Show', enclosureUrl: 'https://cdn/1.mp3' };
 const EP = fnv1a64(ep.feedUrl + '\u0001' + ep.guid);
+const withoutBuildInfo = (b: Record<string, unknown>) => { const { env: _e, commit: _c, builtAt: _b, ...rest } = b; return rest; }; // M30: /v1/health also carries env, commit, builtAt
 const json = async <T>(r: Response | Promise<Response>): Promise<T> => (await (await r).json()) as T;
 
 /** Two listeners who follow each other (so they can chat). */
@@ -170,14 +171,14 @@ test('M24 US4: maintenance on → every API call but health/admin/sign-in answer
   assert.equal(me.status, 503);
   assert.deepEqual(await me.json(), { error: 'maintenance', message: 'Back soon.', maintenance: { until, message: 'Back soon.' } });
   assert.equal((await t.call('GET', '/v1/search?q=x')).status, 503);
-  assert.deepEqual(await json(t.call('GET', '/v1/health')), { ok: true, db: 'ok', maintenance: { until, message: 'Back soon.' } });
+  assert.deepEqual(withoutBuildInfo(await json(t.call('GET', '/v1/health'))), { ok: true, db: 'ok', maintenance: { until, message: 'Back soon.' } });
   assert.equal((await aCall(t, 'GET', '/v1/admin/maintenance', owner)).status, 200, 'Admin still works');
   assert.equal((await t.call('POST', '/v1/auth/sign-in', { email: 'u@example.com', password: 'correct horse' })).status, 200, 'signing in still works');
   assert.notEqual((await t.call('GET', '/l/abcdefghij')).status, 503, 'pages are not the API');
 
   assert.equal((await aCall(t, 'PUT', '/v1/admin/maintenance', owner, { on: false })).status, 200);
   assert.equal((await t.call('GET', '/v1/me', undefined, u.token)).status, 200);
-  assert.deepEqual(await json(t.call('GET', '/v1/health')), { ok: true, db: 'ok' });
+  assert.deepEqual(withoutBuildInfo(await json(t.call('GET', '/v1/health'))), { ok: true, db: 'ok' });
   assert.deepEqual((await auditFull(t)).filter((x) => x.area === 'safety').map((x) => x.action), ['maintenance on', 'maintenance off']);
   await t.close();
 });

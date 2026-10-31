@@ -38,6 +38,7 @@ import { useStartupExtras } from '@/ui/shell/startupExtras';
 import { useStartConfig } from '@/config/useStartConfig'; // M25 lane AC
 import { useIconReset } from '@/ui/shell/iconReset';
 import { DataPrompt } from '@/ui/player/DataPrompt';
+import { EnvBadge } from '@/ui/shell/EnvBadge'; // M30
 import { ErrorScreen } from '@/ui/paused/ErrorScreen';
 
 // Owner, 2026-09-27: no warning bar over the app in Debug builds. Warnings still print
@@ -127,6 +128,7 @@ function RootStack(): React.ReactElement {
         {/* M10b: the clock and battery follow the page (light words on the dark palette, v4.0.0). */}
         <StatusBar style="light" />
         <CarLibrarySync />
+        <EnvBadge />
         {/*
           * M16a T002 (FR-012, owner 2026-10-02, said twice): no iOS-native header on any page.
           * Every page draws the app's own bar (src/ui/kit/PageHeader.tsx, or TopBar on the show,

@@ -93,6 +93,7 @@ missing here or a line does not match its file.
 | `ActingBanner.tsx` | Banner shown while the owner acts as another account, with a way back. |
 | `ConfirmDialog.tsx` | An in-page "are you sure?" dialog; Escape or clicking outside cancels. |
 | `DropZone.tsx` | A box to drop or choose an image file, showing the current one. |
+| `EnvBadge.tsx` | A small fixed-corner badge saying which environment this Studio is (DEV, QA or STAGING); nothing on prod. |
 | `Icons.tsx` | The Studio's own simple line icons. |
 | `Layout.tsx` | The page frame for a show: side menu, top bar and content area. |
 | `Page.tsx` | A page header with title, short purpose, an action and sub-tabs. |

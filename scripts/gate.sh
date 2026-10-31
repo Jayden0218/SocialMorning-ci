@@ -84,6 +84,10 @@ if wants checks; then
   run backup-preflight sh scripts/backup-preflight.test.sh
   # M27 G-DV4: the commit script's verdict logic.
   run verdict node --test scripts/gate-verdict.test.mjs
+  # M30: promotion guard, the approvals check and the environment status script.
+  run promote node --test scripts/promote-check.test.mjs
+  run approvals node --test scripts/check-approvals.test.mjs
+  run envstatus node --test scripts/environments-status.test.mjs
   # M28 US5 (G-M28-AUDIT, G-M28-ALLOW): a high/critical advisory not on security/audit-allow.json, an expired or reasonless
   # entry, or a fixable server-scope entry fails; so does an unreachable registry. Needs the network.
   run audit sh -c 'node --test scripts/audit-gate.test.mjs && node scripts/audit-gate.mjs'

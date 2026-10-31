@@ -33,6 +33,7 @@ import { withStore } from '../src/db/backend-ddb.ts';
 import type { Db } from '../src/db/db.ts';
 import { createStore, PROD_TABLES, prefixedTables, type Store } from '../src/db/ddb/store.ts';
 import { createDdbClients } from '../src/db/ddb/client.ts';
+import { withThrottleRetry } from './retry-throttle.ts';
 import { tablesFor } from '../src/config.ts';
 import { createListener, listenerByEmail } from '../src/db/repos/account/listeners.ts';
 import { updateProfile } from '../src/db/repos/account/profile.ts';
@@ -425,13 +426,23 @@ export async function seedDemo(db: Db, o: SeedDemoOpts): Promise<{ id: Record<Wh
   return { id, counts };
 }
 
+/**
+ * The tables a `--prefix` names. `dev` and `qa` are real environments whose tables the API reads as `dev-main` / `qa-main`
+ * (config.ts `tablesFor`); any other name is a scratch set (`prefixedTables`: `<name>_main`). M30: `qa` was missing here, so a qa seed
+ * wrote `qa_main` while the qa API read `qa-main` and the demo login never matched.
+ */
+export const seedTables = (prefix: string) => (prefix === 'dev' || prefix === 'qa' ? tablesFor(prefix) : prefixedTables(prefix));
+
 /** The backend from the flags: DynamoDB, `--prefix <set>` / `--prod` (with `--aws`), with a clock the seed moves. A leftover `--ddb` is ignored. */
 export async function openBackend(argv: readonly string[]): Promise<{ db: Db; setClock?: (ms: number) => void; close(): Promise<void> }> {
   const args = parseArgs(argv);
   loadEnv();
   if (!args['prefix'] && !args['prod']) throw new Error('name the tables: --prefix <scratch> (dev = the dev loop) or --prod');
-  const tables = typeof args['prefix'] === 'string' ? (args['prefix'] === 'dev' ? tablesFor('dev') : prefixedTables(args['prefix'])) : PROD_TABLES;
+  const tables = typeof args['prefix'] === 'string' ? seedTables(args['prefix']) : PROD_TABLES;
   const clients = createDdbClients({ allowAws: args['aws'] === true });
+  // M30 T019: every write the repos make goes through doc.send; a throttled one (1-WCU index) waits and retries.
+  const sendOnce = clients.doc.send.bind(clients.doc) as (c: unknown, o?: unknown) => Promise<unknown>;
+  (clients.doc as { send: unknown }).send = (c: unknown, o?: unknown) => withThrottleRetry(() => sendOnce(c, o));
   // On DynamoDB Local the tables may not exist yet: create the set for the prefix first.
   if (process.env['DDB_ENDPOINT'] && typeof args['prefix'] === 'string') {
     const { ListTablesCommand } = await import('@aws-sdk/client-dynamodb');

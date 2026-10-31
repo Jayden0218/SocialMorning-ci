@@ -14,6 +14,8 @@ const ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const PRIVATE = join(ROOT, '.github/workflows');
 const MIRRORED = join(ROOT, 'ci/workflows');
 const DEPLOY = ['deploy-staging.yml', 'deploy-prod.yml'];
+/** Every workflow that may hold the deploy role: the two deploys and (M30 T040) the rollback. */
+const SIGNIN = [...DEPLOY, 'rollback.yml'];
 const present = DEPLOY.every((f) => existsSync(join(PRIVATE, f)));
 const read = (dir: string, f: string) => readFileSync(join(dir, f), 'utf8');
 const yml = (dir: string) => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.yml')) : []);
@@ -40,21 +42,21 @@ test('nothing under ci/workflows/ (the public mirror) is a deploy workflow or si
   }
 });
 
-test('only the two deploy workflows mention the deploy role', { skip: !present && 'deploy workflows are private-repo only (not in the mirror)' }, () => {
+test('only the deploy workflows and rollback.yml mention the deploy role', { skip: !present && 'deploy workflows are private-repo only (not in the mirror)' }, () => {
   for (const dir of [PRIVATE, MIRRORED]) {
     for (const f of yml(dir)) {
       const mentions = /AWS_DEPLOY_ROLE_ARN/.test(read(dir, f));
-      assert.equal(mentions, dir === PRIVATE && DEPLOY.includes(f), `${f}: AWS_DEPLOY_ROLE_ARN ${mentions ? 'is' : 'is not'} mentioned`);
+      assert.equal(mentions, dir === PRIVATE && SIGNIN.includes(f), `${f}: AWS_DEPLOY_ROLE_ARN ${mentions ? 'is' : 'is not'} mentioned`);
     }
   }
 });
 
-test('G-DP1: both deploy workflows start only with workflow_dispatch', { skip: !present && 'private-repo only' }, () => {
-  for (const f of DEPLOY) assert.deepEqual(triggers(read(PRIVATE, f)), ['workflow_dispatch'], `${f} triggers`);
+test('G-DP1: both deploy workflows and rollback.yml start only with workflow_dispatch', { skip: !present && 'private-repo only' }, () => {
+  for (const f of SIGNIN) assert.deepEqual(triggers(read(PRIVATE, f)), ['workflow_dispatch'], `${f} triggers`);
 });
 
 test('the AWS sign-in action is pinned to a full commit SHA', { skip: !present && 'private-repo only' }, () => {
-  for (const f of DEPLOY) {
+  for (const f of SIGNIN) {
     const uses = [...read(PRIVATE, f).matchAll(/aws-actions\/configure-aws-credentials@(\S+)/g)].map((m) => m[1]!);
     assert.ok(uses.length >= 1, `${f} does not sign in`);
     for (const ref of uses) assert.match(ref, /^[0-9a-f]{40}$/, `${f}: ${ref} is not a 40-hex commit SHA`);
@@ -91,6 +93,92 @@ test('M28 US3: prod passes the alarm email from PROD_ALERT_EMAIL and reports whe
   assert.match(prod, /sns list-subscriptions-by-topic/);
   assert.match(stg, /ParameterKey=AlertEmail,ParameterValue="/, 'staging passes an empty address');
   assert.ok(!/secrets\.PROD_ALERT_EMAIL/.test(stg));
+});
+
+// M30 T030-T040 (specs/032-m30-four-environments): pinned actions everywhere, the exact artefact, the approval preflight, the rollback.
+const code = (t: string) => t.split('\n').filter((l) => !l.trim().startsWith('#')).join('\n');
+/** Workflows OUTSIDE lane E (backup.yml, guide-names.yml) that still float; listed so the exception is visible, and the test below fails when one is fixed (remove it from the list then). */
+const KNOWN_UNPINNED: string[] = [];
+/** WORKFLOWS_DIR lets a red run point the guard at a temp copy. */
+const PIN_DIR = process.env['WORKFLOWS_DIR'] ?? PRIVATE;
+const pinProblems = (dir: string, f: string): string[] => [...code(read(dir, f)).matchAll(/^\s*(?:-\s+)?uses:\s*(\S+)(.*)$/gm)]
+  .filter((m) => !m[1]!.startsWith('./') && !m[1]!.startsWith('docker://'))
+  .filter((m) => !/@[0-9a-f]{40}$/.test(m[1]!) || !/^\s*#\s*v?\d/.test(m[2]!))
+  .map((m) => `${f}: ${m[1]}${m[2]}`);
+
+test('M30 T030: every `uses:` in every private workflow is pinned to a 40-hex SHA with its version in a trailing comment', { skip: !existsSync(PIN_DIR) && 'no .github/workflows (public mirror)' }, () => {
+  const bad: string[] = [];
+  for (const f of yml(PIN_DIR)) if (!KNOWN_UNPINNED.includes(f)) bad.push(...pinProblems(PIN_DIR, f));
+  assert.deepEqual(bad, []);
+  for (const f of KNOWN_UNPINNED) if (existsSync(join(PIN_DIR, f))) assert.ok(pinProblems(PIN_DIR, f).length > 0, `${f} is pinned now: remove it from KNOWN_UNPINNED`);
+});
+
+test('M30 T030: staging builds once, checksums and uploads the bundles with their commit as an artefact', { skip: !present && 'private-repo only' }, () => {
+  const t = read(PRIVATE, 'deploy-staging.yml');
+  assert.equal([...t.matchAll(/npm run build:lambda/g)].length, 1, 'one build');
+  const build = t.indexOf('npm run build:lambda'), sums = t.indexOf('sha256sum api.zip worker.zip > SHA256SUMS'), up = t.indexOf('actions/upload-artifact@');
+  assert.ok(build > 0 && sums > build && up > sums, 'order: build, checksum, upload');
+  assert.match(t, /git rev-parse HEAD > COMMIT/);
+  assert.match(t, /upload-artifact@[0-9a-f]{40} # v/);
+  for (const f of ['api.zip', 'worker.zip', 'SHA256SUMS', 'COMMIT']) assert.ok(t.includes(`apps/api/dist-lambda/${f}`), `${f} is not uploaded`);
+  assert.match(t, /name: lambda-bundles/);
+  assert.ok(up < t.indexOf('configure-aws-credentials@'), 'the artefact is uploaded before the deploy');
+});
+
+test('M30 T030: prod has artefact_run_id; with it the bundles are downloaded and verified and nothing is built; without it it builds and says so', { skip: !present && 'private-repo only' }, () => {
+  const t = read(PRIVATE, 'deploy-prod.yml');
+  assert.match(t, /^ {6}artefact_run_id:\n(?: {8}.*\n)*? {8}default: ''/m, 'input artefact_run_id with an empty default');
+  const stepBlock = (name: string) => { const i = t.indexOf(`- name: ${name}`); assert.ok(i > 0, `no step "${name}"`); return t.slice(i, t.indexOf('\n      - ', i + 5)); };
+  const dl = stepBlock("download the staging run's Lambda bundles");
+  assert.match(dl, /if: inputs\.artefact_run_id != ''/);
+  assert.match(dl, /uses: actions\/download-artifact@[0-9a-f]{40} # v/);
+  assert.match(dl, /run-id: \$\{\{ inputs\.artefact_run_id \}\}/);
+  assert.match(dl, /github-token: \$\{\{ secrets\.GITHUB_TOKEN \}\}/);
+  assert.match(t, /permissions:\n(?: {2}.*\n)*? {2}actions: read/, 'download needs actions: read');
+  const verify = stepBlock('verify the sha256 of the downloaded bundles and their commit');
+  assert.match(verify, /if: inputs\.artefact_run_id != ''/);
+  assert.match(verify, /sha256sum --check SHA256SUMS/);
+  assert.match(verify, /cat COMMIT/);
+  // the build steps run only when there is no artefact_run_id
+  for (const run of ['npm ci --no-audit --no-fund', 'npm run build:lambda -w apps/api']) {
+    const at = t.indexOf(`run: ${run}`); assert.ok(at > 0, run);
+    assert.match(t.slice(t.lastIndexOf('- name:', at), at), /if: inputs\.artefact_run_id == ''/, `${run} must be skipped when artefact_run_id is given`);
+  }
+  assert.equal([...t.matchAll(/npm run build:lambda/g)].length, 1);
+  assert.ok(t.indexOf('- name: verify the sha256') < t.indexOf('configure-aws-credentials@'), 'verified before sign-in');
+  assert.match(t, /\*\*reused\*\* from deploy-staging run/);
+  assert.match(t, /\*\*built in this run\*\* \(no artefact_run_id/);
+});
+
+test('M30 T032: every workflow that signs in runs the approval preflight (--require-approved) BEFORE configure-aws-credentials', { skip: !present && 'private-repo only' }, () => {
+  const want: Record<string, string> = { 'deploy-staging.yml': 'staging', 'deploy-prod.yml': 'prod', 'rollback.yml': '${{ inputs.to }}' };
+  for (const f of SIGNIN) {
+    const t = read(PRIVATE, f);
+    const pre = t.indexOf(`node scripts/check-approvals.mjs --require-approved ${want[f]}`), signin = t.indexOf('uses: aws-actions/configure-aws-credentials@');
+    assert.ok(pre > 0, `${f}: no approval preflight`);
+    assert.ok(signin > pre, `${f}: the preflight must come before the AWS sign-in`);
+    const step = t.slice(t.lastIndexOf('- name:', pre), pre);
+    assert.ok(!/continue-on-error|\bif:/.test(step) && !/continue-on-error/.test(t), `${f}: the preflight cannot be skipped or ignored`);
+    // nothing but the checkout comes before it in its job
+    const job = t.slice(t.lastIndexOf('    steps:\n', pre), pre);
+    assert.equal([...job.matchAll(/^ {6}- /gm)].length, 2, `${f}: only the checkout may precede the preflight (the preflight itself is the second step)`);
+  }
+});
+
+test('M30 T040: rollback.yml takes to/artefact_run_id/reason, verifies the checksum, signs in like the deploys, and records who/when/reason/from/to', { skip: !present && 'private-repo only' }, () => {
+  const t = read(PRIVATE, 'rollback.yml');
+  assert.match(t, /^ {6}to:\n(?: {8}.*\n)*? {8}options: \[staging, prod\]/m);
+  assert.match(t, /^ {6}artefact_run_id:/m);
+  assert.match(t, /^ {6}reason:\n(?: {8}.*\n)*? {8}required: true/m);
+  assert.match(t, /permissions:\n {2}id-token: write\n {2}contents: read\n {2}actions: read/);
+  assert.match(t, /role-to-assume: \$\{\{ vars\.AWS_DEPLOY_ROLE_ARN \}\}/);
+  assert.match(t, /download-artifact@[0-9a-f]{40} # v/);
+  assert.match(t, /sha256sum --check SHA256SUMS/);
+  assert.ok(t.indexOf('sha256sum --check') < t.indexOf('uses: aws-actions/configure-aws-credentials@'), 'verified before sign-in');
+  assert.ok(!/npm run build|npm ci/.test(t), 'a rollback never builds');
+  assert.ok(!/cloudformation (create|execute|update)/.test(t), 'a rollback changes code only');
+  for (const w of ['who:', 'when:', 'reason:', 'from sha:', 'to sha:']) assert.ok(t.includes(`echo "- ${w}`), `summary lacks ${w}`);
+  assert.match(t, /deploy-staging\.yml/, 'only an earlier deploy-staging run is accepted');
 });
 
 // M28 US4: the nightly DynamoDB backup is private-repo only, like the deploy workflows.

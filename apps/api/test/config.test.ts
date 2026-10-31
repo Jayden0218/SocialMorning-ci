@@ -103,3 +103,13 @@ test('depsFromEnv with DATA_BACKEND=ddb and a local endpoint gives a working Sto
     await deleteTableSet(ddb!.raw, tables!); ddb!.raw.destroy();
   }
 });
+
+test('M30 qa: behaves like dev (any non-AWS prefix, test purchases) with default prefix qa; the error lists four values', () => {
+  const q = readConfig({ APP_ENV: 'qa', ...LOCAL });
+  assert.equal(q.appEnv, 'qa'); assert.equal(q.tablePrefix, 'qa'); assert.equal(q.allowTestPurchases, true);
+  assert.equal(readConfig({ APP_ENV: 'qa', DDB_TABLE_PREFIX: 'qa_x', ...LOCAL }).tablePrefix, 'qa_x');
+  assert.equal(readConfig({ ...LOCAL }).tablePrefix, 'dev', 'dev keeps its prefix');
+  assert.equal(testPurchasesAllowed({ APP_ENV: 'qa' }), true);
+  refuses({ APP_ENV: 'qa', DDB_TABLE_PREFIX: 'sm', ...LOCAL }, 'DDB_TABLE_PREFIX');
+  assert.throws(() => readConfig({ APP_ENV: 'nope' }), /dev, qa, staging, prod/);
+});

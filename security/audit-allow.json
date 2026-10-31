@@ -104,27 +104,19 @@
     "expires": "2027-01-31"
   },
   {
-    "ghsa": "GHSA-86w9-cpqp-85rv",
-    "package": "node-forge",
+    "ghsa": "GHSA-vfj7-8cjw-p6xm",
+    "package": "braces",
     "severity": "high",
     "scope": "mobile",
     "reason": "Expo 58 pin, T057 (build tooling)",
     "expires": "2027-01-31"
   },
   {
-    "ghsa": "GHSA-mrhx-c7xc-m3w5",
-    "package": "zod",
+    "ghsa": "GHSA-86w9-cpqp-85rv",
+    "package": "node-forge",
     "severity": "high",
     "scope": "mobile",
-    "reason": "zod 3.25 only in build/lint tooling (@expo/cli 58.0.3, eslint-plugin-react-hooks); the app bundle does not import zod; no zod 4 build of @expo/cli on the pinned preview, T057",
-    "expires": "2027-01-31"
-  },
-  {
-    "ghsa": "GHSA-qr28-fpjm-wq7f",
-    "package": "decode-uri-component",
-    "severity": "high",
-    "scope": "mobile",
-    "reason": "expo-router 58 -> query-string 7.1.3 (CommonJS) needs decode-uri-component ^0.2; the fix 0.5.1 is ES-module only (type: module), so an override would break the app. Client-side slowdown on a malformed percent-encoded link only. Re-check when expo-router leaves query-string 7 (E1, claude/m32-expo-stable)",
+    "reason": "Expo 58 pin, T057 (build tooling)",
     "expires": "2027-01-31"
   }
 ]

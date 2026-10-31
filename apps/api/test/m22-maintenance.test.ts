@@ -3,6 +3,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDb } from './harness.ts';
 
+// M30: /v1/health also carries env, commit and builtAt; these assertions are about the rest of the body.
+const withoutBuildInfo = (b: Record<string, unknown>) => { const { env: _e, commit: _c, builtAt: _b, ...rest } = b; return rest; };
+
 test('M22 T079: /v1/health adds maintenance while MAINTENANCE_UNTIL is in the future', async () => {
   const t = await freshDb();
   const saved = { until: process.env['MAINTENANCE_UNTIL'], message: process.env['MAINTENANCE_MESSAGE'] };
@@ -10,13 +13,13 @@ test('M22 T079: /v1/health adds maintenance while MAINTENANCE_UNTIL is in the fu
     const until = new Date(Date.now() + 3_600_000).toISOString();
     process.env['MAINTENANCE_UNTIL'] = until;
     process.env['MAINTENANCE_MESSAGE'] = 'Back soon.';
-    assert.deepEqual(await (await t.call('GET', '/v1/health')).json(), { ok: true, db: 'ok', maintenance: { until, message: 'Back soon.' } });
+    assert.deepEqual(withoutBuildInfo(await (await t.call('GET', '/v1/health')).json()), { ok: true, db: 'ok', maintenance: { until, message: 'Back soon.' } });
 
     process.env['MAINTENANCE_UNTIL'] = new Date(Date.now() - 1000).toISOString();
-    assert.deepEqual(await (await t.call('GET', '/v1/health')).json(), { ok: true, db: 'ok' });
+    assert.deepEqual(withoutBuildInfo(await (await t.call('GET', '/v1/health')).json()), { ok: true, db: 'ok' });
 
     process.env['MAINTENANCE_UNTIL'] = 'not a date';
-    assert.deepEqual(await (await t.call('GET', '/v1/health')).json(), { ok: true, db: 'ok' });
+    assert.deepEqual(withoutBuildInfo(await (await t.call('GET', '/v1/health')).json()), { ok: true, db: 'ok' });
   } finally {
     if (saved.until === undefined) delete process.env['MAINTENANCE_UNTIL']; else process.env['MAINTENANCE_UNTIL'] = saved.until;
     if (saved.message === undefined) delete process.env['MAINTENANCE_MESSAGE']; else process.env['MAINTENANCE_MESSAGE'] = saved.message;

@@ -1,4 +1,5 @@
 // The Studio's route table: which page opens at each web address.
+import { EnvBadge } from './shell/EnvBadge';
 import { lazy, Suspense, type ComponentType, type ReactElement } from 'react';
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router';
 import { useSession } from './session';
@@ -63,56 +64,59 @@ function Wait({ children }: { children: ReactElement }) {
 /** Route table. Each later story adds its page next to `home` (tasks.md T012). */
 export function App() {
   return (
-    <Routes>
-      <Route path="/sign-in" element={<Wait><SignIn /></Wait>} />
-      <Route path="/no-show" element={<Signed><Wait><NoShow /></Wait></Signed>} />
-      <Route path="/invite/:token" element={<Signed><Wait><Invite /></Wait></Signed>} />
-      <Route path="/s/:show/media" element={<Signed><ShowPage page={(s) => <Media show={s} />} /></Signed>} />
-      <Route path="/s/:show/home" element={<Signed><ShowPage page={(s) => <Home show={s} />} /></Signed>} />
-      <Route path="/s/:show/data" element={<Signed><ShowPage page={(s) => <Data show={s} />} /></Signed>} />
-      <Route path="/s/:show/episodes" element={<Signed><ShowPage page={(s) => <Episodes show={s} />} /></Signed>} />
-      <Route path="/s/:show/episodes/new" element={<Signed><ShowPage page={(s) => <NewEpisode show={s} />} /></Signed>} />
-      <Route path="/s/:show/episodes/:id" element={<Signed><ShowPage page={(s) => <Episode show={s} />} /></Signed>} />
-      <Route path="/s/:show/subscribers" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
-      <Route path="/s/:show/subscribers/:tab" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
-      <Route path="/s/:show/demographics" element={<Signed><ShowPage page={(s) => <Demographics show={s} />} /></Signed>} />
-      <Route path="/s/:show/announcements" element={<Signed><ShowPage page={(s) => <Announcements show={s} />} /></Signed>} />
-      <Route path="/s/:show/polls" element={<Signed><ShowPage page={(s) => <Polls show={s} />} /></Signed>} />
-      <Route path="/s/:show/tips" element={<Signed><ShowPage page={(s) => <Tips show={s} />} /></Signed>} />
-      <Route path="/s/:show/settings" element={<Signed><ShowPage page={(s) => <Settings show={s} />} /></Signed>} />
-      <Route path="/s/:show/settings/:tab" element={<Signed><ShowPage page={(s) => <Settings show={s} />} /></Signed>} />
-      <Route path="/s/:show/earnings" element={<Signed><ShowPage page={(s) => <Earnings show={s} />} /></Signed>} />
-      <Route path="/s/:show/comments" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
-      <Route path="/s/:show/comments/:tab" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
-      <Route path="/s/:show/bans" element={<Signed><ShowPage page={(s) => <Bans show={s} />} /></Signed>} />
-      <Route path="/s/:show/transcript-reports" element={<Signed><ShowPage page={(s) => <TranscriptReports show={s} />} /></Signed>} />
-      {/* M15 T005: Admin lives outside /s/:show, so it works with no show. The server decides who gets in. */}
-      <Route path="/admin" element={<Signed><Wait><AdminLayout /></Wait></Signed>}>
-        <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<Wait><Dashboard /></Wait>} />
-        <Route path="activity" element={<Wait><Activity /></Wait>} />
-        <Route path="picks" element={<Wait><Picks /></Wait>} />
-        <Route path="curated" element={<Wait><Curated /></Wait>} />
-        <Route path="discover" element={<Wait><DiscoverControl /></Wait>} />
-        <Route path="lists" element={<Wait><Lists /></Wait>} />
-        <Route path="foryou" element={<Wait><ForYouAdmin /></Wait>} />
-        <Route path="inbox" element={<Wait><Inbox /></Wait>} />
-        <Route path="launch" element={<Wait><Launch /></Wait>} />
-        <Route path="accounts" element={<Wait><Accounts /></Wait>} />
-        <Route path="users" element={<Wait><Users /></Wait>} />
-        <Route path="reports" element={<Wait><Reports /></Wait>} />
-        <Route path="translation" element={<Wait><TranslationShows /></Wait>} />
-        <Route path="redeem" element={<Wait><RedeemCodes /></Wait>} />
-        <Route path="appeals" element={<Wait><Appeals /></Wait>} />
-        <Route path="safety" element={<Wait><Safety /></Wait>} />
-        <Route path="notices" element={<Wait><Notices /></Wait>} />
-        <Route path="deletions" element={<Wait><Deletions /></Wait>} />
-        <Route path="app-settings" element={<Wait><AppSettings /></Wait>} />
-        <Route path="content" element={<Wait><ContentPages /></Wait>} />
-        <Route path="*" element={<Navigate to="dashboard" replace />} />
-      </Route>
-      <Route path="*" element={<Signed><FirstShow /></Signed>} />
-    </Routes>
+    <>
+      <EnvBadge />
+      <Routes>
+        <Route path="/sign-in" element={<Wait><SignIn /></Wait>} />
+        <Route path="/no-show" element={<Signed><Wait><NoShow /></Wait></Signed>} />
+        <Route path="/invite/:token" element={<Signed><Wait><Invite /></Wait></Signed>} />
+        <Route path="/s/:show/media" element={<Signed><ShowPage page={(s) => <Media show={s} />} /></Signed>} />
+        <Route path="/s/:show/home" element={<Signed><ShowPage page={(s) => <Home show={s} />} /></Signed>} />
+        <Route path="/s/:show/data" element={<Signed><ShowPage page={(s) => <Data show={s} />} /></Signed>} />
+        <Route path="/s/:show/episodes" element={<Signed><ShowPage page={(s) => <Episodes show={s} />} /></Signed>} />
+        <Route path="/s/:show/episodes/new" element={<Signed><ShowPage page={(s) => <NewEpisode show={s} />} /></Signed>} />
+        <Route path="/s/:show/episodes/:id" element={<Signed><ShowPage page={(s) => <Episode show={s} />} /></Signed>} />
+        <Route path="/s/:show/subscribers" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
+        <Route path="/s/:show/subscribers/:tab" element={<Signed><ShowPage page={(s) => <Subscribers show={s} />} /></Signed>} />
+        <Route path="/s/:show/demographics" element={<Signed><ShowPage page={(s) => <Demographics show={s} />} /></Signed>} />
+        <Route path="/s/:show/announcements" element={<Signed><ShowPage page={(s) => <Announcements show={s} />} /></Signed>} />
+        <Route path="/s/:show/polls" element={<Signed><ShowPage page={(s) => <Polls show={s} />} /></Signed>} />
+        <Route path="/s/:show/tips" element={<Signed><ShowPage page={(s) => <Tips show={s} />} /></Signed>} />
+        <Route path="/s/:show/settings" element={<Signed><ShowPage page={(s) => <Settings show={s} />} /></Signed>} />
+        <Route path="/s/:show/settings/:tab" element={<Signed><ShowPage page={(s) => <Settings show={s} />} /></Signed>} />
+        <Route path="/s/:show/earnings" element={<Signed><ShowPage page={(s) => <Earnings show={s} />} /></Signed>} />
+        <Route path="/s/:show/comments" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
+        <Route path="/s/:show/comments/:tab" element={<Signed><ShowPage page={(s) => <Comments show={s} />} /></Signed>} />
+        <Route path="/s/:show/bans" element={<Signed><ShowPage page={(s) => <Bans show={s} />} /></Signed>} />
+        <Route path="/s/:show/transcript-reports" element={<Signed><ShowPage page={(s) => <TranscriptReports show={s} />} /></Signed>} />
+        {/* M15 T005: Admin lives outside /s/:show, so it works with no show. The server decides who gets in. */}
+        <Route path="/admin" element={<Signed><Wait><AdminLayout /></Wait></Signed>}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Wait><Dashboard /></Wait>} />
+          <Route path="activity" element={<Wait><Activity /></Wait>} />
+          <Route path="picks" element={<Wait><Picks /></Wait>} />
+          <Route path="curated" element={<Wait><Curated /></Wait>} />
+          <Route path="discover" element={<Wait><DiscoverControl /></Wait>} />
+          <Route path="lists" element={<Wait><Lists /></Wait>} />
+          <Route path="foryou" element={<Wait><ForYouAdmin /></Wait>} />
+          <Route path="inbox" element={<Wait><Inbox /></Wait>} />
+          <Route path="launch" element={<Wait><Launch /></Wait>} />
+          <Route path="accounts" element={<Wait><Accounts /></Wait>} />
+          <Route path="users" element={<Wait><Users /></Wait>} />
+          <Route path="reports" element={<Wait><Reports /></Wait>} />
+          <Route path="translation" element={<Wait><TranslationShows /></Wait>} />
+          <Route path="redeem" element={<Wait><RedeemCodes /></Wait>} />
+          <Route path="appeals" element={<Wait><Appeals /></Wait>} />
+          <Route path="safety" element={<Wait><Safety /></Wait>} />
+          <Route path="notices" element={<Wait><Notices /></Wait>} />
+          <Route path="deletions" element={<Wait><Deletions /></Wait>} />
+          <Route path="app-settings" element={<Wait><AppSettings /></Wait>} />
+          <Route path="content" element={<Wait><ContentPages /></Wait>} />
+          <Route path="*" element={<Navigate to="dashboard" replace />} />
+        </Route>
+        <Route path="*" element={<Signed><FirstShow /></Signed>} />
+      </Routes>
+    </>
   );
 }
 

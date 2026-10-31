@@ -365,6 +365,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
+| `EnvBadge.tsx` | A small corner badge saying which environment this build talks to (DEV, QA or STAGING); nothing in the real app. |
 | `LaunchScreen.tsx` | Full-screen promotion picture for up to 3 seconds at start, with Skip. |
 | `LegalDoc.tsx` | Shows one full legal document, with contents, over the terms page. |
 | `RateSheet.tsx` | "Enjoying SocialNet?" — a bottom sheet asking for a store rating, or for feedback instead. |

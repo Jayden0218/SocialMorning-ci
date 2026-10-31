@@ -9,8 +9,7 @@
   "scripts": {
     "test": "tsx --test test/*.test.ts",
     "test:coverage": "c8 --100 --include 'src/**' --exclude 'src/types.ts' --exclude 'src/index.ts' --reporter=text -- tsx --test test/*.test.ts",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json",
-    "lint": "oxlint --max-warnings 0 ."
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.src.json"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

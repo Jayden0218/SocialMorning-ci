@@ -30,9 +30,13 @@ function envOf(name: string): Record<string, string> {
   const p = eas.build[name]!;
   return { ...(p.extends ? envOf(p.extends) : {}), ...p.env };
 }
-const configFor = (name: string) => {
+/** What the owner pastes over a `*_PLACEHOLDER` (M30: a non-prod build refuses an unreplaced placeholder, so the tests that need a config stand one in). */
+const STAND_IN = 'https://stg-example.lambda-url.ap-southeast-1.on.aws';
+const configFor = (name: string, replacePlaceholders = false) => {
   for (const k of KEYS) delete process.env[k];
-  Object.assign(process.env, envOf(name));
+  const env = envOf(name);
+  if (replacePlaceholders) for (const [k, v] of Object.entries(env)) if (v.endsWith('_PLACEHOLDER')) env[k] = STAND_IN;
+  Object.assign(process.env, env);
   return makeConfig({ config: JSON.parse(JSON.stringify(appJson.expo)) });
 };
 
@@ -55,16 +59,20 @@ describe('production and preview builds are unchanged', () => {
 
 describe('the staging profile reaches only staging', () => {
   it('G-CL2: its address is its own, never the production host', () => {
-    const c = configFor('staging');
+    const c = configFor('staging', true);
     expect(c.extra.apiBaseUrl).not.toContain('vercel.app');
-    expect(c.extra.apiBaseUrl).toBe(envOf('staging')['SOCIALNET_DEV_API_BASE_URL']);
+    expect(c.extra.apiBaseUrl).toBe(STAND_IN); // the owner's pasted address, never app.json's production one
     expect(JSON.stringify(eas.build['staging'])).not.toContain('socialmorning-api');
   });
 
   it('is the dev variant (installs beside the store app) and never offers the GitHub self-updater', () => {
-    const c = configFor('staging');
+    const c = configFor('staging', true);
     expect(c.extra.variant).toBe('dev');
     expect(c.extra.distribution).toBeUndefined();
+  });
+
+  it('refuses to build while its address is still a placeholder (M30)', () => {
+    expect(() => configFor('staging')).toThrow(/https/);
   });
 
   it('holds a placeholder until the owner has a staging address', () => {
