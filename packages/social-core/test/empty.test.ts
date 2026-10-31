@@ -23,3 +23,9 @@ test('A3: emptyState — quiet under 1 s, loading from 1 s, error at 10 s; offli
   assert.deepEqual(emptyState('feed', { offline: false, hasCache: true, failed: true }), { kind: 'empty', sentence: EMPTY_STATES.feed.sentence, action: EMPTY_STATES.feed.action });
   assert.deepEqual(emptyState('inbox', { offline: false, hasCache: false }), { kind: 'empty', sentence: EMPTY_STATES.inbox.sentence, action: EMPTY_STATES.inbox.action });
 });
+
+test('M31 W6-C (design-pulse2 states--*): the Inbox and Library names became Updates and Home, the routes did not move', () => {
+  assert.deepEqual(EMPTY_STATES.downloads.action, { label: 'Open Updates', route: '/inbox' });
+  assert.deepEqual(EMPTY_STATES.stats.action, { label: 'Open Home', route: '/' });
+  assert.deepEqual(EMPTY_STATES.inbox.action, { label: 'Open Home', route: '/' });
+});

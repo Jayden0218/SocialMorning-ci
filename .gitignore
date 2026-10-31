@@ -67,3 +67,7 @@ apps/api/journey.json
 **/coverage/
 apps/api/dist-lambda/
 dynamodb-local-metadata.json
+# agent-kit hand-off notes (session-local)
+.agent/
+# agent-kit sync backups (sync --revert)
+.claude/kit/.bak/
