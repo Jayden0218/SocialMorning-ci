@@ -111,6 +111,9 @@ const M21_ADDITIONS = ['react-native-gesture-handler'];
 /** M22 (specs/023 research R6, R14, R15): in-app browser, tablet rotation, app-icon shortcuts, copy, battery settings, picture zoom. */
 const M22_ADDITIONS = ['expo-web-browser', 'expo-screen-orientation', 'expo-quick-actions', 'expo-clipboard', 'expo-intent-launcher', 'react-native-zoom-toolkit', 'expo-media-library'];
 
+/** M32 E1 (Expo 58.0.20): expo-router 58.0.27 declares these two as required peers; listed directly so native builds link them (expo-doctor "required peer dependencies"). MIT (LICENSES.md). */
+const M32_ADDITIONS = ['expo-constants', 'expo-linking'];
+
 it('no reference dependency is installed, anywhere', () => {
   const installed = new Set([
     ...Object.keys(pkg.dependencies),
@@ -127,7 +130,7 @@ it('M7 added exactly expo-blur and expo-linear-gradient, Tailwind its three, not
   const now = Object.keys(pkg.dependencies).sort();
   const added = now.filter((name) => !M6_DEPENDENCIES.includes(name));
   const removed = M6_DEPENDENCIES.filter((name) => !now.includes(name));
-  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS, ...PULSE_FONT_ADDITIONS, ...HAPTICS_ADDITIONS, ...M20_ADDITIONS, ...M21_ADDITIONS, ...M22_ADDITIONS].sort());
+  expect(added.sort()).toEqual([...M7_ADDITIONS, ...TAILWIND_ADDITIONS, ...NOTIFY_ADDITIONS, ...SCAN_ADDITIONS, ...ICON_ADDITIONS, ...VIDEO_ADDITIONS, ...FEEDBACK_ADDITIONS, ...M9_ENGINE, ...M9_LIBRARY, ...SPLASH_ADDITIONS, ...OUTSIDE_ADDITIONS, ...FONT_ADDITIONS, ...PULSE_FONT_ADDITIONS, ...HAPTICS_ADDITIONS, ...M20_ADDITIONS, ...M21_ADDITIONS, ...M22_ADDITIONS, ...M32_ADDITIONS].sort());
   expect(removed).toEqual([]);
 });
 

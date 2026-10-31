@@ -104,14 +104,6 @@
     "expires": "2027-01-31"
   },
   {
-    "ghsa": "GHSA-vfj7-8cjw-p6xm",
-    "package": "braces",
-    "severity": "high",
-    "scope": "mobile",
-    "reason": "Expo 58 pin, T057 (build tooling)",
-    "expires": "2027-01-31"
-  },
-  {
     "ghsa": "GHSA-86w9-cpqp-85rv",
     "package": "node-forge",
     "severity": "high",

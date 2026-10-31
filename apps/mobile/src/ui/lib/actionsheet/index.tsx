@@ -1,7 +1,7 @@
 // From gluestack/gluestack-ui @ b712c85 (MIT), apps/starter-kit-expo-uniwind/components/ui/actionsheet. Edits are marked // M9:.
 // M9: gluestack's shadcn-style colour names are translated to the app's tokens (data-model §1).
 'use client';
-import { H4 } from '@expo/html-elements';
+import { H4 as H4Base } from '@expo/html-elements';
 import { createActionsheet } from '@gluestack-ui/core/actionsheet/creator';
 import { UIIcon } from '@gluestack-ui/core/icon/creator';
 import type { VariantProps } from '@gluestack-ui/utils/nativewind-utils';
@@ -47,6 +47,7 @@ const AnimatedPressable = createMotionAnimatedComponent(
 ) as React.ComponentType<IAnimatedPressableProps>;
 
 const StyledUIIcon = withUniwind(UIIcon);
+const H4 = withUniwind(H4Base);
 
 export const UIActionsheet = createActionsheet({
   // M16a: the root is lifted above native modals on iOS (bug 1 — see ../above-modals).

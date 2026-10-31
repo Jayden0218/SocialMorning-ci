@@ -18,14 +18,14 @@
     "check:health": "knip --include files,dependencies,devDependencies,unlisted,unresolved,binaries,duplicates --max-issues 89 --no-progress && depcruise apps packages --config .dependency-cruiser.cjs --ignore-known --output-type err && jscpd apps packages --silent --threshold 0.6 --format \"typescript,tsx,javascript,jsx\" --ignore \"**/*.test.ts,**/*.test.tsx,**/*.json,**/ios/**,**/android/**,**/node_modules/**,**/dist/**,**/*.d.ts,**/__mocks__/**,**/*.generated.*\" --min-tokens 70"
   },
   "overrides": {
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.88.0-rc.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-native": "0.88.0",
     "@bacons/apple-targets": {
-      "expo": "58.0.0-preview.3"
+      "expo": "58.0.20"
     },
     "react-native-android-widget": {
-      "expo": "58.0.0-preview.3"
+      "expo": "58.0.20"
     },
     "@vercel/cli-config": {
       "zod": "4.6.7"
