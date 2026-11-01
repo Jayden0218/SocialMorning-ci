@@ -31,6 +31,10 @@ on:
         description: 'suite=check only: which route flows (a glob in apps/mobile/.maestro/check, e.g. r05-*); default every one, plus the R20/R21 re-runs'
         required: false
         default: 'r*'
+      reduce_motion:
+        description: '035 R21: set Reduce Motion at boot (default true, as before). false leaves it off for R01-R19; the R20/R21 re-runs still turn it on'
+        type: boolean
+        default: true
   schedule:
     - cron: '30 18 * * *' # 02:30 in Malaysia
 permissions:
@@ -137,7 +141,12 @@ jobs:
           # Reduce Motion: fewer elements moving while Maestro reads the screen. Its iOS driver
           # crashed reading an element that had just changed ("Failed to resolve remote element",
           # run 38009534635, in the play/pause loop).
-          xcrun simctl spawn "$UDID" defaults write com.apple.Accessibility ReduceMotionEnabled -bool true || true
+          if [ "${{ inputs.reduce_motion }}" != "false" ]; then
+            xcrun simctl spawn "$UDID" defaults write com.apple.Accessibility ReduceMotionEnabled -bool true || true
+          else
+            xcrun simctl spawn "$UDID" defaults write com.apple.Accessibility ReduceMotionEnabled -bool false || true
+            echo "Reduce Motion left OFF for this run (035 R21)"
+          fi
           xcrun simctl install "$UDID" "$APP"
       - name: install Maestro
         run: |
