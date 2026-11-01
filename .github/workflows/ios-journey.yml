@@ -27,6 +27,10 @@ on:
         type: choice
         options: [journey, check]
         default: journey
+      check_flows:
+        description: 'suite=check only: which route flows (a glob in apps/mobile/.maestro/check, e.g. r05-*); default every one, plus the R20/R21 re-runs'
+        required: false
+        default: 'r*'
   schedule:
     - cron: '30 18 * * *' # 02:30 in Malaysia
 permissions:
@@ -157,6 +161,8 @@ jobs:
       # the verdict is the last step, after the artifact is uploaded.
       - name: the device check on screen (every route)
         if: env.SUITE == 'check'
+        env:
+          CHECK_FLOWS: ${{ inputs.check_flows || 'r*' }}
         run: apps/mobile/.maestro/check/run-check.sh "$UDID" "$RUNNER_TEMP/device-check"
       - name: the app's own log for the check's window
         if: always() && env.SUITE == 'check'

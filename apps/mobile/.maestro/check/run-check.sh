@@ -45,9 +45,18 @@ run_flow() {
   [ "$code" -eq 0 ] || echo "::error title=device check::$name failed (exit $code)"
 }
 
-for f in check/r*.yaml; do
+# CHECK_FLOWS (workflow input check_flows): a glob of route flows, default every one. Anything narrower skips
+# the R20/R21 re-runs (used for the guard: one flow broken on purpose, run alone).
+PATTERN=${CHECK_FLOWS:-r*}
+for f in check/$PATTERN.yaml; do
+  [ -e "$f" ] || { echo "::error title=device check::no flow matches $PATTERN"; printf 'none\t1\t0\n' >> "$OUT/summary.tsv"; break; }
   run_flow "$(basename "$f" .yaml)" "$f"
 done
+if [ "$PATTERN" != "r*" ]; then
+  find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
+  cat "$OUT/summary.tsv"
+  exit 0
+fi
 
 # R20: the largest accessibility text size (`xcrun simctl ui <udid> content_size <size>`).
 # R21: Reduce Motion. simctl has no switch for it; it is the com.apple.Accessibility default ReduceMotionEnabled,
