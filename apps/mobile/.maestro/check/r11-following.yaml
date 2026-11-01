@@ -47,6 +47,11 @@ env:
       - eraseText: 60
       - inputText: ${STATUS}
 - takeScreenshot: r11-04-text-status
+# Run 41274515878: with the keyboard up, the bottom title bar (Back, title, Post) is UNDER the keyboard — the tap on
+# "Post" landed on the keyboard and no request reached the server. An issue in report.md; here the keyboard is
+# put away so the rest of the route can be checked.
+- assertVisible: "Post"
+- hideKeyboard
 - tapOn: "Post"
 - extendedWaitUntil:
     visible: "Your text status, .*"

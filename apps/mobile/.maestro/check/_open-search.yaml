@@ -5,9 +5,10 @@
 # again, only while the field is not there yet (the same pattern as ../journey.yaml's Agree and Subscribe taps).
 appId: app.socialmorning.mobile
 ---
-- tapOn:                                # the tab: the "Discover" left of "Updates" (the page title and the Moments/Discover
-    text: "Discover"                     # switch share the name; run 41269168664 tapped the title and opened a card)
-    leftOf: "Updates(, .*)?"
+- tapOn:                                # the Discover TAB by where it is: [0,752]-[97,810] of 390x844 on the CI iPhone, at
+    point: "12%,93%"                     # every text size (hierarchies of runs 41269168664, 41274515878). Its name is shared with
+                                         # the page title and the Moments/Discover switch, and both "Discover" and "Discover left of
+                                         # Updates" picked the title, whose tap fell through to a For You card (run 41274515878)
 - tapOn:
     text: "Search.*"
 - repeat:

@@ -29,6 +29,8 @@ appId: app.socialmorning.mobile
     element: "System\\. .*"
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "System\\. .*"
 - extendedWaitUntil:
     visible: "Messages from SocialNet"
@@ -42,6 +44,8 @@ appId: app.socialmorning.mobile
     element: "From hosts\\. .*"
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "From hosts\\. .*"
 - extendedWaitUntil:
     visible: "No announcements yet.*|Couldn't load announcements right now\\."

@@ -15,6 +15,8 @@ env:
     element: "Playlists"
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Playlists"
 - extendedWaitUntil:
     visible: "New playlist name"
@@ -62,6 +64,11 @@ env:
 - tapOn:
     text: "Close the playlist picker"
     optional: true
+- runFlow:                               # the More sheet is still up after adding (run 41274515878)
+    when:
+      visible: "Report episode"
+    commands:
+      - tapOn: "Cancel"
 - tapOn: "Back"
 - tapOn: "Back"
 - tapOn:
@@ -72,6 +79,8 @@ env:
     element: "Playlists"
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Playlists"
 - extendedWaitUntil:
     visible: "${LIST}, 1 episodes?, private"

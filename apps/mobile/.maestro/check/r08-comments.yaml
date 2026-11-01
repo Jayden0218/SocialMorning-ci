@@ -60,14 +60,24 @@ env:
     element: ".*Listener 06, .*Play from 0:36, Seed comment 06 at 36 s"
     centerElement: true
     timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: ".*Listener 06, .*Play from 0:36, Seed comment 06 at 36 s"
 - extendedWaitUntil:
-    visible: "Reply"
+    visible: "Cancel|Copy|Report"
     timeout: 15000
+    optional: true                       # the row's actions menu ("Comment actions", [episodeId].tsx:265-279)
 - takeScreenshot: r08-04-comment-actions${SUFFIX || ''}
+- runFlow:
+    when:
+      visible: "Cancel"
+    commands:
+      - tapOn: "Cancel"
+# The row's own "Reply" (CommentRow.tsx:239): the one below Listener 06's row. "Reply" index 0 was the top row's,
+# half under the comments header (run 41274515878, r08-xl).
 - tapOn:
     text: "Reply"
-    index: 0
+    below: ".*Listener 06, .*Seed comment 06 at 36 s"
 - extendedWaitUntil:
     visible: "Comment.*Write a reply.*"
     timeout: 30000

@@ -8,6 +8,19 @@ appId: app.socialmorning.mobile
 - inputText: "Journey Morning"
 - pressKey: Enter
 - extendedWaitUntil:
+    visible: "Journey Morning, .*|Nothing matches\\."
+    timeout: 30000
+# Run 41274515878 (r06): the server answered the search (200, 6.1 s and 7.5 s in api.log) but the app showed "The
+# catalogue needs a connection — showing your library only." and "Nothing matches." — an issue in report.md. One
+# more search, so the routes after it can still be checked.
+- runFlow:
+    when:
+      visible: "Nothing matches\\."
+    commands:
+      - tapOn: "Clear search"
+      - inputText: "Journey Morning"
+      - pressKey: Enter
+- extendedWaitUntil:
     visible: "Journey Morning, .*"
     timeout: 30000
 - tapOn:

@@ -20,8 +20,9 @@ appId: app.socialmorning.mobile
 - scrollUntilVisible:
     element: "Categories"
     direction: UP
-    centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 # Category (the first genre)
 - tapOn: "Categories"
 - extendedWaitUntil:
@@ -38,6 +39,8 @@ appId: app.socialmorning.mobile
     element: "Talked about"
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Talked about"
 - extendedWaitUntil:
     visible: "Charts"

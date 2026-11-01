@@ -45,6 +45,8 @@ appId: app.socialmorning.mobile
     element: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
     centerElement: true
     timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
 - extendedWaitUntil:
     visible: "Play the clip, .*"

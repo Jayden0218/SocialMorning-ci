@@ -6,7 +6,23 @@ appId: app.socialmorning.mobile
     element: ${ENTRY}
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: ${ENTRY}
+- repeat:                                # a tap that did not take (it only stopped the list): tap again while the page is
+    while:                               # not there (runs 41274515878 r13 Downloads, r13-xl Listening history)
+      notVisible: ${PROOF}
+    times: 2
+    commands:
+      - extendedWaitUntil:
+          visible: ${PROOF}
+          timeout: 15000
+          optional: true
+      - runFlow:
+          when:
+            notVisible: ${PROOF}
+          commands:
+            - tapOn: ${ENTRY}
 - extendedWaitUntil:
     visible: ${PROOF}
     timeout: 30000

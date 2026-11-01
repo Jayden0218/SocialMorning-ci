@@ -68,6 +68,8 @@ appId: app.socialmorning.mobile
     element: "Appearance"
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Appearance"
 - extendedWaitUntil:
     visible: "Vibration"
@@ -94,6 +96,8 @@ appId: app.socialmorning.mobile
     element: "Downloads and cache"
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Downloads and cache"
 - extendedWaitUntil:
     visible: "Download queued episodes"
@@ -138,6 +142,8 @@ appId: app.socialmorning.mobile
     element: "Privacy"
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Privacy"
 - extendedWaitUntil:
     visible: "Keep my listening private"
@@ -147,9 +153,9 @@ appId: app.socialmorning.mobile
     file: _open-page.yaml
     env:
       ENTRY: "Blocked listeners.*"
-      PROOF: "You have not blocked anyone.*|Blocked listeners"
+      PROOF: "You have not blocked anyone.*"
       SHOT: r16-09-blocked
-      HUB: "Keep my listening private"
+      HUB: "Blocked listeners, .*"         # the Privacy page stays scrolled to its last row (run 41274515878)
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security"
@@ -166,6 +172,8 @@ appId: app.socialmorning.mobile
     element: "More"
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "More"
 - extendedWaitUntil:
     visible: "Personalised recommendations"
@@ -205,6 +213,8 @@ appId: app.socialmorning.mobile
     element: "Playback"
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Playback"
 - extendedWaitUntil:
     visible: "Skip silence"
@@ -243,6 +253,8 @@ appId: app.socialmorning.mobile
     element: "Help and feedback"
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Help and feedback"
 - extendedWaitUntil:
     visible: "Check network"
@@ -271,6 +283,8 @@ appId: app.socialmorning.mobile
     element: "About SocialNet"
     centerElement: true
     timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "About SocialNet"
 - extendedWaitUntil:
     visible: "Open-source licences"

@@ -102,6 +102,8 @@ appId: app.socialmorning.mobile
     element: "Queue"
     centerElement: true
     timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 5000
 - tapOn: "Queue"
 - extendedWaitUntil:
     visible: "Edit|Nothing queued\\..*"

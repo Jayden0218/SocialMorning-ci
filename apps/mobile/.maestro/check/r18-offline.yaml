@@ -48,11 +48,11 @@ env:
 - assertNotVisible: "Something went wrong"
 # An episode, from the Updates deck (cached), and its comments: here a message is required.
 - tapOn: "Updates(, .*)?"
-- extendedWaitUntil:
-    visible: "Episode \\d: A minute of tone, Journey Morning\\..*"
+- extendedWaitUntil:                     # a deck card ("<ep>, <show>. <meta>") or a "Listened and talked about" row
+    visible: "Episode \\d: A minute of tone, Journey Morning(\\..*)?"
     timeout: 45000
 - tapOn:
-    text: "Episode \\d: A minute of tone, Journey Morning\\..*"
+    text: "Episode \\d: A minute of tone, Journey Morning(\\..*)?"
     index: 0
 - extendedWaitUntil:
     visible: "Like this episode|Play this episode|Back"
