@@ -69,10 +69,21 @@ env:
       - tapOn: "Message( Message)?"
       - eraseText: 40
       - inputText: ${MESSAGE}
+- takeScreenshot: r12-05b-typing
+# Run 41274515878 passed this route falsely: "visible: <message>" matched the text still in the box, while the
+# server got no message (api.log: no chat POST) — with the keyboard up the composer (box and Send) is under the
+# keyboard (screenshot r12-06). An issue in report.md. Now: put the keyboard away, Send, and require the thread to
+# lose its empty line ("Say hello to Listener 02.", app/chat/[id].tsx:286) and the box to be empty again.
+- assertVisible: "Send"
+- hideKeyboard
 - tapOn: "Send"
+- extendedWaitUntil:
+    notVisible: "Say hello to Listener 02\\."
+    timeout: 30000
 - extendedWaitUntil:
     visible: ${MESSAGE}
     timeout: 30000
+- assertVisible: "Message( Message)?"           # the box is empty again (only its label + placeholder)
 - assertNotVisible: "You can send messages while you both follow each other\\."
 - takeScreenshot: r12-06-message-sent
 - tapOn: "Back"
