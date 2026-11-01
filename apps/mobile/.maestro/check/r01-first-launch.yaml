@@ -1,0 +1,36 @@
+# R1 First launch (docs/device-check/routes.md): clear data, launch → the Terms page with "Agree"; after it, a
+# signed-out app goes straight to the sign-in landing (src/ui/shell/providers.tsx:265-276). The interests
+# onboarding comes only after a first sign-in (src/ui/discover/InterestsGate.tsx) — R2 covers it.
+# Labels: Terms title src/ui/shell/consent.ts:27, "Agree"/"Disagree" src/ui/shell/Terms.tsx:166-168,
+# "Continue with email" app/auth/sign-in.tsx:75, consent box src/ui/auth/Consent.tsx:64.
+appId: app.socialmorning.mobile
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Agree"
+    timeout: 300000
+- assertVisible: "Service Agreement and Privacy Policy"
+- assertVisible: "Disagree"
+- takeScreenshot: r01-01-terms
+- tapOn: "Agree"
+- repeat:                                # a tap right after a cold launch may not take (../journey.yaml)
+    while:
+      notVisible: "Continue with email"
+    times: 3
+    commands:
+      - extendedWaitUntil:
+          visible: "Continue with email"
+          timeout: 20000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Agree"
+          commands:
+            - tapOn: "Agree"
+- assertVisible: "Continue with email"
+- assertVisible: "I have read and agree to the Service Agreement and Privacy Policy"
+- assertNotVisible: "Agree"
+- takeScreenshot: r01-02-sign-in-landing

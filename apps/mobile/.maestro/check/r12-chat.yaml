@@ -1,0 +1,78 @@
+# R12 Chat tab: open chat list; new chat; send a message — the message shows in the thread.
+# Chat opens only between people who follow each other (apps/api/src/routes/social/chat.ts:16). Nobody in the seed
+# is mutual (each listener follows the next three), so listener-05 first follows back Listener 02 (who follows
+# 05): Me → profile → "3 followers" → Listener 02's profile → "Follow" (src/ui/social/FollowButton.tsx:61; it then
+# reads "Unfollow"). Chat: title "Chat" + "New chat" (app/(tabs)/chat.tsx:144-146), empty "No chats yet. …" (:138);
+# "Chat with Listener 02" (app/chat/new.tsx:118); thread "Message" box, "Send" (app/chat/[id].tsx:226,233).
+appId: app.socialmorning.mobile
+env:
+  MESSAGE: "Device check hello"
+---
+- runFlow: _ensure-signed-in.yaml
+- tapOn: "Chat(, .*)?"
+- extendedWaitUntil:
+    visible: "New chat"
+    timeout: 30000
+- takeScreenshot: r12-01-chat-list
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "People who follow you back"
+    timeout: 30000
+- takeScreenshot: r12-02-new-chat-before-follow
+- tapOn: "Back"
+# Follow back Listener 02
+- runFlow: _me.yaml
+- tapOn: "Listener 05, open your profile"
+- extendedWaitUntil:
+    visible: "This is you"
+    timeout: 30000
+- tapOn: "3 followers"
+- extendedWaitUntil:
+    visible: ".*Listener 02.*"
+    timeout: 30000
+- tapOn:
+    text: ".*Listener 02.*"
+    index: 0
+- extendedWaitUntil:
+    visible: "Follow|Unfollow"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Follow"
+    commands:
+      - tapOn: "Follow"
+- extendedWaitUntil:
+    visible: "Unfollow"
+    timeout: 30000
+- takeScreenshot: r12-03-followed-back
+- tapOn: "Back"
+- tapOn: "Back"
+- tapOn: "Back"
+- tapOn: "Chat(, .*)?"
+- tapOn: "New chat"
+- extendedWaitUntil:
+    visible: "Chat with Listener 02"
+    timeout: 30000
+- takeScreenshot: r12-04-new-chat
+- tapOn: "Chat with Listener 02"
+- extendedWaitUntil:
+    visible: "Message"
+    timeout: 30000
+- takeScreenshot: r12-05-thread-empty
+- tapOn: "Message"
+- inputText: ${MESSAGE}
+- repeat:
+    while:
+      notVisible: ".*${MESSAGE}.*"
+    times: 3
+    commands:
+      - tapOn: "Message"
+      - eraseText: 40
+      - inputText: ${MESSAGE}
+- tapOn: "Send"
+- extendedWaitUntil:
+    visible: ${MESSAGE}
+    timeout: 30000
+- assertNotVisible: "You can send messages while you both follow each other\\."
+- takeScreenshot: r12-06-message-sent
+- tapOn: "Back"

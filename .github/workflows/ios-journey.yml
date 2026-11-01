@@ -22,6 +22,11 @@ on:
         description: 'Reuse the simulator app from this earlier ios-journey run id (skip the build)'
         required: false
         default: ''
+      suite:
+        description: 'journey = the listener journey (nightly); check = every route in apps/mobile/.maestro/check (docs/device-check/routes.md)'
+        type: choice
+        options: [journey, check]
+        default: journey
   schedule:
     - cron: '30 18 * * *' # 02:30 in Malaysia
 permissions:
@@ -30,7 +35,8 @@ permissions:
 jobs:
   journey:
     runs-on: macos-26
-    timeout-minutes: 90
+    # The device check runs 19 route flows plus 4 again at the largest text size: much longer than the journey.
+    timeout-minutes: ${{ inputs.suite == 'check' && 240 || 90 }}
     env:
       E2E_API: http://localhost:8787
       E2E_STORE_BASE: http://localhost:8787/__e2e/store/
@@ -43,11 +49,13 @@ jobs:
       # The app's server address, read by app.config.js at prebuild and when the JS is bundled.
       SOCIALNET_API_BASE_URL: http://localhost:8787
       APP_FROM_RUN: ${{ inputs.app_from_run }}
+      # The nightly (schedule) has no inputs: it is the journey.
+      SUITE: ${{ inputs.suite || 'journey' }}
       # Maestro's iOS driver did not start within its default time on a busy runner
       # (runs 37542267820, 37155381851, 37745701958).
       MAESTRO_DRIVER_STARTUP_TIMEOUT: '240000'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22, cache: npm, cache-dependency-path: package-lock.json }
       - run: npm ci --no-audit --no-fund
@@ -105,7 +113,7 @@ jobs:
           (cd "$(dirname "$APP")" && ditto -c -k --sequesterRsrc --keepParent "$(basename "$APP")" "$RUNNER_TEMP/out/app.zip")
       - name: keep the simulator app for flow-only re-runs
         if: env.APP_FROM_RUN == ''
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-sim-app
           path: ${{ runner.temp }}/out/app.zip
@@ -133,23 +141,53 @@ jobs:
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
           "$HOME/.maestro/bin/maestro" --version
       - name: the journey on screen
+        if: env.SUITE == 'journey'
         working-directory: apps/mobile
         # No debug `log stream` of the app here: ~30 000 lines a run on top of Maestro's screen reads,
         # and XCTest's reads timed out three ways on this runner (runs 37997764100, 38009534635,
         # 38015676754). The app's console is collected after a red run instead (next step).
         run: maestro --device "$UDID" test .maestro/journey.yaml --test-output-dir "$RUNNER_TEMP/maestro"
       - name: what the server holds after the phone
+        if: env.SUITE == 'journey'
         working-directory: apps/api
         run: |
           npx tsx scripts/journey.ts phone listener-02@journey.test "Maestro: heard it on the simulator"
+      # The device check (docs/device-check/routes.md): every route flow, one at a time, a red one never
+      # stopping the next; then R20/R21 (largest text, Reduce Motion) on R04, R07, R08, R13. The script exits 0;
+      # the verdict is the last step, after the artifact is uploaded.
+      - name: the device check on screen (every route)
+        if: env.SUITE == 'check'
+        run: apps/mobile/.maestro/check/run-check.sh "$UDID" "$RUNNER_TEMP/device-check"
+      - name: the app's own log for the check's window
+        if: always() && env.SUITE == 'check'
+        run: |
+          xcrun simctl spawn "$UDID" log show --start "$(cat "$RUNNER_TEMP/device-check/started-at.txt")" --style compact \
+            --predicate 'process == "SocialNet"' > "$RUNNER_TEMP/device-check/app-console.log" 2>&1 || true
+          # Crash reports the simulator wrote for the app during the run (none expected).
+          mkdir -p "$RUNNER_TEMP/device-check/crashes"
+          find "$HOME/Library/Logs/DiagnosticReports" -newer "$RUNNER_TEMP/device-check/started-at.txt" -name 'SocialNet*' \
+            -exec cp {} "$RUNNER_TEMP/device-check/crashes/" \; 2> /dev/null || true
+          cp api.log api-health.log "$RUNNER_TEMP/device-check/" 2> /dev/null || true
+          wc -l "$RUNNER_TEMP/device-check/app-console.log" || true
+      - if: always() && env.SUITE == 'check'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: device-check
+          path: ${{ runner.temp }}/device-check
+          retention-days: 14
+      - name: device check verdict (red when any route flow failed)
+        if: env.SUITE == 'check'
+        run: |
+          cat "$RUNNER_TEMP/device-check/summary.tsv"
+          awk -F'\t' 'NR > 1 && $2 != 0 { bad++ } END { if (bad) { print bad " flow(s) red"; exit 1 } print "every flow green" }' "$RUNNER_TEMP/device-check/summary.tsv"
       - name: where the test server is stuck (only when red)
         if: failure()
         run: |
           ps -axo pid,stat,%cpu,etime,command | grep -E 'e2e-server|PID' | grep -v grep | tee api-ps.log || true
           for p in $(pgrep -f 'scripts/e2e-server.ts'); do sample "$p" 3 -file "api-sample-$p.txt" > /dev/null 2>&1 || true; done
           xcrun simctl spawn "$UDID" log show --last 20m --style compact --predicate 'process == "SocialNet"' > "$RUNNER_TEMP/app-console.log" 2>&1 || true
-      - if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - if: always() && env.SUITE == 'journey'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-journey
           path: |

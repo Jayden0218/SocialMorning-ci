@@ -1,0 +1,53 @@
+# R10 Clip: make a clip from the player; open it — the clip page with its start–end range.
+# Player tray "Clip the last 30 seconds" (src/ui/player/PlayerTray.tsx:62) → "New clip" (src/ui/clips/ClipComposer.tsx:143),
+# range "Clip range m:ss to m:ss, N seconds" (:84), "Save" (:136) → share sheet "Clip saved — share it"
+# (app/clip/new.tsx:80). The clip page (app/clip/[id].tsx) is reached from the profile activity row
+# "Listener 05 clipped m:ss of Episode 1: … (Journey Morning)" (app/profile/[id].tsx:149); proof: the range text
+# "m:ss – m:ss" (:168) and "Play the clip, …" (:161).
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _player-episode-1.yaml
+- tapOn: "Clip the last 30 seconds"
+- extendedWaitUntil:
+    visible: "Clip range .*"
+    timeout: 30000
+- assertVisible: "New clip"
+- takeScreenshot: r10-01-new-clip
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Clip saved — share it"
+    timeout: 30000
+- takeScreenshot: r10-02-clip-saved
+- tapOn:
+    text: "Close|Cancel"
+    index: 0
+- extendedWaitUntil:
+    visible: "Close the player|Now playing: .*|Discover"
+    timeout: 30000
+- runFlow:
+    when:
+      visible: "Close the player"
+    commands:
+      - tapOn: "Close the player"
+- tapOn:
+    text: "Back"
+    optional: true
+- tapOn:
+    text: "Cancel"
+    optional: true
+- runFlow: _me.yaml
+- tapOn: "Listener 05, open your profile"
+- extendedWaitUntil:
+    visible: "This is you"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
+    timeout: 60000
+- tapOn: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
+- extendedWaitUntil:
+    visible: "Play the clip, .*"
+    timeout: 30000
+- assertVisible: "\\d+:\\d\\d – \\d+:\\d\\d"
+- takeScreenshot: r10-03-clip-page
+- tapOn: "Back"

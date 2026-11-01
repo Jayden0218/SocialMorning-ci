@@ -1,0 +1,120 @@
+# R17 Extras: academy, plaza, moments, stickers, wallet, tips, redeem, gift, scan, issues, appeal — each opens or shows
+# a clear "not available". Entries: Discover tiles "Academy", "Plaza", "Issues" (packages/social-core/src/app-config.ts:19-22),
+# "Scan a QR code" (src/ui/discover/parts.tsx:252); Me "Stickers" (me.tsx:115), "Saved moments, N. …" (:144),
+# "Wallet" (:193; on iOS the Coming-soon sheet with "Open Wallet", ComingSoon.tsx:57-61), "Tips I gave" (:194);
+# Wallet → "Redeem a code" (wallet.tsx:110). Gift and Appeal have no in-app entry for a listener in good standing
+# (gift/[code].tsx is a link; appeal only from a suspended sign-in, auth/email.tsx:161): opened by path.
+# Titles: "Creator academy" (academy/index.tsx:71), "New shows plaza" (plaza.tsx:76), "Saved moments" (moments.tsx:126),
+# "Stickers" (stickers.tsx:113), "Wallet" (wallet.tsx:86), "Tips I gave" (tips.tsx:39), "Redeem a code"
+# (redeem.tsx:51), "A gift for you" (gift/[code].tsx:67), "Scan a QR code"/"Scan QR code" (scan.tsx:126,140),
+# "Issues" (issues.tsx:68), "Appeal" (appeal.tsx:78).
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _discover-view.yaml
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Academy"
+      PROOF: "Creator academy"
+      SHOT: r17-01-academy
+      HUB: "Scan a QR code"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Plaza"
+      PROOF: "New shows plaza"
+      SHOT: r17-02-plaza
+      HUB: "Scan a QR code"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Issues"
+      PROOF: "No issues yet|Couldn't load the issues right now\\.|Issues"
+      SHOT: r17-03-issues
+      HUB: "Scan a QR code"
+- scrollUntilVisible:
+    element: "Scan a QR code"
+    direction: UP
+    timeout: 20000
+- tapOn: "Scan a QR code"
+- extendedWaitUntil:
+    visible: "Scan a QR code|Scan QR code|Allow camera"
+    timeout: 30000
+- takeScreenshot: r17-04-scan
+- tapOn:
+    text: "Close|Back"
+    index: 0
+- extendedWaitUntil:
+    visible: "Discover"
+    timeout: 30000
+- runFlow: _me.yaml
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Stickers"
+      PROOF: "How stickers are earned"
+      SHOT: r17-05-stickers
+      HUB: "Listener 05, open your profile"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Saved moments, \\d+\\..*"
+      PROOF: "No saved moments.*|Saved moments"
+      SHOT: r17-06-moments
+      HUB: "Account and settings"
+- scrollUntilVisible:
+    element: "Wallet"
+    timeout: 20000
+- tapOn: "Wallet"
+- extendedWaitUntil:
+    visible: "Open Wallet|Redeem a code"
+    timeout: 30000
+- takeScreenshot: r17-07-wallet-coming-soon
+- runFlow:
+    when:
+      visible: "Open Wallet"
+    commands:
+      - tapOn: "Open Wallet"
+- extendedWaitUntil:
+    visible: "Redeem a code"
+    timeout: 30000
+- takeScreenshot: r17-08-wallet
+- tapOn: "Redeem a code"
+- extendedWaitUntil:
+    visible: "Have a code\\?"
+    timeout: 30000
+- takeScreenshot: r17-09-redeem
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Redeem a code"
+    timeout: 30000
+- runFlow: _back-to-me.yaml
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Tips I gave"
+      PROOF: "No tips yet.*|Couldn't load your tips right now\\.|Tips I gave"
+      SHOT: r17-10-tips
+      HUB: "Account and settings"
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: gift/device-check
+- extendedWaitUntil:
+    visible: "A gift for you"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "This gift link does not work\\..*"
+    timeout: 30000
+- takeScreenshot: r17-11-gift-bad-code
+- tapOn: "Back"
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: appeal
+- extendedWaitUntil:
+    visible: "Nothing to appeal|Couldn't load your appeals\\..*|Appeal"
+    timeout: 30000
+- takeScreenshot: r17-12-appeal
+- tapOn: "Back"

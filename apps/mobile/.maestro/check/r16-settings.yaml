@@ -1,0 +1,298 @@
+# R16 Settings: open all 26 settings pages one by one; each opens and goes back; toggles change and stay
+# changed. Me → "Account and settings" (app/(tabs)/me.tsx:210) → /account, title "Settings" (app/account.tsx:82).
+# Entry labels are the hub/sub-page rows (app/account.tsx:86-108, app/settings/*.tsx); a LinkRow's name is
+# "<label>, <line>" (app/settings/panel.tsx:136), hence the ".*". Toggles are role switch with
+# accessibilityState.checked (src/ui/kit/Toggle.tsx:58-60): one harmless local toggle each on Appearance
+# ("Vibration"), Downloads and cache ("Download queued episodes"), Playback ("Skip silence") and More
+# ("Personalised recommendations") is flipped, checked after leaving and coming back, and flipped back.
+# Two pages have no entry on iPhone (Android only, app/settings/background.tsx, updates.tsx): opened by path.
+# HUB proof for /account: "Account and security" (its first row).
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _me.yaml
+- tapOn:
+    text: "Account and settings"
+    index: 0
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+- assertVisible: "Settings"
+- takeScreenshot: r16-00-settings
+# 1–4 Account and security and its pages
+- tapOn: "Account and security"
+- extendedWaitUntil:
+    visible: "Change email"
+    timeout: 30000
+- takeScreenshot: r16-01-account-security
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Change email"
+      PROOF: "Email me a code"
+      SHOT: r16-02-change-email
+      HUB: "Signed-in devices"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "More account options"
+      PROOF: "Delete my account"
+      SHOT: r16-03-account-more
+      HUB: "Signed-in devices"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Signed-in devices"
+      PROOF: "Signed-in devices"
+      SHOT: r16-04-devices
+      HUB: "Change email"
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+# 5 Appearance, with a toggle that must stay changed
+- scrollUntilVisible:
+    element: "Appearance"
+    timeout: 30000
+- tapOn: "Appearance"
+- extendedWaitUntil:
+    visible: "Vibration"
+    timeout: 30000
+- takeScreenshot: r16-05-appearance
+- tapOn: "Vibration"
+- takeScreenshot: r16-05b-appearance-toggled
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+- tapOn: "Appearance"
+- extendedWaitUntil:
+    visible: "Vibration"
+    timeout: 30000
+- takeScreenshot: r16-05c-appearance-after-return
+- tapOn: "Vibration"                     # back as it was
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+# 6 Downloads and cache: "Download queued episodes" off → on, still on after coming back, then off again
+- scrollUntilVisible:
+    element: "Downloads and cache"
+    timeout: 30000
+- tapOn: "Downloads and cache"
+- extendedWaitUntil:
+    visible: "Download queued episodes"
+    timeout: 30000
+- takeScreenshot: r16-06-downloads
+- tapOn: "Download queued episodes"
+- extendedWaitUntil:
+    visible:
+      text: "Download queued episodes"
+      checked: true
+    timeout: 10000
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+- tapOn: "Downloads and cache"
+- extendedWaitUntil:
+    visible:
+      text: "Download queued episodes"
+      checked: true
+    timeout: 30000
+- takeScreenshot: r16-06b-downloads-toggle-kept
+- tapOn: "Download queued episodes"
+- extendedWaitUntil:
+    visible:
+      text: "Download queued episodes"
+      checked: false
+    timeout: 10000
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Notifications"
+      PROOF: "Allow notifications|Popular content"
+      SHOT: r16-07-push
+      HUB: "Account and security"
+# 8–9 Privacy and Blocked listeners
+- scrollUntilVisible:
+    element: "Privacy"
+    timeout: 30000
+- tapOn: "Privacy"
+- extendedWaitUntil:
+    visible: "Keep my listening private"
+    timeout: 30000
+- takeScreenshot: r16-08-privacy
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Blocked listeners.*"
+      PROOF: "You have not blocked anyone.*|Blocked listeners"
+      SHOT: r16-09-blocked
+      HUB: "Keep my listening private"
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Minor mode"
+      PROOF: "Hide explicit episodes"
+      SHOT: r16-10-minor
+      HUB: "Account and security"
+# 11–14 More and its pages; "Personalised recommendations" must stay changed
+- scrollUntilVisible:
+    element: "More"
+    timeout: 30000
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "Personalised recommendations"
+    timeout: 30000
+- takeScreenshot: r16-11-more
+- tapOn: "Personalised recommendations"
+- takeScreenshot: r16-11b-more-toggled
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Import or export subscriptions"
+      PROOF: "Import or export"
+      SHOT: r16-12-opml
+      HUB: "Personalised recommendations"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "How For You works"
+      PROOF: "How For You works"
+      SHOT: r16-13-how-for-you
+      HUB: "Personalised recommendations"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Not interested"
+      PROOF: "Nothing hidden.*|Not interested"
+      SHOT: r16-14-not-interested
+      HUB: "Personalised recommendations"
+- takeScreenshot: r16-11c-more-toggle-after-subpages
+- tapOn: "Personalised recommendations"  # back as it was
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+# 15–16 Playback and Playlist backups; "Skip silence" must stay changed
+- scrollUntilVisible:
+    element: "Playback"
+    timeout: 30000
+- tapOn: "Playback"
+- extendedWaitUntil:
+    visible: "Skip silence"
+    timeout: 30000
+- takeScreenshot: r16-15-playback
+- tapOn: "Skip silence"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Playlist backups.*"
+      PROOF: "No backups yet.*|Playlist backups"
+      SHOT: r16-16-queue-backups
+      HUB: "Skip silence"
+- takeScreenshot: r16-15b-playback-toggle-after-return
+- tapOn: "Skip silence"                  # back as it was
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Third-party sharing list"
+      PROOF: "Third-party sharing"
+      SHOT: r16-17-sharing
+      HUB: "Account and security"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Personal information we collect"
+      PROOF: "Information we collect"
+      SHOT: r16-18-collected
+      HUB: "Account and security"
+# 19–21 Help and feedback and its pages
+- scrollUntilVisible:
+    element: "Help and feedback"
+    timeout: 30000
+- tapOn: "Help and feedback"
+- extendedWaitUntil:
+    visible: "Check network"
+    timeout: 30000
+- takeScreenshot: r16-19-help
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Send feedback.*"
+      PROOF: "Write feedback"
+      SHOT: r16-20-feedback
+      HUB: "Check network"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Check network"
+      PROOF: "Start the check"
+      SHOT: r16-21-network
+      HUB: "Help and feedback"
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+# 23, 25, 26 About and its pages
+- scrollUntilVisible:
+    element: "About SocialNet"
+    timeout: 30000
+- tapOn: "About SocialNet"
+- extendedWaitUntil:
+    visible: "Open-source licences"
+    timeout: 30000
+- takeScreenshot: r16-23-about
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Widgets"
+      PROOF: "Widgets"
+      SHOT: r16-25-widgets
+      HUB: "Open-source licences"
+- runFlow:
+    file: _open-page.yaml
+    env:
+      ENTRY: "Open-source licences"
+      PROOF: "Open-source licences"
+      SHOT: r16-26-licences
+      HUB: "About SocialNet"
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000
+# 22 and 24: no entry on iPhone (Android-only rows), opened by path
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: settings/background
+- extendedWaitUntil:
+    visible: "Playing with the screen off"
+    timeout: 30000
+- takeScreenshot: r16-22-background
+- tapOn: "Back"
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: settings/updates
+- extendedWaitUntil:
+    visible: "On iPhone, the App Store keeps SocialNet up to date\\."
+    timeout: 30000
+- takeScreenshot: r16-24-updates
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Account and security"
+    timeout: 30000

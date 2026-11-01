@@ -1,0 +1,72 @@
+#!/bin/bash
+# The device check (docs/device-check/routes.md) on the iPhone simulator, from ci/workflows/ios-journey.yml
+# with suite=check. Runs every route flow r*.yaml in this folder one at a time, so a red flow never stops
+# the next one, then sets the largest text size and Reduce Motion and runs R04, R07, R08 and R13 again
+# (R20, R21) with "-xl" screenshot names. Never run on a laptop: CI only.
+#
+#   run-check.sh <simulator udid> <output dir>
+#
+# Writes into <output dir>: summary.tsv (flow, exit code, seconds), junit/<flow>.xml, maestro/<flow>/ (Maestro's
+# test output: commands.json, logs, failing-step screenshots and view hierarchy), hierarchy/<flow>-end.json (the
+# view hierarchy of the screen each flow ended on), screenshots/ (every takeScreenshot, flat), started-at.txt,
+# a11y-settings.txt (what the simulator says after R20/R21 are set). Exits 0; the workflow reads summary.tsv.
+set -u
+UDID=$1
+OUT=$2
+API=${E2E_API:-http://localhost:8787}
+cd "$(dirname "$0")/.." # apps/mobile/.maestro: flows reference subflows by relative path
+mkdir -p "$OUT/junit" "$OUT/maestro" "$OUT/hierarchy" "$OUT/screenshots"
+date '+%Y-%m-%d %H:%M:%S' > "$OUT/started-at.txt" # local time, the form `log show --start` takes
+printf 'flow\texit\tseconds\n' > "$OUT/summary.tsv"
+# Ids from the seed (apps/api/scripts/journey.ts writes JOURNEY_OUT) for pages that only open by path.
+J=${JOURNEY_OUT:-../../api/journey.json}
+EP1_ID=$(jq -r '.episodes[0].episodeId // empty' "$J" 2> /dev/null)
+EP2_ID=$(jq -r '.episodes[1].episodeId // empty' "$J" 2> /dev/null)
+echo "episode ids from $J: ${EP1_ID:-none} ${EP2_ID:-none}"
+
+faults_off() {
+  # R18 makes the test server slow on purpose (POST /__e2e/fault); never leave it on for the next flow.
+  curl -s -m 5 -X POST -H 'content-type: application/json' -d '{"mode":"off"}' "$API/__e2e/fault" > /dev/null || true
+}
+
+run_flow() {
+  local name=$1 file=$2
+  shift 2
+  local start code=0
+  start=$(date +%s)
+  echo "::group::$name"
+  maestro --device "$UDID" test "$file" --format junit --output "$OUT/junit/$name.xml" \
+    --test-output-dir "$OUT/maestro/$name" -e "EP1_ID=$EP1_ID" -e "EP2_ID=$EP2_ID" "$@" || code=$?
+  # The screen the flow ended on, as Maestro reads it (labels, frames) — for the accessibility review.
+  maestro --device "$UDID" hierarchy > "$OUT/hierarchy/$name-end.json" 2> "$OUT/hierarchy/$name-end.err" || true
+  faults_off
+  echo "::endgroup::"
+  printf '%s\t%s\t%s\n' "$name" "$code" "$(($(date +%s) - start))" >> "$OUT/summary.tsv"
+  [ "$code" -eq 0 ] || echo "::error title=device check::$name failed (exit $code)"
+}
+
+for f in check/r*.yaml; do
+  run_flow "$(basename "$f" .yaml)" "$f"
+done
+
+# R20: the largest accessibility text size (`xcrun simctl ui <udid> content_size <size>`).
+# R21: Reduce Motion. simctl has no switch for it; it is the com.apple.Accessibility default ReduceMotionEnabled,
+# read by apps at launch (every flow launches the app again). The workflow already sets it at boot for the
+# driver's sake, so R21 here is written again and read back, not toggled from off.
+xcrun simctl ui "$UDID" content_size accessibility-extra-extra-extra-large
+xcrun simctl spawn "$UDID" defaults write com.apple.Accessibility ReduceMotionEnabled -bool true
+{
+  echo "content_size: $(xcrun simctl ui "$UDID" content_size 2>&1)"
+  echo "ReduceMotionEnabled: $(xcrun simctl spawn "$UDID" defaults read com.apple.Accessibility ReduceMotionEnabled 2>&1)"
+} | tee "$OUT/a11y-settings.txt"
+for n in r04-discover r07-episode-player r08-comments r13-me; do
+  run_flow "$n-xl" "check/$n.yaml" -e SUFFIX=-xl
+done
+xcrun simctl ui "$UDID" content_size large || true
+
+# Every takeScreenshot in one flat folder (Maestro writes them under each flow's takeScreenshot/).
+find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
+find . .. -maxdepth 1 -name 'r[0-9]*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
+echo "screenshots: $(find "$OUT/screenshots" -name '*.png' | wc -l)"
+cat "$OUT/summary.tsv"
+exit 0

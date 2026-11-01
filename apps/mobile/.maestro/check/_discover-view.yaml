@@ -1,0 +1,29 @@
+# Subflow: the Discover tab, on its Discover view. Home opens on Moments by default and remembers the choice
+# (src/ui/discover/homeView.ts:17); the Moments/Discover switch segments are named "Moments" and "Discover"
+# (src/ui/discover/HomeSwitch.tsx:30-31) — the same name as the tab, so the segment is picked as the
+# "Discover" right of "Moments". "Scan a QR code" (src/ui/discover/parts.tsx:252) exists only on that view.
+appId: app.socialmorning.mobile
+---
+- tapOn: "Discover"
+- extendedWaitUntil:
+    visible: "Scan a QR code|Open Discover|Moments"
+    timeout: 30000
+- runFlow:
+    when:
+      notVisible: "Scan a QR code"
+    commands:
+      - runFlow:
+          when:
+            visible: "Open Discover"
+          commands:
+            - tapOn: "Open Discover"
+      - runFlow:
+          when:
+            notVisible: "Scan a QR code"
+          commands:
+            - tapOn:
+                text: "Discover"
+                rightOf: "Moments"
+- extendedWaitUntil:
+    visible: "Scan a QR code"
+    timeout: 30000

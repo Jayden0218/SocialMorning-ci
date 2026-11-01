@@ -1,0 +1,13 @@
+# Subflow: from the tabs, open the seeded show, play episode 1 and pause at once (before 0:30: in the last 30 s
+# of this 60 s episode it counts as Finished, src/playback/finished.ts), then open the full player.
+# Labels from ../journey.yaml and src/ui/kit/NowBar.tsx:198 ("Now playing: <title>. Open the player.").
+appId: app.socialmorning.mobile
+---
+- runFlow: _search-show.yaml
+- tapOn: "Play Episode 1: A minute of tone"
+- tapOn: "Pause Episode 1: A minute of tone"
+- tapOn:
+    text: "Now playing: .*"
+- extendedWaitUntil:
+    visible: "Close the player"
+    timeout: 30000

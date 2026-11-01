@@ -1,0 +1,113 @@
+# R4 Discover tab: scroll to the bottom; open a category, the chart, the chart rules, daily picks, past picks,
+# a topic; each opens and goes back. Re-run at the largest text size (R20) with SUFFIX=-xl.
+# On CI there is no Apple catalogue: charts, picks, topic cards and For You are hidden when empty
+# (ChartSection.tsx:100, PicksSection.tsx:46, TopicLists.tsx:29), the shortcut tiles always draw
+# (src/ui/discover/DiscoverMosaic.tsx:161; names packages/social-core/src/app-config.ts:19-22).
+# Titles: category = the genre ("Business", app/category/[id].tsx:324, opened by the "Categories" tile,
+# useDiscoverPage.ts:92); "Charts" (app/chart.tsx:93, opened by "Talked about", DiscoverShortcuts.tsx:63);
+# "How the charts work" (app/chart-rules.tsx:44); "Daily picks" (app/picks/daily.tsx:93); "Past picks"
+# (app/picks/past.tsx:120); topic "Topic list" (app/topic/[id].tsx:70).
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _discover-view.yaml
+- takeScreenshot: r04-01-discover${SUFFIX || ''}
+- scroll
+- scroll
+- scroll
+- scroll
+- takeScreenshot: r04-02-discover-bottom${SUFFIX || ''}
+- scrollUntilVisible:
+    element: "Categories"
+    direction: UP
+    timeout: 30000
+# Category (the first genre)
+- tapOn: "Categories"
+- extendedWaitUntil:
+    visible: "All categories"
+    timeout: 30000
+- assertVisible: "Business"
+- takeScreenshot: r04-03-category${SUFFIX || ''}
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Scan a QR code"
+    timeout: 30000
+# Chart and its rules
+- scrollUntilVisible:
+    element: "Talked about"
+    timeout: 30000
+- tapOn: "Talked about"
+- extendedWaitUntil:
+    visible: "Charts"
+    timeout: 30000
+- assertVisible: "Swipe for the next chart"
+- takeScreenshot: r04-04-chart${SUFFIX || ''}
+- tapOn: "How the charts work"
+- extendedWaitUntil:
+    visible: "How often they update"
+    timeout: 30000
+- takeScreenshot: r04-05-chart-rules${SUFFIX || ''}
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Swipe for the next chart"
+    timeout: 30000
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Scan a QR code"
+    timeout: 30000
+# Daily and past picks: linked from Discover only when there are picks (none on CI), so opened by path.
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: picks/daily
+- extendedWaitUntil:
+    visible: "Daily picks"
+    timeout: 30000
+- takeScreenshot: r04-06-daily-picks${SUFFIX || ''}
+- tapOn:
+    text: "Past picks"
+    index: 0                             # the title-bar action (app/picks/daily.tsx:95; a second link at :114)
+- extendedWaitUntil:
+    visible: "Every day the editors picked"
+    timeout: 30000
+- takeScreenshot: r04-07-past-picks${SUFFIX || ''}
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Daily picks"
+    timeout: 30000
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Scan a QR code"
+    timeout: 30000
+# A topic list: no topic cards without the catalogue, so the page is opened by path with an id the phone
+# has not cached — it must still say something clear ("This list is not on the phone yet…", :74).
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: topic/device-check
+- extendedWaitUntil:
+    visible: "Topic list"
+    timeout: 30000
+    optional: true                       # no topic exists in the seed; the page is reached only by a made-up id
+- assertVisible:
+    text: "This list is not on the phone yet.*"
+    optional: true
+- takeScreenshot: r04-08-topic${SUFFIX || ''}
+- runFlow:
+    when:
+      visible: "Back"
+    commands:
+      - tapOn: "Back"
+# The all-categories grid has no in-app entry (only its path, src/outside/link-allow.ts:15).
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: categories
+- extendedWaitUntil:
+    visible: "19 genres"
+    timeout: 30000
+- takeScreenshot: r04-09-all-categories${SUFFIX || ''}
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Scan a QR code"
+    timeout: 30000

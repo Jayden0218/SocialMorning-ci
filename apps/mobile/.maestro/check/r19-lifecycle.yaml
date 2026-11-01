@@ -1,0 +1,30 @@
+# R19 Lifecycle: background 1 min, return; kill and reopen — same screen state; signed in still.
+# The one minute in the background is the test itself (routes.md R19), not a wait for an element: it is an
+# extendedWaitUntil on a string that never appears, with optional: true, timed at 60 s.
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _me.yaml
+- tapOn: "Listener 05, open your profile"
+- extendedWaitUntil:
+    visible: "This is you"
+    timeout: 30000
+- takeScreenshot: r19-01-before-background
+- pressKey: home
+- extendedWaitUntil:
+    visible: "device-check: one minute in the background"
+    timeout: 60000
+    optional: true
+- launchApp:
+    stopApp: false                       # back to the running app, not a fresh start
+- extendedWaitUntil:
+    visible: "This is you"
+    timeout: 60000
+- takeScreenshot: r19-02-after-background
+- stopApp
+- launchApp:
+    stopApp: false
+- runFlow: _dismiss-overlays.yaml
+- assertNotVisible: "Continue with email"
+- runFlow: _me.yaml
+- takeScreenshot: r19-03-after-kill-signed-in

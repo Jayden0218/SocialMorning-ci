@@ -1,0 +1,48 @@
+# Subflow: whatever may sit over the tabs after a sign-in or a launch — the interests page (new accounts), the
+# rate sheet ("Enjoying SocialNet?"), a launch promotion ("Skip") — until "Discover" is what is on screen.
+# Labels and timings from ../journey.yaml (run 38011142490: the interests page arrives a moment AFTER the tabs).
+appId: app.socialmorning.mobile
+---
+- extendedWaitUntil:
+    visible: "Discover|Skip choosing categories|Skip"
+    timeout: 90000
+- extendedWaitUntil:
+    visible: "Skip choosing categories"
+    timeout: 15000
+    optional: true
+- repeat:
+    while:
+      notVisible: "Discover"
+    times: 4
+    commands:
+      - runFlow:
+          when:
+            visible: "Skip choosing categories"
+          commands:
+            - tapOn: "Skip choosing categories"
+      - runFlow:
+          when:
+            visible: "Skip"
+          commands:
+            - tapOn: "Skip"
+      - runFlow:
+          when:
+            visible: "Enjoying SocialNet\\?.*"
+          commands:
+            - tapOn: "Close"
+      - extendedWaitUntil:
+          visible: "Discover"
+          timeout: 10000
+          optional: true
+- extendedWaitUntil:
+    visible: "Enjoying SocialNet\\?.*"
+    timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      visible: "Enjoying SocialNet\\?.*"
+    commands:
+      - tapOn: "Close"
+- extendedWaitUntil:
+    visible: "Discover"
+    timeout: 30000

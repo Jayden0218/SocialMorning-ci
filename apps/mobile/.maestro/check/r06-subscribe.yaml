@@ -1,0 +1,73 @@
+# R6 Subscribe: on the show page subscribe (the seed already subscribes every listener, journey.ts:123 — so
+# unsubscribe then subscribe again, to see both states); the Updates tab lists the show's episodes; My
+# subscriptions and Manage order list it.
+# Labels: Updates card "<ep>, <show>. <meta>" (src/ui/episode/UpdateEpisodeRow.tsx:121); the tab reads
+# "Updates, N new" with a badge (TabBar.tsx:141); subtitle link "My subscriptions · N ›" (app/(tabs)/library.tsx:297)
+# → "My subscriptions" (app/subscriptions.tsx:158), row "Journey Morning. Newest: …" (:136), chip "Manage order"
+# (:147) → "Manage order" (app/subscriptions/manage.tsx:72), tile "Journey Morning, number 1" (:91).
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _search-show.yaml
+- takeScreenshot: r06-01-show-before
+- repeat:                                # tap only while it still says Unsubscribe, then wait for the change
+    while:
+      notVisible: "Subscribe to this show"
+    times: 3
+    commands:
+      - runFlow:
+          when:
+            visible: "Unsubscribe from this show"
+          commands:
+            - tapOn: "Unsubscribe from this show"
+      - extendedWaitUntil:
+          visible: "Subscribe to this show"
+          timeout: 15000
+          optional: true
+- assertVisible: "Subscribe to this show"
+- takeScreenshot: r06-02-unsubscribed
+- repeat:
+    while:
+      notVisible: "Unsubscribe from this show"
+    times: 3
+    commands:
+      - runFlow:
+          when:
+            visible: "Subscribe to this show"
+          commands:
+            - tapOn: "Subscribe to this show"
+      - extendedWaitUntil:
+          visible: "Unsubscribe from this show"
+          timeout: 15000
+          optional: true
+- assertVisible: "Unsubscribe from this show"
+- takeScreenshot: r06-03-subscribed
+- tapOn: "Back"
+- tapOn:
+    text: "Cancel"
+    optional: true                       # the search overlay, if it is still drawn over the tabs
+- tapOn: "Updates(, .*)?"
+- extendedWaitUntil:
+    visible: "Episode \\d: A minute of tone, Journey Morning\\..*"
+    timeout: 60000
+- takeScreenshot: r06-04-updates
+- tapOn: "My subscriptions · .*"
+- extendedWaitUntil:
+    visible: "Journey Morning\\. Newest: .*"
+    timeout: 30000
+- assertVisible: "My subscriptions"
+- takeScreenshot: r06-05-subscriptions
+- tapOn: "Manage order"
+- extendedWaitUntil:
+    visible: "Tap a show, then tap where it should go\\."
+    timeout: 30000
+- assertVisible: "Journey Morning, number 1"
+- takeScreenshot: r06-06-manage-order
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Journey Morning\\. Newest: .*"
+    timeout: 30000
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "My subscriptions · .*"
+    timeout: 30000

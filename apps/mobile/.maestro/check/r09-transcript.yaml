@@ -1,0 +1,48 @@
+# R9 Transcript: text, or a clear "no transcript" message. The player's More sheet shows "Transcript" only when
+# the episode has one (src/ui/player/PlayerMoreSheet.tsx:107); the seeded episodes have none, so the in-app
+# entry is checked to be absent and the page is opened by its path (app/transcript/[episodeId].tsx): with no
+# transcript it says "No transcript yet This episode has no transcript on this phone yet. Open it in the
+# player first." (:159, one element). EP1_ID (episode 1's server id) is passed by run-check.sh from the
+# seed's journey.json.
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _search-show.yaml
+- tapOn: "Play Episode 1: A minute of tone"
+- tapOn:
+    text: "Pause Episode 1: A minute of tone"
+    optional: true
+- tapOn:
+    text: "Now playing: .*"
+- extendedWaitUntil:
+    visible: "Close the player"
+    timeout: 30000
+- tapOn: "More"
+- extendedWaitUntil:
+    visible: "About this episode"
+    timeout: 15000
+- takeScreenshot: r09-01-player-more
+- runFlow:
+    when:
+      visible: "Transcript"
+    commands:
+      - tapOn: "Transcript"
+      - extendedWaitUntil:
+          visible: "Open the transcript full screen"
+          timeout: 15000
+      - takeScreenshot: r09-02-transcript-sheet
+      - tapOn: "Open the transcript full screen"
+- runFlow:
+    when:
+      notVisible: "Transcript|Open the transcript full screen"
+    commands:
+      - tapOn: "Close"
+      - runFlow:
+          file: _open-link.yaml
+          env:
+            LINK: transcript/${EP1_ID}
+- extendedWaitUntil:
+    visible: "No transcript yet.*|Transcript"
+    timeout: 30000
+- takeScreenshot: r09-03-transcript-page
+- tapOn: "Back"

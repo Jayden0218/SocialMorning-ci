@@ -1,0 +1,15 @@
+# Subflow: open an app path by its socialmorning:// link (LINK, e.g. "picks/daily") for screens the seed gives
+# no in-app way to (the routes' "optional" steps say which). iOS may ask "Open in “SocialNet”?" for a custom
+# scheme opened from outside; when it does, the "Open" button is tapped.
+appId: app.socialmorning.mobile
+---
+- openLink: socialmorning://${LINK}
+- extendedWaitUntil:
+    visible: "Open"
+    timeout: 4000
+    optional: true
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"

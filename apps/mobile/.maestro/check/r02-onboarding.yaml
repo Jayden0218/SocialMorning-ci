@@ -1,0 +1,112 @@
+# R2 Onboarding: a new listener's first sign-in → the interests page ("What do you like?",
+# app/onboarding/interests.tsx:55); pick two, "Continue with these categories" (:65, disabled until two are
+# picked) → lands on the tabs. Then the "Not liking these?" page (src/ui/discover/RecFeedback.tsx:125).
+# Genre tiles are named by genre (RecFeedback.tsx:59; names packages/social-core/src/categories.ts).
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+  EMAIL: listener-05@journey.test
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Agree"
+    timeout: 300000
+- tapOn: "Agree"
+- repeat:
+    while:
+      notVisible: "Continue with email"
+    times: 3
+    commands:
+      - extendedWaitUntil:
+          visible: "Continue with email"
+          timeout: 20000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Agree"
+          commands:
+            - tapOn: "Agree"
+- tapOn: "Continue with email"
+- extendedWaitUntil:
+    visible: "Agree and continue"
+    timeout: 30000
+- tapOn: "Agree and continue"
+- extendedWaitUntil:
+    visible: "Email"
+    timeout: 30000
+- tapOn: "Email"
+- eraseText: 40
+- inputText: ${EMAIL}
+- repeat:
+    while:
+      notVisible: ${EMAIL.replace(/\./g, '\\.')}
+    times: 3
+    commands:
+      - tapOn: "Email"
+      - eraseText: 40
+      - inputText: ${EMAIL.split('@')[0]}
+      - inputText: "@"
+      - inputText: ${EMAIL.split('@')[1]}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Code"
+    timeout: 30000
+- runScript: ../fetch-code.js
+- tapOn: "Code"
+- inputText: ${output.code}
+- repeat:
+    while:
+      notVisible:
+        text: "Continue"
+        enabled: true
+    times: 3
+    commands:
+      - tapOn: "Code"
+      - eraseText: 10
+      - inputText: ${output.code}
+- tapOn: "Continue"
+# The interests page is pushed over the tabs a moment after they show (../journey.yaml, run 38011142490).
+# If this listener's interests were already saved by an earlier run, it does not come: then this step
+# fails, which is the finding (the onboarding was not seen).
+- extendedWaitUntil:
+    visible: "What do you like\\?"
+    timeout: 90000
+- assertVisible: "Pick at least two — For You starts from them\\."
+- takeScreenshot: r02-01-interests
+- tapOn: "Technology"
+- tapOn: "Comedy"
+- extendedWaitUntil:
+    visible:
+      text: "Continue with these categories"
+      enabled: true
+    timeout: 15000
+- takeScreenshot: r02-02-interests-picked
+- tapOn: "Continue with these categories"
+- runFlow: _dismiss-overlays.yaml
+- assertNotVisible: "What do you like\\?"
+- takeScreenshot: r02-03-landed
+# "Not liking these?" is linked under For You only when For You has rows (DiscoverPage.tsx:126) — none in
+# the seed (no Apple catalogue on CI) — so it is opened by its path.
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: onboarding/not-liking
+- extendedWaitUntil:
+    visible: "Not liking these\\?"
+    timeout: 30000
+- assertVisible: "Too long"
+- takeScreenshot: r02-04-not-liking
+- tapOn: "Too long"
+- extendedWaitUntil:
+    visible:
+      text: "Send what's wrong with For You"
+      enabled: true
+    timeout: 10000
+- takeScreenshot: r02-05-not-liking-reason
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Discover"
+    timeout: 30000

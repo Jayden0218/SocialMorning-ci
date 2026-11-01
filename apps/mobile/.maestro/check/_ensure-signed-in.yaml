@@ -1,0 +1,16 @@
+# Subflow: launch the app as the previous flow left it; when it is not signed in (the Terms page or the
+# sign-in landing is up — a signed-out app opens on /auth/sign-in on every launch, app/auth/sign-in.tsx),
+# sign in from a clean install with _sign-in.yaml. Ends on Discover with nothing over it.
+appId: app.socialmorning.mobile
+---
+- launchApp:
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Discover|Continue with email|Agree|Skip choosing categories|Skip"
+    timeout: 300000
+- runFlow:
+    when:
+      visible: "Continue with email|Agree"
+    file: _sign-in.yaml
+- runFlow: _dismiss-overlays.yaml

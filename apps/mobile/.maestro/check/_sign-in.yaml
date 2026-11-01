@@ -1,0 +1,73 @@
+# Subflow (not a route): sign in from a clean install as the check's listener, by emailed code, and land on
+# Discover with nothing over it. The same steps and labels as ../journey.yaml (proven green, run 41245034617);
+# its comments say why each wait and retry is there. Called by _ensure-signed-in.yaml and r03-sign-in.yaml.
+# EMAIL comes from the caller (default listener-05@journey.test: subscribed to "Journey Morning", follows
+# listener-06/07/08, followed by listener-02/03/04, has accepted the community rules — apps/api/scripts/journey.ts).
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+  EMAIL: listener-05@journey.test
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Agree"
+    timeout: 300000
+- tapOn: "Agree"
+- repeat:
+    while:
+      notVisible: "Continue with email"
+    times: 3
+    commands:
+      - extendedWaitUntil:
+          visible: "Continue with email"
+          timeout: 20000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Agree"
+          commands:
+            - tapOn: "Agree"
+- tapOn: "Continue with email"
+- extendedWaitUntil:
+    visible: "Agree and continue"
+    timeout: 30000
+- tapOn: "Agree and continue"
+- extendedWaitUntil:
+    visible: "Email"
+    timeout: 30000
+- tapOn: "Email"
+- eraseText: 40
+- inputText: ${EMAIL}
+- repeat:
+    while:
+      notVisible: ${EMAIL.replace(/\./g, '\\.')}
+    times: 3
+    commands:
+      - tapOn: "Email"
+      - eraseText: 40
+      - inputText: ${EMAIL.split('@')[0]}
+      - inputText: "@"
+      - inputText: ${EMAIL.split('@')[1]}
+- assertVisible: ${EMAIL.replace(/\./g, '\\.')}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Code"
+    timeout: 30000
+- runScript: ../fetch-code.js
+- tapOn: "Code"
+- inputText: ${output.code}
+- repeat:
+    while:
+      notVisible:
+        text: "Continue"
+        enabled: true
+    times: 3
+    commands:
+      - tapOn: "Code"
+      - eraseText: 10
+      - inputText: ${output.code}
+- tapOn: "Continue"
+- runFlow: _dismiss-overlays.yaml

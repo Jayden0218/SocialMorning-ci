@@ -1,0 +1,68 @@
+# R11 Following: open; open a status; post a text status — feed or clear empty state.
+# There is no Following tab any more: /following redirects to Notifications (app/(tabs)/following.tsx:9) — Me →
+# "Notifications" (People: "No activity yet …" when empty, app/notifications.tsx:298). Statuses live on the
+# Updates tab's Voice rail: "Post a status: voice or text" (src/ui/social/VoicePosts.tsx:116) → sheet → "Write a
+# text status" (:148) → /status/text, title and box both "Text status", "Post" (app/status/text.tsx:63-76) →
+# toast "Posted. It is gone after 24 hours."; the rail then has "Your text status, …" (VoicePosts.tsx:62) → the
+# viewer "Status 1 of N" (src/ui/social/StatusViewer.tsx:164), "Close" (app/status/[id].tsx:110).
+appId: app.socialmorning.mobile
+env:
+  STATUS: "Device check status"
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: following
+- extendedWaitUntil:
+    visible: "People\\. .*"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: ".*follow people from their profile|.*Listener 0[678].*"
+    timeout: 30000
+- takeScreenshot: r11-01-following-feed
+- tapOn: "Back"
+- tapOn: "Updates(, .*)?"
+- extendedWaitUntil:
+    visible: "Post a status: voice or text"
+    timeout: 30000
+- takeScreenshot: r11-02-updates-voice-rail
+- tapOn: "Post a status: voice or text"
+- extendedWaitUntil:
+    visible: "Write a text status"
+    timeout: 15000
+- takeScreenshot: r11-03-new-status-sheet
+- tapOn: "Write a text status"
+- extendedWaitUntil:
+    visible: "Text status"
+    timeout: 30000
+- tapOn:
+    text: "Text status"
+    index: 1                             # the box (index 0 is the title, app/status/text.tsx:71)
+- inputText: ${STATUS}
+- repeat:
+    while:
+      notVisible: ".*${STATUS}.*"
+    times: 3
+    commands:
+      - tapOn:
+          text: "Text status"
+          index: 1
+      - eraseText: 60
+      - inputText: ${STATUS}
+- takeScreenshot: r11-04-text-status
+- tapOn: "Post"
+- extendedWaitUntil:
+    visible: "Your text status, .*"
+    timeout: 30000
+- takeScreenshot: r11-05-status-posted
+- tapOn: "Your text status, .*"
+- extendedWaitUntil:
+    visible: "Status 1 of \\d+"
+    timeout: 30000
+- assertVisible: "You wrote: ${STATUS}"
+- takeScreenshot: r11-06-status-viewer
+- tapOn: "Close"
+- extendedWaitUntil:
+    visible: "Post a status: voice or text"
+    timeout: 30000

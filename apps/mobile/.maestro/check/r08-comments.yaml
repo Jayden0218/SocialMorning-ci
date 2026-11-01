@@ -1,0 +1,111 @@
+# R8 Comments: episode comments; post a timestamped comment; open a thread; reply; like — the comment shows with
+# its time; heat curve visible. Re-run at the largest text size (R20, -xl).
+# Labels (src/ui/comments, app/comments): page proof "Order options" ([episodeId].tsx:365), "Write a comment at m:ss"
+# (:375), heat curve "Where people reacted. Touch to jump the comments to that moment" (CommentsMap.tsx:48);
+# composer "New comment"/"Reply", box "Comment" + placeholder (Composer.tsx:123-171), "Post"; rules sheet "Accept
+# the community rules" (RulesSheet.tsx:70); row "<name>, <age>, Play from m:ss, <body>" (CommentRow.tsx:163),
+# like "Like. N likes" / "Unlike. …" (:230), replies link "N reply. Open the replies" (:244); thread title "Replies",
+# "Reply to Listener 06" (thread/[commentId].tsx:263,271). Seed: "Seed comment 06 at 36 s" by Listener 06 on
+# episode 1 (apps/api/scripts/journey.ts:164).
+appId: app.socialmorning.mobile
+env:
+  NOTE: "Device check: a comment at this moment"
+  REPLY: "Device check: a reply"
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _player-episode-1.yaml
+- tapOn:
+    text: "Comments, .*"
+- extendedWaitUntil:
+    visible: "Order options"
+    timeout: 30000
+- assertVisible: "Where people reacted.*"
+- takeScreenshot: r08-01-comments${SUFFIX || ''}
+# Post a comment at the current moment
+- tapOn:
+    text: "Write a comment.*"
+- extendedWaitUntil:
+    visible: "New comment"
+    timeout: 30000
+- tapOn:
+    text: "Comment.*What is worth saying here.*"
+- inputText: ${NOTE}
+- repeat:
+    while:
+      notVisible: ${NOTE}
+    times: 3
+    commands:
+      - tapOn:
+          text: "Comment( .*)?"
+      - eraseText: 80
+      - inputText: ${NOTE}
+- takeScreenshot: r08-02-composer${SUFFIX || ''}
+- tapOn: "Post"
+- extendedWaitUntil:
+    visible: "Accept the community rules"
+    timeout: 8000
+    optional: true                       # listener-05 accepted them in the seed; a fresh account would see them
+- runFlow:
+    when:
+      visible: "Accept the community rules"
+    commands:
+      - tapOn: "Accept the community rules"
+- extendedWaitUntil:
+    visible: ".*Listener 05, .*Play from \\d:\\d\\d, ${NOTE}"
+    timeout: 30000
+- assertNotVisible: "New comment"
+- takeScreenshot: r08-03-comment-posted${SUFFIX || ''}
+# Open a seeded comment, reply, open its thread, like the parent
+- scrollUntilVisible:
+    element: ".*Listener 06, .*Play from 0:36, Seed comment 06 at 36 s"
+    timeout: 60000
+- tapOn: ".*Listener 06, .*Play from 0:36, Seed comment 06 at 36 s"
+- extendedWaitUntil:
+    visible: "Reply"
+    timeout: 15000
+- takeScreenshot: r08-04-comment-actions${SUFFIX || ''}
+- tapOn:
+    text: "Reply"
+    index: 0
+- extendedWaitUntil:
+    visible: "Comment.*Write a reply.*"
+    timeout: 30000
+- tapOn:
+    text: "Comment.*Write a reply.*"
+- inputText: ${REPLY}
+- repeat:
+    while:
+      notVisible: ${REPLY}
+    times: 3
+    commands:
+      - tapOn:
+          text: "Comment( .*)?"
+      - eraseText: 80
+      - inputText: ${REPLY}
+- tapOn: "Post"
+- extendedWaitUntil:
+    visible: "\\d+ repl(y|ies)\\. Open the replies"
+    timeout: 30000
+- tapOn:
+    text: "\\d+ repl(y|ies)\\. Open the replies"
+    index: 0
+- extendedWaitUntil:
+    visible: "Reply to Listener 06"
+    timeout: 30000
+- assertVisible: ".*${REPLY}.*"
+- takeScreenshot: r08-05-thread${SUFFIX || ''}
+- tapOn:
+    text: "Like\\. \\d+ likes?"
+    index: 0
+- extendedWaitUntil:
+    visible: "Unlike\\. \\d+ likes?"
+    timeout: 15000
+- takeScreenshot: r08-06-liked${SUFFIX || ''}
+- tapOn: "Unlike\\. \\d+ likes?"     # back as it was, so the -xl run sees the same state
+- extendedWaitUntil:
+    visible: "Like\\. \\d+ likes?"
+    timeout: 15000
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Order options"
+    timeout: 30000

@@ -1,0 +1,109 @@
+# R7 Episode + player: open an episode; play; pause; seek; speed; queue; sleep timer — time moves, controls answer.
+# Sound is NOT checked here (a simulator on CI; real-device only). Re-run at the largest text size (R20, -xl).
+# Episode page (app/episode/[id].tsx): opened from the show-page row "<title>. <meta>" (app/show/[feedUrl].tsx:135);
+# proof "Like this episode", "Play this episode" (src/ui/episode/EpisodeTitleBlock.tsx:73, EpisodeTray.tsx:42).
+# Player (src/ui/player): "Close the player" (PlayerTopBar.tsx:65), "Play"/"Pause" (TransportRow.tsx:74,82),
+# "Skip back 15 seconds" (:70), ring "Seek" (PlayerRing.tsx:94), speed "Speed 1.0×, sleep timer and chapters"
+# (TransportRow.tsx:67) → sheet "Playback", presets "1×" "1.5×" (SpeedControl.tsx:118-135), close "Close the player
+# settings" (SettingsPanel.tsx:83); "Sleep timer, off" (MoonButton.tsx:37) → "Sleep in 15 minutes", "Cancel the
+# sleep timer" (SleepTimerControl.tsx:45,82). Time: the show-page row label carries "m:ss / 1:00" (journey).
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _search-show.yaml
+- tapOn:
+    text: "Episode 1: A minute of tone\\. .*"
+    index: 0
+- extendedWaitUntil:
+    visible: "Like this episode"
+    timeout: 30000
+- assertVisible: "Where people reacted.*"
+- takeScreenshot: r07-01-episode${SUFFIX || ''}
+- tapOn: "Play this episode"
+- extendedWaitUntil:
+    visible: "Now playing: .*"
+    timeout: 30000
+- tapOn:
+    text: "Now playing: .*"
+- extendedWaitUntil:
+    visible: "Close the player"
+    timeout: 30000
+- assertVisible: "Seek"
+- takeScreenshot: r07-02-player-playing${SUFFIX || ''}
+- runFlow:
+    when:
+      visible: "Pause"
+    commands:
+      - tapOn: "Pause"
+- extendedWaitUntil:
+    visible: "Play"
+    timeout: 30000
+- takeScreenshot: r07-03-player-paused${SUFFIX || ''}
+- tapOn: "Skip back 15 seconds"
+- assertVisible: "Play"
+# Speed
+- tapOn: "Speed .*, sleep timer and chapters"
+- extendedWaitUntil:
+    visible: "Slower"
+    timeout: 15000
+- takeScreenshot: r07-04-speed-sheet${SUFFIX || ''}
+- tapOn: "1\\.5×"
+- tapOn: "Close the player settings"
+- extendedWaitUntil:
+    visible: "Speed 1\\.5×, sleep timer and chapters"
+    timeout: 15000
+- takeScreenshot: r07-05-speed-1-5${SUFFIX || ''}
+- tapOn: "Speed .*, sleep timer and chapters"
+- extendedWaitUntil:
+    visible: "Slower"
+    timeout: 15000
+- tapOn: "1×"
+- tapOn: "Close the player settings"
+- extendedWaitUntil:
+    visible: "Speed 1\\.0×, sleep timer and chapters"
+    timeout: 15000
+# Sleep timer
+- tapOn: "Sleep timer, .*"
+- extendedWaitUntil:
+    visible: "Sleep in 15 minutes"
+    timeout: 15000
+- takeScreenshot: r07-06-sleep-sheet${SUFFIX || ''}
+- tapOn: "Sleep in 15 minutes"
+- tapOn:
+    text: "Close"
+    index: 0
+- extendedWaitUntil:
+    visible: "Sleep timer, pausing in .*"
+    timeout: 15000
+- takeScreenshot: r07-07-sleep-armed${SUFFIX || ''}
+- tapOn: "Sleep timer, pausing in .*"
+- tapOn: "Cancel the sleep timer"
+- tapOn:
+    text: "Close"
+    index: 0
+    optional: true                       # the sheet may close itself on cancel
+- extendedWaitUntil:
+    visible: "Sleep timer, off"
+    timeout: 15000
+# Time moved: the position saved after play/pause shows in the show-page row ("… m:ss / 1:00").
+- tapOn: "Close the player"
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: ".*0:(0[1-9]|[1-5][0-9]) ?/ ?1:00.*"
+    timeout: 30000
+- takeScreenshot: r07-08-show-row-time${SUFFIX || ''}
+# Queue (Me → "Queue", app/queue.tsx:68, with "Edit" :70)
+- tapOn: "Back"
+- tapOn:
+    text: "Cancel"
+    optional: true                       # the search overlay, if still drawn
+- runFlow: _me.yaml
+- scrollUntilVisible:
+    element: "Queue"
+    timeout: 20000
+- tapOn: "Queue"
+- extendedWaitUntil:
+    visible: "Edit|Nothing queued\\..*"
+    timeout: 30000
+- takeScreenshot: r07-09-queue${SUFFIX || ''}
+- runFlow: _back-to-me.yaml

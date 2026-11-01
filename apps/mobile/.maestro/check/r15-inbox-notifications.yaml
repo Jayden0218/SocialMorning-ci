@@ -1,0 +1,53 @@
+# R15 Inbox + notifications: lists or clear empty states.
+# /inbox redirects to Updates (app/inbox.tsx:10). Me → "Notifications" (app/(tabs)/me.tsx:155; "Notifications,
+# N new" with a badge) → title "Notifications" (app/notifications.tsx:262), tabs "People. …" / "Interactions. …"
+# (src/ui/notifications/NoticeCards.tsx:46,75); cards "System. Messages from SocialNet" (:97) → "System"
+# (app/notifications/system.tsx:39); "From hosts. Shows you follow" (:115) → "From hosts" (hosts.tsx:153).
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: inbox
+- extendedWaitUntil:
+    visible: "My subscriptions · .*"
+    timeout: 30000
+- takeScreenshot: r15-01-inbox-is-updates
+- runFlow: _me.yaml
+- tapOn: "Notifications(, .*)?"
+- extendedWaitUntil:
+    visible: "People\\. .*"
+    timeout: 30000
+- takeScreenshot: r15-02-notifications-people
+- tapOn: "Interactions\\. .*"
+- extendedWaitUntil:
+    visible: "No activity yet.*|Couldn't load your interactions right now\\.|.*Listener \\d\\d.*"
+    timeout: 30000
+- takeScreenshot: r15-03-notifications-interactions
+- scrollUntilVisible:
+    element: "System\\. .*"
+    timeout: 20000
+- tapOn: "System\\. .*"
+- extendedWaitUntil:
+    visible: "Messages from SocialNet"
+    timeout: 30000
+- takeScreenshot: r15-04-system
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "People\\. .*|Interactions\\. .*"
+    timeout: 30000
+- scrollUntilVisible:
+    element: "From hosts\\. .*"
+    timeout: 20000
+- tapOn: "From hosts\\. .*"
+- extendedWaitUntil:
+    visible: "No announcements yet.*|Couldn't load announcements right now\\."
+    timeout: 30000
+- assertVisible: "From hosts"
+- takeScreenshot: r15-05-hosts
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "People\\. .*|Interactions\\. .*"
+    timeout: 30000
+- runFlow: _back-to-me.yaml

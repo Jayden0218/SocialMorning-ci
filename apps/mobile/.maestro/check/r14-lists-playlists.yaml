@@ -1,0 +1,96 @@
+# R14 Lists + playlists: new list; add episode; open playlists — items show.
+# Episode lists are playlists (app/playlists): Me → "Playlists" (app/(tabs)/me.tsx:177) → field "New playlist name",
+# button "New playlist" (text "Create", app/playlists/index.tsx:75-77), tiles "<name>, N episodes, private" (:87).
+# Add: episode page "More: play next, download, save a moment" (EpisodeTray.tsx:48) → "Add to playlist"
+# (EpisodeSheetBody.tsx:109) → "Add to <name>, N episodes" (MorePanels.tsx:131). Playlist cards "1. <title>, <show>"
+# (app/playlists/[id].tsx:168). Show lists (app/lists/new.tsx) are share links: "Share some shows"
+# (app/subscriptions.tsx:149) → title field "List title"; their only output is the iOS share sheet (not driven here).
+appId: app.socialmorning.mobile
+env:
+  LIST: "Device check list"
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _me.yaml
+- scrollUntilVisible:
+    element: "Playlists"
+    timeout: 20000
+- tapOn: "Playlists"
+- extendedWaitUntil:
+    visible: "New playlist name"
+    timeout: 30000
+- takeScreenshot: r14-01-playlists
+- tapOn: "New playlist name"
+- inputText: ${LIST}
+- repeat:
+    while:
+      notVisible: ".*${LIST}.*"
+    times: 3
+    commands:
+      - tapOn: "New playlist name"
+      - eraseText: 40
+      - inputText: ${LIST}
+- tapOn: "New playlist"
+- extendedWaitUntil:
+    visible: "${LIST}, 0 episodes, private"
+    timeout: 30000
+- takeScreenshot: r14-02-playlist-made
+- runFlow: _back-to-me.yaml
+# Add an episode from its page
+- runFlow: _search-show.yaml
+- tapOn:
+    text: "Episode 1: A minute of tone\\. .*"
+    index: 0
+- extendedWaitUntil:
+    visible: "More: play next, download, save a moment"
+    timeout: 30000
+- tapOn: "More: play next, download, save a moment"
+- extendedWaitUntil:
+    visible: "Add to playlist"
+    timeout: 15000
+- takeScreenshot: r14-03-episode-more
+- tapOn: "Add to playlist"
+- extendedWaitUntil:
+    visible: "Add to ${LIST}, \\d+ episodes?"
+    timeout: 30000
+- takeScreenshot: r14-04-add-to-playlist
+- tapOn: "Add to ${LIST}, \\d+ episodes?"
+- extendedWaitUntil:
+    visible: "Added to ${LIST}\\."
+    timeout: 15000
+    optional: true                       # a toast: may be gone before the screen is read
+- tapOn:
+    text: "Close the playlist picker"
+    optional: true
+- tapOn: "Back"
+- tapOn: "Back"
+- tapOn:
+    text: "Cancel"
+    optional: true
+- runFlow: _me.yaml
+- scrollUntilVisible:
+    element: "Playlists"
+    timeout: 20000
+- tapOn: "Playlists"
+- extendedWaitUntil:
+    visible: "${LIST}, 1 episodes?, private"
+    timeout: 30000
+- tapOn: "${LIST}, 1 episodes?, private"
+- extendedWaitUntil:
+    visible: "1\\. Episode 1: A minute of tone, Journey Morning"
+    timeout: 30000
+- takeScreenshot: r14-05-playlist-items
+- tapOn: "Back"
+- tapOn: "Back"
+# A show list (share link)
+- tapOn: "Updates(, .*)?"
+- tapOn: "My subscriptions · .*"
+- extendedWaitUntil:
+    visible: "Share some shows"
+    timeout: 30000
+- tapOn: "Share some shows"
+- extendedWaitUntil:
+    visible: "List title"
+    timeout: 30000
+- assertVisible: "Share a link to the picked shows"
+- takeScreenshot: r14-06-new-show-list
+- tapOn: "Back"

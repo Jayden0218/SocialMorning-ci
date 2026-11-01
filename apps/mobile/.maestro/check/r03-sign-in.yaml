@@ -1,0 +1,122 @@
+# R3 Sign in: clean install → sign-in landing → "Continue with email" → consent → email → code. A WRONG code
+# first: the readable error "That code is not right." (apps/api/src/routes/account/auth.ts:125, shown by
+# app/auth/email.tsx:164); then the right one → signed in, Me shows the listener.
+# A signed-out app has no way to the Me tab but a link (the landing has no close, app/auth/sign-in.tsx:7), so
+# "Me → sign in" is the landing itself; Me's "Sign in" link (app/(tabs)/me.tsx:215) is checked by link, optional.
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+  EMAIL: listener-05@journey.test
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Agree"
+    timeout: 300000
+- tapOn: "Agree"
+- repeat:
+    while:
+      notVisible: "Continue with email"
+    times: 3
+    commands:
+      - extendedWaitUntil:
+          visible: "Continue with email"
+          timeout: 20000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Agree"
+          commands:
+            - tapOn: "Agree"
+# Signed out, the Me tab by its path: its title link reads "Sign in".
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: me
+- extendedWaitUntil:
+    visible: "Sign in"
+    timeout: 20000
+    optional: true                       # the landing may refuse to be left while signed out (no way back by design)
+- takeScreenshot: r03-01-me-signed-out
+- runFlow:
+    when:
+      visible: "Sign in"
+    commands:
+      - tapOn: "Sign in"
+- extendedWaitUntil:
+    visible: "Continue with email"
+    timeout: 30000
+- takeScreenshot: r03-02-sign-in-landing
+- tapOn: "Continue with email"
+- extendedWaitUntil:
+    visible: "Before you continue"
+    timeout: 30000
+- assertVisible: "Agree and continue"
+- takeScreenshot: r03-03-consent
+- tapOn: "Agree and continue"
+- extendedWaitUntil:
+    visible: "Email"
+    timeout: 30000
+- assertVisible: "Close"
+- tapOn: "Email"
+- eraseText: 40
+- inputText: ${EMAIL}
+- repeat:
+    while:
+      notVisible: ${EMAIL.replace(/\./g, '\\.')}
+    times: 3
+    commands:
+      - tapOn: "Email"
+      - eraseText: 40
+      - inputText: ${EMAIL.split('@')[0]}
+      - inputText: "@"
+      - inputText: ${EMAIL.split('@')[1]}
+- takeScreenshot: r03-04-email
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Code"
+    timeout: 30000
+- assertVisible: "Enter the code"
+- runScript: ../fetch-code.js
+- runScript: wrong-code.js
+- tapOn: "Code"
+- inputText: ${output.wrong}
+- repeat:
+    while:
+      notVisible:
+        text: "Continue"
+        enabled: true
+    times: 3
+    commands:
+      - tapOn: "Code"
+      - eraseText: 10
+      - inputText: ${output.wrong}
+- takeScreenshot: r03-05-code-wrong-typed
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "That code is not right\\."
+    timeout: 30000
+- takeScreenshot: r03-06-wrong-code-error
+- tapOn: "Code"
+- eraseText: 10
+- inputText: ${output.code}
+- repeat:
+    while:
+      notVisible:
+        text: "Continue"
+        enabled: true
+    times: 3
+    commands:
+      - tapOn: "Code"
+      - eraseText: 10
+      - inputText: ${output.code}
+- tapOn: "Continue"
+- runFlow: _dismiss-overlays.yaml
+- tapOn: "Me(, .*)?"            # the tab; "Me, N new" with a badge (src/ui/shell/TabBar.tsx:141)
+- extendedWaitUntil:
+    visible: ".*Listener 05.*"
+    timeout: 30000
+- assertNotVisible: "Sign in"
+- takeScreenshot: r03-07-me-signed-in

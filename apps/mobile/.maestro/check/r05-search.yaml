@@ -1,0 +1,57 @@
+# R5 Search: search a show name → results list; open the show → show page with episodes; show info.
+# Labels: search field "Search podcasts" (src/ui/search/SearchZone.tsx:174), "Cancel" (:190), result row
+# "Journey Morning, Journey Host" (ShowResults.tsx:66; author from apps/api/scripts/journey.ts:89); show page
+# episode tiles "<title>. <meta>" (app/show/[feedUrl].tsx:135), "More: show info, report this show" (:535) →
+# sheet row "Show info" (:587) → title "Show info" (app/show-info/[feedUrl].tsx:79).
+appId: app.socialmorning.mobile
+---
+- runFlow: _ensure-signed-in.yaml
+- tapOn: "Discover"
+- tapOn:
+    text: "Search.*"
+- extendedWaitUntil:
+    visible: "Search podcasts"
+    timeout: 30000
+- assertVisible: "Cancel"
+- takeScreenshot: r05-01-search
+- tapOn: "Search podcasts"
+- inputText: "Journey Morning"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "Journey Morning, .*"
+    timeout: 30000
+- assertVisible: "Journey Morning, Journey Host"
+- takeScreenshot: r05-02-results
+- tapOn:
+    text: "Journey Morning, .*"
+    index: 0
+- extendedWaitUntil:
+    visible: "(Subscribe to|Unsubscribe from) this show"
+    timeout: 30000
+- assertVisible: "Journey Morning"
+- extendedWaitUntil:
+    visible: "Episode 1: A minute of tone\\..*"
+    timeout: 30000
+- assertVisible: "Play Episode 1: A minute of tone"
+- takeScreenshot: r05-03-show
+- tapOn: "More: show info, report this show"
+- extendedWaitUntil:
+    visible: "Show info"
+    timeout: 15000
+- assertVisible: "Report this show"
+- takeScreenshot: r05-04-show-more-sheet
+- tapOn: "Show info"
+- extendedWaitUntil:
+    visible: "Copy the feed address"
+    timeout: 30000
+- takeScreenshot: r05-05-show-info
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "(Subscribe to|Unsubscribe from) this show"
+    timeout: 30000
+- tapOn:
+    text: "Back"
+    index: 0
+- extendedWaitUntil:
+    visible: "Journey Morning, .*|Search podcasts|Discover"
+    timeout: 30000

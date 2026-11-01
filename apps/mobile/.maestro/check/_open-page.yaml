@@ -1,0 +1,16 @@
+# Subflow: on a hub page, scroll to ENTRY (an accessible name, regex), tap it, wait for PROOF on the page it
+# opens, take screenshot SHOT, tap Back, and wait for HUB (a string only the hub shows) again.
+appId: app.socialmorning.mobile
+---
+- scrollUntilVisible:
+    element: ${ENTRY}
+    timeout: 30000
+- tapOn: ${ENTRY}
+- extendedWaitUntil:
+    visible: ${PROOF}
+    timeout: 30000
+- takeScreenshot: ${SHOT}
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: ${HUB}
+    timeout: 30000

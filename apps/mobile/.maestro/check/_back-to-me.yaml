@@ -1,0 +1,7 @@
+# Subflow: Back, then wait for the Me tab again.
+appId: app.socialmorning.mobile
+---
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Listener 05, open your profile|Account and settings"
+    timeout: 30000

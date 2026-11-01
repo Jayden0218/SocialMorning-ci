@@ -1,0 +1,70 @@
+# R18 Offline: network gone; move through the 4 tabs; open an episode — a clear offline message, no blank screen,
+# no crash. A simulator on CI has no airplane mode (and Maestro's airplane switch is Android-only), so the test
+# server is told to stop answering in time instead (fault-on.js: every request waits 30 s, past the app's 10 s
+# limit) — what the app sees with no network, except that the OS still reports a connection.
+# Offline texts (looked up): Discover "Couldn't reach the server, and nothing is cached yet." /
+# "Couldn't refresh — showing what was fetched …" (DiscoverMosaic.tsx:201, DiscoverPage.tsx:205); Updates "N show(s)
+# could not refresh — showing the saved copy." (library.tsx:279); comments "Couldn't load this. Check the connection
+# and try again." / "Couldn't refresh — showing the last copy" (empty.ts:34, [episodeId].tsx:307); chat "Couldn't
+# load your chats right now."; generic "Couldn't reach the server." (useLoad.ts:24). Crash screen: "Something went
+# wrong" (src/ui/paused/ErrorScreen.tsx).
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+  OFFLINE: "(Couldn't|You're offline|.*could not refresh|.*Couldn't).*"
+---
+- runFlow: _ensure-signed-in.yaml
+- runScript: fault-on.js
+- launchApp                              # a cold start with no answers from the server
+- extendedWaitUntil:
+    visible: "Discover"
+    timeout: 120000
+- extendedWaitUntil:
+    visible: ${OFFLINE}
+    timeout: 45000
+    optional: true                       # Discover may draw from its cache without saying so: seen on the screenshot
+- takeScreenshot: r18-01-discover-offline
+- assertNotVisible: "Something went wrong"
+- tapOn: "Updates(, .*)?"
+- extendedWaitUntil:
+    visible: ${OFFLINE}
+    timeout: 45000
+    optional: true
+- takeScreenshot: r18-02-updates-offline
+- assertNotVisible: "Something went wrong"
+- tapOn: "Chat(, .*)?"
+- extendedWaitUntil:
+    visible: ${OFFLINE}
+    timeout: 45000
+    optional: true
+- takeScreenshot: r18-03-chat-offline
+- assertNotVisible: "Something went wrong"
+- tapOn: "Me(, .*)?"
+- extendedWaitUntil:
+    visible: ${OFFLINE}
+    timeout: 45000
+    optional: true
+- takeScreenshot: r18-04-me-offline
+- assertNotVisible: "Something went wrong"
+# An episode, from the Updates deck (cached), and its comments: here a message is required.
+- tapOn: "Updates(, .*)?"
+- extendedWaitUntil:
+    visible: "Episode \\d: A minute of tone, Journey Morning\\..*"
+    timeout: 45000
+- tapOn:
+    text: "Episode \\d: A minute of tone, Journey Morning\\..*"
+    index: 0
+- extendedWaitUntil:
+    visible: "Like this episode|Play this episode|Back"
+    timeout: 60000
+- takeScreenshot: r18-05-episode-offline
+- assertNotVisible: "Something went wrong"
+- tapOn:
+    text: "Comments, .*"
+    index: 0
+- extendedWaitUntil:
+    visible: ${OFFLINE}
+    timeout: 60000
+- takeScreenshot: r18-06-comments-offline
+- assertNotVisible: "Something went wrong"
+- runScript: fault-off.js

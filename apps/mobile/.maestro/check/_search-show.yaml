@@ -1,0 +1,20 @@
+# Subflow: from the tabs, find the seeded show "Journey Morning" by search and open its page (the same steps
+# as ../journey.yaml). Result rows are "<title>, <author>" (src/ui/search/ShowResults.tsx:66); the show page
+# has "Subscribe to this show" / "Unsubscribe from this show" (app/show/[feedUrl].tsx:559).
+appId: app.socialmorning.mobile
+---
+- tapOn: "Discover"
+- tapOn:
+    text: "Search.*"
+- tapOn: "Search podcasts"
+- inputText: "Journey Morning"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: "Journey Morning, .*"
+    timeout: 30000
+- tapOn:
+    text: "Journey Morning, .*"
+    index: 0
+- extendedWaitUntil:
+    visible: "(Subscribe to|Unsubscribe from) this show"
+    timeout: 30000
