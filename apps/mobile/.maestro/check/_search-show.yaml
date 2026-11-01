@@ -3,9 +3,7 @@
 # has "Subscribe to this show" / "Unsubscribe from this show" (app/show/[feedUrl].tsx:559).
 appId: app.socialmorning.mobile
 ---
-- tapOn: "Discover"
-- tapOn:
-    text: "Search.*"
+- runFlow: _open-search.yaml
 - tapOn: "Search podcasts"
 - inputText: "Journey Morning"
 - pressKey: Enter

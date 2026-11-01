@@ -1,0 +1,28 @@
+# Subflow: from the Discover tab, open Search (drawn in place over the tabs, src/ui/search/SearchOverlay.tsx) and
+# wait for its field "Search podcasts" (SearchZone.tsx:174). The search bar is "Search. Trending: …" or "Search shows
+# and episodes" (src/ui/discover/TrendingSearch.tsx:42, parts.tsx:244). Run 41269238880 (attempt 2): the tap landed
+# on the bar (hierarchy: "Search. Trending: Journey Morning" at [21,628][321,676]) but did not open it — so tap
+# again, only while the field is not there yet (the same pattern as ../journey.yaml's Agree and Subscribe taps).
+appId: app.socialmorning.mobile
+---
+- tapOn: "Discover"
+- tapOn:
+    text: "Search.*"
+- repeat:
+    while:
+      notVisible: "Search podcasts"
+    times: 3
+    commands:
+      - extendedWaitUntil:
+          visible: "Search podcasts"
+          timeout: 15000
+          optional: true
+      - runFlow:
+          when:
+            notVisible: "Search podcasts"
+          commands:
+            - tapOn:
+                text: "Search.*"
+- extendedWaitUntil:
+    visible: "Search podcasts"
+    timeout: 30000

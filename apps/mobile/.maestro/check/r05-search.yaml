@@ -6,12 +6,7 @@
 appId: app.socialmorning.mobile
 ---
 - runFlow: _ensure-signed-in.yaml
-- tapOn: "Discover"
-- tapOn:
-    text: "Search.*"
-- extendedWaitUntil:
-    visible: "Search podcasts"
-    timeout: 30000
+- runFlow: _open-search.yaml
 - assertVisible: "Cancel"
 - takeScreenshot: r05-01-search
 - tapOn: "Search podcasts"
