@@ -15,7 +15,7 @@ appId: app.socialmorning.mobile
 - extendedWaitUntil:
     visible: "Journey Morning, .*"
     timeout: 30000
-- assertVisible: "Journey Morning, Journey Host"
+- assertVisible: "Journey Morning, Wrong Host"   # GUARD: wrong on purpose (owner rule 2); never merged
 - takeScreenshot: r05-02-results
 - tapOn:
     text: "Journey Morning, .*"
