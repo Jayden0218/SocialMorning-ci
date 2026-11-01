@@ -57,16 +57,17 @@ env:
       - tapOn: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
 - runFlow:
     when:
-      notVisible: "Play the clip, .*"
+      notVisible: "Play the clip, .*|Keep listening"
     commands:
       - runScript: clip-id.js
       - runFlow:
           file: _open-link.yaml
           env:
             LINK: clip/${output.clipId}
-- extendedWaitUntil:
-    visible: "Play the clip, .*"
+- extendedWaitUntil:                     # the ring: "Play the clip, …", or "Keep listening" once it has played (run 41289865753)
+    visible: "Play the clip, .*|Keep listening"
     timeout: 30000
+- assertVisible: "CLIP · \\d+ s"
 - assertVisible: "\\d+:\\d\\d – \\d+:\\d\\d"
 - takeScreenshot: r10-04-clip-page
 - tapOn: "Back"

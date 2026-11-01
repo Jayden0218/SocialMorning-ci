@@ -54,10 +54,12 @@ env:
     visible: "Chat with Listener 02"
     timeout: 30000
 - takeScreenshot: r12-04-new-chat
+- runFlow: _close-player.yaml
 - tapOn: "Chat with Listener 02"
 - extendedWaitUntil:                     # the box: "Message Message" (label + placeholder, run 41269168664)
     visible: "Message( .*)?"
     timeout: 30000
+- runFlow: _close-player.yaml            # it appeared over the thread in run 41289865753 (issue B3)
 - takeScreenshot: r12-05-thread-empty
 - tapOn: "Message( Message)?"
 - inputText: ${MESSAGE}

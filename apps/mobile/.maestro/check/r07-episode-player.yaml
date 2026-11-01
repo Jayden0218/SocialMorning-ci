@@ -45,6 +45,16 @@ appId: app.socialmorning.mobile
 - takeScreenshot: r07-03-player-paused${SUFFIX || ''}
 - tapOn: "Skip back 15 seconds"
 - assertVisible: "Play"
+# Skip back from 0:01 lands on 0:00 (run 41289865753: the show row read "0:00 / 1:00"), so play a moment more —
+# well before 0:30, where this 60 s episode would count as Finished — then pause.
+- tapOn: "Play"
+- extendedWaitUntil:
+    visible: "Pause"
+    timeout: 15000
+- tapOn: "Pause"
+- extendedWaitUntil:
+    visible: "Play"
+    timeout: 15000
 # Speed
 - tapOn: "Speed .*, sleep timer and chapters"
 - extendedWaitUntil:

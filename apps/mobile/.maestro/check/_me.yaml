@@ -3,6 +3,21 @@
 appId: app.socialmorning.mobile
 ---
 - tapOn: "Me(, .*)?"
+- repeat:                                # right after a relaunch the first tap may not take (run 41289865753, r19)
+    while:
+      notVisible: "Listener 05, open your profile"
+    times: 2
+    commands:
+      - extendedWaitUntil:
+          visible: "Listener 05, open your profile"
+          timeout: 15000
+          optional: true
+      - runFlow:
+          when:
+            notVisible: "Listener 05, open your profile"
+          commands:
+            - runFlow: _close-player.yaml
+            - tapOn: "Me(, .*)?"
 - extendedWaitUntil:
     visible: "Listener 05, open your profile"
     timeout: 30000

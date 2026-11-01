@@ -15,7 +15,7 @@ appId: app.socialmorning.mobile
     text: "Account and settings"
     index: 0
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 - assertVisible: "Settings"
 - takeScreenshot: r16-00-settings
@@ -61,7 +61,7 @@ appId: app.socialmorning.mobile
       HUB: "More account options"
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 # 5 Appearance, with a toggle that must stay changed
 - scrollUntilVisible:
@@ -79,7 +79,7 @@ appId: app.socialmorning.mobile
 - takeScreenshot: r16-05b-appearance-toggled
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 - tapOn: "Appearance"
 - extendedWaitUntil:
@@ -89,7 +89,7 @@ appId: app.socialmorning.mobile
 - tapOn: "Vibration"                     # back as it was
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 # 6 Downloads and cache: "Download queued episodes" off → on, still on after coming back, then off again
 - scrollUntilVisible:
@@ -111,7 +111,7 @@ appId: app.socialmorning.mobile
     timeout: 10000
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 - tapOn: "Downloads and cache"
 - extendedWaitUntil:
@@ -128,7 +128,7 @@ appId: app.socialmorning.mobile
     timeout: 10000
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 - runFlow:
     file: _open-page.yaml
@@ -136,7 +136,7 @@ appId: app.socialmorning.mobile
       ENTRY: "Notifications"
       PROOF: "Allow notifications|Popular content"
       SHOT: r16-07-push
-      HUB: "Account and security"
+      HUB: "Account and security|Sign out|About SocialNet|Minor mode"
 # 8–9 Privacy and Blocked listeners
 - scrollUntilVisible:
     element: "Privacy"
@@ -158,7 +158,7 @@ appId: app.socialmorning.mobile
       HUB: "Blocked listeners, .*"         # the Privacy page stays scrolled to its last row (run 41274515878)
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 - runFlow:
     file: _open-page.yaml
@@ -166,7 +166,7 @@ appId: app.socialmorning.mobile
       ENTRY: "Minor mode"
       PROOF: "Hide explicit episodes"
       SHOT: r16-10-minor
-      HUB: "Account and security"
+      HUB: "Account and security|Sign out|About SocialNet|Minor mode"
 # 11–14 More and its pages; "Personalised recommendations" must stay changed
 - scrollUntilVisible:
     element: "More"
@@ -206,7 +206,7 @@ appId: app.socialmorning.mobile
 - tapOn: "Personalised recommendations"  # back as it was
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 # 15–16 Playback and Playlist backups; "Skip silence" must stay changed
 - scrollUntilVisible:
@@ -238,7 +238,7 @@ appId: app.socialmorning.mobile
 - tapOn: "Skip silence"                  # back as it was
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 - runFlow:
     file: _open-page.yaml
@@ -246,14 +246,14 @@ appId: app.socialmorning.mobile
       ENTRY: "Third-party sharing list"
       PROOF: "Third-party sharing"
       SHOT: r16-17-sharing
-      HUB: "Account and security"
+      HUB: "Account and security|Sign out|About SocialNet|Minor mode"
 - runFlow:
     file: _open-page.yaml
     env:
       ENTRY: "Personal information we collect"
       PROOF: "Information we collect"
       SHOT: r16-18-collected
-      HUB: "Account and security"
+      HUB: "Account and security|Sign out|About SocialNet|Minor mode"
 # 19–21 Help and feedback and its pages
 - scrollUntilVisible:
     element: "Help and feedback"
@@ -282,7 +282,7 @@ appId: app.socialmorning.mobile
       HUB: "Help and feedback"
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 # 23, 25, 26 About and its pages
 - scrollUntilVisible:
@@ -312,7 +312,7 @@ appId: app.socialmorning.mobile
       HUB: "About SocialNet"
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000
 # 22 and 24: no entry on iPhone (Android-only rows), opened by path
 - runFlow:
@@ -334,5 +334,5 @@ appId: app.socialmorning.mobile
 - takeScreenshot: r16-24-updates
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "Account and security"
+    visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
     timeout: 30000

@@ -23,6 +23,13 @@ env:
 - takeScreenshot: r11-01-following-feed
 - tapOn: "Back"
 - runFlow: _close-player.yaml
+- runFlow:                               # Back on Notifications stayed there (run 41289865753, r11 and r15) — issue B3
+    when:
+      visible: "People\\. .*"
+    commands:
+      - takeScreenshot: back-did-not-leave-notifications
+      - tapOn: "Back"
+      - runFlow: _close-player.yaml
 - tapOn: "Updates(, .*)?"
 - extendedWaitUntil:
     visible: "Post a status: voice or text"
