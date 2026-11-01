@@ -68,7 +68,7 @@ function ForYouCard(props: Act & { row: Row; position: number; onOpenAt: (card: 
           accessibilityLabel={`More for ${card.title}`}
           hitSlop={MORE_SLOP}
           className="absolute items-center justify-center bg-glassDark"
-          style={{ right: spacing.gap, top: spacing.gap, width: FOR_YOU_CARD.more, height: FOR_YOU_CARD.more, borderRadius: FOR_YOU_CARD.more / 2 }}
+          style={{ right: spacing.gap, top: spacing.gap, width: FOR_YOU_CARD.more, height: FOR_YOU_CARD.more, minWidth: 44, minHeight: 44, borderRadius: 22 }}
         >
           <Icon name="ellipsis-horizontal" size={18} color={colour.text} />
         </Pressable>

@@ -16,12 +16,15 @@ import { Image } from 'react-native';
 export const categoryKey = (genreId: number): string => `category:${genreId}`;
 /** A kept list younger than this is not fetched again by `warm`. */
 export const WARM_FRESH_MS = 10 * 60 * 1000;
+/** 035 C2: a genre whose read failed is not asked for again by `warm` for this long (a catalogue answering 503 was asked every visit). */
+export const WARM_BACKOFF_MS = 2 * 60 * 1000;
 /** The covers of a page's first screen. */
 export const FIRST_COVERS = 9;
 
 type Kept = { body: CategoryShows; fetchedAt: number };
 const memory = new Map<number, Kept>();
 const inFlight = new Map<number, Promise<CategoryShows>>();
+const failedAt = new Map<number, number>();
 
 const ok = (x: unknown): x is CategoryShows =>
   typeof x === 'object' && x !== null && Array.isArray((x as CategoryShows).shows);
@@ -70,9 +73,11 @@ export function warmCategories(deps: { api: ApiClient; cache: FeedCacheStore; no
   for (const id of genreIds) {
     const k = kept(deps.cache, id);
     if (k && deps.now() - k.fetchedAt < WARM_FRESH_MS) continue;
+    const failed = failedAt.get(id);
+    if (failed !== undefined && deps.now() - failed < WARM_BACKOFF_MS) continue;
     void fetchCategory(deps, id)
-      .then((body) => Promise.all(firstCovers(body).map((u) => Image.prefetch(u).catch(() => false))))
-      .catch(() => undefined);
+      .then((body) => { failedAt.delete(id); return Promise.all(firstCovers(body).map((u) => Image.prefetch(u).catch(() => false))); })
+      .catch(() => { failedAt.set(id, deps.now()); });
   }
 }
 
@@ -80,4 +85,5 @@ export function warmCategories(deps: { api: ApiClient; cache: FeedCacheStore; no
 export function forgetCategories(): void {
   memory.clear();
   inFlight.clear();
+  failedAt.clear();
 }

@@ -14,8 +14,10 @@ import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
 import { TRAY } from './measures';
 
-const GLYPH = { height: TRAY.trayIcon };
-const COMMENTS = { height: TRAY.trayIcon, gap: TRAY.trayCountGap };
+// 035 A3: the glyph is drawn 22; its frame is 44 x 44 (the tray is 60 tall), so VoiceOver and Switch Control see a real target, not a 22 box with a hitSlop.
+const FRAME = { minWidth: 44, minHeight: 44 };
+const GLYPH = { height: TRAY.trayIcon, ...FRAME };
+const COMMENTS = { height: TRAY.trayIcon, gap: TRAY.trayCountGap, ...FRAME };
 const PAD = (hit.min - TRAY.trayIcon) / 2;
 const SLOP = { top: PAD, bottom: PAD, left: PAD, right: PAD };
 

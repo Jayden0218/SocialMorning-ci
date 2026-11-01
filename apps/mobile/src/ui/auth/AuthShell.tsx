@@ -49,6 +49,7 @@ export function AuthShell(props: { title: string; eyebrow?: string; subtitle?: s
         onBack={close}
         backIcon="close"
         backLabel="Close"
+        fade={0}
         glowTop={-300}
         glowStrength={0.25}
         foot={props.foot}

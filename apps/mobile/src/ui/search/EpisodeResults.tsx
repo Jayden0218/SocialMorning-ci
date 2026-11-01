@@ -11,7 +11,7 @@
  */
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour, gutter, spacing } from '@/design';
+import { colour, gutter, hit, spacing } from '@/design';
 import { useWindowDimensions } from 'react-native';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
@@ -51,7 +51,7 @@ function EpisodeResultCard(props: { episode: RichEpisode; term: string; actions:
             <Marked text={e.title} term={props.term} step="lede" bold lines={3} style={UNBOUNDED[16]} />
           </Box>
         </Pressable>
-        <Pressable onPress={() => props.actions.onMore(e)} accessibilityRole="button" accessibilityLabel={`More for ${e.title}`} hitSlop={spacing.row} className="items-center justify-center">
+        <Pressable onPress={() => props.actions.onMore(e)} accessibilityRole="button" accessibilityLabel={`More for ${e.title}`} hitSlop={spacing.row} className="items-center justify-center" style={{ minWidth: hit.min, minHeight: hit.min }}>
           <Icon name="ellipsis-horizontal" size={20} color={colour.text2} />
         </Pressable>
       </Box>

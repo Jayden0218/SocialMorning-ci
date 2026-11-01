@@ -583,3 +583,20 @@ describe('the topic page\'s glow (discover.html topic--screen glow #3B82F6 / #7A
     expect(PAGE_GLOW.blueStrength).toBe(0.3);
   });
 });
+
+// 035 T053 (device check L4): with fewer covers than a row of the wall, the first cover sat in the turned wall's 40 pt bleed, cut off at the
+// page's left edge. The few covers are laid out inside the page. Break: drop the shift in `PlazaWall` (src/ui/discover/Plaza.tsx).
+describe('plaza with very few covers (035 L4)', () => {
+  it.each([1, 3])('%s cover(s) sit wholly inside the 390 pt page', async (n) => {
+    mockPlaza = () => Promise.resolve({ shuffle: 0, items: Array.from({ length: n }, (_, i) => ({ feedUrl: `f${i}`, title: `Show ${i}`, imageUrl: undefined, episodes: 2, firstAt: '2026-10-01' })) });
+    const r = await render(createElement(PlazaScreen));
+    await act(async () => { byId(r, 'plaza-wall')[0]!.parent!.props['onLayout']?.({ nativeEvent: { layout: { width: 390, height: 700 } } }); });
+    const covers = hosts(r, (x) => flat(x)['width'] === 92 && flat(x)['borderRadius'] === 20 && typeof flat(x)['left'] === 'number');
+    expect(covers).toHaveLength(n);
+    for (const c of covers) {
+      const x = Number(flat(c)['left']) - 40; // the wall starts 40 left of the page
+      expect(x).toBeGreaterThanOrEqual(0);
+      expect(x + 92).toBeLessThanOrEqual(390);
+    }
+  });
+});

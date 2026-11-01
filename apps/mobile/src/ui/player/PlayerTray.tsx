@@ -16,7 +16,7 @@
 import { router } from 'expo-router';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
-import { hit } from '@/design';
+import { bars, hit } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
@@ -27,7 +27,8 @@ import { useClip, useOpenComments } from './useClipAndComments';
 import { useReaction } from './useReaction';
 
 /** Each item is its glyph's size; the finger gets 48 × 48 round it. */
-const GLYPH = { height: PLAYER.trayIcon };
+// 035 A3: drawn 22; the frame is 44 x 44.
+const GLYPH = { height: PLAYER.trayIcon, minWidth: bars.circle, minHeight: bars.circle };
 const COMMENTS = { height: PLAYER.trayIcon, gap: PLAYER.trayCountGap };
 const SLOP = { top: (hit.min - PLAYER.trayIcon) / 2, bottom: (hit.min - PLAYER.trayIcon) / 2, left: (hit.min - PLAYER.trayIcon) / 2, right: (hit.min - PLAYER.trayIcon) / 2 };
 

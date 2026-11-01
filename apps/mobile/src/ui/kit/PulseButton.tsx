@@ -111,7 +111,7 @@ export function IconButton(props: {
       accessibilityState={props.selected === undefined ? { disabled: dim } : { disabled: dim, selected: on }}
       hitSlop={slop}
       className={`rounded-pill items-center justify-center ${on ? 'bg-text' : props.fill ? 'bg-raise' : ''} ${dim ? 'opacity-40' : ''} ${props.className ?? ''}`}
-      style={{ width: d, height: d }}
+      style={{ width: d, height: d, minWidth: bars.circle, minHeight: bars.circle }}
     >
       <Icon name={props.icon} size={props.size ?? 22} color={on ? c.void : c[props.tone ?? 'text']} />
     </Pressable>

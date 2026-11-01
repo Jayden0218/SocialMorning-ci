@@ -99,7 +99,8 @@ const STACK = { position: 'relative' } as const;
 export function Icon(props: { name: IconName; size: number; color: string }): React.ReactElement {
   const shape = DRAWN_ICONS[props.name];
   if (shape !== undefined) {
-    return <SvgXml testID={`icon-${props.name}`} xml={drawnIconXml(shape, props.color)} width={props.size} height={props.size} style={STACK} {...HIDE} />;
+    // 035 L1: keyed by glyph and colour, so a tab going from selected to idle remounts instead of keeping a stale drawing (the black disc).
+    return <SvgXml key={`${props.name}|${props.color}`} testID={`icon-${props.name}`} xml={drawnIconXml(shape, props.color)} width={props.size} height={props.size} style={STACK} {...HIDE} />;
   }
   return <Ionicons name={props.name as ComponentProps<typeof Ionicons>['name']} size={props.size} color={props.color} {...HIDE} />;
 }

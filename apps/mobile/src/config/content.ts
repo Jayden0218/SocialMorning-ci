@@ -95,7 +95,8 @@ function useContent(kind: ContentKind): ServerPage[] | undefined {
 /** The Academy articles to show, in order. */
 export function useAcademy(): readonly ArticleView[] {
   const items = useContent('academy');
-  return useMemo(() => (items ? items.map(articleOf) : BUNDLED_ARTICLES), [items]);
+  // 035 L5: an empty server list means no override (the catalogue was seeded empty), so the bundled articles show, not an empty grid.
+  return useMemo(() => (items && items.length > 0 ? items.map(articleOf) : BUNDLED_ARTICLES), [items]);
 }
 
 /** The Help questions to show, in order. */

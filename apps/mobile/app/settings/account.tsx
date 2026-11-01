@@ -63,9 +63,12 @@ export default function AccountSecurityScreen(): React.ReactElement {
                   <Type step="heading" className="text-text font-bold">Email</Type>
                 </Box>
               </Box>
-              <Box testID="email-strip" className="flex-row items-center bg-void" style={{ gap: 10, borderRadius: 16, paddingHorizontal: 14, minHeight: 56 }} accessible accessibilityLabel={`Email: ${masked || 'Not signed in'}`}>
-                <Icon name="mail-outline" size={20} color={colour.hotText} />
-                <Type step="mono" className="text-text flex-1" style={SET_TYPE.mono14} numberOfLines={1}>{masked || 'Not signed in'}</Type>
+              <Box testID="email-strip" className="flex-row items-center bg-void" style={{ gap: 10, borderRadius: 16, paddingHorizontal: 14, minHeight: 56 }}>
+                {/* 035 A1: the strip is not itself `accessible` (iOS would hide the button inside it); its words are one stop, the button its own. */}
+                <Box className="flex-row items-center flex-1 min-w-0" style={{ gap: 10 }} accessible accessibilityLabel={`Email: ${masked || 'Not signed in'}`}>
+                  <Icon name="mail-outline" size={20} color={colour.hotText} />
+                  <Type step="mono" className="text-text flex-1" style={SET_TYPE.mono14} numberOfLines={1}>{masked || 'Not signed in'}</Type>
+                </Box>
                 {/* M24 US16: change the sign-in email (a code goes to the new address). */}
                 {listener ? (
                   <Pressable onPress={() => router.push('/settings/account-email')} accessibilityRole="button" accessibilityLabel="Change email" className="justify-center" style={{ minHeight: 48 }}>

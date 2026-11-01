@@ -238,7 +238,8 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
       <Fade bottom={0} height={FADE_HEIGHT} />
       {/* The bottom zone: the title with today's date, then the search field. */}
       <Box pointerEvents="box-none" className="absolute left-0 right-0" style={{ bottom: ZONE_BOTTOM, paddingHorizontal: side, gap: spacing.row - 2, zIndex: 25 }}>
-        <Animated.View style={title} pointerEvents="none">
+        {/* 035 L7: the title floats over the cards; it takes a tap (and does nothing) instead of passing it to the card underneath. */}
+        <Animated.View style={title} pointerEvents="auto">
           <Box className="flex-row items-end justify-between">
             <Type step="hero" className="text-text" accessibilityRole="header">Discover</Type>
             <Type step="mono" className="text-text3">{today()}</Type>

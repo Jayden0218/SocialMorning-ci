@@ -333,6 +333,21 @@ describe('the actions keep their names and do what they did', () => {
     expect(pause).toHaveBeenCalledTimes(1);
   });
 
+  // 035 T073 (device check C4): "Play this episode" sometimes opened the full player and sometimes only the now bar. One behaviour: it always opens
+  // the full player, whether the episode was already loaded (paused) or not. Break: drop `router.push('/player')` from `playOrPause` in app/episode/[id].tsx.
+  it('035 C4: Play on an episode that is already loaded (paused) resumes it and opens the full player too', async () => {
+    const h = harness();
+    const play = jest.spyOn(h.runtime, 'play');
+    const r = await mount(h.runtime);
+    await press(r, 'Play this episode'); // loads it
+    act(() => { h.push({ type: 'LOADED', durationMs: 600_000 }); h.push({ type: 'PAUSE' } as never); });
+    await act(async () => { await Promise.resolve(); });
+    mockPush.mockClear();
+    await press(r, 'Play this episode');
+    expect(play).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/player');
+  });
+
   it('Subscribe subscribes and its name flips; again unsubscribes', async () => {
     const r = await mount(harness().runtime);
     await press(r, 'Subscribe to this show');

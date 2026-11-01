@@ -246,7 +246,7 @@ export function CommentRow(props: {
           </Pressable>
         ) : null}
         <Box className="flex-1" />
-        <Pressable onPress={() => props.onMenu(c)} accessibilityRole="button" accessibilityLabel="More for this comment" hitSlop={ACTION_SLOP}>
+        <Pressable onPress={() => props.onMenu(c)} accessibilityRole="button" accessibilityLabel="More for this comment" hitSlop={ACTION_SLOP} className="items-center" style={FRAME}>
           <Icon name="ellipsis-horizontal" size={COMMENTS.heart} color={colour.text2} />
         </Pressable>
       </Box>
@@ -266,7 +266,9 @@ const DASHED = { borderStyle: 'dashed' as const };
 const RING = { borderWidth: 1.5, borderColor: colour.hot };
 const BODY = { gap: COMMENTS.cardGap };
 const HEAD = { gap: 8 };
-const HEART = { gap: 5 };
+// 035 A3: the like heart and the ⋯ are drawn 16–30 wide and 16–21 tall; their frames are 44 x 44, and a negative margin keeps the row as drawn.
+const FRAME = { minWidth: 44, minHeight: 44, marginVertical: -12, justifyContent: 'center' as const };
+const HEART = { gap: 5, ...FRAME };
 const PIN_ROW = { gap: 6 };
 const PIN_WORDS = { ...drawnType.trackPin, ...LINE_PIN };
 const HOST = { flexShrink: 0, minHeight: COMMENTS.hostTag.height, paddingHorizontal: COMMENTS.hostTag.pad, borderRadius: COMMENTS.hostTag.radius, overflow: 'hidden' as const, textAlignVertical: 'center' as const };

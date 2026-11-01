@@ -45,6 +45,15 @@ run_flow() {
   [ "$code" -eq 0 ] || echo "::error title=device check::$name failed (exit $code)"
 }
 
+# 035 (A3): what was DRAWN. a11y-frames.mjs reads every hierarchy this run wrote and fails on a labelled icon control under 44 x 44 pt;
+# its result is one more row of summary.tsv (`a11y-frames`), so the workflow's verdict goes red with it.
+frames_check() {
+  if node check/a11y-frames.mjs "$OUT" > "$OUT/a11y-frames.txt" 2>&1; then code=0; else code=$?; fi
+  cat "$OUT/a11y-frames.txt"
+  printf 'a11y-frames\t%s\t0\n' "$code" >> "$OUT/summary.tsv"
+  [ "$code" -eq 0 ] || echo "::error title=device check::a11y-frames failed (exit $code), see a11y-frames.txt"
+}
+
 # CHECK_FLOWS (workflow input check_flows): a glob of route flows, default every one. Anything narrower skips
 # the R20/R21 re-runs (used for the guard: one flow broken on purpose, run alone).
 PATTERN=${CHECK_FLOWS:-r*}
@@ -54,6 +63,7 @@ for f in check/$PATTERN.yaml; do
 done
 if [ "$PATTERN" != "r*" ]; then
   find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
+  frames_check
   cat "$OUT/summary.tsv"
   exit 0
 fi
@@ -77,5 +87,6 @@ xcrun simctl ui "$UDID" content_size large || true
 find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
 find . .. -maxdepth 1 -name 'r[0-9]*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
 echo "screenshots: $(find "$OUT/screenshots" -name '*.png' | wc -l)"
+frames_check
 cat "$OUT/summary.tsv"
 exit 0

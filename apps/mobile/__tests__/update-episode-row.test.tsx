@@ -85,3 +85,13 @@ it('swiping is also two accessibility actions: Mark played and Remove from Updat
   expect(played).toHaveBeenCalledTimes(1);
   expect(removed).toHaveBeenCalledTimes(1);
 });
+
+// 035 T054 (device check L6): the "TODAY · 1 MIN" chip sat at the cover's top-left, on the cover's initials ("E1"). It sits at the foot of the cover.
+// Break: put `top: UPDATES.card.chipTop` back on the chip in UpdateEpisodeRow.tsx.
+it('035 L6: the date chip sits at the foot of the cover, not over the initials at its top-left', () => {
+  const r = draw();
+  const holder = r.root.findAll((n) => typeof n.type === 'string' && styleOf(n)['position'] === 'absolute' && styleOf(n)['left'] === UPDATES.card.chipLeft && JSON.stringify(n.findAll((x) => String(x.type) === 'Text').map((x) => x.props['children'])).includes('TODAY'))[0];
+  expect(holder).toBeDefined();
+  expect(styleOf(holder!)['top']).toBeUndefined();
+  expect(typeof styleOf(holder!)['bottom']).toBe('number');
+});

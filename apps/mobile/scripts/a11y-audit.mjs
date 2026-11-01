@@ -6,7 +6,7 @@
  * renderer: it catches the common miss (an icon-only Pressable, an unlabelled control)
  * and prints the file and line. The device row (J5) is the real evidence.
  */
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 const ROOTS = ['app', 'src'];
@@ -20,7 +20,7 @@ const walk = (dir) => {
     if (p.endsWith('.tsx')) files.push(p);
   }
 };
-for (const r of ROOTS) walk(r);
+for (const r of ROOTS) if (existsSync(r)) walk(r); // 035: a missing root is skipped (the fixtures have only app/)
 
 const findings = [];
 for (const file of files) {
@@ -104,9 +104,52 @@ if (small.length > 0) {
   process.exitCode = 1;
 }
 
+
+/**
+ * 035 FR-013 (device check A1): a button inside an element marked `accessible` cannot be reached with VoiceOver — iOS makes the
+ * `accessible` element one stop and hides what is inside it ("Change email" inside the email strip). Fails on a tappable
+ * (Pressable, Link, a kit button, a Switch or a text box) between the opening and closing tag of an element that has the bare
+ * `accessible` (or `accessible={true|expr}`) prop; `accessible={false}` does not count.
+ */
+const TAPPABLE = /<(Pressable|TouchableOpacity|TouchableHighlight|Link|PulseButton|IconButton|PulseTile|Switch|TextInput)\b/;
+const nested = [];
+for (const file of files) {
+  const lines = readFileSync(file, 'utf8').split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^\s*<([A-Za-z][A-Za-z0-9.]*)\b/.exec(lines[i]);
+    if (!m) continue;
+    const tag = m[1];
+    // The opening tag: read past arrow functions to its first real `>`.
+    const head = lines.slice(i, i + 8).join(' ').trimStart().replace(/=>|>=|<=/g, '');
+    const open = head.slice(0, head.search(/>(?!=)/) + 1 || head.length);
+    const acc = /\saccessible(?=[\s>/]|=\{(?!\s*false\s*\}))/.exec(open);
+    if (!acc) continue;
+    if (open.slice(tag.length + 1, acc.index).includes('<')) continue; // the prop belongs to an element inside this tag's props, not to this tag
+    if (/\/>\s*$/.test(open)) continue; // self-closing: nothing inside
+    let depth = 0;
+    let end = i;
+    for (let j = i; j < Math.min(lines.length, i + 120); j++) {
+      const line = lines[j].replace(new RegExp(`<${tag}\\b[^>]*/>`, 'g'), '');
+      depth += (line.match(new RegExp(`<${tag}\\b`, 'g')) ?? []).length;
+      depth -= (line.match(new RegExp(`</${tag}>`, 'g')) ?? []).length;
+      end = j;
+      if (j > i && depth <= 0) break;
+    }
+    for (let j = i + 1; j <= end; j++) {
+      const t = TAPPABLE.exec(lines[j]);
+      if (t && !/^\s*(\*|\/\/)/.test(lines[j])) { nested.push(`${file}:${i + 1} <${t[1]}> (line ${j + 1}) inside an element marked \`accessible\` — VoiceOver cannot reach it`); break; }
+    }
+  }
+}
+if (nested.length > 0) {
+  console.error(`a11y audit: ${nested.length} button(s) inside an element marked \`accessible\``);
+  for (const f of nested) console.error('  ' + f);
+  process.exitCode = 1;
+}
+
 if (findings.length > 0) {
   console.error(`a11y audit: ${findings.length} interactive element(s) with no name`);
   for (const f of findings) console.error('  ' + f);
   process.exit(1);
 }
-if (small.length === 0) console.log(`a11y audit: every interactive element in ${files.length} files has a name, and no written target is under 48 pt`);
+if (small.length === 0 && nested.length === 0) console.log(`a11y audit: every interactive element in ${files.length} files has a name, and no written target is under 48 pt`);

@@ -85,9 +85,10 @@ export function TitleBar(props: {
   // M31 F10: a title of one word cannot break between words, so it takes one line and shrinks to fit ("Commen / ts" at 200 %).
   const oneWord = !/\s/.test(props.title.trim());
   const lines = shrunk || oneWord ? 1 : fontScale > LARGE_TEXT ? 3 : 2;
-  const fit = oneWord && !shrunk ? FIT : undefined;
+  const fit = (oneWord || (fontScale > LARGE_TEXT && longestWord(props.title) >= LONG_WORD)) && !shrunk ? FIT : undefined;
   const actions = (props.actions ?? []).slice(0, 2);
-  const reach = props.right === undefined && actions.length > 0 && (!/\s/.test(props.title) || longestWord(props.title) >= LONG_WORD) ? -(actions.length * (bars.circle + spacing.row)) : 0;
+  // 035 L3: the run-on-under-the-circles reach is for normal text; at large text the title keeps to its room and (below) shrinks to fit.
+  const reach = props.right === undefined && fontScale <= LARGE_TEXT && actions.length > 0 && (!/\s/.test(props.title) || longestWord(props.title) >= LONG_WORD) ? -(actions.length * (bars.circle + spacing.row)) : 0;
   return (
     <Box className="absolute left-0 right-0 gap-gap" style={{ bottom: props.bottom, paddingHorizontal: gutter(width), zIndex: 20 }}>
       {props.extra}

@@ -16,9 +16,10 @@ import { Icon, type IconName } from './Icon';
 import { Type } from './Type';
 import { useColours } from './useColours';
 
-const CHIP = { height: bars.chip, paddingHorizontal: bars.chipPad };
+// 035 A3: drawn 36 tall; the frame is 44 x 44 at least (it was hitSlop alone, which the frame, VoiceOver and the device check do not see).
+const CHIP = { height: bars.chip, minHeight: bars.circle, minWidth: bars.circle, paddingHorizontal: bars.chipPad };
 /** The Show screen's chip row is drawn tighter so four fit (design-pulse2 `showBody`: padding 0 10, Geist 600 12). */
-const COMPACT = { height: bars.chip, paddingHorizontal: 10 };
+const COMPACT = { height: bars.chip, minHeight: bars.circle, minWidth: bars.circle, paddingHorizontal: 10 };
 /** The drawn `.new` badge: Geist Mono 600 10, 3 / 6 of padding, radius 5, hot fill with void words, 2 after the label. */
 const TAG = { paddingVertical: 3, paddingHorizontal: 6, borderRadius: 5, marginLeft: 2 };
 /** The drawn `.chip` gap between the glyph and the words. */

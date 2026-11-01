@@ -42,6 +42,10 @@ export const STORE_URL: { ios?: string; android?: string } = {};
 export const RATE_KEY = 'rate.answered';
 /** M25 A7: when the answer was given (ms), for the admin's optional "ask again after N days". */
 export const RATE_AT_KEY = 'rate.answeredAt';
+/** 035 C1: when the sheet was last SHOWN (ms). An app killed before the listener answered recorded nothing, so every launch asked again. */
+export const RATE_SHOWN_KEY = 'rate.shownAt';
+/** At most one showing per this many days while no answer is recorded. */
+export const RATE_SPACING_DAYS = 30;
 
 /**
  * M25 A7: the rule comes from the admin's settings (`app_config` key `ratePrompt`); its default is
@@ -52,7 +56,10 @@ export const RATE_AT_KEY = 'rate.answeredAt';
 export function shouldAskRating(s: SettingsStore, rule: RatePrompt = getAppConfig().ratePrompt, now = Date.now()): boolean {
   if (!rule.enabled) return false;
   const answer = s.get(RATE_KEY);
-  if (answer === undefined) return true;
+  if (answer === undefined) {
+    const shown = Number(s.get(RATE_SHOWN_KEY));
+    return !(Number.isFinite(shown) && shown > 0 && now - shown < RATE_SPACING_DAYS * 86_400_000);
+  }
   if (answer === 'rate' || rule.reaskAfterDays === null) return false;
   const at = Number(s.get(RATE_AT_KEY));
   return Number.isFinite(at) && at > 0 && now - at >= rule.reaskAfterDays * 86_400_000;
@@ -104,9 +111,9 @@ export function RateSheet(props: { onTabs: boolean; segment: string | undefined;
   useEffect(() => {
     if (!may || asked) return;
     // M25 A7: how long after the tabs appear the sheet slides up (default 1.5 s).
-    const t = setTimeout(() => { setOpen(true); setAsked(true); }, getAppConfig().ratePrompt.delayMs);
+    const t = setTimeout(() => { stores.settings.set(RATE_SHOWN_KEY, String(nowMs())); setOpen(true); setAsked(true); }, getAppConfig().ratePrompt.delayMs);
     return () => clearTimeout(t);
-  }, [may, asked]);
+  }, [may, asked, stores.settings]);
   // Never over an onboarding page: a sheet already up closes (no answer is recorded).
   if ((blocked || blockedNow) && open) setOpen(false);
 

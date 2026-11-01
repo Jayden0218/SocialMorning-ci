@@ -49,3 +49,24 @@ it('warm fetches what is missing or older than 10 minutes, and drops errors', as
   await flush();
   expect(asked).toEqual([1]);
 });
+
+// 035 T071 (device check C2): Discover asked for each of 8 categories on every visit — about 170 requests in one run — because a failed read
+// (the catalogue answered 503) kept nothing, so the next visit asked again. A failed warm now backs off for 2 minutes; a kept list is
+// still fresh for 10. Break: drop the back-off from `warmCategories`.
+it('035 C2: a category that failed is not asked for again at once; after the back-off it is', async () => {
+  const cache = createMemoryFeedCacheStore();
+  const asked: number[] = [];
+  const api = { category: async (id: number) => { asked.push(id); throw new Error('503'); } } as unknown as ApiClient;
+  let now = 1000;
+  warmCategories({ api, cache, now: () => now }, [1, 2]);
+  await flush(); await flush();
+  expect(asked).toEqual([1, 2]);
+  now += 30_000; // a second visit 30 s later
+  warmCategories({ api, cache, now: () => now }, [1, 2]);
+  await flush(); await flush();
+  expect(asked).toEqual([1, 2]);
+  now += 3 * 60_000; // after the back-off
+  warmCategories({ api, cache, now: () => now }, [1, 2]);
+  await flush(); await flush();
+  expect(asked).toEqual([1, 2, 1, 2]);
+});

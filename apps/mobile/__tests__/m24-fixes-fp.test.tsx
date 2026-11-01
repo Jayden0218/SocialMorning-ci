@@ -79,7 +79,7 @@ jest.mock('@/ui/settings/NotifyShows', () => ({ NotifyShows: () => null }));
 jest.mock('@/social/api-m22-social', () => ({ useM22SocialApi: () => mockM22 }));
 jest.mock('@/social/account-api', () => ({ ...(jest.requireActual('@/social/account-api') as Record<string, unknown>), useAccountApi: () => mockAccount }));
 
-import { RATE_KEY, RateSheet, rateMayAsk, shouldAskRating } from '@/ui/shell/RateSheet';
+import { RATE_KEY, RATE_SHOWN_KEY, RateSheet, rateMayAsk, shouldAskRating } from '@/ui/shell/RateSheet';
 import * as RateModule from '@/ui/shell/RateSheet';
 import { ACCENTS, colour, PAIRS, contrastRatio, BODY_MIN } from '@/design';
 import { applyAccent, withAccent } from '@/design/accent';
@@ -176,7 +176,7 @@ describe('1 (rendered). every way out of the sheet records an answer, and the sh
     expect(mockMap.get(RATE_KEY)).toBe('closed');
     act(() => { jest.runOnlyPendingTimers(); });
     act(() => r.unmount());
-    mockMap.delete(RATE_KEY);
+    mockMap.delete(RATE_KEY); mockMap.delete(RATE_SHOWN_KEY); // 035 C1: a sheet already shown is not asked again for 30 days, so a fresh sheet needs the new marker cleared too
     const x = mount();
     act(() => { tap(x, 'Close')!.props['onPress'](); });
     expect(mockMap.get(RATE_KEY)).toBe('closed');

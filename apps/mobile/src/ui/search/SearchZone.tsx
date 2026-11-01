@@ -22,7 +22,7 @@ import { Input, InputField } from '@/ui/lib/input';
 import { Pressable } from '@/ui/lib/pressable';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
-import { bars, colour, gutter, radius, spacing, typeStyle } from '@/design';
+import { bars, colour, gutter, hit, radius, spacing, typeStyle } from '@/design';
 import { useWindowDimensions } from 'react-native';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
@@ -177,11 +177,11 @@ export function SearchZone(props: {
             />
           </Input>
           {typed ? (
-            <Pressable onPress={props.onClear} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={spacing.row} className="items-center justify-center">
+            <Pressable onPress={props.onClear} accessibilityRole="button" accessibilityLabel="Clear search" hitSlop={spacing.row} className="items-center justify-center" style={{ minWidth: hit.min, minHeight: hit.min }}>
               <Icon name="close" size={18} color={colour.text3} />
             </Pressable>
           ) : (
-            <Pressable onPress={props.onScan} accessibilityRole="button" accessibilityLabel="Scan a QR code" hitSlop={spacing.gap} className="items-center justify-center">
+            <Pressable onPress={props.onScan} accessibilityRole="button" accessibilityLabel="Scan a QR code" hitSlop={spacing.gap} className="items-center justify-center" style={{ minWidth: hit.min, minHeight: hit.min }}>
               <Icon name="scan-outline" size={22} color={colour.text} />
             </Pressable>
           )}

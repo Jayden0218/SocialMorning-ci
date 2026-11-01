@@ -52,7 +52,8 @@ export function coverChip(publishedAt: number | undefined, durationMs: number | 
 }
 
 /** The 40 round tools of the card: the raise disc (light with void glyph once used — queued, downloading, downloaded), the glyph 18, touched 48. */
-const TOOL = { width: UPDATES.card.action, height: UPDATES.card.action, borderRadius: UPDATES.card.action / 2 };
+// 035 A3: drawn 40; the frame is 44 x 44 (the circle fill follows the frame).
+const TOOL = { width: UPDATES.card.action, height: UPDATES.card.action, minWidth: 44, minHeight: 44, borderRadius: 22 };
 const TOOL_SLOP = Math.ceil((48 - UPDATES.card.action) / 2);
 
 export function UpdateEpisodeRow(props: {
@@ -102,8 +103,9 @@ export function UpdateEpisodeRow(props: {
     <SwipeCard onUp={props.onMarkPlayed ?? noop} onDown={props.onRemoveFromUpdates ?? noop} {...(props.onDragging ? { onDragging: props.onDragging } : {})}>
       <Box testID="update-card" className="flex-1 bg-raise border border-line overflow-hidden" style={{ borderRadius: UPDATES.card.radius }}>
         <CoverBand url={item.imageUrl} name={item.showTitle} height={UPDATES.card.cover}>
+          {/* 035 L6: at the cover foot, not its top-left corner where the cover draws its initials. */}
           {chip ? (
-            <Box className="absolute rounded-chip" style={{ left: UPDATES.card.chipLeft, top: UPDATES.card.chipTop, paddingHorizontal: UPDATES.card.chipPadX, paddingVertical: UPDATES.card.chipPadY, borderRadius: UPDATES.card.chipRadius, backgroundColor: colour.glassDark }}>
+            <Box className="absolute rounded-chip" style={{ left: UPDATES.card.chipLeft, bottom: UPDATES.card.chipTop, paddingHorizontal: UPDATES.card.chipPadX, paddingVertical: UPDATES.card.chipPadY, borderRadius: UPDATES.card.chipRadius, backgroundColor: colour.glassDark }}>
               <Type step="tag" className="text-text" style={LIB_TYPE.mono11} numberOfLines={1}>{video ? `${chip} · VIDEO` : chip}</Type>
             </Box>
           ) : null}

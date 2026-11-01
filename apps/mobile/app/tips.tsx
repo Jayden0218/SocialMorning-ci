@@ -36,7 +36,7 @@ export default function TipsScreen(): React.ReactElement {
   const notReady = state.kind === 'ok' && !state.storeReady;
   const empty = state.kind === 'ok' && state.items.length === 0;
   return (
-    <PushedPage title="Tips I gave" size={TIPS.titleSize} tone="none">
+    <PushedPage title="Tips I gave" size={TIPS.titleSize} tone="none" fade={empty ? 0 : undefined}>
       {(layout) => (
         <>
           <PageGlow top={TIPS.glowTop} strength={TIPS.glowStrength} />

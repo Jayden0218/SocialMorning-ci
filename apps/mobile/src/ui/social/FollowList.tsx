@@ -29,6 +29,7 @@
  * carries one is 108 tall rather than 84 (the action inventory's rule: every action stays).
  */
 import { useCallback, useEffect, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { Link } from '@/design/tailwind';
 import { Pressable } from '@/ui/lib/pressable';
@@ -138,6 +139,9 @@ export function FollowList(props: { kind: FollowKind; id: string; name?: string;
 /** One person: avatar 40, name 14/600, bio 11; a Follow pill under them when you are signed in and it is not you. A deleted account is not tappable. */
 function PersonTile(props: { person: ClipAuthor; youId: string | undefined }): React.ReactElement {
   const item = props.person;
+  // 035 L3: at the largest text sizes a name wraps instead of ending in "…".
+  const { fontScale } = useWindowDimensions();
+  const lines = fontScale > 1.3 ? 3 : 1;
   const deleted = !item.displayName;
   const canFollow = props.youId !== undefined && item.youFollow !== undefined && item.id !== props.youId;
   return (
@@ -146,8 +150,8 @@ function PersonTile(props: { person: ClipAuthor; youId: string | undefined }): R
         <Pressable disabled={deleted} accessibilityRole={deleted ? 'text' : 'link'} className="flex-row items-center" style={{ gap: PROFILE.avatarGap }}>
           <Avatar size={PROFILE.avatar} url={item.avatarUrl} name={item.displayName} />
           <Box className="flex-1 min-w-0">
-            <NameText step="compact" muted={deleted} numberOfLines={1}>{item.displayName ?? 'Deleted account'}</NameText>
-            {item.bio ? <Type step="caption" className="text-text3" style={PROFILE_TYPE.bio11} numberOfLines={1}>{item.bio}</Type> : null}
+            <NameText step="compact" muted={deleted} numberOfLines={lines}>{item.displayName ?? 'Deleted account'}</NameText>
+            {item.bio ? <Type step="caption" className="text-text3" style={PROFILE_TYPE.bio11} numberOfLines={lines}>{item.bio}</Type> : null}
           </Box>
         </Pressable>
       </Link>

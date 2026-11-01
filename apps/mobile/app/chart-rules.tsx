@@ -55,7 +55,7 @@ export default function ChartRulesScreen(): React.ReactElement {
                       {WEIGHTS.map(([n, label]) => (
                         <Box key={label} testID="weight" className="flex-1 bg-raise2 items-center" style={{ borderRadius: 14, padding: 8 }} accessible accessibilityLabel={`A ${label} counts ${n}`}>
                           <Type step="hero" className="text-hotText" style={PAGE_TYPE.rank20}>{n}</Type>
-                          <Type step="tag" className="text-text2" style={{ marginTop: 4, textAlign: 'center' }}>{label}</Type>
+                          <Type step="tag" className="text-text2" style={{ marginTop: 4, textAlign: 'center' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Type>
                         </Box>
                       ))}
                     </Box>

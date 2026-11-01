@@ -94,7 +94,10 @@ export function Ring(props: {
   const knobAt = pointOn(size, r0 - 2, progress);
   const d = size * inner;
   const interactive = props.onSeek !== undefined;
+  // 035 A1: the ring is ONE accessible, adjustable stop; a button inside it is hidden from VoiceOver on iOS. So the comment pins are drawn
+  // after it, as siblings on top (the outer box has the ring's size and is not itself accessible).
   return (
+    <Box style={{ width: size, height: size }}>
     <Box
       testID="ring"
       style={{ width: size, height: size }}
@@ -127,6 +130,7 @@ export function Ring(props: {
           <Box className="rounded-pill bg-text" style={{ width: KNOB, height: KNOB }} />
         </Box>
       )}
+    </Box>
       {(props.pins ?? []).map((p, k) => {
         const at = pointOn(size, size / 2 - 8, p.at);
         const style = { left: at.x - PIN / 2, top: at.y - PIN / 2, width: PIN, height: PIN, borderWidth: PIN_BORDER, borderColor: colour.void, backgroundColor: p.colour ?? colour.pinGreen };

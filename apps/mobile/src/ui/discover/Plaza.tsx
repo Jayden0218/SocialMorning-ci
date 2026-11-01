@@ -19,7 +19,7 @@ import { useReducedMotion } from '@/ui/kit/useReducedMotion';
 import { Artwork } from '@/ui/kit/Artwork';
 import { colour } from '@/design';
 import { PAGE } from './measures';
-import { indexAt, maxScrollY, nearBottom, rowsFor, windowCells } from '@/discover/plaza-grid';
+import { indexAt, maxScrollY, nearBottom, rowsFor, WRAP, windowCells } from '@/discover/plaza-grid';
 import type { PlazaShow } from '@/discover/explore-api';
 import { setShared } from '@/ui/kit/sharedValue';
 
@@ -93,6 +93,11 @@ export function PlazaWall(props: { shows: PlazaShow[]; onOpen: (show: PlazaShow)
     if (width > 0 && height > 0) setView({ width: width + 2 * BLEED, height: height + 2 * BLEED });
   };
   const cells = windowCells(origin.x, origin.y, view, PITCH, rows);
+  // 035 L4: fewer covers than one row of the wall do not repeat sideways, so the one cover sat in the turned wall's bleed, cut off at the
+  // page's edge. A short row is moved in past the bleed and centred in the page.
+  const count = props.shows.length;
+  const shortRow = count < WRAP;
+  const shiftX = shortRow ? BLEED + Math.max(0, (view.width - 2 * BLEED - count * PITCH) / 2) : 0;
 
   return (
     <GestureDetector gesture={pan}>
@@ -103,7 +108,7 @@ export function PlazaWall(props: { shows: PlazaShow[]; onOpen: (show: PlazaShow)
             const i = indexAt(cell, props.shows.length);
             const s = i === undefined ? undefined : props.shows[i];
             if (!s) return null;
-            const place = { position: 'absolute' as const, left: cell.col * PITCH + GAP / 2, top: cell.row * PITCH + GAP / 2, width: TILE };
+            const place = { position: 'absolute' as const, left: cell.col * PITCH + GAP / 2 + shiftX, top: cell.row * PITCH + GAP / 2, width: TILE };
             const lifted = down === s.feedUrl;
             return (
               <Pressable

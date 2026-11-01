@@ -238,7 +238,7 @@ function Bar(props: NowBarProps & { wrap: Wrap; panHandlers: object }): React.Re
           accessibilityLabel="Playlist"
           hitSlop={CIRCLE_SLOP}
           className="items-center justify-center"
-          style={{ width: bars.playCircle, height: bars.playCircle }}
+          style={{ width: bars.playCircle, height: bars.playCircle, minWidth: bars.circle, minHeight: bars.circle }}
         >
           <Icon name="list" size={22} color={c.text} />
         </Pressable>

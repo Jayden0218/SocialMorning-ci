@@ -162,3 +162,16 @@ describe('F2a: the glow scrolls away and nothing shows under the clock', () => {
     expect(scrim.props['pointerEvents']).toBe('none');
   });
 });
+
+// 035 T054 (device check L7): the big "Discover" title floats over the For You cards and let touches through (`pointerEvents="none"`), so a tap on
+// the title opened the card underneath (Maestro did exactly that, run 41274515878 r05). The title's wrapper takes the touch and does nothing.
+// Break: put `pointerEvents="none"` back on the title's wrapper in DiscoverPage.tsx.
+it('035 L7: a tap on the Discover title is not passed to the cards under it', () => {
+  const r = render(page());
+  const header = r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && n.props['children'] === 'Discover')[0];
+  expect(header).toBeDefined();
+  let n: typeof header | null = header!;
+  let found: unknown;
+  while (n) { if (n.props['pointerEvents'] !== undefined) { found = n.props['pointerEvents']; break; } n = n.parent; }
+  expect(found).not.toBe('none');
+});

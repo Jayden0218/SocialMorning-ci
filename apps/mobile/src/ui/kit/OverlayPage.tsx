@@ -49,6 +49,8 @@ export function OverlayPage(props: {
   backLabel?: string;
   actions?: readonly TitleAction[];
   tone?: GlowTone | 'none';
+  /** 035 A2: the fade's height; 0 draws none (a page whose words do not scroll behind the title bar, as the sign-in steps). */
+  fade?: number;
   glowTop?: number;
   glowStrength?: number;
   glowFlip?: boolean;
@@ -70,7 +72,7 @@ export function OverlayPage(props: {
     <Box className="flex-1 bg-void" testID="overlay-page">
       {props.tone === 'none' ? null : <PageGlow tone={props.tone ?? 'hot'} {...(props.glowTop !== undefined ? { top: props.glowTop } : {})} {...(props.glowStrength !== undefined ? { strength: props.glowStrength } : {})} {...(props.glowFlip ? { flip: true } : {})} />}
       {typeof props.children === 'function' ? props.children(layout) : props.children}
-      <Fade bottom={inset} height={hasFoot ? FADE.withFoot : FADE.plain} />
+      <Fade bottom={inset} height={props.fade ?? (hasFoot ? FADE.withFoot : FADE.plain)} />
       <TitleBar
         title={props.title}
         bottom={layout.titleBottom}
