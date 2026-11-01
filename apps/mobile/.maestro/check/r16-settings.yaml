@@ -227,7 +227,13 @@ appId: app.socialmorning.mobile
       ENTRY: "Playlist backups.*"
       PROOF: "No backups yet.*|Playlist backups"
       SHOT: r16-16-queue-backups
-      HUB: "Skip silence"
+      HUB: "Playlist backups, .*"          # the Playback page stays scrolled to its last row (run 41282540688)
+- scrollUntilVisible:
+    element: "Skip silence"
+    direction: UP
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 5000
 - takeScreenshot: r16-15b-playback-toggle-after-return
 - tapOn: "Skip silence"                  # back as it was
 - tapOn: "Back"

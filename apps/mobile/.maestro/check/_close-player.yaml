@@ -1,0 +1,12 @@
+# Subflow: when the full player is on screen where it should not be, close it ("Close the player",
+# src/ui/player/PlayerTopBar.tsx:65). Run 41282540688: after the player had been used, a Back or Close on a pushed page
+# (Notifications in r11 and r15, Scan in r17) showed the full player instead of the screen before — an issue in
+# report.md. Closing it lets the rest of the route be checked.
+appId: app.socialmorning.mobile
+---
+- runFlow:
+    when:
+      visible: "Close the player"
+    commands:
+      - takeScreenshot: player-over-${SHOT_AT || 'page'}
+      - tapOn: "Close the player"

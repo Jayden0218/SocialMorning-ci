@@ -6,6 +6,11 @@ appId: app.socialmorning.mobile
 - launchApp:
     permissions:
       all: allow
+- runFlow:                               # a link dialog left over from an earlier flow (run 41282636444)
+    when:
+      visible: "Open in “SocialNet”\\?"
+    commands:
+      - tapOn: "Open"
 - extendedWaitUntil:
     visible: "Discover|Continue with email|Agree|Skip choosing categories|Skip|Enjoying SocialNet\\?.*"
     timeout: 300000

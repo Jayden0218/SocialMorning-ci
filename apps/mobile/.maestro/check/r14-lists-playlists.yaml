@@ -96,8 +96,16 @@ env:
 - tapOn: "Updates(, .*)?"
 - tapOn: "My subscriptions · .*"
 - extendedWaitUntil:
-    visible: "Share some shows"
+    visible: "Journey Morning\\. Newest: .*|No subscriptions yet\\..*"
     timeout: 30000
+- repeat:                                # the chips scroll sideways; "Share some shows" starts off-screen (run 41282540688)
+    while:
+      notVisible: "Share some shows"
+    times: 4
+    commands:
+      - swipe:
+          start: 85%, 77%
+          end: 15%, 77%
 - tapOn: "Share some shows"
 - extendedWaitUntil:
     visible: "List title"

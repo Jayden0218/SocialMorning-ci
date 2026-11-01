@@ -22,6 +22,7 @@ env:
     timeout: 30000
 - takeScreenshot: r11-01-following-feed
 - tapOn: "Back"
+- runFlow: _close-player.yaml
 - tapOn: "Updates(, .*)?"
 - extendedWaitUntil:
     visible: "Post a status: voice or text"

@@ -2,6 +2,7 @@
 appId: app.socialmorning.mobile
 ---
 - tapOn: "Back"
+- runFlow: _close-player.yaml
 - extendedWaitUntil:
     visible: "Listener 05, open your profile|Account and settings"
     timeout: 30000

@@ -20,11 +20,15 @@ appId: app.socialmorning.mobile
 - assertVisible: "Where people reacted.*"
 - takeScreenshot: r07-01-episode${SUFFIX || ''}
 - tapOn: "Play this episode"
-- extendedWaitUntil:
-    visible: "Now playing: .*"
+- extendedWaitUntil:                     # the now bar, or the full player straight away (run 41282540688)
+    visible: "Now playing: .*|Close the player"
     timeout: 30000
-- tapOn:
-    text: "Now playing: .*"
+- runFlow:
+    when:
+      notVisible: "Close the player"
+    commands:
+      - tapOn:
+          text: "Now playing: .*"
 - extendedWaitUntil:
     visible: "Close the player"
     timeout: 30000

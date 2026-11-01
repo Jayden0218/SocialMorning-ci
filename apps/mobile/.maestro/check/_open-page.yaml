@@ -28,6 +28,10 @@ appId: app.socialmorning.mobile
     timeout: 30000
 - takeScreenshot: ${SHOT}
 - tapOn: "Back"
+- runFlow:
+    file: _close-player.yaml
+    env:
+      SHOT_AT: ${SHOT}
 - extendedWaitUntil:
     visible: ${HUB}
     timeout: 30000

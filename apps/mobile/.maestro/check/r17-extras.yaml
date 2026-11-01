@@ -47,6 +47,7 @@ appId: app.socialmorning.mobile
 - tapOn:
     text: "Close|Back"
     index: 0
+- runFlow: _close-player.yaml
 - extendedWaitUntil:
     visible: "Discover"
     timeout: 30000

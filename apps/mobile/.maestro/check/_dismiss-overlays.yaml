@@ -43,6 +43,7 @@ appId: app.socialmorning.mobile
       visible: "Enjoying SocialNet\\?.*"
     commands:
       - tapOn: "Close"
+- runFlow: _close-player.yaml
 - extendedWaitUntil:
     visible: "Discover"
     timeout: 30000
