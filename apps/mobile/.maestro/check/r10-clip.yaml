@@ -43,27 +43,13 @@ env:
 - extendedWaitUntil:
     visible: "This is you"
     timeout: 30000
-# The maker's own profile was expected to list "Listener 05 clipped …" (app/profile/[id].tsx:149); run 41282540688
-# found no such row after a saved clip (POST …/clips 201). Kept, optional; the clip page is then opened by its id.
+# 035 (B6): the maker's own profile lists the clip in "Your clips" (app/profile/[id].tsx), and the row opens the clip page.
+# (Run 41282540688 found no such row and the clip page was reached by its id, with clip-id.js; that fallback is gone.)
 - scrollUntilVisible:
     element: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
     timeout: 30000
-    optional: true
 - takeScreenshot: r10-03-own-profile-activity
-- runFlow:
-    when:
-      visible: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
-    commands:
-      - tapOn: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
-- runFlow:
-    when:
-      notVisible: "Play the clip, .*|Keep listening"
-    commands:
-      - runScript: clip-id.js
-      - runFlow:
-          file: _open-link.yaml
-          env:
-            LINK: clip/${output.clipId}
+- tapOn: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
 - extendedWaitUntil:                     # the ring: "Play the clip, …", or "Keep listening" once it has played (run 41289865753)
     visible: "Play the clip, .*|Keep listening"
     timeout: 30000

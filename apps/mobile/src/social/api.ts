@@ -336,6 +336,8 @@ export function requester(deps: ApiDeps) {
     const timer = setTimeout(() => controller.abort(), waitMs);
     let res: Response;
     let text: string;
+    let timedOut = false;
+    controller.signal.addEventListener('abort', () => { timedOut = true; });
     try {
       res = await deps.fetch(deps.baseUrl + path, {
         method,
@@ -346,7 +348,8 @@ export function requester(deps: ApiDeps) {
       // M23 US9: the timeout covers the answer's body too — a stalled body no longer hangs the call.
       text = res.status === 304 ? '' : await res.text();
     } catch (e) {
-      throw new ApiError('network', "Couldn't reach the server.", 0, { cause: String(e) });
+      // 035 B5: a call that ran out of time is marked, so a screen can say "slow" rather than "no connection".
+      throw new ApiError('network', "Couldn't reach the server.", 0, { cause: String(e), ...(timedOut ? { timeout: true } : {}) });
     } finally {
       clearTimeout(timer);
     }
@@ -370,11 +373,11 @@ export function requester(deps: ApiDeps) {
     }
     return { status: res.status, headers: res.headers, json: json as T };
   }
-  function call<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; headers: Headers; json: T }> {
+  function call<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}, waitMs: number = timeoutMs): Promise<{ status: number; headers: Headers; json: T }> {
     return send<T>(method, path, {
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       headers: { ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...headers },
-    }, timeoutMs);
+    }, waitMs);
   }
   /**
    * M23 US9 (FR-014): a raw upload (a recording or a picture) through the same path as JSON — the
@@ -386,6 +389,9 @@ export function requester(deps: ApiDeps) {
   };
   return call;
 }
+
+/** 035 B5: how long a catalogue search may take before it ends as a (marked) timeout. */
+export const SEARCH_TIMEOUT_MS = 25_000;
 
 /** M23 US9: how long an upload may take before it fails as "Couldn't reach the server". */
 export const UPLOAD_TIMEOUT_MS = 60_000;
@@ -446,7 +452,8 @@ export function createApi(deps: ApiDeps): ApiClient {
       const etag = r.headers.get('etag') ?? undefined;
       return { status: 200, ...(etag ? { etag } : {}), body: r.json };
     },
-    search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`)).json,
+    // 035 B5: the catalogue may be slow (6–8 s seen on CI); it gets its own, longer limit than the 10 s every other call has.
+    search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`, undefined, {}, deps.timeoutMs ?? SEARCH_TIMEOUT_MS)).json,
     searchPeople: async (q) => (await call<{ listeners: { id: string; displayName: string }[] }>('GET', `/v1/search/people?q=${encodeURIComponent(q)}`)).json.listeners,
     pushTokenAdd: async (token, platform) => { await call('POST', '/v1/me/push-tokens', { token, platform }); },
     pushTokenRemove: async (token) => { await call('DELETE', `/v1/me/push-tokens/${encodeURIComponent(token)}`); },

@@ -683,6 +683,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `SearchOverlay.tsx` | Opens search on top of the tabs, in place, not as a new page. |
 | `SearchPage.tsx` | Search box, your shows first, then catalogue results; recent searches and categories. |
+| `catalogue-error.ts` | The line Search shows when the catalogue could not answer. |
 | `TellEditors.tsx` | "Can't find it? Tell us": under an empty search, sends the search words to the editors. |
 | `EpisodeResults.tsx` | Search results for episodes: cards in a deck (All tab) or one under another (Episodes tab). |
 | `Marked.tsx` | A name with the part you typed lit in the hot-text colour. |

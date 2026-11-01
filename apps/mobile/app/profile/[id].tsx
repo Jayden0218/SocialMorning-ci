@@ -264,6 +264,8 @@ export default function ProfileScreen(): React.ReactElement {
   };
   const nowMs = Date.now();
   const recent = own ? [] : feed(profile.recent);
+  // 035 B6: your own page hides Recent (it shows what you played), so the clips you made get their own section, each opening its clip.
+  const myClips = own ? profile.recent.filter((i) => i.kind === 'clipped' && i.refId) : [];
   const emptyStats = profile.stats !== null && all !== undefined && all.listenedMs === 0 && all.finished === 0;
   return (
     <>
@@ -414,6 +416,21 @@ export default function ProfileScreen(): React.ReactElement {
                     </Box>
                   </Box>
                 )}
+              </ProfileSection>
+            ) : null}
+
+            {myClips.length > 0 ? (
+              <ProfileSection label="Your clips" testID="my-clips-section">
+                <Box>
+                  <SpineLine />
+                  <Box style={{ paddingTop: LIST.top, paddingLeft: LIST.left, paddingRight: LIST.right, gap: LIST.nodeGap }}>
+                    {myClips.map((item) => (
+                      <ThreadNode key={item.id} lead={<Tick text={ageLabel(Date.parse(item.createdAt), nowMs)} />}>
+                        <RecentCard item={item} onOpen={open} />
+                      </ThreadNode>
+                    ))}
+                  </Box>
+                </Box>
               </ProfileSection>
             ) : null}
 

@@ -23,9 +23,7 @@
  */
 import { reportAndDrop } from '@/telemetry/reportError';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { liftedBottom, useKeyboardHeight } from '@/ui/kit/useKeyboardHeight';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import { RNFlatList } from '@/ui/lib/flat-list';
 import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
@@ -180,12 +178,9 @@ export default function ChatThread(): React.ReactElement {
     </Box>
   );
 
-  // 035 B2: the zone is `absolute`, which the wrapper's keyboard padding never moved; lift it by the keyboard's reported height instead.
-  const keyboard = useKeyboardHeight();
-  const strip = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
-  const zoneBottom = liftedBottom(ZONE_BOTTOM, keyboard, strip, ZONE_BOTTOM);
+  // 035 B2: the foot zone rides above the keyboard itself (BottomZone, src/ui/comments/CommentsBottom.tsx).
   const zoneOf = (composer: React.ReactNode) => (
-    <BottomZone bottom={zoneBottom}>
+    <BottomZone bottom={ZONE_BOTTOM}>
       <Box style={{ gap: COMMENTS.zoneGap }} onLayout={(e) => setZone(e.nativeEvent.layout.height + ZONE_BOTTOM)}>
         {header}
         {composer}

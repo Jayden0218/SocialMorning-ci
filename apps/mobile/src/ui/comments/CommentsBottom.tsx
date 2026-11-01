@@ -10,21 +10,29 @@
  *               an image; signed out it is one light 56 button "Sign in to join the conversation" with a lock
  * Each part is its own export so the two pages build the zone they draw.
  */
+import { useContext } from 'react';
 import { useWindowDimensions } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { IconButton } from '@/ui/kit/PulseButton';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type } from '@/ui/kit/Type';
+import { liftedBottom, useKeyboardHeight } from '@/ui/kit/useKeyboardHeight';
 import { colour } from '@/design';
 import { COMMENTS } from './measures';
 import { drawnType } from '@/design/type-px';
 
 /** The zone's frame: where it sits and how its rows are spaced. */
 export function BottomZone(props: { bottom: number; children: React.ReactNode }): React.ReactElement {
+  // 035 B2/T046: the zone is absolute, so nothing moved it when the keyboard opened. It rides above the keyboard by the height iOS
+  // reports (less the home strip the root layout pads), and rests at `bottom` otherwise.
+  const keyboard = useKeyboardHeight();
+  const strip = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  const bottom = liftedBottom(props.bottom, keyboard, strip, props.bottom);
   return (
-    <Box className="absolute" style={{ left: COMMENTS.zoneSide, right: COMMENTS.zoneSide, bottom: props.bottom, gap: COMMENTS.zoneGap, zIndex: 30 }} testID="comments-zone">
+    <Box className="absolute" style={{ left: COMMENTS.zoneSide, right: COMMENTS.zoneSide, bottom, gap: COMMENTS.zoneGap, zIndex: 30 }} testID="comments-zone">
       {props.children}
     </Box>
   );

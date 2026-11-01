@@ -77,7 +77,7 @@ export default function NewClipScreen(): React.ReactElement {
         setSaving(false);
         if (r.kind === 'sent') {
           const clip = r.clip;
-          share({ ...clipShare(clip, episode, 'Clip saved — share it'), onClosed: () => router.back() });
+          share({ ...clipShare(clip, episode, 'Clip saved — share it', () => router.push({ pathname: '/clip/[id]', params: { id: clip.id } })), onClosed: () => router.back() });
         } else if (r.kind === 'pending') {
           toast('Clip saved — it will be sent when you are online.');
           router.back();

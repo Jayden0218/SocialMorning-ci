@@ -77,6 +77,7 @@ import { spacing } from '@/design';
 import { mergeSearch } from '@socialmorning/social-core';
 import { useSocial } from '@/social/context';
 import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
+import { catalogueMessage } from './catalogue-error';
 import { ApiError, type EpisodeCard, type SearchResult, type ShowCard } from '@/social/api';
 import { looksLikeFeedUrl, searchLibrary } from '@/discover/local-search';
 import { useCardActions, useDiscover } from '@/discover/useDiscover';
@@ -253,9 +254,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
         .then((result) => { if (mine === requestId.current) setCatalogue({ kind: 'ok', result }); })
         .catch((e: unknown) => {
           if (mine !== requestId.current) return;
-          const message = e instanceof ApiError
-            ? (e.code === 'network' ? 'The catalogue needs a connection — showing your library only.' : e.code === 'locked' ? 'Too many searches — try again in a moment.' : e.code === 'unavailable' ? 'The catalogue is not answering right now.' : e.message)
-            : 'Search failed.';
+          const message = catalogueMessage(e);
           setCatalogue({ kind: 'error', message });
         });
     }, 300);

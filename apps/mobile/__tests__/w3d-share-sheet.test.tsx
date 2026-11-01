@@ -102,3 +102,24 @@ it('F3: the targets row scrolls sideways, so More stays reachable when many chat
   expect(row.findAll((n) => n.props['accessibilityLabel'] === 'More ways to share').length).toBeGreaterThan(0);
   expect(row.findAll((n) => typeof n.props['accessibilityLabel'] === 'string' && String(n.props['accessibilityLabel']).startsWith('Send with ')).length).toBeGreaterThanOrEqual(5);
 });
+
+// 035 T044 (device check B6): the sheet offered right after a clip is saved lists "Open clip" first, and it runs what it was given.
+// Red: drop the `open` row from `useClipShare`.
+it('035: the after-save clip sheet lists "Open clip", which opens the clip', async () => {
+  jest.spyOn(Linking, 'canOpenURL').mockResolvedValue(true);
+  const clip = { id: 'c1', author: { id: 'a', displayName: 'A' }, episodeId: 'e', startMs: 0, endMs: 6_000, caption: '', createdAt: 'now', deleted: false };
+  const episode = { id: 'e', url: 'https://a/x.mp3', title: 'Why mornings matter', showTitle: 'Morning Notes' };
+  const opened = jest.fn();
+  function Probe(): React.ReactElement {
+    const [share, panel] = useSharePanel();
+    const clipShare = useClipShare();
+    return createElement(require('react').Fragment, null, createElement(require('react-native').Pressable, { accessibilityLabel: 'open', onPress: () => share(clipShare(clip, episode, 'Clip saved — share it', opened)) }), panel);
+  }
+  act(() => { r = create(createElement(Probe)); });
+  await act(async () => { r.root.findAll((n) => n.props['accessibilityLabel'] === 'open' && typeof n.props['onPress'] === 'function')[0]!.props['onPress'](); });
+  await act(async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); });
+  const row = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Open clip' && typeof n.props['onPress'] === 'function')[0];
+  expect(row).toBeDefined();
+  act(() => { row!.props['onPress'](); });
+  expect(opened).toHaveBeenCalledTimes(1);
+});

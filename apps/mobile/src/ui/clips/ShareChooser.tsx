@@ -309,15 +309,17 @@ export function useSharePanel(): [(request: ShareRequest) => void, React.ReactEl
  * phone, More, then Share as video and Copy link. `heading` is "Share this clip" (the clip page) or "Clip saved — share it".
  * Send in chat opens the chat picker with the clip's text and link; Copy link copies the clip's https link.
  */
-export function useClipShare(): (clip: Clip, episode: PlayableEpisode, heading?: string) => ShareRequest {
+export function useClipShare(): (clip: Clip, episode: PlayableEpisode, heading?: string, open?: () => void) => ShareRequest {
   const videoRows = useClipVideoRows();
   const toast = useToast();
-  return (clip, episode, heading = 'Share this clip') => {
+  return (clip, episode, heading = 'Share this clip', open) => {
     const message = shareText(clip, episode.title, apiBaseUrl());
     return {
       heading,
       message,
       rows: [
+        // 035 B6: right after saving, the maker can open the clip they made (the clip page itself passes no `open`).
+        ...(open ? [{ icon: 'play-circle-outline' as const, label: 'Open clip', onPress: open }] : []),
         { icon: 'chatbubbles-outline', label: 'Send in chat', target: true, onPress: () => router.push({ pathname: '/chat/new', params: { text: message } }) },
         ...videoRows(clip, episode),
         { icon: 'link-outline', label: 'Copy link', onPress: () => { Clipboard.setString(clipLinkFor(clip.id, apiBaseUrl())); toast('Link copied.'); } },

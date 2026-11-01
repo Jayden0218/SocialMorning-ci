@@ -9,6 +9,11 @@ appId: app.socialmorning.mobile
 ---
 - runFlow: _ensure-signed-in.yaml
 - runFlow: _search-show.yaml
+# 035 (B4): the seed subscribed this listener on the server; signing in on a fresh install must bring that subscription down,
+# so the page says "Unsubscribe" at once (runs 41269168664 and 41274515878 saw "Subscribe").
+- extendedWaitUntil:
+    visible: "Unsubscribe from this show"
+    timeout: 30000
 - takeScreenshot: r06-01-show-before
 - repeat:                                # tap only while it still says Unsubscribe, then wait for the change
     while:

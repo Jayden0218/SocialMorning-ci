@@ -388,3 +388,25 @@ describe('Their likes (discover.html home--fold-a)', () => {
     expect(r.toJSON()).toBeNull();
   });
 });
+
+// 035 T044 (device check B6; FR-007): your own page had no way to the clip you made — Recent is hidden on your page. A "Your clips"
+// section lists your `clipped` items; a tap opens the clip by its id. Break: drop the section (or its filter) from app/profile/[id].tsx.
+describe('your own clips (035 B6)', () => {
+  const clipped = { id: 'c1', kind: 'clipped', createdAt: new Date().toISOString(), momentMs: 0, refId: 'clip-77', actor: { id: 'me', displayName: 'Mei Lin' }, episode: { id: 'e1', title: 'Episode 1: A minute of tone', showTitle: 'Journey Morning', feedUrl: 'https://f/a.xml', imageUrl: null } };
+  it('lists the clip and opens it', async () => {
+    mockParams = { id: 'me' };
+    mockProfileOverride = { id: 'me', displayName: 'Mei Lin', recent: [clipped, { ...clipped, id: 'c2', kind: 'commented', refId: null }] };
+    const r = await render(createElement(ProfileScreen));
+    expect(byId(r, 'my-clips-section')).toHaveLength(1);
+    expect(words(r)).toContain('Episode 1: A minute of tone');
+    await act(async () => { comp(r, 'Mei Lin clipped 0:00 of Episode 1: A minute of tone (Journey Morning)').props['onPress'](); });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/clip/[id]', params: { id: 'clip-77' } });
+    expect(named(r, 'Recent')).toHaveLength(0);
+  });
+  it('no clips, no section', async () => {
+    mockParams = { id: 'me' };
+    mockProfileOverride = { id: 'me', displayName: 'Mei Lin', recent: [] };
+    const r = await render(createElement(ProfileScreen));
+    expect(byId(r, 'my-clips-section')).toHaveLength(0);
+  });
+});

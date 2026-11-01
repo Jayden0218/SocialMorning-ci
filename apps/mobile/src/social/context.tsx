@@ -13,7 +13,7 @@ import { createSocialCache, type CachedSocial, type SocialCache } from './cache'
 import { registrationFor } from './registration';
 import { createReactToggle } from './react';
 import { secureToken } from './token';
-import { useLibrarySync, usePositionSync, useStores } from '@/ui/shell/providers';
+import { useLibrarySync, usePositionSync, useStores, useSubscriptionSync } from '@/ui/shell/providers';
 import { registerPush, unregisterPush } from '@/notify/push-token';
 import { expoNotify } from '@/notify/expo';
 import { apiBaseUrl } from './base-url';
@@ -56,6 +56,7 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
   const stores = useStores();
   const sync = usePositionSync();
   const library = useLibrarySync();
+  const subscriptionSync = useSubscriptionSync();
   const [listener, setListener] = useState<AuthRow | undefined>(() => stores.auth.get());
 
   // M6 (FR-015): a suspended answer ends the local session and leaves the message for the sign-in screen.
@@ -69,8 +70,10 @@ export function SocialProvider(props: { children?: ReactNode }): ReactNode {
     if (tz) void m22.setTimeZone(tz).catch(reportAndDrop('me.timeZone'));
   }, onSignedIn: () => {
     void library.reconcile().catch(reportAndDrop('sync.library'));
+    // 035 B4: the account's subscriptions come down at sign-in (the launch reconcile ran signed out and did nothing).
+    void subscriptionSync.reconcile().catch(reportAndDrop('sync.subscriptions'));
     return sync.reconcile();
-  } }), [api, stores, sync, library, m22]);
+  } }), [api, stores, sync, library, subscriptionSync, m22]);
   const refreshListener = useCallback(() => setListener(stores.auth.get()), [stores]);
   // M10b US3: whenever someone is signed in — at launch or just after signing in — this
   // device's push address joins the account (only if notifications are allowed; never throws).
