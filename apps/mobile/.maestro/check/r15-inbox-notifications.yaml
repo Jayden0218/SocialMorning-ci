@@ -37,7 +37,6 @@ appId: app.socialmorning.mobile
     timeout: 30000
 - takeScreenshot: r15-04-system
 - tapOn: "Back"
-- runFlow: _close-player.yaml
 - extendedWaitUntil:
     visible: "People\\. .*|Interactions\\. .*"
     timeout: 30000

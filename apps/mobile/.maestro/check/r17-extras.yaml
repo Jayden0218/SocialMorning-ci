@@ -44,20 +44,9 @@ appId: app.socialmorning.mobile
     visible: "Scan a QR code|Scan QR code|Allow camera"
     timeout: 30000
 - takeScreenshot: r17-04-scan
-# Scan's "Close" [20,756]-[190,804] is UNDER the now bar [19,754]-[271,796] once an episode is loaded (run 41289865753
-# hierarchy) — a tap on it opens the player: issue B7. The step is kept; then the player is closed and the page is left
-# with the iOS edge swipe back.
-- tapOn:
-    text: "Close|Back"
-    index: 0
-- runFlow: _close-player.yaml
-- runFlow:
-    when:
-      visible: "Scan QR code|Scan a QR code"
-    commands:
-      - swipe:
-          start: 1%, 50%
-          end: 80%, 50%
+# 035 (B1/B7): Scan draws no now bar and has a Back circle in every state, so Back leaves it (run 41289865753 saw Close
+# under the now bar and the page was left with the edge swipe).
+- tapOn: "Back"
 - extendedWaitUntil:
     visible: "Discover"
     timeout: 30000

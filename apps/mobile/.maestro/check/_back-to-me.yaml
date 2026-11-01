@@ -1,15 +1,9 @@
 # Subflow: Back, then wait for the Me tab again.
 appId: app.socialmorning.mobile
 ---
+# 035 (B1/B3): Notifications' title bar now sits above the now bar, so one Back leaves it — the stray-player close and the
+# second Back that run 41289865753 needed are gone. Every assertion below is kept.
 - tapOn: "Back"
-- runFlow: _close-player.yaml
-- runFlow:                               # Back on Notifications stayed there (run 41289865753, r11 and r15) — issue B3
-    when:
-      visible: "People\\. .*"
-    commands:
-      - takeScreenshot: back-did-not-leave-notifications
-      - tapOn: "Back"
-      - runFlow: _close-player.yaml
 - extendedWaitUntil:
     visible: "Listener 05, open your profile|Account and settings"
     timeout: 30000

@@ -23,7 +23,9 @@
  */
 import { reportAndDrop } from '@/telemetry/reportError';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { liftedBottom, useKeyboardHeight } from '@/ui/kit/useKeyboardHeight';
 import { Platform, useWindowDimensions } from 'react-native';
 import { RNFlatList } from '@/ui/lib/flat-list';
 import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
@@ -178,8 +180,12 @@ export default function ChatThread(): React.ReactElement {
     </Box>
   );
 
+  // 035 B2: the zone is `absolute`, which the wrapper's keyboard padding never moved; lift it by the keyboard's reported height instead.
+  const keyboard = useKeyboardHeight();
+  const strip = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
+  const zoneBottom = liftedBottom(ZONE_BOTTOM, keyboard, strip, ZONE_BOTTOM);
   const zoneOf = (composer: React.ReactNode) => (
-    <BottomZone bottom={ZONE_BOTTOM}>
+    <BottomZone bottom={zoneBottom}>
       <Box style={{ gap: COMMENTS.zoneGap }} onLayout={(e) => setZone(e.nativeEvent.layout.height + ZONE_BOTTOM)}>
         {header}
         {composer}
@@ -247,7 +253,7 @@ export default function ChatThread(): React.ReactElement {
   );
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-void" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView className="flex-1 bg-void" {...(Platform.OS === 'ios' ? {} : { behavior: 'height' as const })}>
       {nodes.length > 0 ? (
         <>
           <ThreadSpine top={listTop} />

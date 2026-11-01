@@ -99,12 +99,12 @@ export default function ScanScreen(): React.ReactElement {
   const { width } = useWindowDimensions();
   const side = gutter(width);
 
-  // Before the phone says what the permission is: a plain void page, a frame, no flash.
-  if (!permission) return <Box className="flex-1 bg-void" />;
+  // Before the phone says what the permission is: a void page with only the Back circle (035 B7: Back in every state), no flash.
+  if (!permission) return <PushedPage title="Scan" tone="none">{null}</PushedPage>;
 
   if (!permission.granted) {
     return (
-      <PushedPage title="Scan a QR code" tone="none" bare onBack={null} now={false}>
+      <PushedPage title="Scan a QR code" tone="none" bare>
         {(layout) => (
           <Box className="flex-1">
             <PageGlow top={SCAN.glowTop} strength={SCAN.glowStrength} />
@@ -123,6 +123,8 @@ export default function ScanScreen(): React.ReactElement {
               <Type step="hero" className="text-text" accessibilityRole="header">Scan a QR code</Type>
               <Type step="body" className="text-text2 font-medium">SocialNet needs the camera to read a QR code. It is used only on this screen, and nothing is recorded.</Type>
               <Box className="flex-row items-center" style={{ gap: SCAN.rowGap, marginTop: SCAN.rowTop }}>
+                {/* 035 B7 / FR-003: a Back circle in every state (Pulse rule 1); Close stays, as drawn in scan--camera-denied. */}
+                <IconButton icon="chevron-back" label="Back" fill diameter={SCAN.button} onPress={() => close(router)} />
                 <IconButton icon="close" label="Close" fill diameter={SCAN.button} onPress={() => close(router)} />
                 {permission.canAskAgain
                   ? <PulseButton label="Allow camera" kind="light" icon="camera-outline" height={SCAN.button} className="flex-1" onPress={() => void ask()} />
@@ -140,8 +142,6 @@ export default function ScanScreen(): React.ReactElement {
       title="Scan QR code"
       size={26}
       tone="none"
-      now={false}
-      onBack={null}
       below={(
         <Box className="flex-row" style={{ gap: SCAN.rowGap }}>
           <PulseButton label="Close" kind="quiet" icon="close" className="flex-1" onPress={() => close(router)} />

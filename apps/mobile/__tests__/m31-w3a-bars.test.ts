@@ -26,3 +26,13 @@ it('other pushed pages keep the bar and their toast spot', () => {
   expect(miniPlayerShows('/show/x', 'root', false)).toBe(true);
   expect(toastBottom(34, toastPlacement('/show/x', false, false))).toBe(toastBottom(34, { tabs: false, now: true }));
 });
+
+// 035 T013 (device check D1, B1): a chat thread has its message box at the foot, and Scan is a full-screen camera — neither draws the now bar.
+// Notifications keeps it (its title bar lifts above it); New chat is a plain pushed page and keeps it too.
+it('035 D1: the chat thread and Scan draw no now bar; New chat and Notifications still do', () => {
+  expect(miniPlayerShows('/chat/u1', 'root', false)).toBe(false);
+  expect(miniPlayerShows('/scan', 'root', false)).toBe(false);
+  expect(miniPlayerShows('/chat/new', 'root', false)).toBe(true);
+  expect(miniPlayerShows('/chat', 'tabs', false)).toBe(true); // the Chat tab: the tab layout's bar
+  expect(miniPlayerShows('/notifications', 'root', false)).toBe(true);
+});

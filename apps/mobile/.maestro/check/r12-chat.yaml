@@ -54,12 +54,10 @@ env:
     visible: "Chat with Listener 02"
     timeout: 30000
 - takeScreenshot: r12-04-new-chat
-- runFlow: _close-player.yaml
 - tapOn: "Chat with Listener 02"
 - extendedWaitUntil:                     # the box: "Message Message" (label + placeholder, run 41269168664)
     visible: "Message( .*)?"
     timeout: 30000
-- runFlow: _close-player.yaml            # it appeared over the thread in run 41289865753 (issue B3)
 - takeScreenshot: r12-05-thread-empty
 - tapOn: "Message( Message)?"
 - inputText: ${MESSAGE}
@@ -74,10 +72,10 @@ env:
 - takeScreenshot: r12-05b-typing
 # Run 41274515878 passed this route falsely: "visible: <message>" matched the text still in the box, while the
 # server got no message (api.log: no chat POST) — with the keyboard up the composer (box and Send) is under the
-# keyboard (screenshot r12-06). An issue in report.md. Now: put the keyboard away, Send, and require the thread to
-# lose its empty line ("Say hello to Listener 02.", app/chat/[id].tsx:286) and the box to be empty again.
+# keyboard (screenshot r12-06). 035 (B2): the message box now rides above the keyboard, so Send is tapped with the
+# keyboard still up, and the thread must lose its empty line ("Say hello to Listener 02.", app/chat/[id].tsx:286) and the
+# box must be empty again.
 - assertVisible: "Send"
-- hideKeyboard
 - tapOn: "Send"
 - extendedWaitUntil:
     notVisible: "Say hello to Listener 02\\."

@@ -21,15 +21,7 @@ env:
     visible: ".*follow people from their profile|.*Listener 0[678].*"
     timeout: 30000
 - takeScreenshot: r11-01-following-feed
-- tapOn: "Back"
-- runFlow: _close-player.yaml
-- runFlow:                               # Back on Notifications stayed there (run 41289865753, r11 and r15) — issue B3
-    when:
-      visible: "People\\. .*"
-    commands:
-      - takeScreenshot: back-did-not-leave-notifications
-      - tapOn: "Back"
-      - runFlow: _close-player.yaml
+- tapOn: "Back"                          # 035 (B1/B3): one Back leaves Notifications now; the title bar is above the now bar
 - tapOn: "Updates(, .*)?"
 - extendedWaitUntil:
     visible: "Post a status: voice or text"
@@ -55,11 +47,9 @@ env:
       - eraseText: 60
       - inputText: ${STATUS}
 - takeScreenshot: r11-04-text-status
-# Run 41274515878: with the keyboard up, the bottom title bar (Back, title, Post) is UNDER the keyboard — the tap on
-# "Post" landed on the keyboard and no request reached the server. An issue in report.md; here the keyboard is
-# put away so the rest of the route can be checked.
+# 035 (B2): with the keyboard up, the title bar (Back, title, Post) rides above it, so Post is tapped with the keyboard
+# still up. (Run 41274515878 saw it under the keyboard and the tap landed on the keys; `hideKeyboard` hid that.)
 - assertVisible: "Post"
-- hideKeyboard
 - tapOn: "Post"
 - extendedWaitUntil:
     visible: "Your text status, .*"

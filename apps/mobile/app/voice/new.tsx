@@ -151,7 +151,6 @@ export default function NewVoicePost(): React.ReactElement {
       title="Voice status"
       size={26}
       tone="none"
-      now={false}
       safeBottom={insets?.bottom ?? 0}
       onBack={cancel}
       backIcon="close"

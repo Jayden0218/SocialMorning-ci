@@ -69,6 +69,9 @@ export function miniPlayerShows(path: string, context: 'root' | 'tabs', idle: bo
   if (path.startsWith('/clip/') || path.startsWith('/transcript/')) return false;
   // M31 W4-B (design-pulse2 status--screen, status-text--screen): the Stage and the text-status page draw no now bar.
   if (path.startsWith('/status/')) return false;
+  // 035 D1 (device check B1): a chat thread has its message box at the foot where the bar would be (as /comments/*), and Scan is a full-screen
+  // camera. `/chat/new` is the New chat page, a plain pushed page: it keeps the bar. Notifications keeps it too; its title bar lifts above it.
+  if ((path.startsWith('/chat/') && path !== '/chat/new') || path === '/scan') return false;
   // Exactly one bar. Two would announce the episode twice to a screen reader.
   if (context === 'root' && TAB_ROUTES.includes(path)) return false;
   return !idle;

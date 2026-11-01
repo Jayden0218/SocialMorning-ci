@@ -323,6 +323,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `pulse-math.ts` | The sums behind the Pulse ring and heat bars: angles, spokes, colour steps, resampling. |
 | `useOpenLink.ts` | The hook behind every tapped outside link: opens it by the rules, and says "Can't open that link." when refused. |
 | `useReducedMotion.ts` | Says whether the phone's Reduce Motion setting is on — the one place the kit asks. |
+| `useKeyboardHeight.ts` | How tall the keyboard is while it is up (iOS only: Android resizes the window itself). |
 | `clock.ts` | The current time in ms, read in one place so a screen that draws "5 min ago" does not call the clock while rendering. |
 | `sharedValue.ts` | Writes a Reanimated shared value from a worklet or an effect, so the write is one small function. |
 | `useLatest.ts` | Hooks for handlers made once: a getter for the newest value, and a mutable cell that never causes a render. |

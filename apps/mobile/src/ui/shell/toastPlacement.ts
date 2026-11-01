@@ -26,12 +26,14 @@ export function toastPlacement(path: string, idle: boolean, momentsOnScreen: boo
   // M31 F2a (social.html chat-thread--toast 176, notifications--toast 196): a chat thread has its message box at the foot (the replies' 176),
   // Notifications its tall bottom zone (the comments' 196). `/chat/new` is the New chat page, not a thread: it keeps the pushed-page rule.
   const composer = path.startsWith('/chat/') && path !== '/chat/new' ? 'replies' : path === '/notifications' ? 'comments' : path.startsWith('/comments/thread/') ? 'replies' : path.startsWith('/comments/') || path === '/comments' ? 'comments' : path === '/clip/new' ? 'clip' : path === '/voice/new' || path === '/status/text' ? 'voice' : path.startsWith('/status/') ? 'status' : path.startsWith('/transcript/') ? 'transcript' : undefined;
-  if (composer !== undefined) return { tabs: false, now: false, player: false, composer };
+  // 035 FR-001 (B1): `now` is `miniPlayerShows`, the function the bar itself uses, so a page never lays out for a bar that is not drawn
+  // nor under one that is. The composer cases keep their toast lift but no longer force `now: false` (that left Notifications' title bar under the bar).
+  const now = !player && !momentsOnScreen && miniPlayerShows(path, tabs ? 'tabs' : 'root', idle);
+  if (composer !== undefined) return { tabs: false, now, player: false, composer };
   // M31 F8: pushed pages with the title bar (and a foot button) at the foot — the toast clears them (README wave-5 defect 1).
   const foot: ToastPlacement['foot'] = /^\/settings\/(feedback|network)$/.test(path) ? 'send' : path.startsWith('/digest/') ? 'digest' : path === '/search' ? 'search'
     : path === '/appeal' ? 'appeal' : path.startsWith('/gift/') ? 'gift' : path.startsWith('/profile/') && !/^\/profile\/(edit|[^/]+\/)/.test(path) ? 'profile'
     : /^\/settings\/(devices|downloads|minor|not-interested|opml|privacy|queue-backups)$/.test(path) || path.startsWith('/report/') ? 'page' : undefined;
-  const now = !player && !momentsOnScreen && miniPlayerShows(path, tabs ? 'tabs' : 'root', idle);
   if (foot !== undefined) return { tabs, now, player, foot };
   // M31 F9: the Updates tab (design-pulse2 discover.html `toast--library`, 300 over both bars).
   return path === '/library' ? { tabs, now, player, updates: true } : { tabs, now, player };

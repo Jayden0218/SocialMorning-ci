@@ -20,6 +20,7 @@ import { bars, gutter, titleBarBottom } from '@/design';
 import { tabTitleReserve } from '@/ui/me/useTabTitle';
 import { useToastPlacement } from '@/ui/shell/toastPlacement';
 import { Fade } from './Fade';
+import { liftedBottom, useKeyboardHeight } from './useKeyboardHeight';
 import { PageGlow, type GlowTone } from './PageGlow';
 import { goBack } from './PageHeader';
 import type { IconName } from './Icon';
@@ -37,12 +38,22 @@ export function pushedLayout(safeTop: number, now: boolean, extraAbove = 0): Pus
   return { top: safeTop, titleBottom, reserve: tabTitleReserve(titleBottom) + extraAbove };
 }
 
+/** Between the keyboard's top and a title bar riding above it. */
+const KEYBOARD_GAP = 8;
+
 export function usePushedLayout(extraAbove = 0, over?: { now?: boolean; safeBottom?: number }): PushedLayout {
   const insets = useContext(SafeAreaInsetsContext);
   const placed = useToastPlacement();
+  const keyboard = useKeyboardHeight();
   const l = pushedLayout(insets?.top ?? 0, over?.now ?? placed.now, extraAbove);
   // A page outside the root's padding (a modal route) pads the home strip itself.
-  return over?.safeBottom ? { ...l, titleBottom: l.titleBottom + over.safeBottom, reserve: l.reserve + over.safeBottom } : l;
+  const padded = over?.safeBottom ? { ...l, titleBottom: l.titleBottom + over.safeBottom, reserve: l.reserve + over.safeBottom } : l;
+  if (keyboard <= 0) return padded;
+  // 035 B2: while the keyboard is up the title bar (and the `below` slot, which sits on it) rides above it. The page's foot is the
+  // padded home strip above the screen's edge, except on a modal route that pads itself (then the foot IS the edge).
+  const strip = over?.safeBottom ? 0 : (insets?.bottom ?? 0);
+  const titleBottom = liftedBottom(padded.titleBottom, keyboard, strip, KEYBOARD_GAP);
+  return { ...padded, titleBottom, reserve: padded.reserve + (titleBottom - padded.titleBottom) };
 }
 
 export function PushedPage(props: {
