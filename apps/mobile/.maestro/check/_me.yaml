@@ -9,5 +9,6 @@ appId: app.socialmorning.mobile
 - scrollUntilVisible:
     element: "Listener 05, open your profile"
     direction: UP
+    centerElement: true
     timeout: 10000
     optional: true

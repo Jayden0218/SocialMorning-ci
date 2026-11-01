@@ -27,6 +27,7 @@ appId: app.socialmorning.mobile
 - takeScreenshot: r15-03-notifications-interactions
 - scrollUntilVisible:
     element: "System\\. .*"
+    centerElement: true
     timeout: 20000
 - tapOn: "System\\. .*"
 - extendedWaitUntil:
@@ -39,6 +40,7 @@ appId: app.socialmorning.mobile
     timeout: 30000
 - scrollUntilVisible:
     element: "From hosts\\. .*"
+    centerElement: true
     timeout: 20000
 - tapOn: "From hosts\\. .*"
 - extendedWaitUntil:

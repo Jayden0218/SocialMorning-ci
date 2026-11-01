@@ -3,7 +3,7 @@
 # Labels (app/(tabs)/me.tsx unless named): title link "Listener 05, open your profile" (:205); tiles "Downloads"
 # (:157), "Listening history" (:161), "Favourites" (:162), "My comments" (:165), "Likes" (:172), report
 # "Your <Month YYYY>: your month in listening" (:180). Profile (app/profile/[id].tsx, no title bar): "This is
-# you" (:279), stat links "3 following" / "3 followers" / "N subscriptions" / "… Open listening data"
+# you" (:279), stat links "N following" / "N followers" (counts move: r12 follows Listener 02 back) / "N subscriptions" / "… Open listening data"
 # (ProfileStatRow.tsx:53), "Edit profile" (:452). Seed: listener-05 follows 06–08, followed by 02–04.
 appId: app.socialmorning.mobile
 ---
@@ -26,7 +26,7 @@ appId: app.socialmorning.mobile
 - extendedWaitUntil:
     visible: "This is you"
     timeout: 30000
-- tapOn: "3 followers"
+- tapOn: "\\d+ followers?"
 - extendedWaitUntil:
     visible: "Followers"
     timeout: 30000
@@ -38,12 +38,12 @@ appId: app.socialmorning.mobile
 - extendedWaitUntil:
     visible: "This is you"
     timeout: 30000
-- tapOn: "3 following"
+- tapOn: "\\d+ following"
 - extendedWaitUntil:
     visible: "Following"
     timeout: 30000
 - extendedWaitUntil:
-    visible: ".*Listener 0[678].*"
+    visible: ".*Listener 0[2678].*"
     timeout: 30000
 - takeScreenshot: r13-05-following${SUFFIX || ''}
 - tapOn: "Back"
@@ -76,6 +76,7 @@ appId: app.socialmorning.mobile
 # The Me tiles
 - scrollUntilVisible:
     element: "Likes"
+    centerElement: true
     timeout: 20000
 - tapOn: "Likes"
 - extendedWaitUntil:
@@ -85,6 +86,7 @@ appId: app.socialmorning.mobile
 - runFlow: _back-to-me.yaml
 - scrollUntilVisible:
     element: "Listening history"
+    centerElement: true
     timeout: 20000
 - tapOn: "Listening history"
 - extendedWaitUntil:
@@ -95,6 +97,7 @@ appId: app.socialmorning.mobile
 - runFlow: _back-to-me.yaml
 - scrollUntilVisible:
     element: "Favourites"
+    centerElement: true
     timeout: 20000
 - tapOn: "Favourites"
 - extendedWaitUntil:
@@ -105,6 +108,7 @@ appId: app.socialmorning.mobile
 - runFlow: _back-to-me.yaml
 - scrollUntilVisible:
     element: "Downloads"
+    centerElement: true
     timeout: 20000
 - tapOn: "Downloads"
 - extendedWaitUntil:
@@ -114,6 +118,7 @@ appId: app.socialmorning.mobile
 - runFlow: _back-to-me.yaml
 - scrollUntilVisible:
     element: "My comments"
+    centerElement: true
     timeout: 20000
 - tapOn: "My comments"
 - extendedWaitUntil:
@@ -124,6 +129,7 @@ appId: app.socialmorning.mobile
 - runFlow: _back-to-me.yaml
 - scrollUntilVisible:
     element: "Your .*: your month in listening"
+    centerElement: true
     timeout: 20000
 - tapOn: "Your .*: your month in listening"
 - extendedWaitUntil:

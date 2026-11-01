@@ -20,6 +20,7 @@ appId: app.socialmorning.mobile
 - scrollUntilVisible:
     element: "Categories"
     direction: UP
+    centerElement: true
     timeout: 30000
 # Category (the first genre)
 - tapOn: "Categories"
@@ -35,6 +36,7 @@ appId: app.socialmorning.mobile
 # Chart and its rules
 - scrollUntilVisible:
     element: "Talked about"
+    centerElement: true
     timeout: 30000
 - tapOn: "Talked about"
 - extendedWaitUntil:

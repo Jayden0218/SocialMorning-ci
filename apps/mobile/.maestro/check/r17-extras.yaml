@@ -36,6 +36,7 @@ appId: app.socialmorning.mobile
 - scrollUntilVisible:
     element: "Scan a QR code"
     direction: UP
+    centerElement: true
     timeout: 20000
 - tapOn: "Scan a QR code"
 - extendedWaitUntil:
@@ -65,6 +66,7 @@ appId: app.socialmorning.mobile
       HUB: "Account and settings"
 - scrollUntilVisible:
     element: "Wallet"
+    centerElement: true
     timeout: 20000
 - tapOn: "Wallet"
 - extendedWaitUntil:

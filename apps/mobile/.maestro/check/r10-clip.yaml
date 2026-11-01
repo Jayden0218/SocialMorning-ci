@@ -43,6 +43,7 @@ appId: app.socialmorning.mobile
     timeout: 30000
 - scrollUntilVisible:
     element: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
+    centerElement: true
     timeout: 60000
 - tapOn: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
 - extendedWaitUntil:

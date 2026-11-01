@@ -7,7 +7,7 @@ appId: app.socialmorning.mobile
     permissions:
       all: allow
 - extendedWaitUntil:
-    visible: "Discover|Continue with email|Agree|Skip choosing categories|Skip"
+    visible: "Discover|Continue with email|Agree|Skip choosing categories|Skip|Enjoying SocialNet\\?.*"
     timeout: 300000
 - runFlow:
     when:

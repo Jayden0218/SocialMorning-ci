@@ -100,6 +100,7 @@ appId: app.socialmorning.mobile
 - runFlow: _me.yaml
 - scrollUntilVisible:
     element: "Queue"
+    centerElement: true
     timeout: 20000
 - tapOn: "Queue"
 - extendedWaitUntil:

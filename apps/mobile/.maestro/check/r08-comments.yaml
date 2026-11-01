@@ -58,6 +58,7 @@ env:
 # Open a seeded comment, reply, open its thread, like the parent
 - scrollUntilVisible:
     element: ".*Listener 06, .*Play from 0:36, Seed comment 06 at 36 s"
+    centerElement: true
     timeout: 60000
 - tapOn: ".*Listener 06, .*Play from 0:36, Seed comment 06 at 36 s"
 - extendedWaitUntil:

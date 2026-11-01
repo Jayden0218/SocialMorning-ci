@@ -3,8 +3,8 @@
 # Labels and timings from ../journey.yaml (run 38011142490: the interests page arrives a moment AFTER the tabs).
 appId: app.socialmorning.mobile
 ---
-- extendedWaitUntil:
-    visible: "Discover|Skip choosing categories|Skip"
+- extendedWaitUntil:                     # the rate sheet may come first (run 41269168664, r04/r05)
+    visible: "Discover|Skip choosing categories|Skip|Enjoying SocialNet\\?.*"
     timeout: 90000
 - extendedWaitUntil:
     visible: "Skip choosing categories"

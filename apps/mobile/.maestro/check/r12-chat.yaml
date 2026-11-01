@@ -26,7 +26,7 @@ env:
 - extendedWaitUntil:
     visible: "This is you"
     timeout: 30000
-- tapOn: "3 followers"
+- tapOn: "\\d+ followers?"
 - extendedWaitUntil:
     visible: ".*Listener 02.*"
     timeout: 30000
@@ -55,18 +55,18 @@ env:
     timeout: 30000
 - takeScreenshot: r12-04-new-chat
 - tapOn: "Chat with Listener 02"
-- extendedWaitUntil:
-    visible: "Message"
+- extendedWaitUntil:                     # the box: "Message Message" (label + placeholder, run 41269168664)
+    visible: "Message( .*)?"
     timeout: 30000
 - takeScreenshot: r12-05-thread-empty
-- tapOn: "Message"
+- tapOn: "Message( Message)?"
 - inputText: ${MESSAGE}
 - repeat:
     while:
       notVisible: ".*${MESSAGE}.*"
     times: 3
     commands:
-      - tapOn: "Message"
+      - tapOn: "Message( Message)?"
       - eraseText: 40
       - inputText: ${MESSAGE}
 - tapOn: "Send"

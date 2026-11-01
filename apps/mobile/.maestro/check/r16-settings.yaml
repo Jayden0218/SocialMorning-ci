@@ -22,16 +22,29 @@ appId: app.socialmorning.mobile
 # 1–4 Account and security and its pages
 - tapOn: "Account and security"
 - extendedWaitUntil:
-    visible: "Change email"
+    visible: "Signed-in devices"
     timeout: 30000
 - takeScreenshot: r16-01-account-security
+# "Change email" (app/settings/account.tsx:71) is a button INSIDE the strip labelled "Email: …" (:66, accessible), so
+# iOS hides it from the accessibility tree (run 41269168664 hierarchy: no "Change email") — an issue in report.md.
+# The step is kept, optional, and the page is opened by its path.
+- tapOn:
+    text: "Change email"
+    optional: true
 - runFlow:
-    file: _open-page.yaml
+    when:
+      notVisible: "Email me a code"
+    file: _open-link.yaml
     env:
-      ENTRY: "Change email"
-      PROOF: "Email me a code"
-      SHOT: r16-02-change-email
-      HUB: "Signed-in devices"
+      LINK: settings/account-email
+- extendedWaitUntil:
+    visible: "Email me a code"
+    timeout: 30000
+- takeScreenshot: r16-02-change-email
+- tapOn: "Back"
+- extendedWaitUntil:
+    visible: "Signed-in devices"
+    timeout: 30000
 - runFlow:
     file: _open-page.yaml
     env:
@@ -45,7 +58,7 @@ appId: app.socialmorning.mobile
       ENTRY: "Signed-in devices"
       PROOF: "Signed-in devices"
       SHOT: r16-04-devices
-      HUB: "Change email"
+      HUB: "More account options"
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security"
@@ -53,6 +66,7 @@ appId: app.socialmorning.mobile
 # 5 Appearance, with a toggle that must stay changed
 - scrollUntilVisible:
     element: "Appearance"
+    centerElement: true
     timeout: 30000
 - tapOn: "Appearance"
 - extendedWaitUntil:
@@ -78,6 +92,7 @@ appId: app.socialmorning.mobile
 # 6 Downloads and cache: "Download queued episodes" off → on, still on after coming back, then off again
 - scrollUntilVisible:
     element: "Downloads and cache"
+    centerElement: true
     timeout: 30000
 - tapOn: "Downloads and cache"
 - extendedWaitUntil:
@@ -121,6 +136,7 @@ appId: app.socialmorning.mobile
 # 8–9 Privacy and Blocked listeners
 - scrollUntilVisible:
     element: "Privacy"
+    centerElement: true
     timeout: 30000
 - tapOn: "Privacy"
 - extendedWaitUntil:
@@ -148,6 +164,7 @@ appId: app.socialmorning.mobile
 # 11–14 More and its pages; "Personalised recommendations" must stay changed
 - scrollUntilVisible:
     element: "More"
+    centerElement: true
     timeout: 30000
 - tapOn: "More"
 - extendedWaitUntil:
@@ -186,6 +203,7 @@ appId: app.socialmorning.mobile
 # 15–16 Playback and Playlist backups; "Skip silence" must stay changed
 - scrollUntilVisible:
     element: "Playback"
+    centerElement: true
     timeout: 30000
 - tapOn: "Playback"
 - extendedWaitUntil:
@@ -223,6 +241,7 @@ appId: app.socialmorning.mobile
 # 19–21 Help and feedback and its pages
 - scrollUntilVisible:
     element: "Help and feedback"
+    centerElement: true
     timeout: 30000
 - tapOn: "Help and feedback"
 - extendedWaitUntil:
@@ -250,6 +269,7 @@ appId: app.socialmorning.mobile
 # 23, 25, 26 About and its pages
 - scrollUntilVisible:
     element: "About SocialNet"
+    centerElement: true
     timeout: 30000
 - tapOn: "About SocialNet"
 - extendedWaitUntil:

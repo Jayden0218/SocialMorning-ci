@@ -36,18 +36,14 @@ env:
 - extendedWaitUntil:
     visible: "Text status"
     timeout: 30000
-- tapOn:
-    text: "Text status"
-    index: 1                             # the box (index 0 is the title, app/status/text.tsx:71)
+- tapOn: "Text status .+"              # the box: its name joins the placeholder, "Text status What are you listening to?" (run 41269168664)
 - inputText: ${STATUS}
 - repeat:
     while:
       notVisible: ".*${STATUS}.*"
     times: 3
     commands:
-      - tapOn:
-          text: "Text status"
-          index: 1
+      - tapOn: "Text status .+"
       - eraseText: 60
       - inputText: ${STATUS}
 - takeScreenshot: r11-04-text-status

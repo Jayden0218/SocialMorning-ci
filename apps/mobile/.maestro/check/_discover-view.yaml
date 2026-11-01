@@ -4,7 +4,9 @@
 # "Discover" right of "Moments". "Scan a QR code" (src/ui/discover/parts.tsx:252) exists only on that view.
 appId: app.socialmorning.mobile
 ---
-- tapOn: "Discover"
+- tapOn:                                # the tab: the "Discover" left of "Updates" (the page title and the Moments/Discover
+    text: "Discover"                     # switch share the name; run 41269168664 tapped the title and opened a card)
+    leftOf: "Updates(, .*)?"
 - extendedWaitUntil:
     visible: "Scan a QR code|Open Discover|Moments"
     timeout: 30000

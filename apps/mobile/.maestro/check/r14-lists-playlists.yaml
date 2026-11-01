@@ -13,6 +13,7 @@ env:
 - runFlow: _me.yaml
 - scrollUntilVisible:
     element: "Playlists"
+    centerElement: true
     timeout: 20000
 - tapOn: "Playlists"
 - extendedWaitUntil:
@@ -69,6 +70,7 @@ env:
 - runFlow: _me.yaml
 - scrollUntilVisible:
     element: "Playlists"
+    centerElement: true
     timeout: 20000
 - tapOn: "Playlists"
 - extendedWaitUntil:
