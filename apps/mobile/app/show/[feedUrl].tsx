@@ -65,7 +65,7 @@ import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
 import { PanelRow } from '@/ui/kit/PanelRow';
 import { Type } from '@/ui/kit/Type';
 import { usePushedLayout } from '@/ui/kit/PushedPage';
-import { colour, gutter, spacing } from '@/design';
+import { bars, colour, gutter, spacing } from '@/design';
 import { drawnType } from '@/design/type-px';
 import { addAllMessage, addAllToQueue, hostPicksOf, subsShort } from '@/ui/show/show-page';
 import { useM12Api } from '@/social/m12-api';
@@ -122,7 +122,7 @@ const EpisodeTile = memo(function EpisodeTile({ item, plays, talk, progress, sha
       accessibilityLabel={playing ? `Pause ${item.title}` : `Play ${item.title}`}
       hitSlop={Math.ceil((48 - size) / 2)}
       className="bg-text items-center justify-center"
-      style={{ width: size, height: size, borderRadius: size / 2, paddingLeft: playing ? 0 : 2 }}
+      style={{ width: size, height: size, minWidth: bars.circle, minHeight: bars.circle, borderRadius: size / 2, paddingLeft: playing ? 0 : 2 }}
     >
       <Icon name={playing ? 'pause' : 'play'} size={Math.round(size * 0.4)} color={colour.void} />
     </Pressable>

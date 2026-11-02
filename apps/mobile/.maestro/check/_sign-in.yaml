@@ -1,8 +1,8 @@
 # Subflow (not a route): sign in from a clean install as the check's listener, by emailed code, and land on
 # Discover with nothing over it. The same steps and labels as ../journey.yaml (proven green, run 41245034617);
 # its comments say why each wait and retry is there. Called by _ensure-signed-in.yaml and r03-sign-in.yaml.
-# EMAIL comes from the caller (default listener-05@journey.test: subscribed to "Journey Morning", follows
-# listener-06/07/08, followed by listener-02/03/04, has accepted the community rules — apps/api/scripts/journey.ts).
+# EMAIL comes from the caller (default listener-05@journey.test: NOT subscribed to "Journey Morning" (journey.ts:121 leaves out listeners 01–05;
+# listener-06 to 50 are), follows listener-06/07/08, followed by listener-02/03/04, has accepted the community rules — apps/api/scripts/journey.ts).
 appId: app.socialmorning.mobile
 env:
   API: http://localhost:8787

@@ -9,11 +9,9 @@ appId: app.socialmorning.mobile
 ---
 - runFlow: _ensure-signed-in.yaml
 - runFlow: _search-show.yaml
-# 035 (B4): the seed subscribed this listener on the server; signing in on a fresh install must bring that subscription down,
-# so the page says "Unsubscribe" at once (runs 41269168664 and 41274515878 saw "Subscribe").
-- extendedWaitUntil:
-    visible: "Unsubscribe from this show"
-    timeout: 30000
+# 035: the seed does NOT subscribe listener-05 (journey.ts:121 `listeners.slice(5)` leaves out listeners 01–05), so "Subscribe" here is right and
+# B4 as first reported (runs 41269168664, 41274515878) was a misreading of the seed (run 41379400097 showed it). Either state is fine for this flow;
+# a listener who IS subscribed is signed in by r22, which checks that the account's subscription arrives on a fresh install.
 - takeScreenshot: r06-01-show-before
 - repeat:                                # tap only while it still says Unsubscribe, then wait for the change
     while:

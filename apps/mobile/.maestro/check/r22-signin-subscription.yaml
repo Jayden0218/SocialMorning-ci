@@ -1,0 +1,31 @@
+# R22 A fresh install signed in to an account that already has a subscription: the show is there (035, B4).
+# The seed subscribes listeners 06–50 to "Journey Morning" on the server (apps/api/scripts/journey.ts:121); listener-05, the other flows' listener, is
+# not one of them. Here listener-06 signs in on a clean install: the show page says "Unsubscribe from this show" and My subscriptions lists the show,
+# which needs the sign-in sync (src/social/context.tsx onSignedIn) and the pages re-reading it (app/show/[feedUrl].tsx, app/subscriptions.tsx).
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+---
+- runFlow:
+    file: _sign-in.yaml
+    env:
+      EMAIL: listener-06@journey.test
+- runFlow: _dismiss-overlays.yaml
+- runFlow: _search-show.yaml
+- extendedWaitUntil:
+    visible: "Unsubscribe from this show"
+    timeout: 30000
+- takeScreenshot: r22-01-show-subscribed
+- tapOn: "Back"
+- tapOn:
+    text: "Cancel"
+    optional: true                       # the search overlay, if it is still drawn over the tabs
+- tapOn: "Updates(, .*)?"
+- extendedWaitUntil:
+    visible: "My subscriptions · .*"
+    timeout: 60000
+- tapOn: "My subscriptions · .*"
+- extendedWaitUntil:
+    visible: "Journey Morning\\. Newest: .*"
+    timeout: 30000
+- takeScreenshot: r22-02-my-subscriptions
