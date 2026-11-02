@@ -2998,6 +2998,17 @@
     "name": "Clip",
     "destination": "props.onClip"
    }
+  },
+  {
+   "file": "apps/mobile/app/chat/[id].tsx",
+   "name": "Message",
+   "destination": "setDraft",
+   "reason": "spec 036 A4 (owner decision D4, 2026-11-02): the message box is named \"Message <name>\" so its spoken name no longer repeats its placeholder; same box, same setDraft",
+   "now": {
+    "file": "apps/mobile/app/chat/[id].tsx",
+    "name": "Message ${name}",
+    "destination": "setDraft"
+   }
   }
  ]
 }

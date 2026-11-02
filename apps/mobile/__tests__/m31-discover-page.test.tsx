@@ -175,3 +175,16 @@ it('035 L7: a tap on the Discover title is not passed to the cards under it', ()
   while (n) { if (n.props['pointerEvents'] !== undefined) { found = n.props['pointerEvents']; break; } n = n.parent; }
   expect(found).not.toBe('none');
 });
+
+// 036 T010 (035's A4): "Discover" named four things on one screen (tab, page title, switch segment, empty-state button). The page title is a heading with its own
+// spoken name, set as `aria-label` (it reads the same to VoiceOver and Maestro; `m31-t030-wiring` lists headers that carry an `accessibilityLabel`, so the title stays out of its list).
+// Break: remove the `aria-label` from the title in DiscoverPage.tsx.
+it('036 A4: the page title is a heading named differently from the tab', () => {
+  const r = render(page());
+  const header = r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && n.props['children'] === 'Discover')[0];
+  expect(header).toBeDefined();
+  const name = header!.props['aria-label'] ?? header!.props['accessibilityLabel'];
+  expect(name).toBeDefined();
+  expect(name).not.toBe('Discover');
+  expect(String(name)).toMatch(/^Discover/);
+});

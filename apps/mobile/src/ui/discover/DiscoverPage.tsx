@@ -241,7 +241,7 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
         {/* 035 L7: the title floats over the cards; it takes a tap (and does nothing) instead of passing it to the card underneath. */}
         <Animated.View style={title} pointerEvents="auto">
           <Box className="flex-row items-end justify-between">
-            <Type step="hero" className="text-text" accessibilityRole="header">Discover</Type>
+            <Type step="hero" className="text-text" accessibilityRole="header" aria-label="Discover, today's picks">Discover</Type>
             <Type step="mono" className="text-text3">{today()}</Type>
           </Box>
         </Animated.View>

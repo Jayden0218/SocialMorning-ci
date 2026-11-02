@@ -224,7 +224,7 @@ export default function ChatThread(): React.ReactElement {
             placeholder={attach ? 'Add a message (optional)' : 'Message'}
             value={draft}
             onChangeText={setDraft}
-            accessibilityLabel="Message"
+            accessibilityLabel={`Message ${name}`} // 036 A4: not the placeholder ("Message") repeated
           />
         </Textarea>
         <Pressable

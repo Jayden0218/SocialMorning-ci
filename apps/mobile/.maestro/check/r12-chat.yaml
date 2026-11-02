@@ -3,7 +3,7 @@
 # is mutual (each listener follows the next three), so listener-05 first follows back Listener 02 (who follows
 # 05): Me → profile → "3 followers" → Listener 02's profile → "Follow" (src/ui/social/FollowButton.tsx:61; it then
 # reads "Unfollow"). Chat: title "Chat" + "New chat" (app/(tabs)/chat.tsx:144-146), empty "No chats yet. …" (:138);
-# "Chat with Listener 02" (app/chat/new.tsx:118); thread "Message" box, "Send" (app/chat/[id].tsx:226,233).
+# "Chat with Listener 02" (app/chat/new.tsx:118); thread box named "Message <name>" (036 A4), "Send" (app/chat/[id].tsx:226,233).
 appId: app.socialmorning.mobile
 env:
   MESSAGE: "Device check hello"
@@ -55,18 +55,18 @@ env:
     timeout: 30000
 - takeScreenshot: r12-04-new-chat
 - tapOn: "Chat with Listener 02"
-- extendedWaitUntil:                     # the box: "Message Message" (label + placeholder, run 41269168664)
-    visible: "Message( .*)?"
+- extendedWaitUntil:                     # the box: named "Message <name>" (it was "Message Message" in run 41269168664)
+    visible: "Message Listener 02( .*)?"   # 036 A4: the box is named "Message <name>" now (its placeholder is "Message")
     timeout: 30000
 - takeScreenshot: r12-05-thread-empty
-- tapOn: "Message( Message)?"
+- tapOn: "Message Listener 02( .*)?"
 - inputText: ${MESSAGE}
 - repeat:
     while:
       notVisible: ".*${MESSAGE}.*"
     times: 3
     commands:
-      - tapOn: "Message( Message)?"
+      - tapOn: "Message Listener 02( .*)?"
       - eraseText: 40
       - inputText: ${MESSAGE}
 - takeScreenshot: r12-05b-typing
@@ -83,7 +83,7 @@ env:
 - extendedWaitUntil:
     visible: ${MESSAGE}
     timeout: 30000
-- assertVisible: "Message( Message)?"           # the box is empty again (only its label + placeholder)
+- assertVisible: "Message Listener 02( .*)?"           # the box is empty again (only its name + placeholder)
 - assertNotVisible: "You can send messages while you both follow each other\\."
 - takeScreenshot: r12-06-message-sent
 - tapOn: "Back"

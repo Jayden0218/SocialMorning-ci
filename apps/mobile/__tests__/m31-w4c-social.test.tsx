@@ -1,3 +1,4 @@
+// 036 D4: the chat box's accessible name is now "Message Ana" (was "Message", which the device read twice with its placeholder); only that name changed in this file.
 // Tests that chat, New chat, Notifications (and its three pages) and Friends listening match their drawings in the numbers the owner compared.
 /**
  * M31 W4-C (T052; owner: "the design I want completely the same, or you can explain why it is different"). Source of every number:
@@ -196,7 +197,7 @@ describe('the chat page (chat-thread--*)', () => {
     expect(flat(send)).toMatchObject({ width: 52, height: 52, borderRadius: 26 });
     expect(classOf(send)).toContain('opacity-50');
     expect(classOf(send)).toContain('bg-hot');
-    const box = hosts(r, (n) => n.props['accessibilityLabel'] === 'Message')[0]!;
+    const box = hosts(r, (n) => n.props['accessibilityLabel'] === 'Message Ana')[0]!;
     act(() => { box.props['onChangeText']('Hello'); });
     expect(classOf(byLabel(r, 'Send'))).not.toContain('opacity-50');
     press(r, 'Ana, open profile');
@@ -229,7 +230,7 @@ describe('the chat page (chat-thread--*)', () => {
     press(r, 'Sign in');
     expect(mockPush).toHaveBeenCalledWith('/auth/sign-in');
     expect(byId(r, 'chat-header').length).toBe(1);
-    expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Message').length).toBe(0);
+    expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Message Ana').length).toBe(0);
   });
 
   it('a failed first load: the wifi block with the sentence, the name row, no box', async () => {
@@ -238,7 +239,7 @@ describe('the chat page (chat-thread--*)', () => {
     expect(words(r)).toContain("Couldn't reach the server.");
     expect(byId(r, 'err-block').length).toBe(1);
     expect(byId(r, 'chat-header').length).toBe(1);
-    expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Message').length).toBe(0);
+    expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Message Ana').length).toBe(0);
   });
 
   it('F3 defect 8: opened without a name (a link, signed out, or a failed read) the bar names the person from their public profile, not "Chat"', async () => {
@@ -269,12 +270,12 @@ describe('the chat page (chat-thread--*)', () => {
     mockThread = thread();
     mockSend.mockRejectedValueOnce(new Error('offline'));
     const r = await render(createElement(ChatThread));
-    const box = hosts(r, (n) => n.props['accessibilityLabel'] === 'Message')[0]!;
+    const box = hosts(r, (n) => n.props['accessibilityLabel'] === 'Message Ana')[0]!;
     act(() => { box.props['onChangeText']('Hello'); });
     press(r, 'Send');
     await act(async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); });
     expect(mockToast).toHaveBeenCalledWith("Couldn't send — check your connection and try again.");
-    expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Message')[0]!.props['value']).toBe('Hello');
+    expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Message Ana')[0]!.props['value']).toBe('Hello');
   });
 });
 

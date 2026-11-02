@@ -86,3 +86,12 @@ it('when the keyboard hides the zone returns to the foot', async () => {
   emit('keyboardWillHide');
   expect(zoneBottom()).toBe(rest);
 });
+
+// 036 T011 (035's A4): the chat box was named "Message" and its placeholder is "Message", so the device read "Message Message". Its name is now about the person
+// ("Message Ana"); the placeholder stays as drawn. Break: put `accessibilityLabel="Message"` back on the box in app/chat/[id].tsx.
+it('036 A4: the message box\'s name does not repeat its placeholder', async () => {
+  await mount();
+  const box = r.root.findAll((n) => typeof n.props['onChangeText'] === 'function' && n.props['placeholder'] !== undefined)[0]!;
+  expect(box.props['placeholder']).toBe('Message');
+  expect(box.props['accessibilityLabel']).toBe('Message Ana');
+});
