@@ -53,8 +53,9 @@ function HotPill(props: { episodeId: string }): React.ReactElement | null {
   );
   if (!next) return <Box testID="hot-pill" style={look} accessible accessibilityLabel={text}>{body}</Box>;
   return (
-    <Pressable testID="hot-pill" onPress={() => player.seek(next.fromMs)} accessibilityRole="button" accessibilityLabel={`${text}. Jump to it.`} hitSlop={8} style={look}>
-      {body}
+    // 036 T015c: the named node is a 44 frame (the top row's height); the 32 pill, with its testID, is inside it.
+    <Pressable onPress={() => player.seek(next.fromMs)} accessibilityRole="button" accessibilityLabel={`${text}. Jump to it.`} hitSlop={8} style={{ minHeight: bars.circle, justifyContent: 'center', maxWidth: look.maxWidth }}>
+      <Box testID="hot-pill" style={look}>{body}</Box>
     </Pressable>
   );
 }

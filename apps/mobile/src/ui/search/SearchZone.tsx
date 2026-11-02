@@ -34,6 +34,10 @@ import { drawnType } from '@/design/type-px';
 /** Drawn: a tab's underline 2 under 8 of padding; a Published chip 30 tall. */
 const UNDERLINE = 2;
 const CHIP = 30;
+/** 036 T015c: a tab is drawn 33 tall (text, 8 of padding, the 2 underline); its frame is 44, the 11 more above it (the row is pulled up by the same, so nothing moves). A chip's frame is 7 above and below its 30 pill. */
+const TAB_DRAWN = 33;
+const TAB_REACH = bars.circle - TAB_DRAWN;
+const CHIP_REACH = (bars.circle - CHIP) / 2;
 const NO_PAD = { paddingHorizontal: 0 } as const;
 const TAB_SLOP = { top: 12, bottom: 8, left: 6, right: 6 };
 const CHIP_SLOP = { top: 9, bottom: 9, left: 0, right: 0 };
@@ -93,7 +97,7 @@ export function SearchZone(props: {
             onContentSizeChange={(w) => setRow((r) => (r.content === w ? r : { ...r, content: w }))}
             onScroll={(e) => { const x = e.nativeEvent.contentOffset.x; setRow((r) => (Math.abs(r.x - x) < 2 ? r : { ...r, x })); }}
             accessibilityRole="tablist"
-            contentContainerStyle={{ gap: spacing.section, paddingHorizontal: spacing.hair / 2 }} style={{ flexGrow: 0 }}>
+            contentContainerStyle={{ gap: spacing.section, paddingHorizontal: spacing.hair / 2 }} style={{ flexGrow: 0, marginTop: -TAB_REACH }}>
             {TABS.map((t) => {
               const on = props.tab === t.key;
               return (
@@ -106,7 +110,7 @@ export function SearchZone(props: {
                   accessibilityLabel={t.label}
                   hitSlop={TAB_SLOP}
                   className="flex-row items-center"
-                  style={{ paddingBottom: spacing.gap, borderBottomWidth: UNDERLINE, borderBottomColor: on ? colour.hot : 'transparent', gap: spacing.hair }}
+                  style={{ minHeight: bars.circle, paddingTop: TAB_REACH, paddingBottom: spacing.gap, borderBottomWidth: UNDERLINE, borderBottomColor: on ? colour.hot : 'transparent', gap: spacing.hair }}
                 >
                   <Type step="compact" className={on ? 'text-text' : 'text-text2'} style={drawnType.searchTab} numberOfLines={1}>{t.label}</Type>
                   {t.isNew ? (
@@ -141,10 +145,13 @@ export function SearchZone(props: {
                   accessibilityState={{ checked: on }}
                   accessibilityLabel={`Published: ${x.label}`}
                   hitSlop={CHIP_SLOP}
-                  className={`justify-center rounded-pill border ${on ? 'bg-text border-text' : 'bg-raise border-line'}`}
-                  style={{ height: CHIP, paddingHorizontal: PX.ten }}
+                  className="justify-center"
+                  // 036 T015c: the named node is the 44 frame (the pinned `height` 30 stays on it; `minHeight` wins in the layout); the pill is the Box inside.
+                  style={{ height: CHIP, minHeight: bars.circle, marginVertical: -CHIP_REACH }}
                 >
-                  <Type step="chip" className={on ? 'text-void' : 'text-text'} numberOfLines={1}>{x.label}</Type>
+                  <Box className={`justify-center rounded-pill border ${on ? 'bg-text border-text' : 'bg-raise border-line'}`} style={{ height: CHIP, paddingHorizontal: PX.ten }}>
+                    <Type step="chip" className={on ? 'text-void' : 'text-text'} numberOfLines={1}>{x.label}</Type>
+                  </Box>
                 </Pressable>
               );
             })}
@@ -173,7 +180,7 @@ export function SearchZone(props: {
               onSubmitEditing={props.onSubmit}
               accessibilityLabel="Search podcasts"
               className="text-text text-pulse-body font-medium"
-              style={[typeStyle('body'), NO_PAD]}
+              style={[typeStyle('body'), NO_PAD, { minHeight: bars.circle }]}
             />
           </Input>
           {typed ? (

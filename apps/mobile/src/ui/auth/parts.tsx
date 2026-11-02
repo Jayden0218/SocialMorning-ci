@@ -5,7 +5,7 @@
  * `TICK_SLOP` (13 each side) and the box stays as drawn. The state is also `accessibilityState.checked`, never the colour alone.
  */
 import { Box } from '@/ui/lib/box';
-import { colour, hit } from '@/design';
+import { bars, colour, hit } from '@/design';
 import { authColour } from '@/design/tokens';
 import { Icon } from '@/ui/kit/Icon';
 import { AUTH } from './measures';
@@ -27,3 +27,6 @@ export function TickBox(props: { on: boolean }): React.ReactElement {
 
 /** The tap area round the box: 13 each side makes the 22 box a 48 target. A page puts it on its own `Pressable` (so the action inventory sees the checkbox by its name). */
 export const TICK_SLOP = HIT;
+/** 036 T015c: and the frame is 44 x 44 too (the guard reads frames; `hitSlop` is not one), the 22 box in its middle, -11 on each side so the row is as drawn. */
+const REACH = (bars.circle - AUTH.box.size) / 2;
+export const TICK_FRAME = { minWidth: bars.circle, minHeight: bars.circle, marginHorizontal: -REACH, marginVertical: -REACH } as const;

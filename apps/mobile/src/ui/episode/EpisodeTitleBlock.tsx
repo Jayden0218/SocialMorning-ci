@@ -15,10 +15,14 @@ import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
 import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
+import { bars } from '@/design';
 import { EPISODE } from './measures';
 
 /** The show link is the drawn 13-pt line; its tap area is 48. */
 const SHOW_SLOP = { top: 15, bottom: 15, left: 4, right: 12 };
+
+/** 036 T015c: the link is a 44 frame round its 18 line (13 above and below, taken back by the margin), not `hitSlop` alone. */
+const SHOW_FRAME = { minHeight: bars.circle, marginVertical: -13 };
 
 export function EpisodeTitleBlock(props: {
   title: string;
@@ -49,7 +53,7 @@ export function EpisodeTitleBlock(props: {
         <IconButton icon="chevron-back" label="Back" onPress={props.onBack} fill size={22} />
         <Box className="flex-1 min-w-0">
           {props.showTitle !== undefined && props.onShow !== undefined ? (
-            <Pressable onPress={props.onShow} accessibilityRole="link" accessibilityLabel={`Show: ${props.showTitle}`} hitSlop={SHOW_SLOP} className="self-start max-w-full">
+            <Pressable onPress={props.onShow} accessibilityRole="link" accessibilityLabel={`Show: ${props.showTitle}`} hitSlop={SHOW_SLOP} className="self-start max-w-full justify-center" style={SHOW_FRAME}>
               <Type step="caption" className="text-hotText font-semibold" style={{ fontSize: EPISODE.showLine }} numberOfLines={1}>{`${props.showTitle} ›`}</Type>
             </Pressable>
           ) : null}

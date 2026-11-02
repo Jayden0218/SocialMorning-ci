@@ -18,7 +18,7 @@ import { Icon, PlayIcon } from '@/ui/kit/Icon';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { CoverBand } from '@/ui/discover/Deck';
 import { ago, chipClock, compactCount, minutesLabel, mmss, shortDate } from '@/ui/kit/format';
-import { colour } from '@/design';
+import { bars, colour } from '@/design';
 import { mediaKindOf, plural } from '@socialmorning/social-core';
 import type { UpdateRow } from '@/me/updates';
 import { swipeA11y, type SwipeAction } from '@/ui/kit/SwipeRow';
@@ -54,6 +54,9 @@ export function coverChip(publishedAt: number | undefined, durationMs: number | 
 /** The 40 round tools of the card: the raise disc (light with void glyph once used — queued, downloading, downloaded), the glyph 18, touched 48. */
 // 035 A3: drawn 40; the frame is 44 x 44 (the circle fill follows the frame).
 const TOOL = { width: UPDATES.card.action, height: UPDATES.card.action, minWidth: 44, minHeight: 44, borderRadius: 22 };
+/** 036 T015c: "Open <show>" (a 16 line) and the episode title are 44 frames. The show link takes 14 above and below its line back (-14), so the card is as drawn; a one-line title (25) grows to 44, which a two-line one already was. */
+const SHOW_FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - LIB_TYPE.show12.lineHeight) / 2 };
+const TITLE_FRAME = { minHeight: bars.circle };
 const TOOL_SLOP = Math.ceil((48 - UPDATES.card.action) / 2);
 
 export function UpdateEpisodeRow(props: {
@@ -111,7 +114,7 @@ export function UpdateEpisodeRow(props: {
           ) : null}
         </CoverBand>
         <Box className="flex-1" style={{ padding: UPDATES.card.pad, gap: UPDATES.card.gap }}>
-          <Pressable onPress={props.onOpenShow} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`} hitSlop={UPDATES.card.gap} className="self-start max-w-full">
+          <Pressable onPress={props.onOpenShow} accessibilityRole="button" accessibilityLabel={`Open ${item.showTitle}`} hitSlop={UPDATES.card.gap} className="self-start max-w-full justify-center" style={SHOW_FRAME}>
             <Type step="caption" className="text-text2" style={LIB_TYPE.show12} numberOfLines={1}>{`${item.showTitle} ›`}</Type>
           </Pressable>
           <Pressable
@@ -121,6 +124,7 @@ export function UpdateEpisodeRow(props: {
             accessibilityHint="Long-press for more actions"
             accessibilityRole="button"
             accessibilityLabel={`${e.title}, ${item.showTitle}${video ? ', video' : ''}. ${meta.label}`}
+            style={TITLE_FRAME}
           >
             <Type step="lede" className="text-text font-bold" style={LIB_TYPE.cardTitle} numberOfLines={3}>{e.title}</Type>
           </Pressable>

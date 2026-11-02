@@ -23,7 +23,7 @@ import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { PanelGroup } from '@/ui/me/Panel';
 import { AUTH, AUTH_TYPE } from './measures';
-import { TICK_SLOP, TickBox } from './parts';
+import { TICK_FRAME, TICK_SLOP, TickBox } from './parts';
 
 type Doc = 'agreement' | 'privacy';
 /** The short name each document wears on its bar. */
@@ -61,7 +61,7 @@ export function useLegalOverlay(): { open: (d: Doc) => void; overlay: React.Reac
 export function ConsentRow(props: { agreed: boolean; onToggle: () => void; open: (d: Doc) => void }): React.ReactElement {
   return (
     <Box className="flex-row items-start" style={{ gap: AUTH.box.gap }}>
-      <Pressable onPress={props.onToggle} accessibilityRole="checkbox" accessibilityState={{ checked: props.agreed }} accessibilityLabel="I have read and agree to the Service Agreement and Privacy Policy" hitSlop={TICK_SLOP}>
+      <Pressable onPress={props.onToggle} accessibilityRole="checkbox" accessibilityState={{ checked: props.agreed }} accessibilityLabel="I have read and agree to the Service Agreement and Privacy Policy" hitSlop={TICK_SLOP} className="items-center justify-center" style={TICK_FRAME}>
         <TickBox on={props.agreed} />
       </Pressable>
       <Text className="text-text2 font-normal flex-1" style={AUTH_TYPE.consent}>

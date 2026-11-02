@@ -71,7 +71,7 @@ export function EpisodeSheetBody(props: {
     setPanel('playlist');
   };
   const show = props.showTitle === undefined ? null : props.onShow ? (
-    <Pressable onPress={props.onShow} accessibilityRole="link" accessibilityLabel={`Show: ${props.showTitle}`} hitSlop={{ top: 15, bottom: 15, left: 4, right: 12 }} className="self-start max-w-full">
+    <Pressable onPress={props.onShow} accessibilityRole="link" accessibilityLabel={`Show: ${props.showTitle}`} hitSlop={{ top: 15, bottom: 15, left: 4, right: 12 }} className="self-start max-w-full justify-center" style={{ minHeight: bars.circle, marginVertical: -13 }}>
       <Type step="caption" className="text-hotText font-semibold" style={{ fontSize: EPISODE.headShow }} numberOfLines={1}>{`${props.showTitle} ›`}</Type>
     </Pressable>
   ) : <Type step="caption" className="text-hotText font-semibold" style={{ fontSize: EPISODE.headShow }} numberOfLines={1}>{props.showTitle}</Type>;
