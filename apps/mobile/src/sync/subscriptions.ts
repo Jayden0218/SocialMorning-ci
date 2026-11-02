@@ -58,10 +58,13 @@ export function createSubscriptionSync(deps: SubscriptionSyncDeps): Subscription
   const listeners = new Set<() => void>();
 
   // A failed reconcile is tried again in the background (bounded): a slow server delays the table instead of leaving it empty (device run 41385187706, r22).
+  let retryPending = false; // one chain at a time: overlapping failures must not stack several
   function retryLater(done: number): void {
     const r = deps.retry;
-    if (!r || done >= r.times) return;
+    if (!r || done >= r.times || retryPending) return;
+    retryPending = true;
     r.setTimeout(() => {
+      retryPending = false;
       const p = (inFlight ?? Promise.resolve()).then(run, run);
       inFlight = p;
       p.catch(() => retryLater(done + 1));

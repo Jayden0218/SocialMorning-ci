@@ -104,3 +104,16 @@ it('retries are bounded: after `times` failed retries it stops', async () => {
   for (let i = 0; i < 5 && timers.length > 0; i++) { timers.shift()!(); await new Promise((r) => setTimeout(r, 0)); }
   expect(timers).toHaveLength(0);
 });
+
+// Verifier (035): every failed reconcile started its own retry chain, so overlapping failures stacked several. One chain at a time.
+it('overlapping failures schedule one retry, not one each', async () => {
+  const timers: (() => void)[] = [];
+  const sync = createSubscriptionSync({
+    api: { putSubscriptions: async () => { throw new Error('down'); } } as never,
+    subscriptions: createMemorySubscriptionStore(),
+    isSignedIn: () => true,
+    retry: { afterMs: 1, times: 3, setTimeout: (fn: () => void) => { timers.push(fn); return 0; } },
+  } as never);
+  await Promise.all([sync.reconcile().catch(() => undefined), sync.reconcile().catch(() => undefined), sync.reconcile().catch(() => undefined)]);
+  expect(timers).toHaveLength(1);
+});

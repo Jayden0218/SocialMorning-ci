@@ -120,7 +120,7 @@ export default function TranscriptScreen(): React.ReactElement {
     : undefined;
   return (
     <>
-      <PushedPage title="Transcript" tone="none" now={false} {...(episode?.title ? { subtitle: episode.title } : {})}>
+      <PushedPage title="Transcript" tone="none" {...(episode?.title ? { subtitle: episode.title } : {})}>
         {(layout) => (
           <Box className="flex-1" style={{ paddingTop: layout.top + TRANSCRIPT_PAGE.rowTop }}>
             {offered ? (
