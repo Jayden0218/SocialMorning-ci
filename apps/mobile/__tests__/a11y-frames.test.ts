@@ -88,6 +88,12 @@ describe('036 T014: labelled tappables without an icon', () => {
   it('system chrome (scroll bars, status bar) and turned section labels are not judged', () => {
     expect(run({ 'hierarchy/r1-end.json': screen(live('Horizontal scroll bar, 1 page', '[13,777][376,807]'), live('100% battery power', '[346,18][371,30]'), live('Cellular', '[302,19][319,30]'), live('10:18 AM', '[32,15][72,34]'), live('Voice', '[6,59][20,106]'), live('Me', '[6,179][20,201]')) }).status).toBe(0);
   });
+  it('036: a tappable cut by the top edge of the screen is not judged short (its frame runs off-screen)', () => {
+    expect(run({ 'hierarchy/r1-end.json': screen(live('Play from 0:02', '[15,-34][67,9]')) }).status).toBe(0);
+  });
+  it('036: a tappable fully on screen and 43 pt tall still fails', () => {
+    expect(run({ 'hierarchy/r1-end.json': screen(live('Play from 0:02', '[15,100][67,143]')) }).status).toBe(1);
+  });
   it('a disabled labelled element is not a tappable', () => {
     const d = live('Newest', '[10,10][106,50]');
     (d.attributes as Record<string, string>).enabled = 'false';

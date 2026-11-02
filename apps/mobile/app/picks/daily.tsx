@@ -19,7 +19,7 @@ import { router } from 'expo-router';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { bars, colour } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
 import { PushedPage } from '@/ui/kit/PushedPage';
@@ -67,7 +67,7 @@ export default function DailyPicksScreen(): React.ReactElement {
             accessibilityRole="link"
             accessibilityLabel="Open the show"
             className="absolute"
-            style={{ left: DECK.pad, bottom: PAGE.gap }}
+            style={{ left: DECK.pad, bottom: 0, minHeight: bars.circle, paddingBottom: PAGE.gap, justifyContent: 'flex-end' }}
             hitSlop={PAGE.gap}
           >
             <Type step="caption" className="text-hotText font-semibold" numberOfLines={1}>{`${ep ? `${ep.showTitle} · ` : ''}Open the show ›`}</Type>

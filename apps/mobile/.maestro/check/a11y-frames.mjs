@@ -39,6 +39,9 @@ const bbox = (b) => { const m = /^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$/.exec(
 const inside = (a, o) => a && o && a[0] >= o[0] && a[1] >= o[1] && a[2] <= o[2] && a[3] <= o[3];
 const hasIcon = (n) => String(n.attributes?.['resource-id'] ?? '').startsWith('icon-') || (n.children ?? []).some(hasIcon);
 
+// 036: a node cut by the screen edge (negative origin) shows only part of its frame: its drawn size cannot be judged from the clip.
+const offScreen = (b) => { const m = String(b ?? '').match(/-?\d+/g); return m !== null && m.length >= 4 && (Number(m[0]) < 0 || Number(m[1]) < 0); };
+
 const findings = [];
 let parsed = 0;
 for (const file of jsons) {
@@ -60,7 +63,7 @@ for (const file of jsons) {
     const a = n.attributes ?? {};
     const label = String(a.accessibilityText ?? '').trim();
     const f = frame(a.bounds);
-    if (label !== '' && label !== parentLabel && f && f.w > 0 && f.h > 0 && (f.w < MIN || f.h < MIN) && (hasIcon(n) || (a.enabled === 'true' && !isStaticText(n, label, f)))) {
+    if (label !== '' && label !== parentLabel && f && f.w > 0 && f.h > 0 && !offScreen(a.bounds) && (f.w < MIN || f.h < MIN) && (hasIcon(n) || (a.enabled === 'true' && !isStaticText(n, label, f)))) {
       const key = `${label}|${a.bounds}`;
       if (!seen.has(key)) { seen.add(key); findings.push(`${path.relative(root, file)}: "${label}" is ${f.w} x ${f.h} pt (at least ${MIN} x ${MIN})`); }
     }

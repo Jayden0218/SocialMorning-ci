@@ -101,6 +101,12 @@ export function DeckCard(props: { children: ReactNode; tone?: 'plain' | 'premium
   );
 }
 
+/**
+ * 036 T015b: the link is a 44 frame centred on its 18 tall words (`top` lifts the painted frame by the 13 above, `marginBottom`
+ * gives back the 26 excess so the layout takes only the line): the words stay 10 under the deck, 28 from the left.
+ */
+const LINK_FRAME = { marginTop: DECK.linkTop, marginLeft: DECK.lane, minHeight: bars.circle, justifyContent: 'center' as const, top: -(bars.circle - 18) / 2, marginBottom: -(bars.circle - 18) };
+
 /** "Full chart ›": a hot-text line under a deck. */
 export function DeckLink(props: { label: string; /** The spoken name when it differs from the words. */ accessibilityLabel?: string; onPress: () => void }): React.ReactElement {
   return (
@@ -110,7 +116,7 @@ export function DeckLink(props: { label: string; /** The spoken name when it dif
       accessibilityLabel={props.accessibilityLabel ?? props.label}
       hitSlop={{ top: 15, bottom: 15, left: 8, right: 8 }}
       className="self-start"
-      style={{ marginTop: DECK.linkTop, marginLeft: DECK.lane }}
+      style={LINK_FRAME}
     >
       <Type step="caption" className="text-hotText font-semibold">{`${props.label} ›`}</Type>
     </Pressable>

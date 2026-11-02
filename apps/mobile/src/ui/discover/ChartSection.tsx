@@ -14,7 +14,7 @@ import { useState } from 'react';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { spacing } from '@/design';
+import { bars, spacing } from '@/design';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Type } from '@/ui/kit/Type';
 import { pages, type ChartTab } from '@/discover/sections';
@@ -24,6 +24,8 @@ import type { Act } from './sections-common';
 
 /** Drawn: cards 270 x 220, a row 54 tall (7 + the 40 cover + 7), the rank 20 wide. */
 export const CHART_CARD = { width: 270, height: 220, cover: 40, rank: 20, rowPad: 7 } as const;
+/** 036 T015b: the chart's name is a 44 frame around its 20 tall line (-12 above and below keeps the header as drawn); the chart row's is 44 around the 40 cover (-2). */
+const NAME_FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - 20) / 2, justifyContent: 'center' as const };
 /** A page is as wide as the card's inside (the 1 line border off each side). */
 const PAGE = CHART_CARD.width - 2;
 
@@ -36,7 +38,7 @@ function ChartRow(props: Act & { card: EpisodeCard; rank: number }): React.React
         accessibilityRole="button"
         accessibilityLabel={`${card.title}, ${card.showTitle}`}
         className="flex-1 flex-row items-center min-w-0"
-        style={{ gap: PX.ten }}
+        style={{ gap: PX.ten, minHeight: bars.circle, marginVertical: -(bars.circle - CHART_CARD.cover) / 2 }}
       >
         <Type step="lede" className={props.rank === 1 ? 'text-hotText font-extrabold' : 'text-text2 font-extrabold'} style={{ width: CHART_CARD.rank }} numberOfLines={1} maxFontSizeMultiplier={1.3}>{props.rank}</Type>
         <Artwork url={card.imageUrl} size={CHART_CARD.cover} name={card.showTitle} />
@@ -59,7 +61,7 @@ function ChartCard(props: Act & { tab: ChartTab; onName: () => void }): React.Re
   return (
     <DeckCard>
       <Box className="flex-row items-center justify-between" style={{ paddingHorizontal: DECK.pad, paddingTop: DECK.pad, paddingBottom: PX.six }}>
-        <Pressable onPress={props.onName} accessibilityRole="button" accessibilityLabel={`${props.tab.label} chart`} hitSlop={12} className="flex-1 min-w-0">
+        <Pressable onPress={props.onName} accessibilityRole="button" accessibilityLabel={`${props.tab.label} chart`} hitSlop={12} className="flex-1 min-w-0" style={NAME_FRAME}>
           <Type step="lede" className="text-text font-bold" style={UNBOUNDED[16]} numberOfLines={1}>{props.tab.label}</Type>
         </Pressable>
         {p.length > 1 ? (
