@@ -247,7 +247,7 @@ export default function HistoryScreen(): React.ReactElement {
                             <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
                               <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={LIST.cover} name={show?.title} />
                               <Box className="flex-1 min-w-0">
-                                <Type step="compact" className="text-text" numberOfLines={1}>{item.episode.title}</Type>
+                                <Type step="compact" className="text-text" numberOfLines={2}>{item.episode.title}</Type>
                                 <Type step="caption" className="text-text2" style={[ME_TYPE.show11, { marginTop: spacing.hair }]} numberOfLines={1}>{show?.title ?? ''}</Type>
                               </Box>
                               {item.finished ? <Type step="mono" className="text-ok" style={ME_TYPE.mono11}>Finished</Type> : <PlayDot size={LIST.playDot} />}

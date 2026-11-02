@@ -70,7 +70,7 @@ export function EpisodeTitleBlock(props: {
         </Box>
       </Box>
       <Box className="flex-row" style={{ gap: EPISODE.buttonsGap }}>
-        <PulseButton label={props.playing ? 'Pause' : 'Play this episode'} icon={props.playing ? 'pause' : 'play'} kind="light" onPress={props.onPlay} className="flex-1" />
+        <PulseButton label={props.playing ? 'Pause' : 'Play this episode'} icon={props.playing ? 'pause' : 'play'} kind="light" fit onPress={props.onPlay} className="flex-1" />
         <PulseButton
           label={props.subscribed ? 'Subscribed' : 'Subscribe'}
           accessibilityLabel={props.subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'}
