@@ -31,6 +31,8 @@ export type SubscriptionSync = {
   reconcile(): Promise<void>;
   /** Fire-and-forget after a local subscribe/unsubscribe. Never throws. */
   push(): void;
+  /** 035: called after each reconcile has replaced the local table (a page that read it earlier re-reads). Returns the way to stop. */
+  onChange(listener: () => void): () => void;
 };
 
 export const toWire = (r: SubscriptionRow): SubscriptionOut => ({
@@ -51,12 +53,14 @@ export const fromWire = (i: SubscriptionOut): SubscriptionRow => ({
 
 export function createSubscriptionSync(deps: SubscriptionSyncDeps): SubscriptionSync {
   let inFlight: Promise<void> | undefined;
+  const listeners = new Set<() => void>();
 
   async function run(): Promise<void> {
     if (!deps.isSignedIn()) return;
     const local = deps.subscriptions.all();
     const res = await deps.api.putSubscriptions(local.map(toWire));
     deps.subscriptions.replaceAll(res.items.map(fromWire));
+    for (const l of listeners) l();
   }
 
   return {
@@ -64,6 +68,10 @@ export function createSubscriptionSync(deps: SubscriptionSyncDeps): Subscription
       // One at a time: two overlapping full-set merges would race on replaceAll.
       inFlight = (inFlight ?? Promise.resolve()).then(run, run);
       return inFlight;
+    },
+    onChange(listener) {
+      listeners.add(listener);
+      return () => { listeners.delete(listener); };
     },
     push() {
       void this.reconcile().catch(reportAndDrop('sync.subscriptions'));

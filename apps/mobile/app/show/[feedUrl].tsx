@@ -185,6 +185,8 @@ export default function ShowScreen(): React.ReactElement {
   const [stale, setStale] = useState(false);
   const [failed, setFailed] = useState<string | undefined>(undefined);
   const [subscribed, setSubscribed] = useState(() => stores.subscriptions.has(feedUrl));
+  // 035 B4 (device run 41359074906): the sync after sign-in fills the table after this page mounted; re-read when it does.
+  useEffect(() => subscriptionSync.onChange?.(() => setSubscribed(stores.subscriptions.has(feedUrl))), [subscriptionSync, stores, feedUrl]); // `?.`: a stand-in sync without it (several page tests have one) simply never hears
   const { safety, version, hiddenFeeds } = useSafety();
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
   // M16a T005 (FR-015): Share opens the app's panel; the system sheet is behind its "More".

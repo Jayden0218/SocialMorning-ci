@@ -46,3 +46,24 @@ it('onSignedIn in the social provider reconciles the subscriptions', () => {
   const block = src.slice(at, src.indexOf('} }), [api, stores', at));
   expect(block).toMatch(/subscriptionSync\.reconcile\(\)/);
 });
+
+// 035 (device run 41359074906, r06): the show page read `subscriptions.has` once, at mount. After sign-in the sync fills the table a moment later, and the
+// page kept saying "Subscribe". The sync now announces each completed reconcile (`onChange`), and the show page listens and re-reads. Breaks: drop the
+// notify from `run`; drop the listener from app/show/[feedUrl].tsx.
+it('the sync announces a completed reconcile to its listeners, and stops when they unsubscribe', async () => {
+  const server: SubscriptionOut[] = [{ feedUrl: SHOW, createdAt: '2026-11-01T09:00:00.000Z', starred: false }];
+  const store = createMemorySubscriptionStore();
+  const sync = createSubscriptionSync({ api: { putSubscriptions: async () => ({ items: server, serverTime: 'now' }) } as never, subscriptions: store, isSignedIn: () => true });
+  const seen: number[] = [];
+  const off = sync.onChange(() => seen.push(store.all().length));
+  await sync.reconcile();
+  expect(seen).toEqual([1]); // told after the table was replaced
+  off();
+  await sync.reconcile();
+  expect(seen).toEqual([1]);
+});
+
+it('the show page re-reads its subscribed state when the sync changes the table', () => {
+  const src = readFileSync(join(__dirname, '..', 'app', 'show', '[feedUrl].tsx'), 'utf8');
+  expect(src).toMatch(/subscriptionSync\.onChange\?\.\(/);
+});
