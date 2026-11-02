@@ -327,7 +327,7 @@ describe('the Notifications switch and tiles', () => {
     const r = await render(createElement(NoticeCards, { section: 'people', unread: 3, interactionsUnread: 2, onSelect: () => undefined }));
     expect(flat(byId(r, 'notice-switch')[0])).toMatchObject({ height: NOTICE.switchHeight, padding: 3, gap: 4 });
     expect(NOTICE.switchHeight).toBe(44);
-    const tab = hosts(r, (n) => n.props['accessibilityRole'] === 'tab')[0]!;
+    expect(hosts(r, (n) => n.props['accessibilityRole'] === 'tab')[0]).toBeDefined();
     // 036 D6: the tab is the 44 frame (minHeight 44, margin -3); the 38 height and the light fill moved to its inner pill Box.
     const pill = hosts(r, (n) => n.props['testID'] === 'frame-pill')[0]!;
     expect(flat(pill)).toMatchObject({ height: 38 });

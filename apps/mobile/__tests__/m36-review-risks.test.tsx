@@ -122,7 +122,7 @@ describe('T030 Icon key: no icon animates its colour', () => {
 const status = { id: 's1', mine: false, author: { id: 'u2', name: 'Ana', initials: 'A' }, durationMs: 41_000, url: 'https://x/a.m4a', text: 'Hi', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 3_600_000).toISOString(), items: [], reactions: [], myReaction: null, suggested: false };
 const replies = (inside: boolean) => {
   const el = createElement(StatusReplies, { status: status as never, colours: { accent: '#fff', muted: '#888', text: '#fff', onPrimary: '#000' }, pauseAll: () => undefined, onChanged: () => undefined });
-  return inside ? createElement(PushedPage, { title: 'Status', tone: 'none' as const, children: el }) : el;
+  return inside ? createElement(PushedPage as never, { title: 'Status', tone: 'none' } as never, el) : el;
 };
 const titleBarBottom = () => r!.root.findAllByType(TitleBar)[0]!.props['bottom'] as number;
 
