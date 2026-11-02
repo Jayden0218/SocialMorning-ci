@@ -43,7 +43,7 @@ import { MessageBubble } from '@/ui/chat/MessageBubble';
 import { CenterAt, ErrBlock, SignInBlock } from '@/ui/chat/blocks';
 import { CHAT } from '@/ui/chat/measures';
 import { chatNodes, type ChatNode } from '@/ui/chat/nodes';
-import { BottomZone } from '@/ui/comments/CommentsBottom';
+import { BottomZone, useZoneBottom } from '@/ui/comments/CommentsBottom';
 import { COMMENTS, ZONE_BOTTOM, belowStatus } from '@/ui/comments/measures';
 import { Tick } from '@/ui/comments/Spine';
 import { useInsets } from '@/ui/comments/useInsets';
@@ -84,6 +84,8 @@ export default function ChatThread(): React.ReactElement {
   );
   const [sending, setSending] = useState(false);
   const [zone, setZone] = useState(0);
+  // 036 T032: the foot zone rides above the keyboard, so the list leaves room for that lift too.
+  const zoneLift = useZoneBottom(ZONE_BOTTOM) - ZONE_BOTTOM;
   // The poll reads the newest id through a ref so the timer never restarts on every message.
   const latest = useRef<string | undefined>(undefined);
 
@@ -258,7 +260,7 @@ export default function ChatThread(): React.ReactElement {
               className="flex-1"
               data={nodes}
               keyExtractor={(n) => n.key}
-              contentContainerStyle={{ paddingTop: COMMENTS.listTop, paddingLeft: COMMENTS.listLeft, paddingRight: gutter(width), paddingBottom: zone + COMMENTS.nodeGap }}
+              contentContainerStyle={{ paddingTop: COMMENTS.listTop, paddingLeft: COMMENTS.listLeft, paddingRight: gutter(width), paddingBottom: zone + zoneLift + COMMENTS.nodeGap }}
               ItemSeparatorComponent={() => <Box style={{ height: COMMENTS.nodeGap }} />}
               keyboardShouldPersistTaps="handled"
               onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}

@@ -19,7 +19,7 @@ const req = (method: string, p: string, status: number | null = 200): string[] =
   const i = id();
   return [`${T} -> ${i} ${method} ${p}`, ...(status === null ? [] : [`${T} <- ${i} ${status} 12ms`])];
 };
-const visit = (...inside: string[][]): string[] => [...req('GET', '/__e2e/removed'), ...inside.flat(Infinity) as string[], ...req('GET', '/__e2e/code', 404)];
+const visit = (...inside: unknown[]): string[] => [...req('GET', '/__e2e/removed'), ...inside.flat(Infinity) as string[], ...req('GET', '/__e2e/code', 404)];
 const cats = (count: number, status: number | null = 200): string[][] => Array.from({ length: count }, (_, k) => req('GET', `/v1/categories/${1300 + k}`, status));
 function run(lines: string[]): { status: number | null; out: string } {
   const dir = mkdtempSync(path.join(tmpdir(), 'cats-'));

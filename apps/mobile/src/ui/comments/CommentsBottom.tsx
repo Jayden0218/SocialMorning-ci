@@ -25,12 +25,17 @@ import { COMMENTS } from './measures';
 import { drawnType } from '@/design/type-px';
 
 /** The zone's frame: where it sits and how its rows are spaced. */
-export function BottomZone(props: { bottom: number; children: React.ReactNode }): React.ReactElement {
-  // 035 B2/T046: the zone is absolute, so nothing moved it when the keyboard opened. It rides above the keyboard by the height iOS
-  // reports (less the home strip the root layout pads), and rests at `bottom` otherwise.
+export function useZoneBottom(rest: number): number {
   const keyboard = useKeyboardHeight();
   const strip = useContext(SafeAreaInsetsContext)?.bottom ?? 0;
-  const bottom = liftedBottom(props.bottom, keyboard, strip, props.bottom);
+  return liftedBottom(rest, keyboard, strip, rest);
+}
+
+export function BottomZone(props: { bottom: number; children: React.ReactNode }): React.ReactElement {
+  // 035 B2/T046: the zone is absolute, so nothing moved it when the keyboard opened. It rides above the keyboard by the height iOS
+  // reports (less the home strip the root layout pads), and rests at `bottom` otherwise. 036 T032: `useZoneBottom` is the one place that is worked out,
+  // so a list under the zone can leave room for the same lift.
+  const bottom = useZoneBottom(props.bottom);
   return (
     <Box className="absolute" style={{ left: COMMENTS.zoneSide, right: COMMENTS.zoneSide, bottom, gap: COMMENTS.zoneGap, zIndex: 30 }} testID="comments-zone">
       {props.children}

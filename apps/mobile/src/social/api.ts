@@ -452,8 +452,8 @@ export function createApi(deps: ApiDeps): ApiClient {
       const etag = r.headers.get('etag') ?? undefined;
       return { status: 200, ...(etag ? { etag } : {}), body: r.json };
     },
-    // 035 B5: the catalogue may be slow (6–8 s seen on CI); it gets its own, longer limit than the 10 s every other call has.
-    search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`, undefined, {}, deps.timeoutMs ?? SEARCH_TIMEOUT_MS)).json,
+    // 035 B5: the catalogue may be slow (6–8 s seen on CI); it gets its own, longer limit than the 10 s every other call has. 036 T033: a client's shorter `timeoutMs` never cuts it below that.
+    search: async (q) => (await call<SearchResult>('GET', `/v1/search?q=${encodeURIComponent(q)}`, undefined, {}, Math.max(deps.timeoutMs ?? 0, SEARCH_TIMEOUT_MS))).json,
     searchPeople: async (q) => (await call<{ listeners: { id: string; displayName: string }[] }>('GET', `/v1/search/people?q=${encodeURIComponent(q)}`)).json.listeners,
     pushTokenAdd: async (token, platform) => { await call('POST', '/v1/me/push-tokens', { token, platform }); },
     pushTokenRemove: async (token) => { await call('DELETE', `/v1/me/push-tokens/${encodeURIComponent(token)}`); },
