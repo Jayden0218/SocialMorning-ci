@@ -1,0 +1,121 @@
+# R24 Rate sheet, five launches (036 T021, C1; device check). "Enjoying SocialNet?" (src/ui/shell/RateSheet.tsx:133, title :139) is shown
+# at most once per 30 days while no answer is recorded (RATE_SHOWN_KEY, RateSheet.tsx:47-48, shouldAskRating :55-62; written when the
+# sheet slides up, :112). Before 035 an app killed before the listener answered recorded nothing, so every launch asked again.
+# Here NOTHING answers it: the flow signs in from a clean install (the steps of _sign-in.yaml, but without _dismiss-overlays.yaml, which
+# taps the sheet's Close and so records an answer), then kills and launches the app five times. The sheet's title is counted each time
+# (a counter, output.shown) and the flow fails when it was seen more than once in all. Launch delay of the sheet: 1.5 s by default
+# (ratePrompt.delayMs, RateSheet.tsx:111), so each launch waits 8 s for it. Not proved by this flow: that the sheet appeared at all
+# (a sheet turned off in the admin's settings would pass it); the first showing is on screen in r24-01 when it does.
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+  EMAIL: listener-05@journey.test
+---
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Agree"
+    timeout: 300000
+- tapOn: "Agree"
+- repeat:
+    while:
+      notVisible: "Continue with email"
+    times: 3
+    commands:
+      - extendedWaitUntil:
+          visible: "Continue with email"
+          timeout: 20000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Agree"
+          commands:
+            - tapOn: "Agree"
+- tapOn: "Continue with email"
+- extendedWaitUntil:
+    visible: "Agree and continue"
+    timeout: 30000
+- tapOn: "Agree and continue"
+- extendedWaitUntil:
+    visible: "Email"
+    timeout: 30000
+- tapOn: "Email"
+- eraseText: 40
+- inputText: ${EMAIL}
+- repeat:
+    while:
+      notVisible: ${EMAIL.replace(/\./g, '\\.')}
+    times: 3
+    commands:
+      - tapOn: "Email"
+      - eraseText: 40
+      - inputText: ${EMAIL.split('@')[0]}
+      - inputText: "@"
+      - inputText: ${EMAIL.split('@')[1]}
+- assertVisible: ${EMAIL.replace(/\./g, '\\.')}
+- tapOn: "Send code"
+- extendedWaitUntil:
+    visible: "Code"
+    timeout: 30000
+- runScript: ../fetch-code.js
+- tapOn: "Code"
+- inputText: ${output.code}
+- repeat:
+    while:
+      notVisible:
+        text: "Continue"
+        enabled: true
+    times: 3
+    commands:
+      - tapOn: "Code"
+      - eraseText: 10
+      - inputText: ${output.code}
+- tapOn: "Continue"
+# The interests page comes first on a new account (it blocks the sheet for that launch, RateSheet.tsx:91-95): skip it, nothing else.
+- extendedWaitUntil:
+    visible: "Skip choosing categories|Discover"
+    timeout: 90000
+- runFlow:
+    when:
+      visible: "Skip choosing categories"
+    commands:
+      - tapOn: "Skip choosing categories"
+- extendedWaitUntil:
+    visible: "Discover|Enjoying SocialNet\\?.*"
+    timeout: 60000
+- evalScript: ${output.shown = 0}
+# The first showing may come now (the tabs are up after the sign-in): count it.
+- extendedWaitUntil:
+    visible: "Enjoying SocialNet\\?.*"
+    timeout: 8000
+    optional: true
+- runFlow:
+    when:
+      visible: "Enjoying SocialNet\\?.*"
+    commands:
+      - evalScript: ${output.shown = output.shown + 1}
+      - takeScreenshot: r24-01-rate-sheet-first-showing
+# Five launches, each without an answer.
+- repeat:
+    times: 5
+    commands:
+      - stopApp
+      - launchApp:
+          permissions:
+            all: allow
+      - extendedWaitUntil:
+          visible: "Discover|Enjoying SocialNet\\?.*|Skip choosing categories|Skip"
+          timeout: 120000
+      - extendedWaitUntil:
+          visible: "Enjoying SocialNet\\?.*"
+          timeout: 8000
+          optional: true
+      - runFlow:
+          when:
+            visible: "Enjoying SocialNet\\?.*"
+          commands:
+            - evalScript: ${output.shown = output.shown + 1}
+            - takeScreenshot: r24-02-rate-sheet-shown-again
+- assertTrue: ${output.shown <= 1}

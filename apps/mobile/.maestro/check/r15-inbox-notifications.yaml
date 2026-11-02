@@ -14,6 +14,13 @@ appId: app.socialmorning.mobile
     visible: "My subscriptions · .*"
     timeout: 30000
 - takeScreenshot: r15-01-inbox-is-updates
+# 036 (T021, L6): the Updates card's date chip sits at the cover's foot, not on the cover's initials (UpdateEpisodeRow.tsx:106-111). Needs a
+# card on screen (a deck card is named "<episode>, <show>. <meta>", UpdateEpisodeRow.tsx:123); the seed may not subscribe this account, so optional.
+- extendedWaitUntil:
+    visible: ".*Journey Morning(\\..*)?"
+    timeout: 15000
+    optional: true
+- takeScreenshot: r15-01b-updates-date-chip
 - runFlow: _me.yaml
 - tapOn: "Notifications(, .*)?"
 - extendedWaitUntil:

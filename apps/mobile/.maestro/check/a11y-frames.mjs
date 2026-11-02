@@ -51,6 +51,8 @@ for (const file of jsons) {
   const seen = new Set();
   const groups = []; // every label of the screen with its box, for "part of a bigger group's label"
   (function collect(n) { const l = String(n.attributes?.accessibilityText ?? '').trim(); if (l !== '') groups.push({ l, b: bbox(n.attributes?.bounds) }); (n.children ?? []).forEach(collect); })(tree);
+  // 036: a screen with the iOS Dock is the home screen (a step that ran while the app was closed): its Search pill, icons and folders are the system's, not ours.
+  if (groups.some((g) => g.l === 'Dock')) continue;
   const isStaticText = (n, label, f) => {
     if ((n.children ?? []).some((c) => String(c.attributes?.accessibilityText ?? '').trim() === label)) return true; // iOS draws static text as the node and a child repeating it
     if (CHROME.test(label)) return true;

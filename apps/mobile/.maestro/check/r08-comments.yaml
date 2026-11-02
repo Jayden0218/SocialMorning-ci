@@ -105,6 +105,17 @@ env:
     timeout: 30000
 - assertVisible: ".*${REPLY}.*"
 - takeScreenshot: r08-05-thread${SUFFIX || ''}
+# 036 (T022): the thread with its reply composer open and the keyboard up (the bar "Reply to Listener 06", thread/[commentId].tsx:269, opens
+# the Composer sheet, Composer.tsx:143, "Cancel" :123): read the list's bottom padding on this screenshot.
+- tapOn: "Reply to Listener 06"
+- extendedWaitUntil:
+    visible: "Comment.*Write a reply.*"
+    timeout: 30000
+- takeScreenshot: r08-05b-thread-keyboard-up${SUFFIX || ''}
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Reply to Listener 06"
+    timeout: 30000
 - tapOn:
     text: "Like\\. \\d+ likes?"
     index: 0

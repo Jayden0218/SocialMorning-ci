@@ -99,6 +99,12 @@ env:
     visible: "That code is not right\\."
     timeout: 30000
 - takeScreenshot: r03-06-wrong-code-error
+# 036 (T022, A2): the error line is drawn in the hot-text colour (app/auth/email.tsx:164, className text-hotText) — read its contrast on this
+# screenshot, taken once the line has stopped moving in (the one above may be mid-fade).
+- waitForAnimationToEnd:
+    timeout: 5000
+- assertVisible: "That code is not right\\."
+- takeScreenshot: r03-06b-wrong-code-error-settled
 - tapOn: "Code"
 - eraseText: 10
 - inputText: ${output.code}

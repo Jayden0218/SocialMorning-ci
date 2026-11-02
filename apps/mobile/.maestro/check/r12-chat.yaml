@@ -86,4 +86,16 @@ env:
 - assertVisible: "Message Listener 02( .*)?"           # the box is empty again (only its name + placeholder)
 - assertNotVisible: "You can send messages while you both follow each other\\."
 - takeScreenshot: r12-06-message-sent
+# 036 (T022, T032): several messages with the keyboard still up — the list's bottom padding follows the raised message box (app/chat/[id].tsx).
+# Two more messages are sent; the last one must be seen above the box on r12-07.
+- repeat:
+    times: 2
+    commands:
+      - tapOn: "Message Listener 02( .*)?"
+      - inputText: "Device check again"
+      - tapOn: "Send"
+      - extendedWaitUntil:
+          visible: "Device check again"
+          timeout: 30000
+- takeScreenshot: r12-07-several-messages-keyboard-up
 - tapOn: "Back"

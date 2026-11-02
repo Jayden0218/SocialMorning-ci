@@ -123,3 +123,25 @@ appId: app.socialmorning.mobile
     timeout: 30000
 - takeScreenshot: r17-12-appeal
 - tapOn: "Back"
+# 036 (T022): /voice/new with an episode loaded. Its title bar ("Voice status", app/voice/new.tsx:151) must sit above the now bar. An episode
+# is loaded by _player-episode-1.yaml (the now bar "Now playing: …", NowBar.tsx:198); the full player is closed, then the page is opened by
+# its link; its leave control is "Cancel" (new.tsx:158-159, a close icon). Last in the flow so the earlier screens stay as they were.
+- runFlow: _player-episode-1.yaml
+- tapOn: "Close the player"
+- extendedWaitUntil:
+    visible: "Now playing: .*"
+    timeout: 30000
+- runFlow:
+    file: _open-link.yaml
+    env:
+      LINK: voice/new
+- extendedWaitUntil:
+    visible: "Voice status"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: r17-13-voice-new-with-episode
+- tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Discover|Now playing: .*"
+    timeout: 30000

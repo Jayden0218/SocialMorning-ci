@@ -54,6 +54,18 @@ frames_check() {
   [ "$code" -eq 0 ] || echo "::error title=device check::a11y-frames failed (exit $code), see a11y-frames.txt"
 }
 
+# 036 (C2): how many `GET /v1/categories/` one Discover visit asked for. r25-categories.yaml brackets its two visits with marker requests in
+# api.log (the test server's request log, which ios-journey writes at the repo root); check-categories.mjs counts between them. Its result is
+# one more row of summary.tsv (`categories-count`), only when r25 ran. A missing api.log is a red row, not a skipped one.
+categories_check() {
+  [ -e "$OUT/maestro/r25-categories" ] || return 0
+  local log=${E2E_API_LOG:-../../../api.log} code=0 # this script runs in apps/mobile/.maestro: the repo root is three levels up
+  node check/check-categories.mjs "$log" > "$OUT/categories-count.txt" 2>&1 || code=$?
+  cat "$OUT/categories-count.txt"
+  printf 'categories-count\t%s\t0\n' "$code" >> "$OUT/summary.tsv"
+  [ "$code" -eq 0 ] || echo "::error title=device check::categories-count failed (exit $code), see categories-count.txt"
+}
+
 # CHECK_FLOWS (workflow input check_flows): a glob of route flows, default every one. Anything narrower skips
 # the R20/R21 re-runs (used for the guard: one flow broken on purpose, run alone).
 PATTERN=${CHECK_FLOWS:-r*}
@@ -64,6 +76,7 @@ done
 if [ "$PATTERN" != "r*" ]; then
   find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
   frames_check
+  categories_check
   cat "$OUT/summary.tsv"
   exit 0
 fi
@@ -88,5 +101,6 @@ find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/scr
 find . .. -maxdepth 1 -name 'r[0-9]*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
 echo "screenshots: $(find "$OUT/screenshots" -name '*.png' | wc -l)"
 frames_check
+categories_check
 cat "$OUT/summary.tsv"
 exit 0

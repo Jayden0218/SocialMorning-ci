@@ -1,0 +1,32 @@
+# R23 Slow search (036 T020, B5; device check). The test server answers /v1/search 12 s late (fault-search-on.js): past the app's
+# 10 s limit for ordinary calls, inside the search's own 25 s limit (src/social/api.ts:394, :456). Search "Journey Morning": the
+# result row shows ("<title>, <author>", src/ui/search/ShowResults.tsx:66) and the line "The catalogue needs a connection — showing
+# your library only." (src/ui/search/catalogue-error.ts:11) never does; nor "Nothing matches." nor the timeout line "The catalogue is
+# slow to answer" (catalogue-error.ts:10, it would mean the 25 s limit was hit). The fault is switched off in every exit path:
+# onFlowComplete runs on a pass and on a failure, and run-check.sh switches it off after every flow as well.
+appId: app.socialmorning.mobile
+env:
+  API: http://localhost:8787
+onFlowComplete:
+  - runScript: fault-off.js
+---
+- runFlow: _ensure-signed-in.yaml
+- runFlow: _open-search.yaml
+- runScript: fault-search-on.js          # after the search opens: its first request is the one below
+- tapOn: "Search podcasts"
+- inputText: "Journey Morning"
+- pressKey: Enter
+- takeScreenshot: r23-01-searching-slow
+- extendedWaitUntil:                     # 12 s server delay + the seed's own time; far inside the 25 s limit
+    visible: "Journey Morning, .*"
+    timeout: 60000
+- extendedWaitUntil:                     # give a wrongly drawn warn line time to appear before it is asserted absent
+    visible: "The catalogue needs a connection.*"
+    timeout: 6000
+    optional: true
+- assertNotVisible: "The catalogue needs a connection.*"
+- assertNotVisible: "The catalogue is slow to answer.*"
+- assertNotVisible: "Nothing matches\\."
+- assertVisible: "Journey Morning, .*"
+- takeScreenshot: r23-02-slow-search-results
+- runScript: fault-off.js
