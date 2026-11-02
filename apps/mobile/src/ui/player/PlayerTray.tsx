@@ -29,7 +29,7 @@ import { useReaction } from './useReaction';
 /** Each item is its glyph's size; the finger gets 48 × 48 round it. */
 // 035 A3: drawn 22; the frame is 44 x 44.
 const GLYPH = { height: PLAYER.trayIcon, minWidth: bars.circle, minHeight: bars.circle };
-const COMMENTS = { height: PLAYER.trayIcon, gap: PLAYER.trayCountGap };
+const COMMENTS = { height: PLAYER.trayIcon, gap: PLAYER.trayCountGap, minWidth: bars.circle, minHeight: bars.circle };
 const SLOP = { top: (hit.min - PLAYER.trayIcon) / 2, bottom: (hit.min - PLAYER.trayIcon) / 2, left: (hit.min - PLAYER.trayIcon) / 2, right: (hit.min - PLAYER.trayIcon) / 2 };
 
 export function PlayerTray(props: { episodeId: string; onShare: () => void }): React.ReactElement {

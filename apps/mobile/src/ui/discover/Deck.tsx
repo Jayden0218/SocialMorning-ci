@@ -22,7 +22,7 @@ import { ScrollView } from '@/ui/lib/scroll-view';
 import { Image } from '@/ui/lib/image';
 import { Text } from '@/ui/kit/Text';
 import { coverLetters, coverTone } from '@socialmorning/social-core';
-import { colour, gutter, radius, spacing } from '@/design';
+import { bars, colour, gutter, radius, spacing } from '@/design';
 import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
@@ -139,7 +139,7 @@ export function DiscPlay(props: { size: number; title: string; onPress: () => vo
       accessibilityLabel={`Play ${props.title}`}
       hitSlop={Math.ceil((48 - props.size) / 2)}
       className="bg-text items-center justify-center"
-      style={{ width: props.size, height: props.size, borderRadius: props.size / 2, paddingLeft: 2 }}
+      style={{ width: props.size, height: props.size, minWidth: bars.circle, minHeight: bars.circle, borderRadius: props.size / 2, paddingLeft: 2 }}
     >
       <Icon name="play" size={Math.round(props.size * 0.38)} color={colour.void} />
     </Pressable>
@@ -155,7 +155,7 @@ export function RingAdd(props: { size: number; title: string; onPress: () => voi
       accessibilityLabel={`Add ${props.title} to the queue`}
       hitSlop={Math.ceil((48 - props.size) / 2)}
       className="items-center justify-center border-[1.5px] border-outline"
-      style={{ width: props.size, height: props.size, borderRadius: props.size / 2 }}
+      style={{ width: props.size, height: props.size, minWidth: bars.circle, minHeight: bars.circle, borderRadius: props.size / 2 }}
     >
       <Icon name="add" size={18} color={colour.text} />
     </Pressable>
@@ -165,7 +165,7 @@ export function RingAdd(props: { size: number; title: string; onPress: () => voi
 /** A bare Play glyph on a row (the chart's, the New arrivals'): 16 drawn, touched 48. */
 export function PlayGlyph(props: { title: string; onPress: () => void }): React.ReactElement {
   return (
-    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} hitSlop={16} className="items-center justify-center" style={{ width: 16, height: 16 }}>
+    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={`Play ${props.title}`} hitSlop={16} className="items-center justify-center" style={{ width: 16, height: 16, minWidth: bars.circle, minHeight: bars.circle }}>
       <Icon name="play" size={16} color={colour.text2} />
     </Pressable>
   );

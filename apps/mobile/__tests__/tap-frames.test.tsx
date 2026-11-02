@@ -55,3 +55,11 @@ it('the Updates card: its four circles have a 44 frame', () => {
   draw(createElement(UpdateEpisodeRow, { item, plays: 57, comments: 8, now: Date.now(), iconColour: '#000', onOpenShow: noop, onOpenEpisode: noop, onQueue: noop, onComments: noop, onDownload: noop, onMore: noop, onPlay: noop }));
   for (const l of ['Add Ep to the queue', 'Comments on Ep, 8 comments', 'Download Ep', 'More for Ep']) expectFrame(l);
 });
+
+// Run 41362300402 (the frame guard on the whole check): the Play discs and "+" rings of the cards, the bare Play glyph, the Me "Stickers" chip, the
+// transport's skip buttons and the player tray's comments button were still 16–40 pt frames.
+import { DiscPlay, PlayGlyph, RingAdd } from '@/ui/discover/Deck';
+it('the card Play disc, the "+" ring and the bare Play glyph have a 44 frame', () => {
+  draw(createElement('div' as never, null, createElement(DiscPlay, { size: 38, title: 'T', onPress: jest.fn() }), createElement(RingAdd, { size: 38, title: 'T', onPress: jest.fn() }), createElement(PlayGlyph, { title: 'G', onPress: jest.fn() })));
+  for (const l of ['Play T', 'Add T to the queue', 'Play G']) expectFrame(l);
+});

@@ -63,7 +63,8 @@ const RING_SIZE = AVATAR + 2 * (RING.gap + RING.width);
 /** The stage: 6 above the picture, 18 under it (drawing `padding:6px 0 18px`). */
 const STAGE = { paddingTop: 6, paddingBottom: 18 };
 /** The Stickers chip is 36 tall, 6 below the stage's top and 16 from the right edge. */
-const CHIP = { height: bars.chip, paddingHorizontal: bars.chipPad, gap: 6 };
+// 035 A3: drawn 36 tall; the frame is 44.
+const CHIP = { height: bars.chip, minHeight: bars.circle, paddingHorizontal: bars.chipPad, gap: 6 };
 /** The mosaic section: 2 above, 18 below, at least 120 tall so the edge label fits (drawing `sec`). */
 const SECTION = { paddingTop: 2, paddingBottom: 18, minHeight: 120 };
 /** The count on Saved moments: Unbounded 800 40 (the `figure` step is 34; the drawing's number is bigger). */

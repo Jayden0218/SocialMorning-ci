@@ -163,3 +163,20 @@ describe('as drawn (design-pulse2 subscriptions--screen)', () => {
     expect(mockToast).toHaveBeenCalledWith('Sign in to share your list.');
   });
 });
+
+// 035 (device run 41362300402, r14): after a fresh sign-in the page loaded before the sync had filled the table and kept saying "No subscriptions yet." — the
+// chips ("Share some shows") never appeared. It re-reads when the sync announces a reconcile. Break: drop the `onChange` listener from app/subscriptions.tsx.
+it('035: a page opened before the sync filled the table shows the shows when the sync announces it', async () => {
+  const stores = createMemoryStores(hash);
+  stores.feeds.put(A, { show: { feedUrl: A, title: 'Alpha Hour', explicit: false, categories: [], contentHash: 'a' }, episodes: [episode('Alpha newest', 'Alpha newest', Date.now() - 86_400_000)], warnings: [] }, {}, 1);
+  mockRef.stores = stores;
+  let fire: () => void = () => undefined;
+  (mockSync as { onChange?: (l: () => void) => () => void }).onChange = (l) => { fire = l; return () => undefined; };
+  const r = await mount(createElement(SubscriptionsScreen));
+  expect(allText(r)).toContain('No subscriptions yet.');
+  stores.subscriptions.add(A, 1); // the sync lands
+  await act(async () => { fire(); });
+  expect(allText(r)).toContain('Alpha Hour');
+  expect(allText(r)).not.toContain('No subscriptions yet.');
+  delete (mockSync as { onChange?: unknown }).onChange;
+});

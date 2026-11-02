@@ -47,3 +47,13 @@ it('no hierarchy file at all fails: a check that read nothing proved nothing', (
   const r = run({ 'summary.tsv': 'x' });
   expect(r.status).toBe(1);
 });
+
+// 035 (run 41362300402): iOS repeats a control's name on an inner node (a 40 pt disc inside the 48 pt Pressable). The guard judges the OUTERMOST node of a name only,
+// so the inner repeat is not a finding; a control whose outer frame is small still is.
+it('an inner node repeating its parent\'s name is not judged; the outer frame is', () => {
+  const outer = (b: string) => node('Play Ep', b, [node('Play Ep', '[18,18][58,58]', [node('', '[28,28][48,48]', [], 'icon-play')])]);
+  expect(run({ 'hierarchy/r1-end.json': screen(outer('[10,10][58,58]')) }).status).toBe(0); // outer 48 x 48
+  const small = run({ 'hierarchy/r1-end.json': screen(outer('[18,18][58,58]')) }); // outer 40 x 40
+  expect(small.status).toBe(1);
+  expect(small.out).toContain('"Play Ep" is 40 x 40 pt');
+});

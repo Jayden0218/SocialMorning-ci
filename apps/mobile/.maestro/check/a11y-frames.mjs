@@ -39,15 +39,16 @@ for (const file of jsons) {
   try { tree = JSON.parse(readFileSync(file, 'utf8')); } catch { continue; }
   parsed++;
   const seen = new Set();
-  const visit = (n) => {
+  // iOS repeats a control's name on an inner node (a 40 pt disc inside its 48 pt Pressable): only the outermost node of a name is judged.
+  const visit = (n, parentLabel = '') => {
     const a = n.attributes ?? {};
     const label = String(a.accessibilityText ?? '').trim();
     const f = frame(a.bounds);
-    if (label !== '' && f && f.w > 0 && f.h > 0 && (f.w < MIN || f.h < MIN) && hasIcon(n)) {
+    if (label !== '' && label !== parentLabel && f && f.w > 0 && f.h > 0 && (f.w < MIN || f.h < MIN) && hasIcon(n)) {
       const key = `${label}|${a.bounds}`;
       if (!seen.has(key)) { seen.add(key); findings.push(`${path.relative(root, file)}: "${label}" is ${f.w} x ${f.h} pt (at least ${MIN} x ${MIN})`); }
     }
-    for (const c of n.children ?? []) visit(c);
+    for (const c of n.children ?? []) visit(c, label !== '' ? label : parentLabel);
   };
   visit(tree);
 }

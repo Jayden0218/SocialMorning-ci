@@ -22,7 +22,7 @@
 import { useState } from 'react';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
-import { hit, tabular } from '@/design';
+import { bars, hit, tabular } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
@@ -35,7 +35,8 @@ import { useRate } from './useRuntime';
 export const CLIP_END_NEAR_MS = 6_000;
 
 /** A 30 glyph with a 48 tap area. */
-const SKIP = { width: PLAYER.skip, height: PLAYER.skip };
+// 035 A3: drawn PLAYER.skip; the frame is 44 x 44.
+const SKIP = { width: PLAYER.skip, height: PLAYER.skip, minWidth: bars.circle, minHeight: bars.circle };
 const SKIP_SLOP = (hit.min - PLAYER.skip) / 2;
 const SPEED = { height: PLAYER.moon, width: PLAYER.speedLabel };
 const SPEED_SLOP = { top: 2, bottom: 2, left: 0, right: 4 };

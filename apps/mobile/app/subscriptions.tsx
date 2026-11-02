@@ -19,7 +19,7 @@
  * opens the show menu: the show's head, Star / Unstar, Unsubscribe, a quiet Cancel. Not drawn, so gone: the hosts' faces on a row.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Share, useWindowDimensions } from 'react-native';
 import { FlatList } from '@/ui/lib/flat-list';
 import { ScrollView } from '@/ui/lib/scroll-view';
@@ -100,6 +100,8 @@ export default function SubscriptionsScreen(): React.ReactElement {
     if (listener) void syncOrder(stores.settings, us8).then((o) => { if (live) setOrder(o); });
     return () => { live = false; };
   }, [read, stores, listener, us8, api]));
+  // 035 B4: the sync after sign-in fills the table after this page mounted (runs 41359074906 / 41362300402): re-read when it announces it.
+  useEffect(() => sync.onChange?.(() => setRows(read(staleSet))), [sync, read, staleSet]);
   const toggleView = () => { const next = !grid; setGrid(next); stores.settings.set(VIEW_KEY, next ? 'grid' : 'list'); };
   const share = () => {
     if (!listener) { toast('Sign in to share your list.'); return; }
