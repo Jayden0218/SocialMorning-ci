@@ -15,7 +15,7 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { minutesLabel, mmss } from '@/ui/kit/format';
-import { colour, gutter } from '@/design';
+import { bars, colour, gutter } from '@/design';
 import { useWindowDimensions } from 'react-native';
 import { useStores } from '@/ui/shell/providers';
 import { episodePlayView, sameEpisodePlayView, usePlayer, usePlayerSelector } from '@/playback/store';
@@ -24,7 +24,7 @@ import { COMMENTS } from './measures';
 import { usePlayheadMs } from './usePlayhead';
 
 export const CARD_ARTWORK = COMMENTS.stripCover;
-const ROUND = { width: COMMENTS.pause, height: COMMENTS.pause };
+const ROUND = { width: COMMENTS.pause, height: COMMENTS.pause, minWidth: bars.circle, minHeight: bars.circle }; // 035 A3: drawn smaller; the frame is 44 x 44 (run 41402044823)
 const SLOP = { top: 6, bottom: 6, left: 6, right: 6 };
 
 /** "Show · 69 min", leaving out whichever part is unknown. */
