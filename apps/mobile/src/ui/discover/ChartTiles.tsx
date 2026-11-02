@@ -57,7 +57,7 @@ function LeadTile(props: { item: ExploreChartItem; a: ChartActions }): React.Rea
       <LinearGradient colors={FOOT} locations={FOOT_AT} style={StyleSheet.absoluteFill} pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants" />
       {/* 036 D1 (r04-04-chart-xl): the tile is a column — the words, then the bars with Play, then the meta under the bars. The bars were an
           absolute overlay at the foot, so at the largest text the meta ran over them. The rank is decorative and does not grow. */}
-      <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} {...longPress(item.episode, more)} className="flex-1 min-h-0 overflow-hidden" style={{ paddingHorizontal: PAGE.pad, paddingTop: PAGE.pad }}>
+      <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} {...longPress(item.episode, more)} className="flex-1 min-h-12 overflow-hidden" style={{ paddingHorizontal: PAGE.pad, paddingTop: PAGE.pad }}>
         <Type step="hero" className="text-text" style={[PAGE_TYPE.rank64, GLOW]} maxFontSizeMultiplier={1} testID="chart-rank">1</Type>
         <Box className="mt-auto" style={{ gap: 6 }}>
           <Type step="hero" className="text-text" style={PAGE_TYPE.title22} maxFontSizeMultiplier={TILE_CAP} numberOfLines={2}>{item.episode.title}</Type>
@@ -81,7 +81,7 @@ function SmallTile(props: { item: ExploreChartItem; rank: number; a: ChartAction
   // 036 D2 (r04-04-chart-xl): Play sits beside the rank at the top, not over the foot where it covered the show name; the type stops at TILE_CAP.
   return (
     <Box className="flex-1">
-      <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} {...longPress(item.episode, more)} className="flex-1 min-h-0 overflow-hidden" style={{ padding: PAGE.pad }}>
+      <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} {...longPress(item.episode, more)} className="flex-1 min-h-12 overflow-hidden" style={{ padding: PAGE.pad }}>
         <Type step="hero" className="text-hotText" style={PAGE_TYPE.rank30} maxFontSizeMultiplier={1}>{String(props.rank)}</Type>
         <Box style={{ marginTop: 8, gap: 2 }}>
           <Type step="lede" className="text-text" style={PAGE_TYPE.tile14} maxFontSizeMultiplier={TILE_CAP} numberOfLines={3}>{item.episode.title}</Type>
