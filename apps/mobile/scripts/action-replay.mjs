@@ -169,7 +169,9 @@ function main(argv) {
   console.log(`actions kept: ${r.kept}/${r.total} = ${r.pct.toFixed(1)}%${wave ? ` (wave ${wave}, ${r.surfaces.length} files)` : ''}`);
   const bad = r.missing.length > 0 || r.problems.length > 0;
   console.log(bad ? 'RED' : 'GREEN');
-  process.exit(bad ? 1 : 0);
+  // 036 T041: never process.exit() here. Stdout is a pipe when a test or the gate runs this; exit() drops what is still queued,
+  // so the tail (the MISSING lines, RED) was cut in about 1 run in 15 and a red guard looked green or named nothing.
+  process.exitCode = bad ? 1 : 0;
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main(process.argv.slice(2));

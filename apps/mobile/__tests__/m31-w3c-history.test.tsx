@@ -110,6 +110,9 @@ const titleOf = (r: ReactTestRenderer): ReactTestInstance => r.root.findAll((n) 
 
 /** Stops of the page glow painted in the grey of a failed page (not the hot-violet pair). */
 const greyStops = (r: ReactTestRenderer): number => r.root.findAll((n) => typeof n.props['stopColor'] === 'string' && n.props['stopColor'] === player.emptyInk).length;
+// 036 D4: a fixed clock (local noon). The rows are "N hours ago" and the screen groups them by local calendar day, so with the real
+// clock the TODAY and YESTERDAY tags failed in the first hours after midnight. Only Date is faked; timers and microtasks stay real.
+jest.useFakeTimers({ now: new Date(2026, 5, 15, 12, 0, 0).getTime(), doNotFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'setImmediate', 'clearImmediate', 'nextTick', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'performance', 'hrtime'] });
 const NOW = Date.now();
 const ep = (id: string, title: string, durationMs?: number) => ({ id, title, feedUrl: 'f', imageUrl: undefined, durationMs });
 const row = (id: string, title: string, offsetMs: number, finished: boolean, ageMs: number, durationMs = 48 * 60_000) => ({ episode: ep(id, title, durationMs), offsetMs, finished, updatedAt: NOW - ageMs });
