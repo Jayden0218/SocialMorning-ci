@@ -7,7 +7,8 @@
  *    `PushedPage` around the bar, and `barLift` is `liftedBottom` (one owner). Break: add the keyboard twice in `barLift` or `usePushedLayout`;
  *  - T032 the chat list leaves room for the raised foot zone (padding grows by the lift). Break: take the lift off the list's `paddingBottom`;
  *  - T033 `search` keeps its 25 s limit when a client sets a shorter `timeoutMs`. Break: `deps.timeoutMs ?? SEARCH_TIMEOUT_MS` again;
- *  - T034 (the rate sheet's 30-day floor) is NOT here: it contradicts the pinned m25-config test (reaskAfterDays 2); see tasks.md Open questions.
+ *  - T034 the rate sheet never asks again sooner than RATE_SPACING_DAYS (30), whatever the admin's `reaskAfterDays` (FR-017; 036 D6 moved the m25-config pin to 45 days).
+ *    Break: use `rule.reaskAfterDays` alone in `shouldAskRating`;
  * NOT VERIFIED: any of it on a phone (jest has no keyboard, no layout engine, no clock but the fake one).
  */
 import { createElement } from 'react';
@@ -58,6 +59,8 @@ import { barLift } from '@/ui/status/useKeyboardHeight';
 import { STAGE } from '@/ui/status/measures';
 import { COMMENTS, ZONE_BOTTOM } from '@/ui/comments/measures';
 import { createApi, SEARCH_TIMEOUT_MS } from '@/social/api';
+import { shouldAskRating, RATE_KEY, RATE_AT_KEY, RATE_SPACING_DAYS } from '@/ui/shell/RateSheet';
+import { CONFIG_DEFAULTS } from '@socialmorning/social-core';
 
 const STRIP = 34;
 type Handler = (e: { endCoordinates: { height: number } }) => void;
@@ -177,5 +180,30 @@ describe('T033 search keeps its 25 s limit', () => {
       expect(aborted).toBe(true);
       await p;
     } finally { jest.useRealTimers(); }
+  });
+});
+
+// ---------------------------------------------------------------- T034
+describe('T034 the rate sheet keeps its 30-day floor', () => {
+  const DAY = 86_400_000;
+  const store = (answer: string, at: number) => {
+    const m = new Map<string, string>([[RATE_KEY, answer], [RATE_AT_KEY, String(at)]]);
+    return { get: (k: string) => m.get(k), set: (k: string, v: string) => { m.set(k, v); } };
+  };
+  const rule = (days: number) => ({ ...CONFIG_DEFAULTS.ratePrompt, reaskAfterDays: days });
+  const NOW = 1_000_000_000_000;
+  it('the floor is 30 days', () => { expect(RATE_SPACING_DAYS).toBe(30); });
+  it('closed 3 days ago with an admin re-ask of 7 days: still no', () => {
+    expect(shouldAskRating(store('closed', NOW - 3 * DAY) as never, rule(7), NOW)).toBe(false);
+  });
+  it('answered 10 days ago with 7: no (the floor wins)', () => {
+    expect(shouldAskRating(store('feedback', NOW - 10 * DAY) as never, rule(7), NOW)).toBe(false);
+  });
+  it('answered 30 days ago with 7: asks', () => {
+    expect(shouldAskRating(store('feedback', NOW - 30 * DAY) as never, rule(7), NOW)).toBe(true);
+  });
+  it('40 days ago with 60: no; 61 days with 60: asks (a longer admin value still wins)', () => {
+    expect(shouldAskRating(store('closed', NOW - 40 * DAY) as never, rule(60), NOW)).toBe(false);
+    expect(shouldAskRating(store('closed', NOW - 61 * DAY) as never, rule(60), NOW)).toBe(true);
   });
 });

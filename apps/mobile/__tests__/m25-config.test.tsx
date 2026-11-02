@@ -115,9 +115,10 @@ describe('the admin\'s settings, applied', () => {
     s.set(RATE_KEY, 'closed');
     s.set(RATE_AT_KEY, '1000');
     expect(shouldAskRating(s as never)).toBe(false);
-    const rule = { ...CONFIG_DEFAULTS.ratePrompt, reaskAfterDays: 2 };
-    expect(shouldAskRating(s as never, rule, 1000 + 86_400_000)).toBe(false);
-    expect(shouldAskRating(s as never, rule, 1000 + 2 * 86_400_000)).toBe(true);
+    // 036 D6: was reaskAfterDays 2 (days 1 / 2); the 30-day spacing floor (FR-017) makes a value under 30 meaningless, so the pin uses 45.
+    const rule = { ...CONFIG_DEFAULTS.ratePrompt, reaskAfterDays: 45 };
+    expect(shouldAskRating(s as never, rule, 1000 + 44 * 86_400_000)).toBe(false);
+    expect(shouldAskRating(s as never, rule, 1000 + 45 * 86_400_000)).toBe(true);
     s.set(RATE_KEY, 'rate');
     expect(shouldAskRating(s as never, rule, 1000 + 9 * 86_400_000)).toBe(false);
     expect(shouldAskRating(memory() as never, { ...rule, enabled: false })).toBe(false);

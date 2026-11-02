@@ -20,7 +20,7 @@ import { IconButton } from '@/ui/kit/PulseButton';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type } from '@/ui/kit/Type';
 import { liftedBottom, useKeyboardHeight } from '@/ui/kit/useKeyboardHeight';
-import { colour } from '@/design';
+import { bars, colour } from '@/design';
 import { COMMENTS } from './measures';
 import { drawnType } from '@/design/type-px';
 
@@ -75,6 +75,7 @@ export function Capsule<T extends string>(props: {
       {props.items.map((it) => {
         const on = it.value === props.value;
         return (
+          // 036 D6: the Pressable is the 44 frame (the track keeps its 34 of layout through the negative margin); the drawn pill is the inner Box.
           <Pressable
             key={it.value}
             onPress={() => props.onChange(it.value)}
@@ -82,10 +83,16 @@ export function Capsule<T extends string>(props: {
             accessibilityState={{ selected: on }}
             accessibilityLabel={it.accessibilityLabel ?? it.label}
             hitSlop={{ top: 7, bottom: 7 }}
-            className={`items-center justify-center ${props.hug ? '' : 'flex-1'} ${on ? 'bg-text' : ''}`}
-            style={{ borderRadius: COMMENTS.capsuleItemRadius, ...(props.hug ? { paddingHorizontal: COMMENTS.capsuleItemPad } : null) }}
+            className={props.hug ? '' : 'flex-1'}
+            style={{ minHeight: bars.circle, marginVertical: -(bars.circle - (COMMENTS.capsuleHeight - 2 * COMMENTS.capsulePad)) / 2, justifyContent: 'center' }}
           >
-            <Type step="chip" className={on ? 'text-void' : 'text-text2'} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{it.label}</Type>
+            <Box
+              testID="frame-pill"
+              className={`items-center justify-center ${on ? 'bg-text' : ''}`}
+              style={{ height: COMMENTS.capsuleHeight - 2 * COMMENTS.capsulePad, borderRadius: COMMENTS.capsuleItemRadius, ...(props.hug ? { paddingHorizontal: COMMENTS.capsuleItemPad } : null) }}
+            >
+              <Type step="chip" className={on ? 'text-void' : 'text-text2'} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{it.label}</Type>
+            </Box>
           </Pressable>
         );
       })}

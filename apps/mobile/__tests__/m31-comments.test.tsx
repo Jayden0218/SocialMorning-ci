@@ -406,9 +406,11 @@ describe('the pieces of the thumb zone', () => {
     const onChange = jest.fn();
     const r = mount(createElement(Capsule, { items: [{ value: 'a', label: 'Newest' }, { value: 'b', label: 'Most liked' }], value: 'a', onChange }));
     const on = pressable(r, 'Newest'); const off = pressable(r, 'Most liked');
-    expect(classOf(r, 'Newest')).toContain('bg-text');
-    expect(classOf(r, 'Most liked')).not.toContain('bg-text');
-    expect(styleOf(on)['borderRadius']).toBe(17);
+    // 036 D6: the chip is the 44 frame; the light fill and the radius 17 moved to its inner pill Box (testID frame-pill).
+    const pillOf = (n: ReactTestInstance) => n.findAll((x) => typeof x.type === 'string' && x.props['testID'] === 'frame-pill')[0]!;
+    expect(String(pillOf(on).props['className'])).toContain('bg-text');
+    expect(String(pillOf(off).props['className'])).not.toContain('bg-text');
+    expect(styleOf(pillOf(on))['borderRadius']).toBe(17);
     act(() => { off.props['onPress'](); });
     expect(onChange).toHaveBeenCalledWith('b');
   });

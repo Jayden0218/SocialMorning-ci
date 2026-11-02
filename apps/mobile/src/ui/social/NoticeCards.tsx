@@ -22,7 +22,7 @@ import { Box } from '@/ui/lib/box';
 import { Text } from '@/ui/kit/Text';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
-import { colour, typeStyle } from '@/design';
+import { bars, colour, typeStyle } from '@/design';
 import { ME_MOSAIC } from '@/ui/me/mosaic';
 
 export type NoticeSection = 'interactions' | 'people';
@@ -45,15 +45,19 @@ function Tab(props: { title: string; line: string; badge?: number; selected: boo
       accessibilityState={{ selected: props.selected }}
       accessibilityLabel={`${props.title}. ${props.badge ? `${props.badge} new. ` : ''}${props.line}`}
       hitSlop={{ top: 5, bottom: 5 }}
-      className={`flex-row items-center justify-center ${props.selected ? 'bg-text' : ''}`}
-      style={{ height: NOTICE.choiceHeight, paddingHorizontal: NOTICE.choicePadX, borderRadius: NOTICE.choiceHeight / 2, gap: 6 }}
+      // 036 D6: the Pressable is the 44 frame (the 44 track keeps its 38 of layout through the negative margin); the drawn pill is the inner Box.
+      style={{ minHeight: bars.circle, marginVertical: -(bars.circle - NOTICE.choiceHeight) / 2, justifyContent: 'center' }}
     >
-      <Text className={`text-pulse-compact ${props.selected ? 'text-void font-bold' : 'text-text2 font-semibold'}`} style={typeStyle('compact')}>{props.title}</Text>
-      {props.badge ? (
-        <Box testID="notice-badge" className="bg-hot items-center justify-center" style={{ minWidth: NOTICE.badge, height: NOTICE.badge, borderRadius: NOTICE.badge / 2, paddingHorizontal: NOTICE.badgePadX }}>
-          <Type step="badge" className="text-void">{props.badge > 99 ? '99+' : props.badge}</Type>
-        </Box>
-      ) : null}
+      <Box testID="frame-pill" className={`flex-row items-center justify-center ${props.selected ? 'bg-text' : ''}`}
+        style={{ height: NOTICE.choiceHeight, paddingHorizontal: NOTICE.choicePadX, borderRadius: NOTICE.choiceHeight / 2, gap: 6 }}
+      >
+        <Text className={`text-pulse-compact ${props.selected ? 'text-void font-bold' : 'text-text2 font-semibold'}`} style={typeStyle('compact')}>{props.title}</Text>
+        {props.badge ? (
+          <Box testID="notice-badge" className="bg-hot items-center justify-center" style={{ minWidth: NOTICE.badge, height: NOTICE.badge, borderRadius: NOTICE.badge / 2, paddingHorizontal: NOTICE.badgePadX }}>
+            <Type step="badge" className="text-void">{props.badge > 99 ? '99+' : props.badge}</Type>
+          </Box>
+        ) : null}
+      </Box>
     </Pressable>
   );
 }

@@ -104,3 +104,38 @@ describe('036 T014: labelled tappables without an icon', () => {
     expect(r.out.match(/"More"/g)?.length).toBe(1);
   });
 });
+
+// 036 D6 (owner, 2026-11-02): a dense dot row is not judged. The player ring draws up to 31 comment pins, 18 x 18 pt (`testID` "ring-pin", names "Comment at m:ss by ..."),
+// 15-16 pt apart in the dense stretches: a 44 frame each would overlap its neighbours, and the same moments also open from the Comments button and the heat strip.
+// DENSE, exactly: a node with a non-empty `resource-id` is a member of a dense row when another node on the SAME screen has the same `resource-id`, the same width and
+// the same height, and its centre is less than 44 pt from this node's centre. A lone dot (no such neighbour) and a dot with no `resource-id` are judged as before.
+describe('036 D6: a dense row of same-id, same-shape dots is not judged', () => {
+  const dot = (label: string, x: number, y = 100, id = 'ring-pin') => ({ attributes: { accessibilityText: label, 'resource-id': id, bounds: `[${x},${y}][${x + 18},${y + 18}]`, enabled: 'true' }, children: [] });
+  const row = (n: number, step: number, id = 'ring-pin') => Array.from({ length: n }, (_, i) => dot(`Comment at 0:${10 + i} by Ana`, 20 + i * step, 100, id));
+  it('a row of 18 x 18 dots 16 pt apart (centres 16 apart, x step 16, labels all different) is not judged', () => {
+    expect(run({ 'hierarchy/r1-end.json': screen(...row(6, 16)) }).status).toBe(0);
+  });
+  it('a lone 18 x 18 dot still fails, named with its size', () => {
+    const r = run({ 'hierarchy/r1-end.json': screen(dot('Comment at 0:10 by Ana', 20)) });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('"Comment at 0:10 by Ana" is 18 x 18 pt');
+  });
+  it('dots whose centres are 44 pt or more apart are not dense: both fail', () => {
+    const r = run({ 'hierarchy/r1-end.json': screen(dot('Comment at 0:10 by Ana', 20), dot('Comment at 0:20 by Bo', 64)) });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('2 control(s)');
+  });
+  it('a dense row with no resource-id (or two different ones) is judged', () => {
+    expect(run({ 'hierarchy/r1-end.json': screen(...row(4, 16, '')) }).status).toBe(1);
+    expect(run({ 'hierarchy/r1-end.json': screen(dot('Comment at 0:10 by Ana', 20, 100, 'a'), dot('Comment at 0:20 by Bo', 36, 100, 'b')) }).status).toBe(1);
+  });
+  it('a same-id neighbour of another shape does not make a dot dense', () => {
+    const big = { attributes: { accessibilityText: 'Comment at 0:30 by Cy', 'resource-id': 'ring-pin', bounds: '[36,100][80,144]', enabled: 'true' }, children: [] };
+    expect(run({ 'hierarchy/r1-end.json': screen(dot('Comment at 0:10 by Ana', 20), big) }).status).toBe(1);
+  });
+  it('the dots of one screen do not shield those of another', () => {
+    const r = run({ 'hierarchy/r1-end.json': screen(dot('Comment at 0:10 by Ana', 20)), 'hierarchy/r2-end.json': screen(dot('Comment at 0:20 by Bo', 36)) });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('2 control(s)');
+  });
+});

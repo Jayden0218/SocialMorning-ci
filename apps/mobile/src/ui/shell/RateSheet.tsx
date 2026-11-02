@@ -62,7 +62,7 @@ export function shouldAskRating(s: SettingsStore, rule: RatePrompt = getAppConfi
   }
   if (answer === 'rate' || rule.reaskAfterDays === null) return false;
   const at = Number(s.get(RATE_AT_KEY));
-  return Number.isFinite(at) && at > 0 && now - at >= rule.reaskAfterDays * 86_400_000;
+  return Number.isFinite(at) && at > 0 && now - at >= Math.max(rule.reaskAfterDays, RATE_SPACING_DAYS) * 86_400_000; // 036 T034: never sooner than the spacing floor
 }
 
 /** The store page to open: the admin's link for this platform, else the built-in one (none yet). */

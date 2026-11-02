@@ -328,8 +328,10 @@ describe('the Notifications switch and tiles', () => {
     expect(flat(byId(r, 'notice-switch')[0])).toMatchObject({ height: NOTICE.switchHeight, padding: 3, gap: 4 });
     expect(NOTICE.switchHeight).toBe(44);
     const tab = hosts(r, (n) => n.props['accessibilityRole'] === 'tab')[0]!;
-    expect(flat(tab)).toMatchObject({ height: 38 });
-    expect(classOf(tab)).toContain('bg-text');
+    // 036 D6: the tab is the 44 frame (minHeight 44, margin -3); the 38 height and the light fill moved to its inner pill Box.
+    const pill = hosts(r, (n) => n.props['testID'] === 'frame-pill')[0]!;
+    expect(flat(pill)).toMatchObject({ height: 38 });
+    expect(classOf(pill)).toContain('bg-text');
     const badge = byId(r, 'notice-badge')[0]!;
     expect(flat(badge)).toMatchObject({ minWidth: 16, height: 16 });
     expect(classOf(badge)).toContain('bg-hot');

@@ -71,9 +71,11 @@ describe('Notifications: opens on People, the People pill first', () => {
     const tabs = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'tab');
     expect(String(tabs[0]!.props['accessibilityLabel'])).toMatch(/^People\./);
     expect(tabs[0]!.props['accessibilityState']).toEqual({ selected: true });
-    expect(String(tabs[0]!.props['className'])).toMatch(/\bbg-text\b/);
+    // 036 D6: the pill's fill moved from the tab (now the 44 frame) to its inner Box (testID frame-pill).
+    const pill = (t: ReactTestRenderer['root']) => t.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'frame-pill')[0]!;
+    expect(String(pill(tabs[0]!).props['className'])).toMatch(/\bbg-text\b/);
     // M31 W4-C: the other pill has no fill of its own (the track behind both is raise).
-    expect(String(tabs[1]!.props['className'])).not.toMatch(/\bbg-text\b/);
+    expect(String(pill(tabs[1]!).props['className'])).not.toMatch(/\bbg-text\b/);
     act(() => r.unmount());
   });
   it('the System and From hosts cards are still on the page', () => {
