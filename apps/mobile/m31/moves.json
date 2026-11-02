@@ -3009,6 +3009,17 @@
     "name": "Message ${name}",
     "destination": "setDraft"
    }
+  },
+  {
+   "file": "apps/mobile/app/status/text.tsx",
+   "name": "Text status",
+   "destination": "setBody",
+   "reason": "spec 036 A4 (owner decision D4, 2026-11-02): the status box is named \"Your status text\" so its spoken name is not the page title \"Text status\"; same box, same setBody",
+   "now": {
+    "file": "apps/mobile/app/status/text.tsx",
+    "name": "Your status text",
+    "destination": "setBody"
+   }
   }
  ]
 }

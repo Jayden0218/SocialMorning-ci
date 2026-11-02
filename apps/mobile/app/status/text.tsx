@@ -94,7 +94,7 @@ export default function TextStatusScreen(): React.ReactElement {
                     autoFocus
                     cursorColor={colour.hot}
                     selectionColor={colour.hot}
-                    accessibilityLabel="Text status"
+                    accessibilityLabel="Your status text"
                     className={`text-text ${typeScale.statement.cls}`}
                     style={[{ padding: 0 }, statusType.cardWords]}
                   />

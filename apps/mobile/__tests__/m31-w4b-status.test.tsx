@@ -252,7 +252,7 @@ describe('the text status page (status-text--screen)', () => {
   });
   it('typing 27 characters shows "27 / 140"; Post posts and the toast says it is gone after 24 hours', async () => {
     const r = await mount(createElement(TextStatusScreen));
-    const field = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Text status' && typeof n.props['onChangeText'] === 'function')[0]!;
+    const field = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Your status text' && typeof n.props['onChangeText'] === 'function')[0]!;
     await act(async () => { field.props['onChangeText']('Listening to something good'); });
     expect(texts(r)).toContain('27 / 140');
     await press(r, 'Post');
@@ -262,7 +262,7 @@ describe('the text status page (status-text--screen)', () => {
   });
   it('past 140 the count turns hot and Post stays dimmed', async () => {
     const r = await mount(createElement(TextStatusScreen));
-    const field = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Text status' && typeof n.props['onChangeText'] === 'function')[0]!;
+    const field = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Your status text' && typeof n.props['onChangeText'] === 'function')[0]!;
     await act(async () => { field.props['onChangeText']('x'.repeat(145)); });
     expect(texts(r)).toContain('5 over · 145 / 140');
     expect(byLabel(r, 'Post')).toHaveLength(0);
@@ -333,4 +333,11 @@ describe('the pure parts', () => {
     expect(toastBottom(34, { composer: 'voice' })).toBe(124);
     expect(TEXT_PAGE.cardMin).toBe(230);
   });
+});
+
+// 036 A4 (T011, owner decision D4): the status box has its own spoken name, not the page title ("Text status") joined to its placeholder.
+test('036 A4: the text-status box is not named like the page title', () => {
+  const src = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'app', 'status', 'text.tsx'), 'utf8') as string;
+  expect(src).toMatch(/accessibilityLabel="Your status text"/);
+  expect(src).not.toMatch(/accessibilityLabel="Text status"/);
 });
