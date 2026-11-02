@@ -88,8 +88,10 @@ export function TitleBar(props: {
   const line = t.interpolate({ inputRange: [0, 1], outputRange: [drawnLine, typeScale.heading.lineSafe] });
   // M31 F10: a title of one word cannot break between words, so it takes one line and shrinks to fit ("Commen / ts" at 200 %).
   const oneWord = !/\s/.test(props.title.trim());
-  const lines = shrunk || oneWord ? 1 : fontScale > LARGE_TEXT ? 3 : 2;
-  const fit = (oneWord || (fontScale > LARGE_TEXT && longestWord(props.title) >= LONG_WORD)) && !shrunk ? FIT : undefined;
+  const longWordLarge = fontScale > LARGE_TEXT && longestWord(props.title) >= LONG_WORD;
+  // 036 E5: a title with a long word at large text keeps to two lines: with three, "subscription / s" fits and nothing shrinks, so the word broke mid-way.
+  const lines = shrunk || oneWord ? 1 : fontScale > LARGE_TEXT && !longWordLarge ? 3 : 2;
+  const fit = (oneWord || longWordLarge) && !shrunk ? FIT : undefined;
   const actions = (props.actions ?? []).slice(0, 2);
   // 035 L3: the run-on-under-the-circles reach is for normal text; at large text the title keeps to its room and (below) shrinks to fit.
   const reach = props.right === undefined && fontScale <= LARGE_TEXT && actions.length > 0 && (!/\s/.test(props.title) || longestWord(props.title) >= LONG_WORD) ? -(actions.length * (bars.circle + spacing.row)) : 0;

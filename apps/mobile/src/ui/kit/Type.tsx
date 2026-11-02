@@ -18,6 +18,8 @@ type TextProps = React.ComponentProps<typeof Text>;
  * (a long-reading Text that sits in a box that grows may allow more).
  */
 export const TYPE_CAP = 1.3;
+/** Text drawn inside a fixed graphic (the speed dial, the moon's countdown, a tile row) keeps its drawn size: it does not grow with the system text. */
+export const FIXED_TYPE = 1;
 
 export function Type(props: Omit<TextProps, 'className'> & { step: TypeName; className: string }): React.ReactElement {
   const { step, className, style, ...rest } = props;

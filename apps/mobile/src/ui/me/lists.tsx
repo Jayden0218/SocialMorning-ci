@@ -137,6 +137,9 @@ export function EmptySpine(props: { top: number; height?: number }): React.React
 
 /** One node of a thread: the head (chip or avatar in the 46 column, then a label) over the card. `head` replaces the whole head row (Likes' tappable person). */
 export function ThreadNode(props: { lead?: ReactNode; label?: ReactNode; head?: ReactNode; /** The lead is as wide as its text, from the column's left edge (History's day tags: EARLIER THIS WEEK is 128 wide, drawn 38 → 166). */ grow?: boolean; children: ReactNode }): React.ReactElement {
+  // 036 E6: a chip wider than the 46 column (large text) overflows it on both sides; the label gives way by the right-hand overflow.
+  const [leadWidth, setLeadWidth] = useState(0);
+  const overflow = Math.max(0, (leadWidth - LIST.column) / 2);
   return (
     <Box testID="thread-node" style={{ gap: LIST.headGap - 2 }}>
       {props.head ?? (
@@ -144,7 +147,7 @@ export function ThreadNode(props: { lead?: ReactNode; label?: ReactNode; head?: 
           {props.grow === true ? (
             <Box testID="thread-lead" style={{ minWidth: LIST.column, alignItems: 'flex-start', zIndex: 2 }}><Box style={{ flexShrink: 0 }}>{props.lead}</Box></Box>
           ) : (
-            <Box testID="thread-lead" className="items-center" style={{ width: LIST.column, zIndex: 2 }}><Box>{props.lead}</Box></Box>
+            <Box testID="thread-lead" className="items-center" style={{ width: LIST.column, zIndex: 2, marginRight: overflow }}><Box testID="thread-lead-inner" onLayout={(e) => setLeadWidth(e.nativeEvent.layout.width)}>{props.lead}</Box></Box>
           )}
           {props.label}
         </Box>

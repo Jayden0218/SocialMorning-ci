@@ -15,7 +15,7 @@ import Svg, { Line } from 'react-native-svg';
 import { clampRate, rateAtFraction, RATE_MAX, RATE_MIN, RATE_STEP } from '@socialmorning/player-core';
 import { Box } from '@/ui/lib/box';
 import { colour, tabular } from '@/design';
-import { Type } from '@/ui/kit/Type';
+import { FIXED_TYPE, Type } from '@/ui/kit/Type';
 import { playedColour } from '@/ui/kit/pulse-math';
 import { useColours } from '@/ui/kit/useColours';
 import { Cap } from './Cap';
@@ -66,7 +66,7 @@ export function SpeedDial(props: { rate: number; onChange: (rate: number) => voi
           <Box className="rounded-pill bg-text" style={{ width: KNOB, height: KNOB }} />
         </Box>
         <Box className="absolute inset-0 items-center justify-center">
-          <Type step="heading" className="text-text font-extrabold" style={[tabular, { fontSize: Math.round(size * 0.2), lineHeight: Math.round(size * 0.26) }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{`${shown.toFixed(1)}×`}</Type>
+          <Type step="heading" className="text-text font-extrabold" style={[tabular, { fontSize: Math.round(size * 0.2), lineHeight: Math.round(size * 0.26) }]} numberOfLines={1} maxFontSizeMultiplier={FIXED_TYPE} adjustsFontSizeToFit minimumFontScale={0.6}>{`${shown.toFixed(1)}×`}</Type>
           <Cap style={{ marginTop: PLAYER.showGap }}>Speed</Cap>
         </Box>
         <Type step="mono" className="absolute text-text3" style={{ left: size / 2 - (size / 2 - 18) * 0.72 - 2, bottom: 2, fontSize: PLAYER.dialEnd, lineHeight: PLAYER.dialEndLine }} numberOfLines={1}>0.5</Type>

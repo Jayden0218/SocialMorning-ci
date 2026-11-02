@@ -36,7 +36,7 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
 import { IconButton } from '@/ui/kit/PulseButton';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
-import { Type } from '@/ui/kit/Type';
+import { Type, TYPE_CAP } from '@/ui/kit/Type';
 import { colour } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import { useSocial } from '@/social/context';
@@ -160,6 +160,7 @@ export function ComposerSheet(props: {
             className="text-pulse-body align-top text-text"
             style={{ ...drawnType.composer, padding: COMMENTS.writePad, minHeight: COMMENTS.writeMin }}
             multiline
+            maxFontSizeMultiplier={TYPE_CAP}
             autoFocus
             placeholder={state.parentId ? 'Write a reply' : 'What is worth saying here?'}
             // M25 IJ: uncontrolled — the box owns its text and state follows it. With `value` bound,

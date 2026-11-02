@@ -14,7 +14,7 @@ import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { hit } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
-import { Type } from '@/ui/kit/Type';
+import { FIXED_TYPE, Type } from '@/ui/kit/Type';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { useColours } from '@/ui/kit/useColours';
 import { mmss } from '@/ui/kit/format';
@@ -48,7 +48,7 @@ export function MoonButton(): React.ReactElement {
     <>
       <Pressable onPress={() => setOpen(true)} accessibilityRole="button" accessibilityLabel={moonA11y(timer, remaining)} className="items-center justify-center" hitSlop={MOON_SLOP} style={{ height: PLAYER.moon, width: PLAYER.moon }}>
         <Icon name="moon-outline" size={PLAYER.moonGlyph} color={armed ? c.hotText : c.text} />
-        {armed ? <Box className="absolute" style={{ bottom: 0 }}><Type step="badge" className="text-hotText" style={{ fontSize: PLAYER.tileDetail, lineHeight: PLAYER.tileDetailLine }}>{label}</Type></Box> : null}
+        {armed ? <Box className="absolute" style={{ bottom: 0 }}><Type step="badge" className="text-hotText" maxFontSizeMultiplier={FIXED_TYPE} style={{ fontSize: PLAYER.tileDetail, lineHeight: PLAYER.tileDetailLine }}>{label}</Type></Box> : null}
       </Pressable>
       <ActionSheet open={open} onClose={() => setOpen(false)} label="Sleep" title="Sleep">
         <SleepTimerControl />

@@ -18,7 +18,7 @@ import { ScrollView } from '@/ui/lib/scroll-view';
 import { colour } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
 import { PushedPage } from '@/ui/kit/PushedPage';
-import { Type } from '@/ui/kit/Type';
+import { FIXED_TYPE, Type } from '@/ui/kit/Type';
 import { GENRES } from '@/discover/genres';
 import { useAppConfig } from '@/config/store';
 import { CornerSquare, MosaicGrid, genreSpan, type TileSpec } from '@/ui/discover/Mosaic';
@@ -45,7 +45,7 @@ export default function CategoriesScreen(): React.ReactElement {
         >
           <CornerSquare name={g.name} size={tall ? 110 : 60} />
           <Icon name={g.icon} size={24} color={colour.text} />
-          <Type step="lede" className="text-text" style={{ ...(tall ? PAGE_TYPE.tile17 : PAGE_TYPE.tile13), marginTop: PAGE.gap - 2, zIndex: 2 }} numberOfLines={3}>{g.name}</Type>
+          <Type step="lede" className="text-text" style={{ ...(tall ? PAGE_TYPE.tile17 : PAGE_TYPE.tile13), marginTop: PAGE.gap - 2, zIndex: 2 }} numberOfLines={tall ? 3 : 2} maxFontSizeMultiplier={tall ? undefined : FIXED_TYPE}>{g.name}</Type>
         </Pressable>
       ),
     };

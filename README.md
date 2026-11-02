@@ -1,7 +1,7 @@
 # SocialMorning — CI mirror
 
 Test mirror of a private repository. Only the code the gate needs is here; the product
-documentation, specs and research are not. Source commit: `e6e6d58d`.
+documentation, specs and research are not. Source commit: `1d1e66f1`.
 
 Every push runs `.github/workflows/gate.yml`, which calls `scripts/gate.sh` once per job (the list of checks lives only there):
 
