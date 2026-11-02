@@ -26,6 +26,18 @@ appId: app.socialmorning.mobile
 - tapOn:
     text: "Journey Morning, .*"
     index: 0
+# Run 41385187706 (r08): the result row was on screen and the tap did not open the show (the page was still the search results). One more tap.
+- extendedWaitUntil:
+    visible: "(Subscribe to|Unsubscribe from) this show"
+    timeout: 15000
+    optional: true
+- runFlow:
+    when:
+      notVisible: "(Subscribe to|Unsubscribe from) this show"
+    commands:
+      - tapOn:
+          text: "Journey Morning, .*"
+          index: 0
 - extendedWaitUntil:
     visible: "(Subscribe to|Unsubscribe from) this show"
     timeout: 30000

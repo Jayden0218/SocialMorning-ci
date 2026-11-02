@@ -67,3 +67,40 @@ it('the show page re-reads its subscribed state when the sync changes the table'
   const src = readFileSync(join(__dirname, '..', 'app', 'show', '[feedUrl].tsx'), 'utf8');
   expect(src).toMatch(/subscriptionSync\.onChange\?\.\(/);
 });
+
+// 035 (device run 41385187706, r22): on the CI server the sign-in PUT took the client's whole 10 s and failed; nothing tried again, so the account's show never arrived.
+// A failed reconcile retries in the background (bounded), so a slow server delays the table instead of leaving it empty. Break: drop `retry` handling in `reconcile`.
+it('a failed reconcile is retried later, and the table fills when the retry lands', async () => {
+  const server: SubscriptionOut[] = [{ feedUrl: SHOW, createdAt: '2026-11-01T09:00:00.000Z', starred: false }];
+  let calls = 0;
+  const timers: (() => void)[] = [];
+  const store = createMemorySubscriptionStore();
+  const sync = createSubscriptionSync({
+    api: { putSubscriptions: async () => { calls++; if (calls === 1) throw new Error('timeout'); return { items: server, serverTime: 'now' }; } } as never,
+    subscriptions: store,
+    isSignedIn: () => true,
+    retry: { afterMs: 5_000, times: 2, setTimeout: (fn: () => void) => { timers.push(fn); return 0; } },
+  } as never);
+  let told = 0;
+  sync.onChange(() => told++);
+  await sync.reconcile().catch(() => undefined); // the first try fails: the caller still sees the failure
+  expect(store.all()).toHaveLength(0);
+  expect(timers).toHaveLength(1);
+  timers.shift()!();
+  await new Promise((r) => setTimeout(r, 0));
+  expect(store.all().map((r) => r.feedUrl)).toEqual([SHOW]);
+  expect(told).toBe(1);
+});
+
+it('retries are bounded: after `times` failed retries it stops', async () => {
+  const timers: (() => void)[] = [];
+  const sync = createSubscriptionSync({
+    api: { putSubscriptions: async () => { throw new Error('down'); } } as never,
+    subscriptions: createMemorySubscriptionStore(),
+    isSignedIn: () => true,
+    retry: { afterMs: 1, times: 2, setTimeout: (fn: () => void) => { timers.push(fn); return 0; } },
+  } as never);
+  await sync.reconcile().catch(() => undefined);
+  for (let i = 0; i < 5 && timers.length > 0; i++) { timers.shift()!(); await new Promise((r) => setTimeout(r, 0)); }
+  expect(timers).toHaveLength(0);
+});

@@ -44,6 +44,17 @@ appId: app.socialmorning.mobile
     commands:
       - tapOn: "Close"
 - runFlow: _close-player.yaml
+# Runs 41359074906 (r05), 41385187706 (r03): the interests page can arrive AFTER "Discover" (the tab) was seen under it and the loop above had ended,
+# and then it covers the tabs during the last wait. So it is dismissed here too, until "Discover" is what is on screen.
+- extendedWaitUntil:
+    visible: "Skip choosing categories"
+    timeout: 10000
+    optional: true
+- runFlow:
+    when:
+      visible: "Skip choosing categories"
+    commands:
+      - tapOn: "Skip choosing categories"
 - extendedWaitUntil:
     visible: "Discover"
     timeout: 30000

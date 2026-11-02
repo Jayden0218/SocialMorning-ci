@@ -174,6 +174,7 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
       api: graphApi,
       subscriptions: stores.subscriptions,
       isSignedIn: () => stores.auth.get() !== undefined,
+      retry: { afterMs: 10_000, times: 3, setTimeout: (fn, ms) => setTimeout(fn, ms) }, // 035: slow server delays, not loses
     });
     startupTasks().push(created.reconcile().catch(reportAndDrop('sync.reconcile')));
     return created;

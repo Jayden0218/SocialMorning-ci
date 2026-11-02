@@ -24,6 +24,8 @@ export type SubscriptionSyncDeps = {
   api: ApiClient;
   subscriptions: SubscriptionStore;
   isSignedIn: () => boolean;
+  /** 035: when a reconcile fails (a slow or unreachable server), try again `afterMs` later, up to `times` more times, each a little later than the last. */
+  retry?: { afterMs: number; times: number; setTimeout: (fn: () => void, ms: number) => unknown };
 };
 
 export type SubscriptionSync = {
@@ -55,6 +57,17 @@ export function createSubscriptionSync(deps: SubscriptionSyncDeps): Subscription
   let inFlight: Promise<void> | undefined;
   const listeners = new Set<() => void>();
 
+  // A failed reconcile is tried again in the background (bounded): a slow server delays the table instead of leaving it empty (device run 41385187706, r22).
+  function retryLater(done: number): void {
+    const r = deps.retry;
+    if (!r || done >= r.times) return;
+    r.setTimeout(() => {
+      const p = (inFlight ?? Promise.resolve()).then(run, run);
+      inFlight = p;
+      p.catch(() => retryLater(done + 1));
+    }, r.afterMs * (done + 1));
+  }
+
   async function run(): Promise<void> {
     if (!deps.isSignedIn()) return;
     const local = deps.subscriptions.all();
@@ -67,6 +80,7 @@ export function createSubscriptionSync(deps: SubscriptionSyncDeps): Subscription
     reconcile() {
       // One at a time: two overlapping full-set merges would race on replaceAll.
       inFlight = (inFlight ?? Promise.resolve()).then(run, run);
+      inFlight.catch(() => retryLater(0));
       return inFlight;
     },
     onChange(listener) {

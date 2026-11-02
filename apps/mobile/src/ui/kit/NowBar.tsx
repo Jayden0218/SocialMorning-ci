@@ -219,7 +219,8 @@ function Bar(props: NowBarProps & { wrap: Wrap; panHandlers: object }): React.Re
           accessibilityState={{ selected: props.playing, busy: props.buffering === true }}
           hitSlop={CIRCLE_SLOP}
           className="items-center justify-center"
-          style={{ width: bars.playCircle, height: bars.playCircle }}
+          // 035 A3: the disc is drawn 40; the button's frame is 44 x 44 (the disc stays centred in it).
+          style={{ width: bars.playCircle, height: bars.playCircle, minWidth: bars.circle, minHeight: bars.circle }}
         >
           <Animated.View
             testID="now-play-ring"

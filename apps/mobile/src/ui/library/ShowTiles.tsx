@@ -47,7 +47,7 @@ export function ShowTile(props: { item: ShowTileRow; /** "Updated 2d ago" / "No 
           <Type step="tag" className="text-text3" style={{ ...LIB_TYPE.mono11, marginTop: 4 }} numberOfLines={1}>{props.line}</Type>
         </Box>
       </Pressable>
-      <Pressable onPress={props.onMenu} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} hitSlop={SUBS.tilePad} className="items-center justify-center" style={{ width: SUBS.more + 2 * SUBS.tilePad, height: 48 }}>
+      <Pressable onPress={props.onMenu} accessibilityRole="button" accessibilityLabel={`More for ${item.title}`} hitSlop={SUBS.tilePad} className="items-center justify-center" style={{ width: SUBS.more + 2 * SUBS.tilePad, height: 48, minWidth: 44 }}>
         <Icon name="ellipsis-horizontal" size={SUBS.more} color={colour.text2} />
       </Pressable>
     </Box>
