@@ -97,6 +97,9 @@ export function repliesLink(total: number): string | undefined {
  */
 const ACTION_SLOP = { top: 8, bottom: 24, left: 8, right: 8 };
 const ROW = { gap: COMMENTS.actionGap };
+/** 036 T015: the words "Reply" (16 high, about 36 wide) and "n replies ›" (16 high) get a 44 frame of their own (the frame is what is read; `hitSlop` is not in it), pulled back so the row is as drawn. */
+const REPLY_FRAME = { minWidth: 44, minHeight: 44, marginVertical: -14, marginHorizontal: -4, justifyContent: 'center' as const, alignItems: 'center' as const };
+const LINK_FRAME = { minHeight: 44, marginVertical: -14, justifyContent: 'center' as const };
 /** Drawn `line-height: 1` lines: the pin words 13, the action row's words 16 (the row is the 16 heart), so the card is not taller than drawn. */
 const LINE_PIN = { lineHeight: COMMENTS.pinLine };
 const LINE_ACTION = { lineHeight: COMMENTS.heart };
@@ -236,12 +239,12 @@ export function CommentRow(props: {
           </Pressable>
         )}
         {!reply && props.onReply ? (
-          <Pressable onPress={() => props.onReply?.(c)} accessibilityRole="button" accessibilityLabel="Reply" hitSlop={ACTION_SLOP}>
+          <Pressable onPress={() => props.onReply?.(c)} accessibilityRole="button" accessibilityLabel="Reply" hitSlop={ACTION_SLOP} style={REPLY_FRAME}>
             <Type step="caption" className="text-text2" style={LINE_ACTION}>Reply</Type>
           </Pressable>
         ) : null}
         {link ? (
-          <Pressable onPress={() => props.onOpenThread?.(c)} accessibilityRole="link" accessibilityLabel={`${link.replace(' ›', '')}. Open the replies`} hitSlop={ACTION_SLOP}>
+          <Pressable onPress={() => props.onOpenThread?.(c)} accessibilityRole="link" accessibilityLabel={`${link.replace(' ›', '')}. Open the replies`} hitSlop={ACTION_SLOP} style={LINK_FRAME}>
             <Type step="caption" className="text-hotText" style={LINE_ACTION}>{link}</Type>
           </Pressable>
         ) : null}

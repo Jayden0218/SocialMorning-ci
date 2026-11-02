@@ -17,6 +17,8 @@ const CHIP = { minHeight: bars.stamp, paddingHorizontal: bars.stampPad, justifyC
 /** Geist Mono's advance in em: every glyph is as wide as a digit. */
 const MONO_EM = 0.62;
 const SLOP = { top: 11, bottom: 11, left: 4, right: 4 };
+/** 036 T015: the pressable is a 44 frame (what Maestro and VoiceOver read) around the drawn 22 pill; -11 above and below keeps the row as drawn. */
+const FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - bars.stamp) / 2, justifyContent: 'center' as const, alignSelf: 'flex-start' as const };
 
 export function TimestampChip(props: { text: string; solid?: boolean; onPress?: () => void; accessibilityLabel?: string }): React.ReactElement {
   const { fontScale } = useWindowDimensions();
@@ -29,8 +31,8 @@ export function TimestampChip(props: { text: string; solid?: boolean; onPress?: 
   const cls = `rounded-chip self-start ${props.solid ? 'bg-hot' : 'bg-hotSoft'}`;
   if (!props.onPress) return <Box className={cls} style={[CHIP, fit]}>{body}</Box>;
   return (
-    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.accessibilityLabel ?? `Play from ${props.text}`} hitSlop={SLOP} className={cls} style={[CHIP, fit]}>
-      {body}
+    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.accessibilityLabel ?? `Play from ${props.text}`} hitSlop={SLOP} style={[FRAME, fit]}>
+      <Box className={cls} style={CHIP}>{body}</Box>
     </Pressable>
   );
 }

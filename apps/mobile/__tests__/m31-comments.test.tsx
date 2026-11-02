@@ -84,6 +84,7 @@ jest.mock('@/storage/playable', () => ({ toPlayable: () => ({ id: 'e1', url: 'ht
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { colour } from '@/design';
+import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { PlayerProvider, createPlayerRuntime } from '@/playback/store';
 import { createMemoryStores } from '@/storage/memory';
 import { hash } from '@/feeds/hash';
@@ -718,5 +719,48 @@ describe('F2b: the sheets and cards are the drawing\'s height', () => {
     const pin = pinned.root.findAll((n) => typeof n.type === 'string' && n.props['children'] === 'PINNED BY THE HOST')[0];
     expect(pin).toBeDefined();
     expect(styleOf(pin!)['lineHeight']).toBe(13);
+  });
+});
+
+// 036 T015 (US3; FR-015). The device check's a11y-frames.mjs (T014) read these drawn smaller than 44 pt in the artifact of run 41420682128:
+// "Reply" 35 x 16, "n replies" 50 x 17, "Play from m:ss" 52 x 22, the strip's episode link 296 x 36, the map 350 x 26. `hitSlop` is not in the frame,
+// so each gets a 44 frame of its own and a negative margin that keeps the row as drawn. Break: take `minHeight` off one and its line goes red.
+describe('036 T015: tappable frames are 44 (the frame Maestro reads), rows stay as drawn', () => {
+  const frame = (r: ReactTestRenderer, label: string) => {
+    const s = styleOf(pressable(r, label));
+    return { h: Number(s['minHeight'] ?? s['height']), w: Number(s['minWidth'] ?? s['width']), mv: Number(s['marginVertical'] ?? 0), mh: Number(s['marginHorizontal'] ?? 0) };
+  };
+  const card = () => mount(createElement(CommentRow, { c: c({ id: 'c9', replies: [c({ id: 'r9', parentId: 'c9' })] }), serverTime: SERVER, likeOf: (y: Comment) => ({ count: y.likeCount ?? 0, liked: false }), onSeek: mockSeek, onLike: jest.fn(), onMenu: jest.fn(), onReply: jest.fn(), onOpenThread: jest.fn() }));
+  it('"Reply": 44 tall and 44 wide, pulled back 14 above and below and 4 either side (drawn 16 high, about 36 wide)', () => {
+    const f = frame(card(), 'Reply');
+    expect([f.h, f.w]).toEqual([44, 44]);
+    expect(f.mv).toBe(-14);
+    expect(f.mh).toBe(-4);
+  });
+  it('"1 reply ›": 44 tall, pulled back 14 above and below', () => {
+    const f = frame(card(), '1 reply. Open the replies');
+    expect(f.h).toBe(44);
+    expect(f.mv).toBe(-14);
+  });
+  it('the timestamp chip: the pressable is 44 tall with the 22 pill inside it, pulled back 11 above and below', () => {
+    const r = mount(createElement(TimestampChip, { text: '14:32', onPress: jest.fn() }));
+    const f = frame(r, 'Play from 14:32');
+    expect(f.h).toBe(44);
+    expect(f.mv).toBe(-11);
+    const pill = r.root.findAll((n) => typeof n.type === 'string' && String(n.props['className'] ?? '').includes('bg-hotSoft'))[0]!;
+    expect(Number(styleOf(pill)['minHeight'])).toBe(22);
+  });
+  it('the map: its frame is 44 tall (the 26 bars stay 26, the 18 is room below them)', () => {
+    const r = mount(createElement(CommentsMap, { heat: [], played: 0.3, onJump: jest.fn() }));
+    const map = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityLabel'] === 'Where people reacted. Touch to jump the comments to that moment')[0]!;
+    expect(Number(styleOf(map)['height'])).toBe(44);
+    expect(Number(styleOf(map)['paddingBottom'])).toBe(18);
+  });
+  it('the strip\'s episode link is 44 tall (the play button beside it already is)', async () => {
+    mockCached.social.comments = [];
+    const r = mount(createElement(CommentsScreen));
+    await act(async () => { await Promise.resolve(); });
+    const link = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'link' && String(n.props['accessibilityLabel']).startsWith('Why mornings matter'))[0]!;
+    expect(Number(styleOf(link)['minHeight'])).toBe(44);
   });
 });

@@ -48,6 +48,8 @@ export function Curve(props: {
   /** Bars `from` to `to` are left empty but keep their place: the paused curve of the maintenance, error and appeal pages (shell.html `gapCurve`). */
   gapRange?: readonly [number, number];
   onSeek?: (fraction: number) => void;
+  /** 036 T015: room added BELOW the bars so the touch (and accessible) frame reaches 44; the bars stay `height` tall. */
+  reach?: number;
   /** The spoken name ("Where people reacted"). Without one the bars are hidden from a screen reader. */
   accessibilityLabel?: string;
   className?: string;
@@ -74,7 +76,7 @@ export function Curve(props: {
   return (
     <Box
       className={`flex-row items-end ${props.className ?? ''}`}
-      style={{ height, gap }}
+      style={{ height: height + (props.reach ?? 0), paddingBottom: props.reach ?? 0, gap }}
       onLayout={(e) => { setWidth(e.nativeEvent.layout.width); }}
       {...(seek ? pan.panHandlers : {})}
       {...(label !== undefined

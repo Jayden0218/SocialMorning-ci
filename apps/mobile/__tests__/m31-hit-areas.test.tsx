@@ -137,3 +137,20 @@ describe('Chip', () => {
     }
   });
 });
+
+// 036 T015 (US3). Read in the device-check artifact of run 41420682128: the now bar's open area 244 x 42, the Me title link 143 x 38, the title links
+// "My subscriptions ›" 137 x 18 and "My profile ›" 72 x 18. The frame is what Maestro reads, so `minHeight` carries the 44 (`hitSlop` stays as well).
+describe('036 T015: frames of the now bar open area and the title links', () => {
+  it('the open area is 44 tall in its own frame (the 58 bar around it does not change)', () => {
+    const r = render(createElement(NowBar, { mode: 'bar', title: 'Why mornings matter', playing: false, positionMs: 1000, durationMs: 600000, bottom: 100, onToggle: jest.fn(), onOpen: jest.fn(), onQueue: jest.fn() }));
+    expect(Number(flat(byLabel(r, 'Now playing: Why mornings matter. Open the player.'))['minHeight'])).toBe(bars.circle);
+  });
+  it('a title link and a subtitle link are 44 tall in their frames, pulled back so the title bar is as drawn', () => {
+    const r = render(createElement(TitleBar, { title: 'Ana', titleLabel: 'Ana, open your profile', onTitle: () => undefined, subtitle: 'My profile ›', onSubtitle: () => undefined, bottom: 100 }));
+    for (const label of ['Ana, open your profile', 'My profile ›']) {
+      const s = flat(byLabel(r, label));
+      expect(Number(s['minHeight'])).toBe(44);
+      expect(Number(s['marginVertical'] ?? s['marginBottom'])).toBeLessThan(0); // the title link pulls both sides back; the subtitle keeps its 6 above, less the difference
+    }
+  });
+});

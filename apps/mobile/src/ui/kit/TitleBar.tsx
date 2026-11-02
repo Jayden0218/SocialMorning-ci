@@ -37,6 +37,8 @@ const longestWord = (t: string): number => Math.max(0, ...t.split(/\s+/).map((w)
 /** F10: the title's cap (the drawn 30 would be 60 at 200 %) and the one-word title's shrink-to-fit. */
 const FIT = { adjustsFontSizeToFit: true, minimumFontScale: 0.6 } as const;
 const SUB = { marginTop: bars.titleSub };
+/** 036 T015: a title link or a subtitle link is one text line (38, 18); its frame is 44 (the frame is what is read, `hitSlop` is not in it) and a negative margin of the difference keeps the bar as drawn. */
+const slack = (line: number): number => -Math.max(0, (bars.circle - line) / 2);
 /** A title link is one line tall (38), so it gets touch room to reach 48. */
 const TITLE_SLOP = { top: 6, bottom: 6, left: 0, right: 0 };
 
@@ -72,6 +74,8 @@ export function TitleBar(props: {
   const still = useReducedMotion();
   const face = useFace(`${typeScale[BIG].cls}`);
   const shrunk = props.shrunk === true;
+  const [titleLine, setTitleLine] = useState(0);
+  const [subLine, setSubLine] = useState<number>(typeScale.caption.lineSafe);
   const [t] = useState(() => new Animated.Value(shrunk ? 1 : 0));
   useEffect(() => {
     if (still) { t.setValue(shrunk ? 1 : 0); return; }
@@ -98,8 +102,8 @@ export function TitleBar(props: {
           {/* F3 (design-pulse2 `downloads`): a title that is one word cannot break, so it runs on under the action circles (they are drawn over its end) instead of wrapping into letters ("Downloa / ds"). */}
           <Box testID="title-bar-title" style={{ marginRight: reach }}>
           {props.onTitle ? (
-            <Pressable onPress={props.onTitle} accessibilityRole="link" accessibilityLabel={props.titleLabel ?? props.title} hitSlop={TITLE_SLOP} className="self-start max-w-full">
-              <Animated.Text numberOfLines={lines} maxFontSizeMultiplier={TYPE_CAP} {...fit} style={[face, { color: colour.text, fontSize: size, lineHeight: line, letterSpacing: tracking }]}>
+            <Pressable onPress={props.onTitle} accessibilityRole="link" accessibilityLabel={props.titleLabel ?? props.title} hitSlop={TITLE_SLOP} className="self-start max-w-full" style={{ minHeight: bars.circle, marginVertical: slack(titleLine > 0 ? titleLine : drawnLine), justifyContent: 'center' }}>
+              <Animated.Text onLayout={(e) => setTitleLine(e.nativeEvent.layout.height)} numberOfLines={lines} maxFontSizeMultiplier={TYPE_CAP} {...fit} style={[face, { color: colour.text, fontSize: size, lineHeight: line, letterSpacing: tracking }]}>
                 {props.title}
               </Animated.Text>
             </Pressable>
@@ -118,8 +122,8 @@ export function TitleBar(props: {
           </Box>
           {props.subtitle ? (
             props.onSubtitle ? (
-              <Pressable onPress={props.onSubtitle} accessibilityRole="link" accessibilityLabel={props.subtitle} hitSlop={13} className="self-start" style={SUB}>
-                <Type step="caption" className="text-hotText font-semibold" numberOfLines={1}>{props.subtitle}</Type>
+              <Pressable onPress={props.onSubtitle} accessibilityRole="link" accessibilityLabel={props.subtitle} hitSlop={13} className="self-start" style={{ minHeight: bars.circle, justifyContent: 'center', marginTop: bars.titleSub + slack(subLine), marginBottom: slack(subLine) }}>
+                <Type step="caption" className="text-hotText font-semibold" numberOfLines={1} onLayout={(e) => setSubLine(e.nativeEvent.layout.height)}>{props.subtitle}</Type>
               </Pressable>
             ) : (
               <Type step="caption" className="text-text2" style={SUB} numberOfLines={props.subtitleLines ?? 2}>{props.subtitle}</Type>

@@ -67,7 +67,7 @@ export function EpisodeCard(props: { episodeId: string }): React.ReactElement | 
         accessibilityRole="link"
         accessibilityLabel={`${episode.title}${subtitle ? `. ${subtitle}` : ''}`}
         className="flex-1 flex-row items-center"
-        style={{ gap: COMMENTS.stripGap, minHeight: COMMENTS.stripCover }}
+        style={{ gap: COMMENTS.stripGap, minHeight: Math.max(COMMENTS.stripCover, bars.circle) }}
         hitSlop={{ top: 6, bottom: 6 }}
       >
         <Artwork url={episode.imageUrl ?? show?.imageUrl} size={CARD_ARTWORK} name={show?.title} />

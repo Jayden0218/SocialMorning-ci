@@ -198,7 +198,7 @@ function Bar(props: NowBarProps & { wrap: Wrap; panHandlers: object }): React.Re
           accessibilityLabel={`Now playing: ${props.title}. Open the player.`}
           hitSlop={OPEN_SLOP}
           className="flex-1 flex-row items-center"
-          style={{ gap: player.nowGap }}
+          style={{ gap: player.nowGap, minHeight: bars.circle }}
         >
           <Box testID="now-cover" style={{ width: bars.cover, height: bars.cover }}>
             <Artwork url={props.coverUrl} size={bars.cover} name={props.coverName} />

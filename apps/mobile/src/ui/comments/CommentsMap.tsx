@@ -12,7 +12,7 @@ import { Box } from '@/ui/lib/box';
 import { Curve } from '@/ui/kit/Curve';
 import { Type } from '@/ui/kit/Type';
 import { compactCount } from '@/ui/kit/format';
-import { colour } from '@/design';
+import { bars, colour } from '@/design';
 import { COMMENTS } from './measures';
 
 const NONE: readonly number[] = [];
@@ -45,6 +45,7 @@ export function CommentsMap(props: {
           gap={COMMENTS.mapGapBars}
           played={props.played}
           onSeek={props.onJump}
+          reach={bars.circle - COMMENTS.mapHeight}
           accessibilityLabel="Where people reacted. Touch to jump the comments to that moment"
         />
         <Box className="absolute top-0 bg-text" pointerEvents="none" style={{ left: x, width: COMMENTS.line, height: COMMENTS.mapHeight }} testID="comments-map-line" />
