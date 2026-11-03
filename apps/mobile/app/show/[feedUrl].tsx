@@ -97,6 +97,13 @@ const EVEN = Array.from({ length: 100 }, () => 0.5);
 const VEIL_TILE = [colour.clear, colour.scrimFoot] as const;
 const VEIL_AT = [0.2, 1] as const;
 const GLASS = { backgroundColor: SHOW.circleFill };
+// 036 lane F: three small controls become 44 pt frames, the layout as drawn (a negative margin takes back what the frame adds; never `hitSlop` alone).
+/** A host's 26 (22 + 2 ring each side) avatar: the frame overhangs it by 9 on every side. */
+const HOST_FRAME_OVERHANG = (bars.circle - (SHOW.hostAvatar + 4)) / 2;
+/** "Show all" beside the description: the 18 line gets 13 above and below. */
+const SHOW_ALL_FRAME = { minHeight: bars.circle, marginVertical: -13 };
+/** The Episodes / About tabs sit in the 48 pill: the frame fits inside it (no margin). */
+const TAB_FRAME = { minWidth: bars.circle, minHeight: bars.circle };
 
 type RowProps = {
   item: CachedEpisode; plays: number; talk: number; progress: string; share: number; now: number; playing: boolean; iconColour: string;
@@ -481,8 +488,10 @@ export default function ShowScreen(): React.ReactElement {
       {hosts.length > 0 ? (
         <Box className="flex-row items-center">
           {hosts.slice(0, 3).map((h, i) => (
-            <Pressable key={h.id} onPress={() => router.push({ pathname: '/profile/[id]', params: { id: h.id } })} accessibilityRole="link" accessibilityLabel={`Host: ${h.name}`} hitSlop={spacing.row} style={{ marginLeft: i === 0 ? 0 : -SHOW.hostOverlap, borderWidth: 2, borderColor: colour.void, borderRadius: SHOW.hostAvatar }}>
-              <Avatar url={h.avatarUrl} name={h.name} size={SHOW.hostAvatar} />
+            <Pressable key={h.id} onPress={() => router.push({ pathname: '/profile/[id]', params: { id: h.id } })} accessibilityRole="link" accessibilityLabel={`Host: ${h.name}`} hitSlop={spacing.row} className="items-center justify-center" style={{ minWidth: bars.circle, minHeight: bars.circle, marginLeft: (i === 0 ? 0 : -SHOW.hostOverlap) - HOST_FRAME_OVERHANG, marginRight: -HOST_FRAME_OVERHANG, marginVertical: -HOST_FRAME_OVERHANG }}>
+              <Box style={{ borderWidth: 2, borderColor: colour.void, borderRadius: SHOW.hostAvatar }}>
+                <Avatar url={h.avatarUrl} name={h.name} size={SHOW.hostAvatar} />
+              </Box>
             </Pressable>
           ))}
         </Box>
@@ -548,7 +557,7 @@ export default function ShowScreen(): React.ReactElement {
               <Box className="flex-row items-center" style={{ gap: spacing.hair, marginTop: spacing.hair + 2 }}>
                 <Type step="caption" className="text-text2 flex-shrink" {...(descOpen ? {} : { numberOfLines: 1 })}>{desc}</Type>
                 {/* M21 US5: a tap opens the whole description; another closes it. */}
-                <Pressable onPress={() => setDescOpen((o) => !o)} accessibilityRole="button" accessibilityLabel={descOpen ? 'Description. Show less' : 'Description. Show all'} accessibilityState={{ expanded: descOpen }} hitSlop={spacing.row}>
+                <Pressable onPress={() => setDescOpen((o) => !o)} accessibilityRole="button" accessibilityLabel={descOpen ? 'Description. Show less' : 'Description. Show all'} accessibilityState={{ expanded: descOpen }} hitSlop={spacing.row} className="justify-center" style={SHOW_ALL_FRAME}>
                   <Type step="caption" className="text-text">{descOpen ? 'Show less' : 'Show all'}</Type>
                 </Pressable>
               </Box>
@@ -567,11 +576,11 @@ export default function ShowScreen(): React.ReactElement {
           />
           <IconButton icon="share-outline" label="Share this show" onPress={shareShow} fill size={20} diameter={48} />
           <Box className="flex-row items-center bg-raise rounded-pill flex-shrink" style={{ height: 48, paddingHorizontal: spacing.section - 2, gap: spacing.hair }}>
-            <Pressable onPress={() => setTab('episodes')} accessibilityRole="button" accessibilityLabel="Episodes" accessibilityState={{ selected: tab === 'episodes' }} hitSlop={{ top: 0, bottom: 0, left: 4, right: 4 }}>
+            <Pressable onPress={() => setTab('episodes')} accessibilityRole="button" accessibilityLabel="Episodes" accessibilityState={{ selected: tab === 'episodes' }} hitSlop={{ top: 0, bottom: 0, left: 4, right: 4 }} className="justify-center" style={TAB_FRAME}>
               <Type step="row" className={tab === 'episodes' ? 'text-text' : 'text-text2'}>Episodes</Type>
             </Pressable>
             <Type step="row" className="text-text3" accessible={false}>·</Type>
-            <Pressable onPress={() => { setSearching(false); setTerm(''); setTab('about'); }} accessibilityRole="button" accessibilityLabel="About" accessibilityState={{ selected: tab === 'about' }} hitSlop={{ top: 0, bottom: 0, left: 4, right: 4 }}>
+            <Pressable onPress={() => { setSearching(false); setTerm(''); setTab('about'); }} accessibilityRole="button" accessibilityLabel="About" accessibilityState={{ selected: tab === 'about' }} hitSlop={{ top: 0, bottom: 0, left: 4, right: 4 }} className="justify-center" style={TAB_FRAME}>
               <Type step="row" className={tab === 'about' ? 'text-text' : 'text-text2'}>About</Type>
             </Pressable>
           </Box>

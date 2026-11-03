@@ -14,6 +14,10 @@
  * `resource-id`, the same width and height, and a centre less than 44 pt away (the player ring's 18 pt comment pins, `ring-pin`, 15-16 pt apart: their moments also open
  * from the Comments button and the heat strip). A lone dot, a dot with no `resource-id` and a dot 44 pt or more from its same-id neighbours are judged as before.
  *
+ * 036 lane F (device run 41541862006): (a) the iOS system keyboard is the OS's: a node inside a node whose `resource-id` starts with "UIKeyboard" (the real tree nests
+ * every key under "UIKeyboardLayoutStar Preview") is not judged; (b) "Loading" (the kit Loader's progress indicator and the ghost rows' live region; the hierarchy gives
+ * them no role, id or hint, so the exact label is all that tells them apart) is not a tappable. Rules: gate-log.md "Lane F".
+ *
  * Usage: node a11y-frames.mjs <check output dir>     → prints one line per finding, exits 1 when there is one (or no hierarchy at all).
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
@@ -74,7 +78,7 @@ for (const file of jsons) {
   if (groups.some((g) => g.l === 'Dock')) continue;
   const isStaticText = (n, label, f) => {
     if ((n.children ?? []).some((c) => String(c.attributes?.accessibilityText ?? '').trim() === label)) return true; // iOS draws static text as the node and a child repeating it
-    if (CHROME.test(label)) return true;
+    if (CHROME.test(label) || label === 'Loading') return true;
     if (f.w < 20 && f.h > f.w) return true; // a turned section label
     const me = bbox(n.attributes?.bounds);
     return groups.some((g) => g.l.length > label.length && g.l.includes(label) && inside(me, g.b));
@@ -82,6 +86,7 @@ for (const file of jsons) {
   // iOS repeats a control's name on an inner node (a 40 pt disc inside its 48 pt Pressable): only the outermost node of a name is judged.
   const visit = (n, parentLabel = '') => {
     const a = n.attributes ?? {};
+    if (String(a['resource-id'] ?? '').startsWith('UIKeyboard')) return; // the system keyboard and everything in it
     const label = String(a.accessibilityText ?? '').trim();
     const f = frame(a.bounds);
     if (label !== '' && label !== parentLabel && f && f.w > 0 && f.h > 0 && !offScreen(a.bounds) && (f.w < MIN || f.h < MIN) && (hasIcon(n) || (a.enabled === 'true' && !isStaticText(n, label, f))) && !isDense(n)) {

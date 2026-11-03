@@ -139,3 +139,36 @@ describe('036 D6: a dense row of same-id, same-shape dots is not judged', () => 
     expect(r.out).toContain('2 control(s)');
   });
 });
+
+// 036 lane F (device run 41541862006): two false positives. (a) The iOS system keyboard's keys ("Q", "W", ... 38 x 54 pt, also "shift", "return") are the OS's, not ours.
+// The real hierarchy (r08-comments-end.json) nests every key under a node whose resource-id is "UIKeyboardLayoutStar Preview": a node inside a node whose
+// resource-id starts with "UIKeyboard" is not judged. A lone single-letter 38 x 54 node WITHOUT that ancestor still fails. (b) "Loading" (the kit Loader, the ghost
+// rows/tiles: a progress indicator or live region; the hierarchy has no role, no resource-id and no hint for it, so only its exact label tells it apart) is not a tappable.
+describe('036 lane F: the system keyboard and the Loading indicator are not judged', () => {
+  const key = (label: string, bounds: string) => live(label, bounds);
+  const keyboard = (...keys: unknown[]) => ({ attributes: { accessibilityText: '', 'resource-id': 'UIKeyboardLayoutStar Preview', bounds: '[0,553][390,786]', enabled: 'true' }, children: keys });
+  it('keys under a UIKeyboard node (38 x 54 letters, shift, return) are not judged', () => {
+    const r = run({ 'hierarchy/r1-end.json': screen(live('', '[0,509][390,844]', [keyboard(key('Q', '[4,560][42,614]'), key('shift', '[4,668][54,722]'), key('return', '[291,722][387,776]'))])) });
+    expect(r.out).toBe('a11y frames: every labelled icon control and tappable in 1 screen(s) is at least 44 x 44 pt\n');
+    expect(r.status).toBe(0);
+  });
+  it('a lone single-letter 38 x 54 node with no keyboard ancestor still fails', () => {
+    const r = run({ 'hierarchy/r1-end.json': screen(key('Q', '[4,560][42,614]')) });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('"Q" is 38 x 54 pt');
+  });
+  it('a node of ours beside the keyboard (a sibling, not inside it) still fails', () => {
+    const r = run({ 'hierarchy/r1-end.json': screen(keyboard(key('Q', '[4,560][42,614]')), live('Send', '[300,500][340,530]')) });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('"Send" is 40 x 30 pt');
+    expect(r.out).not.toContain('"Q"');
+  });
+  it('"Loading" 390 x 22 and 126 x 22 are not judged', () => {
+    expect(run({ 'hierarchy/r1-end.json': screen(live('Loading', '[0,77][390,99]'), live('Loading', '[132,291][258,313]')) }).status).toBe(0);
+  });
+  it('a real labelled 22 pt tappable such as "Reply" still fails', () => {
+    const r = run({ 'hierarchy/r1-end.json': screen(live('Reply', '[0,77][126,99]')) });
+    expect(r.status).toBe(1);
+    expect(r.out).toContain('"Reply" is 126 x 22 pt');
+  });
+});

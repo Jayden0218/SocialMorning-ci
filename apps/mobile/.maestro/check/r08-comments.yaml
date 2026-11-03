@@ -105,17 +105,6 @@ env:
     timeout: 30000
 - assertVisible: ".*${REPLY}.*"
 - takeScreenshot: r08-05-thread${SUFFIX || ''}
-# 036 (T022): the thread with its reply composer open and the keyboard up (the bar "Reply to Listener 06", thread/[commentId].tsx:269, opens
-# the Composer sheet, Composer.tsx:143, "Cancel" :123): read the list's bottom padding on this screenshot.
-- tapOn: "Reply to Listener 06"
-- extendedWaitUntil:
-    visible: "Comment.*Write a reply.*"
-    timeout: 30000
-- takeScreenshot: r08-05b-thread-keyboard-up${SUFFIX || ''}
-- tapOn: "Cancel"
-- extendedWaitUntil:
-    visible: "Reply to Listener 06"
-    timeout: 30000
 - tapOn:
     text: "Like\\. \\d+ likes?"
     index: 0
@@ -127,7 +116,18 @@ env:
 - extendedWaitUntil:
     visible: "Like\\. \\d+ likes?"
     timeout: 15000
+# 036 (T022, run 41541858384): the thread with the keyboard up, taken last. The bar "Reply to Listener 06" (thread/[commentId].tsx:269) becomes the
+# input itself with the keyboard up (no "Comment … Write a reply" sheet, no "Cancel": run 41541858384 step 83); read the list's bottom padding on it.
+- tapOn: "Reply to Listener 06"
+- waitForAnimationToEnd
+- takeScreenshot: r08-05b-thread-keyboard-up${SUFFIX || ''}
 - tapOn: "Back"
+- repeat:                                # a tap while the keyboard is up may only dismiss it
+    while:
+      notVisible: "Order options"
+    times: 2
+    commands:
+      - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Order options"
     timeout: 30000
