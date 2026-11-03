@@ -116,18 +116,19 @@ env:
 - extendedWaitUntil:
     visible: "Like\\. \\d+ likes?"
     timeout: 15000
-# 036 (T022, run 41541858384): the thread with the keyboard up, taken last. The bar "Reply to Listener 06" (thread/[commentId].tsx:269) becomes the
-# input itself with the keyboard up (no "Comment … Write a reply" sheet, no "Cancel": run 41541858384 step 83); read the list's bottom padding on it.
-- tapOn: "Reply to Listener 06"
-- waitForAnimationToEnd
-- takeScreenshot: r08-05b-thread-keyboard-up${SUFFIX || ''}
 - tapOn: "Back"
-- repeat:                                # a tap while the keyboard is up may only dismiss it
-    while:
-      notVisible: "Order options"
-    times: 2
-    commands:
-      - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Order options"
     timeout: 30000
+# 036 (T022, runs 41541858384 / 41567680869): the thread with the keyboard up, taken LAST and left open (with the keyboard up the dimmed title bar's
+# "Back" is not in the hierarchy, step 90 of run 41567680869). The bar "Reply to Listener 06" (thread/[commentId].tsx:269) becomes the input itself;
+# there is no "Comment … Write a reply" sheet and no "Cancel". Read the list's bottom padding on the screenshot.
+- tapOn:
+    text: "\\d+ repl(y|ies)\\. Open the replies"
+    index: 0
+- extendedWaitUntil:
+    visible: "Reply to Listener 06"
+    timeout: 30000
+- tapOn: "Reply to Listener 06"
+- waitForAnimationToEnd
+- takeScreenshot: r08-05b-thread-keyboard-up${SUFFIX || ''}
