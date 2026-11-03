@@ -1,4 +1,4 @@
-// 036 D4: the chat box's accessible name is now "Message Ana" (was "Message", which the device read twice with its placeholder); only that name changed in this file.
+// 036 D4: the chat box's accessible name is now "Message Ana" (was "Message", which the device read twice with its placeholder); D6 (2026-11-03) also moved the Notifications tab host's height and fill to its inner pill.
 // Tests that chat, New chat, Notifications (and its three pages) and Friends listening match their drawings in the numbers the owner compared.
 /**
  * M31 W4-C (T052; owner: "the design I want completely the same, or you can explain why it is different"). Source of every number:
