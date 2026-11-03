@@ -122,6 +122,9 @@ export default function NewVoicePost(): React.ReactElement {
   // The cap: stop at 60 s whatever the listener does.
   useEffect(() => { if (phase.kind === 'recording' && recordedMs >= VOICE_MAX_MS) void stop(); });
 
+  // A page opened by a link may be the only route: back is then a no-op, so fall back to home like the other pages (r17, run 41646852746).
+  const leave = () => { if (router.canGoBack()) router.back(); else router.replace('/'); };
+
   const post = async (uri: string, ms: number) => {
     setPhase({ kind: 'posting', uri, ms });
     try {
@@ -130,7 +133,7 @@ export default function NewVoicePost(): React.ReactElement {
       if (items.length > 0) await m22.postVoice(blob, ms, transcript, await itemsForPost(api, items));
       else await m12.postVoice(blob, ms, transcript);
       toast('Posted. It disappears in 24 hours.');
-      router.back();
+      leave();
     } catch (e) {
       setPhase({ kind: 'done', uri, ms });
       setError(e instanceof ApiError && e.status === 429 ? 'You already have 5 live voice posts.' : e instanceof ApiError && e.status === 503 ? 'Voice posts are switched off right now.' : e instanceof ApiError && (e.status === 422 || e.status === 400) ? e.message : "That didn't post — try again.");
@@ -142,7 +145,7 @@ export default function NewVoicePost(): React.ReactElement {
   // "0:24 / 1:00": the time large, the cap small beside it (`VoiceNew-B`).
   const [clock = '', cap = '1:00'] = voiceClock(shownMs).split(' / ');
   const recorded = phase.kind === 'done' || phase.kind === 'posting';
-  const cancel = () => { if (phase.kind === 'recording') { if (speech) speech.cancel(); else void stop(); } router.back(); };
+  const cancel = () => { if (phase.kind === 'recording') { if (speech) speech.cancel(); else void stop(); } leave(); };
   const insets = useContext(SafeAreaInsetsContext);
   const { width } = useWindowDimensions();
   const side = gutter(width);

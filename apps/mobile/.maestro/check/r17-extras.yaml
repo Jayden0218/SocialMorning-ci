@@ -142,9 +142,8 @@ appId: app.socialmorning.mobile
     timeout: 5000
 - takeScreenshot: r17-13-voice-new-with-episode
 - tapOn: "Cancel"
-# 036: leaving is not what this step proves (the screenshot above is). Run 41646852746 stayed on the page after "Cancel" (a link-opened page may
-# have no screen behind it to go back to; green in 41590881804), so this wait is optional and its outcome is not a result of the flow.
+# Strict again. Run 41646852746 stayed on the page after "Cancel": the page opened by link had no screen behind it and `cancel` called an
+# unguarded router.back() (a no-op). Fixed in app/voice/new.tsx (canGoBack, else replace('/')); guard voice-cancel-no-history.test.tsx. A failure here is a bug.
 - extendedWaitUntil:
     visible: "Discover|Now playing: .*"
-    timeout: 10000
-    optional: true
+    timeout: 30000

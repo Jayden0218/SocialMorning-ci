@@ -25,7 +25,8 @@ const mockOpenSettings = jest.fn();
 let mockMic = true;
 let mockDuration = 0;
 const mockRecorder = { prepareToRecordAsync: jest.fn(() => Promise.resolve()), record: jest.fn(), stop: jest.fn(() => Promise.resolve()), uri: 'file:///rec.m4a' };
-jest.mock('expo-router', () => ({ router: { back: () => mockBack(), push: jest.fn() }, usePathname: () => '/voice/new' }));
+// 035: the page now asks canGoBack() before leaving (voice-cancel-no-history.test.tsx); the mock gains it as a setup line, no assertion changed.
+jest.mock('expo-router', () => ({ router: { back: () => mockBack(), replace: jest.fn(), canGoBack: () => true, push: jest.fn() }, usePathname: () => '/voice/new' }));
 jest.mock('@/playback/expo-audio-adapter', () => ({
   askMicrophone: () => Promise.resolve(mockMic),
   useVoiceRecorder: () => ({ recorder: mockRecorder, state: { durationMillis: mockDuration } }),
