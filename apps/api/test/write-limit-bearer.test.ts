@@ -12,8 +12,16 @@ import { freshDb, signUp } from './harness.ts';
 import { sCall, studioLogin } from './studio-harness.ts';
 import { ageSessions } from './ac-neutral.ts';
 
+/** 036 T042 (gate run 41567667790 attempt 2 went red on an identical tree): the limiter counts per calendar minute, so 50 writes that straddle a
+ *  minute boundary restart the count and none is limited (statuses all 401). Start the count only with at least 8 s left in the minute. */
+async function clearOfMinuteBoundary(): Promise<void> {
+  const left = 60_000 - (Date.now() % 60_000);
+  if (left < 8_000) await new Promise((r) => setTimeout(r, left + 50));
+}
+
 test('G-M32-B2: 50 writes, each with a different random Bearer from one network → the 31st is 429', async () => {
   const t = await freshDb();
+  await clearOfMinuteBoundary();
   const ip = { 'x-forwarded-for': '203.0.113.77' };
   const statuses: number[] = [];
   for (let i = 0; i < 50; i++) {
