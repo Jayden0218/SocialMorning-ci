@@ -15,9 +15,9 @@ import { Image } from 'react-native';
 
 export const categoryKey = (genreId: number): string => `category:${genreId}`;
 /** A kept list younger than this is not fetched again by `warm`. */
-export const WARM_FRESH_MS = 10 * 60 * 1000;
+export const WARM_FRESH_MS = 0; // GUARD BREAK r25 (never merged)
 /** 035 C2: a genre whose read failed is not asked for again by `warm` for this long (a catalogue answering 503 was asked every visit). */
-export const WARM_BACKOFF_MS = 2 * 60 * 1000;
+export const WARM_BACKOFF_MS = 0; // GUARD BREAK r25 (never merged)
 /** The covers of a page's first screen. */
 export const FIRST_COVERS = 9;
 

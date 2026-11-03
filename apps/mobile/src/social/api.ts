@@ -391,7 +391,7 @@ export function requester(deps: ApiDeps) {
 }
 
 /** 035 B5: how long a catalogue search may take before it ends as a (marked) timeout. */
-export const SEARCH_TIMEOUT_MS = 25_000;
+export const SEARCH_TIMEOUT_MS = 10_000; // GUARD BREAK r23 (never merged)
 
 /** M23 US9: how long an upload may take before it fails as "Couldn't reach the server". */
 export const UPLOAD_TIMEOUT_MS = 60_000;

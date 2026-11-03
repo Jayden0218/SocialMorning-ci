@@ -111,7 +111,7 @@ export function RateSheet(props: { onTabs: boolean; segment: string | undefined;
   useEffect(() => {
     if (!may || asked) return;
     // M25 A7: how long after the tabs appear the sheet slides up (default 1.5 s).
-    const t = setTimeout(() => { stores.settings.set(RATE_SHOWN_KEY, String(nowMs())); setOpen(true); setAsked(true); }, getAppConfig().ratePrompt.delayMs);
+    const t = setTimeout(() => { setOpen(true) /* GUARD BREAK r24 (never merged) */; setAsked(true); }, getAppConfig().ratePrompt.delayMs);
     return () => clearTimeout(t);
   }, [may, asked, stores.settings]);
   // Never over an onboarding page: a sheet already up closes (no answer is recorded).
