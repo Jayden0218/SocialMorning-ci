@@ -26,9 +26,12 @@ import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
 import { liveLabel, useListeningNow } from '@/social/live';
 import type { CachedEpisode, CachedShow } from '@/storage/types';
+import { bars } from '@/design';
 import { PLAYER } from './measures';
 
 /** The show link is the drawn 18 tall line; its tap area is 48. */
+/** 036 D7: the 18 line is a 44 frame (the guard measured 114 x 18); -13 above and below keeps the row as drawn. */
+const SHOW_FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - PLAYER.showLine) / 2 };
 const SHOW_SLOP = { top: 15, bottom: 15, left: 4, right: 12 };
 const FOLLOW_SLOP = { top: 7, bottom: 7, left: 7, right: 7 };
 
@@ -79,7 +82,7 @@ export function PlayerTitleBlock(props: { episodeId: string; episode: CachedEpis
           {feedUrl === undefined ? (
             <Type step="caption" className="text-text2" numberOfLines={1}>{show?.title ?? ''}</Type>
           ) : (
-            <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} hitSlop={SHOW_SLOP} className="justify-center flex-shrink">
+            <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(feedUrl) } })} accessibilityRole="link" accessibilityLabel={`Show: ${show?.title ?? ''}`} hitSlop={SHOW_SLOP} className="justify-center flex-shrink" style={SHOW_FRAME}>
               <Type step="caption" className="text-text2" numberOfLines={1}>{`${show?.title ?? ''} ›`}</Type>
             </Pressable>
           )}

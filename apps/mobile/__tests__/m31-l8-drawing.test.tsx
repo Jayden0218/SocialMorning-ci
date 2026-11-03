@@ -269,7 +269,7 @@ describe('the controls and the tray, as drawn', () => {
     expect(styleOf(follow)).toMatchObject({ height: 34, paddingHorizontal: 14 });
     expect(styleOf(follow).marginBottom).toBeUndefined();
     const show = host(r, 'Show: Morning Notes');
-    expect(styleOf(show).minHeight).toBeUndefined();
+    expect(styleOf(show).minHeight).toBe(44); // 036 D7: the link is a 44 frame, marginVertical -13 keeps the 18 row as drawn
     expect(show.props['hitSlop']).toMatchObject({ top: 15, bottom: 15 });
     const title = r.root.findAll((n) => typeof n.type === 'string' && n.props['children'] === 'Why mornings matter')[0]!;
     expect(styleOf(title)).toMatchObject({ fontSize: 26, lineHeight: 33 });

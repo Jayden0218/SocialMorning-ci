@@ -690,7 +690,7 @@ describe('F2b: the sheets and cards are the drawing\'s height', () => {
       expect(14 + slop.top + slop.bottom).toBeGreaterThanOrEqual(48);
       // the head's Cancel is text in a 38 row: its tap comes from the hitSlop, not a 48 box
       const cancel = hostOf(r, 'Cancel');
-      expect(styleOf(cancel)['minHeight']).toBeUndefined();
+      expect(styleOf(cancel)['minHeight']).toBe(44); // 036 D7: a 44 frame, marginVertical -3 keeps the 38 head row as drawn
     } finally { social.composer.canSubmit = keep; }
   });
 

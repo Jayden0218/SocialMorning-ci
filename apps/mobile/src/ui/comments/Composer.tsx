@@ -37,7 +37,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { IconButton } from '@/ui/kit/PulseButton';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type, TYPE_CAP } from '@/ui/kit/Type';
-import { colour } from '@/design';
+import { bars, colour } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import { useSocial } from '@/social/context';
 import type { ComposerState } from '@/social/composer';
@@ -52,6 +52,8 @@ const POST = { height: COMMENTS.postHeight, paddingHorizontal: COMMENTS.postPad 
 const MOMENT = { borderRadius: COMMENTS.momentCardRadius, padding: COMMENTS.momentCardPad, gap: 10 };
 const BOX = { minHeight: COMMENTS.writeMin, borderRadius: COMMENTS.writeRadius };
 /** Cancel is text in a 38 tall head row (the Post pill sets the height): its 48 pt tap is the hitSlop. */
+/** 036 D7: a 44 frame (the guard measured 56 x 20, 62 x 26 at the largest text); -3 above and below keeps the 38 head row as drawn. */
+const CANCEL_FRAME = { minWidth: 56, minHeight: bars.circle, marginVertical: -(bars.circle - 38) / 2 };
 const CANCEL_SLOP = { top: 14, bottom: 14, left: 8, right: 8 };
 const THUMB = { width: 64, height: 64, borderRadius: 12 };
 
@@ -120,7 +122,7 @@ export function ComposerSheet(props: {
   // Drawn (`social.html` `composerSheet`): the head row stays above the form AND above the rules card.
   const head = (
     <Box className="flex-row items-center justify-between" style={{ gap: 8 }}>
-      <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Cancel" hitSlop={CANCEL_SLOP} className="justify-center" style={{ minWidth: 56 }}>
+      <Pressable onPress={props.onClose} accessibilityRole="button" accessibilityLabel="Cancel" hitSlop={CANCEL_SLOP} className="justify-center" style={CANCEL_FRAME}>
         <Type step="row" className="text-text2">Cancel</Type>
       </Pressable>
       <Type step="section" className="text-text font-display font-bold flex-1 text-center" numberOfLines={1} accessibilityRole="header">{state.parentId ? 'Reply' : 'New comment'}</Type>
