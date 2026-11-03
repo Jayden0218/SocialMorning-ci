@@ -63,3 +63,21 @@ it('a log with no complete visit fails: nothing was read', () => {
   expect(run(req('GET', '/v1/health')).status).toBe(1);
   expect(run(req('GET', '/__e2e/removed')).status).toBe(1);
 });
+
+// 035 finishing session: in CI the catalogue is off, so EVERY category request answers 503 and "8 + one per failure" allows any count: the per-visit
+// rule alone can never go red there. The back-off (WARM_BACKOFF_MS 2 min) and the 10-minute keep mean a category asked in one visit is not asked
+// again in the next (the visits are seconds apart), whether it failed or not.
+it('a category asked again in a later visit fails, even when every request failed (the back-off)', () => {
+  const r = run([...visit(cats(8, 503)), ...visit(cats(8, 503))]);
+  expect(r.status).toBe(1);
+  expect(r.out).toContain('1300');
+});
+
+it('a category asked again in a later visit fails when it had succeeded (the 10-minute keep)', () => {
+  expect(run([...visit(cats(3)), ...visit(cats(3))]).status).toBe(1);
+});
+
+it('different categories in the next visit pass', () => {
+  const other = Array.from({ length: 3 }, (_, k) => req('GET', `/v1/categories/${2000 + k}`, 503));
+  expect(run([...visit(cats(3, 503)), ...visit(other)]).status).toBe(0);
+});

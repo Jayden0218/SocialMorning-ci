@@ -20,9 +20,9 @@ onFlowComplete:
 - extendedWaitUntil:                     # 12 s server delay + the seed's own time; far inside the 25 s limit
     visible: "Journey Morning, .*"
     timeout: 60000
-- extendedWaitUntil:                     # give a wrongly drawn warn line time to appear before it is asserted absent
-    visible: "The catalogue needs a connection.*"
-    timeout: 6000
+- extendedWaitUntil:                     # give a wrongly drawn warn line time to appear before it is asserted absent. 20 s: a search back on the
+    visible: "The catalogue needs a connection.*"   # ordinary 10 s limit gives up at 10 s, after a 6 s wait would have passed (035 finishing: guard seen red)
+    timeout: 20000
     optional: true
 - assertNotVisible: "The catalogue needs a connection.*"
 - assertNotVisible: "The catalogue is slow to answer.*"
