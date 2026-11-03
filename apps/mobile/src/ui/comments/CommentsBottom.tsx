@@ -84,7 +84,7 @@ export function Capsule<T extends string>(props: {
             accessibilityLabel={it.accessibilityLabel ?? it.label}
             hitSlop={{ top: 7, bottom: 7 }}
             className={props.hug ? '' : 'flex-1'}
-            style={{ minHeight: bars.circle, marginVertical: -(bars.circle - (COMMENTS.capsuleHeight - 2 * COMMENTS.capsulePad)) / 2, justifyContent: 'center' }}
+            style={{ minHeight: bars.circle, ...(props.hug ? { minWidth: bars.circle } : null), marginVertical: -(bars.circle - (COMMENTS.capsuleHeight - 2 * COMMENTS.capsulePad)) / 2, justifyContent: 'center' }}
           >
             <Box
               testID="frame-pill"
