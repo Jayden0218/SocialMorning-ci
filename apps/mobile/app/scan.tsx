@@ -140,7 +140,6 @@ export default function ScanScreen(): React.ReactElement {
   return (
     <PushedPage
       title="Scan QR code"
-      size={26}
       tone="none"
       below={(
         <Box className="flex-row" style={{ gap: SCAN.rowGap }}>

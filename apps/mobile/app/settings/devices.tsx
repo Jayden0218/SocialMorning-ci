@@ -63,7 +63,7 @@ export default function DevicesScreen(): React.ReactElement {
   const now = clockMs();
   const others = state.kind === 'ok' ? state.items.filter((d) => !d.current).length : 0;
   return (
-    <PushedPage title="Signed-in devices" size={28}>
+    <PushedPage title="Signed-in devices">
       {(layout) => (
         <SetPage layout={layout}>
           <Lede small>Every place your account is signed in. If you do not know one, sign it out — it will need your email code to come back.</Lede>

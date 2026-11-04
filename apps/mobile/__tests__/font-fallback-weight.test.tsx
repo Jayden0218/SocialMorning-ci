@@ -30,7 +30,7 @@ it('not loaded: a title draws at 800, a heading at 700, strong at 600, body at 4
 });
 
 it('not loaded: useFace keeps the weight and leaves the family to the system', () => {
-  let seen: ReturnType<typeof useFace>;
+  let seen: ReturnType<typeof useFace> | undefined;
   const Probe = () => { seen = useFace('font-display font-extrabold text-pulse-hero'); return null; };
   act(() => { create(createElement(Probe)); });
   expect(seen).toEqual({ fontFamily: undefined, fontWeight: '800' });

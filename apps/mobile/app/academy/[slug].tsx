@@ -35,7 +35,7 @@ export default function ArticleScreen(): React.ReactElement {
   }
   const n = articles.findIndex((x) => x.slug === a.slug) + 1;
   return (
-    <PushedPage title={a.title} subtitle={`Creator academy · ${n}`} size={24}>
+    <PushedPage title={a.title} subtitle={`Creator academy · ${n}`}>
       {(layout) => (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body64), paddingBottom: layout.reserve }}>
           <Type step="lede" className="text-quote" style={[PAGE_TYPE.summary16, { marginLeft: ME_MOSAIC.lane, marginRight: PAGE.threadRight + 4, marginBottom: PAGE.pad }]}>{a.summary}</Type>

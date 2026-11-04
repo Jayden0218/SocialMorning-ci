@@ -49,7 +49,6 @@ export default function RedeemScreen(): React.ReactElement {
     <KeyboardPage>
       <PushedPage
         title="Redeem a code"
-        size={REDEEM.titleSize}
         tone="none"
         belowHeight={foot}
         below={(

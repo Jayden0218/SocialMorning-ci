@@ -47,7 +47,7 @@ const DOCS: { doc: Doc; icon: IconName; label: string }[] = [
 export default function AboutScreen(): React.ReactElement {
   const [doc, setDoc] = useState<Doc | undefined>();
   return (
-    <PushedPage title="About SocialNet" size={28}>
+    <PushedPage title="About SocialNet">
       {(layout) => (
         <SetPage layout={layout}>
           <Box className="flex-row items-center" style={{ gap: 14, paddingTop: SET.gap }}>

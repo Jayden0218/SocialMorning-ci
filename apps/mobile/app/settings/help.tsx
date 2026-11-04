@@ -51,7 +51,7 @@ export default function HelpScreen(): React.ReactElement {
   const tags = useMemo(() => [ALL, ...Array.from(new Set(faq.map((f) => f.tag)))], [faq]);
   const shown = tag === ALL ? faq : faq.filter((f) => f.tag === tag);
   return (
-    <PushedPage title="Help and feedback" size={28}>
+    <PushedPage title="Help and feedback">
       {(layout) => (
         <SetPage layout={layout}>
           <BigGrid>

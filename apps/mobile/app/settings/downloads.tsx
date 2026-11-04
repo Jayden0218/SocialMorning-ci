@@ -93,7 +93,7 @@ export default function DownloadSettings(): React.ReactElement {
   const share = budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : 0;
 
   return (
-    <PushedPage title="Downloads and cache" size={28}>
+    <PushedPage title="Downloads and cache">
       {(layout) => (
         <SetPage layout={layout}>
           <Sec label="Phone">

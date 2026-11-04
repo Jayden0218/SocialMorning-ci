@@ -158,7 +158,6 @@ export default function SubscriptionsScreen(): React.ReactElement {
     <>
       <PushedPage
         title="My subscriptions"
-        size={26}
         {...(rows.length > 0 ? { subtitle: plural(rows.length, 'show') } : {})}
         actions={[
           { icon: grid ? 'list-outline' : 'grid-outline', label: grid ? 'Show as a list' : 'Show as a grid', onPress: toggleView },

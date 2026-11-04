@@ -32,7 +32,7 @@ export default function HowForYou(): React.ReactElement {
   const [open, setOpen] = useState<number | undefined>(0);
   const eyebrow = <Type step="mono" className="text-hotText" style={drawnType.trackMono}>{'Discover › For You'.toUpperCase()}</Type>;
   return (
-    <PushedPage title="How For You works" subtitle="What it uses, and what it never uses" size={28} extra={eyebrow} extraAbove={EYEBROW_ABOVE}>
+    <PushedPage title="How For You works" subtitle="What it uses, and what it never uses" extra={eyebrow} extraAbove={EYEBROW_ABOVE}>
       {(layout) => (
         <SetPage layout={layout} lane={false}>
           <Box className="flex-row flex-wrap justify-between" style={{ rowGap: SET.bigGap }}>

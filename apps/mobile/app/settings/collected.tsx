@@ -54,7 +54,7 @@ export default function CollectedScreen(): React.ReactElement {
     subscriptions: stores.subscriptions.list().length,
   }), [stores, signedIn, version]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <PushedPage title="Information we collect" size={26}>
+    <PushedPage title="Information we collect">
       {(layout) => (
         <SetPage layout={layout}>
           <Lede strong>SocialNet keeps the information below, and nothing else.</Lede>

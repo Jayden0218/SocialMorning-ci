@@ -36,7 +36,7 @@ export default function StickerHelpScreen(): React.ReactElement {
     `Decorate my profile puts up to ${PLACEMENT_MAX} of your stickers on your profile. Drag a sticker to move it; use two fingers to resize and turn it. Everyone who opens your profile sees them, unless you hide decorations in Privacy.`,
   ];
   return (
-    <PushedPage title="How stickers work" size={26}>
+    <PushedPage title="How stickers work">
       {(layout) => (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: layout.top + (PROFILE.stageTop - DRAWN.status), paddingBottom: layout.reserve, gap: ME_MOSAIC.gap }}>
           <Box style={LANE}>

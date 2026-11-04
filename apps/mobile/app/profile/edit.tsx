@@ -137,7 +137,7 @@ export default function EditProfileScreen(): React.ReactElement {
 
   return (
     <KeyboardPage>
-      <PushedPage title="Edit profile" size={26} tone="none" {...(listener && loaded === 'ok' ? { right: saveButton } : {})}>
+      <PushedPage title="Edit profile" tone="none" {...(listener && loaded === 'ok' ? { right: saveButton } : {})}>
         {(layout) => {
           const top = layout.top + (PROFILE.photoTop - DRAWN.status);
           if (!listener) {

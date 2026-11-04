@@ -91,7 +91,7 @@ export default function FavouritesScreen(): React.ReactElement {
 
   return (
     <KeyboardPage>
-      <PushedPage title="Favourites" size={28} below={below} belowHeight={SWITCH + (any ? LIST.field + spacing.row : 0)}>
+      <PushedPage title="Favourites" below={below} belowHeight={SWITCH + (any ? LIST.field + spacing.row : 0)}>
         {(layout) => {
           const listTop = layout.top + (DRAWN.listTop - DRAWN.status);
           if (tab === 'comments') {

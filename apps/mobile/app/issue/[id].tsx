@@ -74,7 +74,6 @@ export default function IssueScreen(): React.ReactElement {
   return (
     <PushedPage
       title={state.kind === 'ok' ? state.issue.title : 'Issue'}
-      size={24}
       subtitle={number ? `Issue No. ${number}` : 'Issue'}
       actions={state.kind === 'ok' ? [{ icon: 'share-outline', label: 'Share this issue', onPress: share }] : []}
     >

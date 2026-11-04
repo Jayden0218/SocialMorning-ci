@@ -114,7 +114,7 @@ export default function StatusScreen(): React.ReactElement {
   // Signed out, loading and gone: the pushed shape, with Close (×) in the bottom zone.
   if (!listener || state.kind !== 'ok') {
     return (
-      <PushedPage title="Status" size={26} tone="none" onBack={close} backIcon="close" backLabel="Close">
+      <PushedPage title="Status" tone="none" onBack={close} backIcon="close" backLabel="Close">
         {(layout) => (
           <Box className="flex-1">
             <PageGlow flip top={-200} strength={0.3} />

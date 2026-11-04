@@ -15,7 +15,6 @@ import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
 import { useFace } from '@/ui/lib/text';
 import { bars, colour, gutter, motion, typeScale, type TypeName } from '@/design';
-import { FACE_LEADING } from '@/design/tokens';
 import { IconButton } from './PulseButton';
 import { Type, TYPE_CAP } from './Type';
 import type { IconName } from './Icon';
@@ -23,7 +22,7 @@ import { useReducedMotion } from './useReducedMotion';
 
 export type TitleAction = { icon: IconName; label: string; onPress: () => void };
 
-const BIG: TypeName = 'hero';
+const BIG: TypeName = 'title';
 const LARGE_TEXT = 1.3;
 /** M31 F9 / 036 E5: a word this long ("subscriptions") at large text keeps to two lines and shrinks to fit. */
 const LONG_WORD = 10;
@@ -59,8 +58,6 @@ export function TitleBar(props: {
   top: number;
   /** The page has scrolled: shrink the title to 20 on one line. */
   shrunk?: boolean;
-  /** M31 W3-C: the drawn size of a long title (History is drawn at 26, Favourites at 28); 30 by default. Its line is the font's own. */
-  size?: number;
   /** Drawn under the title, e.g. the Discover search field. */
   extra?: React.ReactNode;
 }): React.ReactElement {
@@ -75,9 +72,10 @@ export function TitleBar(props: {
     if (still) { t.setValue(shrunk ? 1 : 0); return; }
     Animated.timing(t, { toValue: shrunk ? 1 : 0, duration: motion.move, useNativeDriver: false }).start();
   }, [shrunk, still, t]);
-  const drawn = props.size ?? typeScale.hero.size;
-  const drawnLine = props.size === undefined ? typeScale.hero.lineSafe : Math.ceil(props.size * FACE_LEADING.display);
-  const tracking = props.size === undefined ? typeScale.hero.tracking : drawn * -0.01;
+  // 038: one title size, the design system's `title` (30/38, 800). A long title shrinks to fit (`FIT`), it is never drawn smaller by the page.
+  const drawn = typeScale.title.size;
+  const drawnLine = typeScale.title.lineSafe;
+  const tracking = typeScale.title.tracking;
   const size = t.interpolate({ inputRange: [0, 1], outputRange: [drawn, typeScale.heading.size] });
   const line = t.interpolate({ inputRange: [0, 1], outputRange: [drawnLine, typeScale.heading.lineSafe] });
   // M31 F10: a title of one word cannot break between words, so it takes one line and shrinks to fit ("Commen / ts" at 200 %).

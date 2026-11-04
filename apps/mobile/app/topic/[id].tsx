@@ -67,7 +67,7 @@ export default function TopicListScreen(): React.ReactElement {
   }, [api, stores, id]);
   const items = (list?.items ?? []).filter((i) => !hiddenFeeds.has(i.episode.feedUrl));
   return (
-    <PushedPage title={list?.title ?? 'Topic list'} size={26} {...(list?.subtitle ? { subtitle: list.subtitle } : {})} tone="blue">
+    <PushedPage title={list?.title ?? 'Topic list'} {...(list?.subtitle ? { subtitle: list.subtitle } : {})} tone="blue">
       {(layout) => (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body70), paddingBottom: layout.reserve }}>
             {items.length === 0 ? (

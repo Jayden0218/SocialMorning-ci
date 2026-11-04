@@ -54,14 +54,14 @@ export default function LicencesScreen(): React.ReactElement {
   }, [open]);
   if (open) {
     return (
-      <PushedPage title={open.name} size={22} onBack={() => setOpen(undefined)}>
+      <PushedPage title={open.name} onBack={() => setOpen(undefined)}>
         {(layout) => <Detail entry={open} layout={layout} />}
       </PushedPage>
     );
   }
   const last = LICENCES.length - 1;
   return (
-    <PushedPage title="Open-source licences" size={26}>
+    <PushedPage title="Open-source licences">
       {(layout) => (
         <FlatList
           className="flex-1"

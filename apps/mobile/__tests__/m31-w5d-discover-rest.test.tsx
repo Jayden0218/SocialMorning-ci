@@ -426,7 +426,7 @@ describe('One issue (discover.html issue--screen)', () => {
     expect(words(r)).toEqual(expect.arrayContaining(['Sounds of the city at night', 'Issue No. 12', 'NO. 12 · TUE 27 OCT 2026', 'Six episodes for walking home late.', '“Neon, rain and a taxi driver.”', 'Open the show ›', 'Subscribe']));
     expect(flat(byId(r, 'numbered-spine')[0])).toMatchObject({ left: 36, width: 2 });
     expect(byId(r, 'thread-ring').map((x) => flat(x)['width'])).toEqual([36, 36]);
-    expect(flat(textNode(r, 'Sounds of the city at night'))).toMatchObject({ fontSize: 24 });
+    expect(flat(textNode(r, 'Sounds of the city at night'))).toMatchObject({ fontSize: 30 }); // 038 D3: the page title was 24 through a size prop
     expect(flat(host(r, 'Subscribe to Night Shift Radio'))).toMatchObject({ height: 32 });
     await press(r, 'Subscribe to Night Shift Radio');
     expect(mockSubs.has('f1')).toBe(true);

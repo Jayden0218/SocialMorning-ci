@@ -89,7 +89,7 @@ export default function CreatorScreen(): React.ReactElement {
 
   if (!listener) {
     return (
-      <PushedPage title="Creator centre" size={CREATOR.titleSize} tone="none">
+      <PushedPage title="Creator centre" tone="none">
         {(layout) => (
           <>
             <PageGlow flip top={CREATOR.outGlowTop} strength={CREATOR.glowStrength} />
@@ -134,7 +134,6 @@ export default function CreatorScreen(): React.ReactElement {
     <>
     <PushedPage
       title="Creator centre"
-      size={CREATOR.titleSize}
       tone="none"
       belowHeight={foot}
       below={(

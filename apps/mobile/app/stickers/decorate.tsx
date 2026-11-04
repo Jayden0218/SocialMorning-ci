@@ -119,7 +119,7 @@ export default function DecorateScreen(): React.ReactElement {
   const side = gutter(width);
 
   return (
-    <PushedPage title="Decorate my profile" size={20} {...(ready && earned.length > 0 ? { subtitle: `${list.length} of ${MAX} placed` } : {})} {...(right ? { right } : {})}>
+    <PushedPage title="Decorate my profile" {...(ready && earned.length > 0 ? { subtitle: `${list.length} of ${MAX} placed` } : {})} {...(right ? { right } : {})}>
       {(layout) => {
         const top = layout.top + (PROFILE.stageTop - DRAWN.status);
         if (!listener) {

@@ -158,11 +158,11 @@ describe('Favourites (shell.html favourites--screen, listen.html favourites--com
   });
 
   // 037 D1: was "…the title row sits above the zone: 6 + (48 + 12 + 44) + 12" (a bottom title stood on the zone). The title is at the top now; the 48 search field and the 44 switch stay lowest.
-  it('the foot is the thumb zone: the 48 search field and the 44 switch, lowest; back and "Favourites" at 28 at the top', async () => {
+  it('the foot is the thumb zone: the 48 search field and the 44 switch, lowest; back and "Favourites" at 30 at the top (038 D3: was 28)', async () => {
     const r = await render(createElement(FavouritesScreen));
     const title = r.root.findAll((n) => String(n.type) === 'Text' && n.props['accessibilityRole'] === 'header' && say(n.props['children']) === 'Favourites')[0]!;
     const val = (x: unknown): unknown => (x !== null && typeof x === 'object' && '__getValue' in x ? (x as { __getValue: () => unknown }).__getValue() : x);
-    expect(val(flat(title)['fontSize'])).toBe(28);
+    expect(val(flat(title)['fontSize'])).toBe(30);
     const zone = byId(r, 'pushed-below')[0]!;
     expect(flat(zone)).toMatchObject({ bottom: 6, gap: 12 });
     expect(flat(byId(r, 'search-field')[0])).toMatchObject({ height: 48 });

@@ -69,7 +69,6 @@ export default function TextStatusScreen(): React.ReactElement {
   return (
     <PushedPage
       title="Text status"
-      size={26}
       subtitle="Your followers see it on Updates for 24 hours."
       tone="none"
       {...(error ? { extra: <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type>, extraAbove: TEXT_PAGE.errorLine } : {})}

@@ -47,7 +47,7 @@ export default function AccountSecurityScreen(): React.ReactElement {
   const initial = (listener?.displayName || listener?.email || '?').slice(0, 1).toUpperCase();
   const methods = readyMethods();
   return (
-    <PushedPage title="Account and security" size={26}>
+    <PushedPage title="Account and security">
       {(layout) => (
         <SetPage layout={layout}>
           {/* M10 (owner, 2026-09-27), after the reference: the ways you sign in, then deletion.

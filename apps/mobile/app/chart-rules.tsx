@@ -41,7 +41,7 @@ const TILE = { borderRadius: PAGE.radius, padding: ME_MOSAIC.panelPad, gap: PAGE
 
 export default function ChartRulesScreen(): React.ReactElement {
   return (
-    <PushedPage title="How the charts work" size={26}>
+    <PushedPage title="How the charts work">
       {(layout) => (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout), paddingBottom: layout.reserve }}>
           <Box style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right, gap: PAGE.gap }}>

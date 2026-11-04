@@ -144,7 +144,7 @@ export default function FeedbackScreen(): React.ReactElement {
   ) : undefined;
   return (
     <KeyboardPage>
-      <PushedPage title={tab === 'write' ? 'Write feedback' : 'My feedback'} subtitle="Help and feedback" size={28} extra={chip} extraAbove={CHIP_ABOVE} {...(foot ? { below: foot, belowHeight: TILE } : {})}>
+      <PushedPage title={tab === 'write' ? 'Write feedback' : 'My feedback'} subtitle="Help and feedback" extra={chip} extraAbove={CHIP_ABOVE} {...(foot ? { below: foot, belowHeight: TILE } : {})}>
         {(layout) => (
           <SetPage layout={layout}>
             {tab === 'write' ? (

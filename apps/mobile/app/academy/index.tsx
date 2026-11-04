@@ -68,7 +68,7 @@ export default function Academy(): React.ReactElement {
     };
   });
   return (
-    <PushedPage title="Creator academy" subtitle="For people who make shows" size={28}>
+    <PushedPage title="Creator academy" subtitle="For people who make shows">
       {(layout) => (
         <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout), paddingBottom: layout.reserve }}>
           <Box className="flex-row" style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right, gap: PAGE.gap - 2, marginBottom: CHIPS_GAP, flexWrap: 'wrap' }}>

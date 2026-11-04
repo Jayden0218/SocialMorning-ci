@@ -65,7 +65,7 @@ export default function ListeningDataScreen(): React.ReactElement {
   const switcher = <SegmentSwitch items={RANGES} value={range} onChange={setRange} />;
 
   return (
-    <PushedPage title="Listening data" size={26} below={switcher} belowHeight={44}>
+    <PushedPage title="Listening data" below={switcher} belowHeight={44}>
       {(layout) => {
         const top = layout.top + (BODY_TOP - DRAWN.status);
         if (!listener) {

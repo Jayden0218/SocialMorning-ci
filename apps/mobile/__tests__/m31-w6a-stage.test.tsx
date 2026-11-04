@@ -228,7 +228,7 @@ describe('Tips (tips--screen)', () => {
     expect(words(r)).toEqual(expect.arrayContaining(['No tips yet', 'Tipping is not available yet. When it is, tips are paid through the App Store or Google Play.', 'Tips I gave']));
     expect(byId(r, 'tips-words')[0]!.props['accessibilityLabel']).toContain('No tips yet. Tipping is not available yet');
     const heading = r.root.findAll((n) => String(n.type) === 'Text' && say(n.props['children']) === 'Tips I gave')[0]!;
-    expect(flat(heading)['fontSize']).toBe(20);
+    expect(flat(heading)['fontSize']).toBe(30); // 038 D3: the page title was 20 through a size prop
     const big = r.root.findAll((n) => String(n.type) === 'Text' && say(n.props['children']) === 'No tips yet')[0]!;
     expect(flat(big)['fontSize']).toBe(40);
   });

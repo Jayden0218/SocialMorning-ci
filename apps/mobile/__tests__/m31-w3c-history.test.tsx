@@ -128,10 +128,11 @@ describe('History (history--screen)', () => {
   });
 
   // 037 D1: was "the title bar is low … `bottom` 6"; it hangs from the top now (`top` defined, no `bottom`). Everything else it checks is unchanged.
-  it('the title bar is at the top: "Listening history" at 26, "All · 3 episodes", a search and a select circle, the chips above', async () => {
+  // 038 D3: the title was drawn at 26 through a `size` prop; there is one title size now (30).
+  it('the title bar is at the top: "Listening history" at 30, "All · 3 episodes", a search and a select circle, the chips above', async () => {
     const r = await render(createElement(HistoryScreen));
     const t = titleOf(r);
-    expect(val(flat(t)['fontSize'])).toBe(26);
+    expect(val(flat(t)['fontSize'])).toBe(30);
     expect(words(r)).toEqual(expect.arrayContaining(['Listening history', 'All · 3 episodes']));
     const bar = hosts(r, (n) => flat(n)['zIndex'] === 20 && flat(n)['top'] !== undefined)[0]!;
     expect(flat(bar)['top']).toBeGreaterThanOrEqual(6);

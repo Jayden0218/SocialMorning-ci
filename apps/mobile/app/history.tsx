@@ -204,7 +204,6 @@ export default function HistoryScreen(): React.ReactElement {
     <KeyboardPage>
     <PushedPage
       title={selecting ? `${chosen.size} selected` : 'Listening history'}
-      size={26}
       {...(selecting ? {} : { subtitle })}
       actions={actions}
       onBack={selecting ? null : undefined}

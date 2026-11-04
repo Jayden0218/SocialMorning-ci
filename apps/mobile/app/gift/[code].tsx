@@ -65,7 +65,6 @@ export default function GiftScreen(): React.ReactElement {
   return (
     <PushedPage
       title="A gift for you"
-      size={GIFT.titleSize}
       tone="none"
       {...(open ? { below: <PulseButton kind="hot" icon="gift-outline" label={listener ? 'Claim the series' : 'Sign in to claim'} onPress={() => void claim()} busy={busy} full />, belowHeight: hit.min } : {})}
     >

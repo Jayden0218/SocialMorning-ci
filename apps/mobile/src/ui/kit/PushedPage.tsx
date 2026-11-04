@@ -79,8 +79,6 @@ export function PushedPage(props: {
   onBack?: (() => void) | null;
   backLabel?: string;
   backIcon?: IconName;
-  /** The drawn size of a long title (History 26, the voice page 26); 30 by default. */
-  size?: number;
   /** Replaces the circles at the row's end. */
   right?: React.ReactNode;
   /** Says whether the now bar floats under the title bar; left out, the toast placement's rule. A page the bar never shows on says `false`. */
@@ -123,7 +121,6 @@ export function PushedPage(props: {
         {...(props.actions ? { actions: props.actions } : {})}
         {...(onBack ? { onBack, ...(props.backLabel ? { backLabel: props.backLabel } : {}), ...(props.backIcon ? { backIcon: props.backIcon } : {}) } : {})}
         {...(props.right ? { right: props.right } : {})}
-        {...(props.size ? { size: props.size } : {})}
         {...(props.shrunk ? { shrunk: true } : {})}
         {...(props.extra ? { extra: props.extra } : {})}
         {...(props.onTitle ? { onTitle: props.onTitle } : {})}

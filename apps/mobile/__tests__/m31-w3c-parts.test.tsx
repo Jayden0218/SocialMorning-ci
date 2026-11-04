@@ -284,18 +284,19 @@ describe('Listening bars (discover.html lBars)', () => {
 });
 
 describe('PushedPage additions (size, below, bare, onTitle)', () => {
-  it('the title takes the drawn size: 26 and its own line, tracking −1 %', () => {
-    const r = render(createElement(TitleBar, { title: 'Listening history', top: 53, size: 26 }));
+  // 038 D3: was "the title takes the drawn size: 26 and its own line (33), tracking −1 % (−0.26)" via a `size` prop; there is one title size now: 30, line 38, tracking −0.3.
+  it('a long title is still the one title size: 30, line 38, tracking −0.3', () => {
+    const r = render(createElement(TitleBar, { title: 'Listening history', top: 53 }));
     const t = r.root.findAll((n) => n.props['accessibilityRole'] === 'header')[0]!;
     const s = flat(t);
-    expect(val(s['fontSize'])).toBe(26);
-    expect(val(s['lineHeight'])).toBe(33);
-    expect(s['letterSpacing']).toBeCloseTo(-0.26);
+    expect(val(s['fontSize'])).toBe(30);
+    expect(val(s['lineHeight'])).toBe(38);
+    expect(s['letterSpacing']).toBeCloseTo(-0.3);
   });
 
   // 037 D1: was "…and lifts the title row by its height and 12" (a bottom title stood on the zone). The title is at the top now and stays put; the zone sits lowest and the content leaves room for it and 12.
   it('a foot zone sits lowest; the title bar stays at the top and does not lift', () => {
-    const r = render(createElement(PushedPage, { title: 'Favourites', size: 28, below: createElement(SegmentSwitch, { items: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }], value: 'a', onChange: jest.fn() }), belowHeight: 44 } as React.ComponentProps<typeof PushedPage>, null));
+    const r = render(createElement(PushedPage, { title: 'Favourites', below: createElement(SegmentSwitch, { items: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }], value: 'a', onChange: jest.fn() }), belowHeight: 44 } as React.ComponentProps<typeof PushedPage>, null));
     const zone = byId(r, 'pushed-below')[0]!;
     expect(flat(zone)).toMatchObject({ bottom: 6, paddingHorizontal: 20, gap: 12 });
     expect(flat(r.root.findAllByType(TitleBar)[0]!.findAll((n) => n.props['testID'] === 'title-bar' && typeof n.type === 'string')[0]!)).toMatchObject({ zIndex: 20 });

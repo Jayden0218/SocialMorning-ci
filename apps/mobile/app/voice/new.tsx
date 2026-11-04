@@ -152,7 +152,6 @@ export default function NewVoicePost(): React.ReactElement {
   return (
     <PushedPage
       title="Voice status"
-      size={26}
       tone="none"
       safeBottom={insets?.bottom ?? 0}
       onBack={cancel}

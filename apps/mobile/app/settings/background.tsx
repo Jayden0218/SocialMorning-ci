@@ -56,7 +56,7 @@ export default function BackgroundScreen(): React.ReactElement {
   };
   if (Platform.OS !== 'android') {
     return (
-      <PushedPage title="Playing with the screen off" size={26}>
+      <PushedPage title="Playing with the screen off">
         {(layout) => (
           <SetPage layout={layout}>
             <Box style={{ height: IPHONE_TOP }} />
@@ -70,7 +70,7 @@ export default function BackgroundScreen(): React.ReactElement {
     );
   }
   return (
-    <PushedPage title="Playing with the screen off" size={24}>
+    <PushedPage title="Playing with the screen off">
       {(layout) => (
         <SetPage layout={layout}>
           <Lede small>If an episode stops a few minutes after the screen goes off, your phone is saving battery by stopping SocialNet. You can let it keep playing.</Lede>

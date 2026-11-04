@@ -75,7 +75,6 @@ export default function PlazaScreen(): React.ReactElement {
     <PushedPage
       title="New shows plaza"
       subtitle={subtitle}
-      size={26}
       fade={PAGE.plazaFade}
       actions={[
         { icon: 'repeat-outline', label: 'Shuffle the plaza', onPress: again },
