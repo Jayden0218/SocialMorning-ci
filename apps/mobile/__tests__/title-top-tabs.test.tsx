@@ -97,3 +97,15 @@ describe('037 M4 tab titles at the top', () => {
     expect(barsReserve({ tabs: true, now: true }) - barsReserve({ tabs: true })).toBe(bars.nowGap + bars.now);
   });
 });
+
+// 037 (run 41789693433, r12-chat: "New chat" drawn over the battery icon): the tab page's SafeAreaView pads the status bar as PADDING, and an absolutely placed
+// child measures `top` from the padding box's edge, so it ignores that padding. The tab title must add the inset itself.
+describe('037 tab title below the status bar', () => {
+  it('Me and Chat: with a 47 pt status bar the title bar sits at 47 + 6, not 6', async () => {
+    const { SafeAreaInsetsContext } = jest.requireActual('react-native-safe-area-context');
+    for (const Screen of [MeScreen, ChatTab]) {
+      const r = await render(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, createElement(Screen)));
+      expect(titleBar(r).props['top']).toBe(titleBarTop(47));
+    }
+  });
+});
