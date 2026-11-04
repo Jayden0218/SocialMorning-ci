@@ -49,13 +49,25 @@ function markReady(): void {
 }
 
 /**
+ * 038 M0 (FR-002): one line for the outcome. `console.error`, because a Release build forwards only errors from JS to the
+ * system log, which is what the simulator run reads (`log show --predicate 'process == "SocialNet"'`).
+ */
+function report(line: string): void { console.error(`[fonts] ${line}`); }
+
+/**
  * Load the faces. Resolves `true` when they are in, `false` when loading failed or took longer
  * than `FONT_WAIT_MS` — it never rejects, so the start-up task list always settles.
  */
 export async function loadFonts(load: (faces: typeof FACES) => Promise<void> = loadAsync, waitMs = FONT_WAIT_MS): Promise<boolean> {
+  const t0 = Date.now();
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const late = new Promise<boolean>((res) => { timer = setTimeout(() => res(false), waitMs); });
-  const ok = load(FACES).then(() => true, () => false);
+  const late = new Promise<boolean>((res) => { timer = setTimeout(() => { report(`not in after ${waitMs} ms, going on in the system font`); res(false); }, waitMs); });
+  let timedOut = false;
+  void late.then(() => { timedOut = true; });
+  const ok = load(FACES).then(
+    () => { report(timedOut ? `loaded late, after ${Date.now() - t0} ms` : `loaded in ${Date.now() - t0} ms`); return true; },
+    (e: unknown) => { report(`failed: ${e instanceof Error ? e.message : String(e)}`); return false; },
+  );
   // Owner, 2026-10-04 ("why did the font change back?"): fonts that arrived after the wait were
   // thrown away for the whole session — in a Debug build they come over the cable from Metro and
   // a reload could miss the 3 s. Start-up still waits at most FONT_WAIT_MS; a late arrival now
