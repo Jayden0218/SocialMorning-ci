@@ -16,7 +16,7 @@ import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() }, usePathname: () => '/history' }));
 
 const ROOT = join(__dirname, '..');
-const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => { const p = join(dir, f); return statSync(p).isDirectory() ? walk(p) : /\.tsx$/.test(p) ? [p] : []; });
+const walk = (dir: string): string[] => readdirSync(dir).flatMap((f) => { const p = join(dir, f); return statSync(p).isDirectory() ? walk(p) : p.endsWith('.tsx') ? [p] : []; });
 
 it('a title bar draws at 30 even when a caller still passes a size', () => {
   setReducedMotionForTest(true);
