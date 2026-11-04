@@ -19,16 +19,30 @@ const faceStyle = (family: string) => {
   return s;
 };
 
+/** 038 FR-001: the weight each face stands for. While the fonts are not in, the system font is drawn at this weight, never at regular. */
+const FACE_WEIGHT: Record<Face, FallbackWeight> = {
+  'Unbounded-SemiBold': '600', 'Unbounded-Bold': '700', 'Unbounded-ExtraBold': '800',
+  'Geist-Regular': '400', 'Geist-Medium': '500', 'Geist-SemiBold': '600', 'Geist-Bold': '700',
+  'GeistMono-Regular': '400', 'GeistMono-Medium': '500', 'GeistMono-SemiBold': '600',
+};
+type FallbackWeight = '400' | '500' | '600' | '700' | '800';
+const FALLBACK_STYLE = new Map<Face, { fontFamily: undefined; fontWeight: FallbackWeight }>();
+const fallbackStyle = (face: Face) => {
+  let s = FALLBACK_STYLE.get(face);
+  if (!s) { s = { fontFamily: undefined, fontWeight: FACE_WEIGHT[face] }; FALLBACK_STYLE.set(face, s); }
+  return s;
+};
+
 /**
  * M24 US18 (design-settings G1, G2): the face for a part that draws words but is not this Text —
  * a button's label, a text field, a heading. `undefined` until the fonts are in, so the system
- * font stays until then, as for Text.
+ * font stays until then, as for Text — but at the face's weight (038 FR-001), so a title never falls back to regular.
  */
-export function useFace(className: string | undefined, fallback?: Face): { fontFamily: string; fontWeight: 'normal' } | undefined {
+export function useFace(className: string | undefined, fallback?: Face): { fontFamily: string | undefined; fontWeight: 'normal' | FallbackWeight } {
   const fonts = useSyncExternalStore(fontsStore.subscribe, fontsStore.get, fontsStore.get);
-  if (!fonts) return undefined;
   const classes = ` ${className ?? ''} `;
-  return faceStyle(fallback !== undefined && !WEIGHT.test(classes) ? fallback : familyFor(classes));
+  const face = fallback !== undefined && !WEIGHT.test(classes) ? fallback : familyFor(classes);
+  return fonts ? faceStyle(face) : fallbackStyle(face);
 }
 
 type ITextProps = React.ComponentProps<typeof RNText> &
@@ -56,8 +70,8 @@ const Text = React.forwardRef<React.ComponentRef<typeof RNText>, ITextProps>(
     const parent = useContext(ParentFace);
     const classes = ` ${className ?? ''}${bold ? ' font-bold' : ''} `;
     const own: Face = WEIGHT.test(classes) || parent === undefined ? familyFor(classes) : parent;
-    // Until the fonts are in (or if they never load) the system fonts are used, as before M17.
-    const face = fonts ? faceStyle(own) : undefined;
+    // Until the fonts are in (or if they never load) the system font is used, at the face's weight (038 FR-001).
+    const face = fonts ? faceStyle(own) : fallbackStyle(own);
     return (
       <ParentFace.Provider value={own}>
       <RNText
