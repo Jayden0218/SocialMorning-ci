@@ -20,9 +20,12 @@ env:
     optional: true
 - takeScreenshot: r25-01-discover-visit-1
 - runScript: visit-end.js
-- tapOn: "Updates(, .*)?"
+# The second visit is a REMOUNT of the Discover page: away to the Moments view (the Home switch draws one of the two, app/(tabs)/index.tsx:45-48) and
+# back. Leaving for another TAB and returning does not remount it, so no warm ran in that second visit and the count could not see a missing back-off
+# (guard run 41735743843, 035 finishing: WARM_FRESH_MS and WARM_BACKOFF_MS at 0 still gave "visit 2: 0 requests").
+- tapOn: "Moments"
 - extendedWaitUntil:
-    visible: "My subscriptions · .*"
+    notVisible: "Scan a QR code"
     timeout: 30000
 - runScript: visit-begin.js
 - runFlow: _discover-view.yaml
