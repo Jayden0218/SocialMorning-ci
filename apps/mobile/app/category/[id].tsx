@@ -49,6 +49,7 @@ import { Loader } from "@/ui/kit/Loader";
 import { PushedPage } from "@/ui/kit/PushedPage";
 import { Type } from "@/ui/kit/Type";
 import { ErrTile } from "@/ui/chat/blocks";
+import { RetryTile } from "@/ui/discover/Mosaic";
 import { SegmentSwitch } from "@/ui/me/lists";
 import { ME_MOSAIC } from "@/ui/me/mosaic";
 import { ME_TYPE } from "@/ui/me/measures";
@@ -71,7 +72,7 @@ import {
 import { tick } from "@/ui/kit/haptics";
 import { hit, spacing } from "@/design";
 import { useSafety } from "@/safety/context";
-import type { CategoryShows, ShowCard } from "@/social/api";
+import { ApiError, type CategoryShows, type ShowCard } from "@/social/api";
 import { useSocial } from "@/social/context";
 import { useStores, useSubscriptionSync } from "@/ui/shell/providers";
 import { EndOfList } from "@/ui/kit/EndOfList";
@@ -105,7 +106,12 @@ const freshMore = (genreId: number): More => ({
 type State =
   | { kind: "loading" }
   | { kind: "ok"; body: CategoryShows }
-  | { kind: "error" };
+  | { kind: "error"; reason: string };
+
+/** Why a load failed, in words the listener can use: the server's own sentence, or the connection. */
+function reasonOf(e: unknown): string {
+  return e instanceof ApiError && e.message ? e.message : "Check your connection and try again.";
+}
 
 export default function CategoryScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ id: string }>();
@@ -121,6 +127,8 @@ export default function CategoryScreen(): React.ReactElement {
     return body ? { kind: "ok", body } : { kind: "loading" };
   };
   const [state, setState] = useState<State>(() => keptState(Number(params.id)));
+  // Retry on the error tile: bumping this runs the load effect again.
+  const [attempt, setAttempt] = useState(0);
   const [sort, setSort] = useState<CategorySort>("forYou");
   // M25 A2: the owner may choose the chip a category opens on; once the listener picks one, theirs stays.
   const sortPicked = useRef(false);
@@ -234,16 +242,16 @@ export default function CategoryScreen(): React.ReactElement {
         }
         if (live) setState({ kind: "ok", body });
       },
-      () => {
+      (e: unknown) => {
         // Offline with a kept list: keep showing it.
-        if (live && shown.kind === "loading") setState({ kind: "error" });
+        if (live && shown.kind === "loading") setState({ kind: "error", reason: reasonOf(e) });
       },
     );
     return () => {
       live = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- keptState reads the same store
-  }, [api, genreId]);
+  }, [api, genreId, attempt]);
 
   // The same store calls and push as the show page's Subscribe (app/show/[feedUrl].tsx,
   // toggleSubscription): local write first, the sync is fire-and-forget (M8 US1).
@@ -409,7 +417,7 @@ export default function CategoryScreen(): React.ReactElement {
                       <Toggle value={notSubscribedOnly} onChange={setNotSubscribedOnly} label="Not subscribed only" />
                     </Box>
                     {state.kind === "loading" ? <Loader className="my-section" /> : null}
-                    {state.kind === "error" ? <ErrTile line="Couldn't load this category right now." /> : null}
+                    {state.kind === "error" ? <RetryTile line={`Couldn't load this category right now. ${state.reason}`} onRetry={() => setAttempt((a) => a + 1)} /> : null}
                     {state.kind === "ok" && state.body.stale ? (
                       <Type step="caption" className="text-hotText" style={[LANE, { marginBottom: spacing.row }]}>
                         Couldn't refresh — showing an earlier list.

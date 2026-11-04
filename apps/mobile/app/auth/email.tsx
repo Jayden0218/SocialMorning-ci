@@ -139,7 +139,7 @@ export default function EmailScreen(): React.ReactElement {
         <>
           <Type step="body" className="text-text2 font-medium" style={AUTH_TYPE.sheetLine}>We sent a 6-digit code to</Type>
           <SentTo email={email.trim()} onChange={() => { setStep('email'); setError(undefined); }} />
-          <CodeCells value={code} onChange={setCode} />
+          <CodeCells value={code} onChange={(v) => { setCode(v); setError(undefined); }} />
         </>
       ) : null}
       {step === 'name' ? (

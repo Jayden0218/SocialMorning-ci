@@ -1,0 +1,471 @@
+{
+ "name": "SocialMorning Pulse",
+ "version": 1,
+ "color": {
+  "themes": [
+   {
+    "id": "sunrise",
+    "name": "Sunrise (default)"
+   },
+   {
+    "id": "teal",
+    "name": "Teal"
+   },
+   {
+    "id": "coral",
+    "name": "Coral"
+   },
+   {
+    "id": "violet",
+    "name": "Violet"
+   },
+   {
+    "id": "forest",
+    "name": "Forest"
+   },
+   {
+    "id": "ocean",
+    "name": "Ocean"
+   },
+   {
+    "id": "plum",
+    "name": "Plum"
+   }
+  ],
+  "tokens": [
+   {
+    "name": "void",
+    "value": "#060608",
+    "usage": "SCREEN. The page background, every screen."
+   },
+   {
+    "name": "raise",
+    "value": "#111116",
+    "usage": "SCREEN. Cards, tiles and row panels sitting on the page."
+   },
+   {
+    "name": "raise2",
+    "value": "#1a1a21",
+    "usage": "SCREEN. Anything floating above the page: sheets, dialogs, fields, the Segmented track, icon circles."
+   },
+   {
+    "name": "line",
+    "value": "#24242c",
+    "usage": "SCREEN. 1 px hairlines between rows and around inline cards. Never behind words."
+   },
+   {
+    "name": "text",
+    "value": "#f4f2ee",
+    "usage": "SCREEN. All primary words and active icons. 18.11:1 on void, 15.95:1 on raise2."
+   },
+   {
+    "name": "text2",
+    "value": "#a3a1ab",
+    "usage": "SCREEN. All secondary words: subtitles, meta, captions, timestamps, inactive labels. 7.95:1 on void, 6.79:1 on raise2."
+   },
+   {
+    "name": "hot",
+    "value": {
+     "sunrise": "#ff4d6d",
+     "teal": "#2dd4bf",
+     "coral": "#fb7185",
+     "violet": "#a78bfa",
+     "forest": "#4ade80",
+     "ocean": "#60a5fa",
+     "plum": "#e879f9"
+    },
+    "usage": "SCREEN. The accent, as a fill: played heat bars, badges, the active-tab dot, the accent button. Words on it are void (at least 6.30:1). Follows the listener's accent choice."
+   },
+   {
+    "name": "hotText",
+    "value": {
+     "sunrise": "#ff8095",
+     "teal": "#2dd4bf",
+     "coral": "#fb7185",
+     "violet": "#a78bfa",
+     "forest": "#4ade80",
+     "ocean": "#60a5fa",
+     "plum": "#e879f9"
+    },
+    "usage": "SCREEN. The accent, as words or icons on dark: links, tappable subtitles, liked hearts, error text. At least 7.44:1 on void (8.46 in Sunrise) and 6.36:1 on raise2."
+   },
+   {
+    "name": "hotSoft",
+    "value": {
+     "sunrise": "rgba(255,77,109,0.16)",
+     "teal": "rgba(45,212,191,0.16)",
+     "coral": "rgba(251,113,133,0.16)",
+     "violet": "rgba(167,139,250,0.16)",
+     "forest": "rgba(74,222,128,0.16)",
+     "ocean": "rgba(96,165,250,0.16)",
+     "plum": "rgba(232,121,249,0.16)"
+    },
+    "usage": "SCREEN. The accent at 16 %: behind a soft timestamp chip or a play glyph. Words on it are hotText."
+   },
+   {
+    "name": "ok",
+    "value": "#3ddc97",
+    "usage": "SCREEN. Success, always beside a word or icon. 11.46:1 on void."
+   },
+   {
+    "name": "warn",
+    "value": "#ffb547",
+    "usage": "SCREEN. Warning, always beside a word or icon. 11.52:1 on void."
+   },
+   {
+    "name": "comp-idle",
+    "value": "#77767e",
+    "usage": "COMPONENT (TabBar). Idle tab icons only, never words. 4.51:1. Code name: idle."
+   },
+   {
+    "name": "comp-placeholder",
+    "value": "#8a8893",
+    "usage": "COMPONENT (Field). Placeholder text in a field only. 4.96:1 on raise2. Code name: text3."
+   },
+   {
+    "name": "comp-violet",
+    "value": "#7a3cff",
+    "usage": "COMPONENT (HeatCurve, NowBar). The far end of the accent gradient. Never words. Code name: violet."
+   },
+   {
+    "name": "comp-barIdle",
+    "value": "rgba(255,255,255,0.40)",
+    "usage": "COMPONENT (HeatCurve). Unplayed bars and the scrubber track; 3.73:1 because the curve carries information. Code name: barIdle."
+   },
+   {
+    "name": "comp-glass",
+    "value": "rgba(26,26,33,0.86)",
+    "usage": "COMPONENT (NowBar). The bar's glass over a 30 blur. Code name: glass."
+   },
+   {
+    "name": "comp-glassLine",
+    "value": "rgba(255,255,255,0.08)",
+    "usage": "COMPONENT (NowBar). The 1 px edge round the glass. Code name: glassLine."
+   },
+   {
+    "name": "comp-outline",
+    "value": "rgba(244,242,238,0.50)",
+    "usage": "COMPONENT (Button, secondary). The 1.5 px ring. 4.86:1 on void. Code name: outline."
+   },
+   {
+    "name": "comp-scrim",
+    "value": "rgba(0,0,0,0.60)",
+    "usage": "COMPONENT (Sheet). Dims the page behind a sheet or dialog. Code name: scrim."
+   },
+   {
+    "name": "comp-toastAction",
+    "value": "#b0243f",
+    "usage": "COMPONENT (Toast). The action word on the light toast, 5.92:1. Code name: toastAction."
+   }
+  ]
+ },
+ "type": {
+  "fonts": [
+   {
+    "family": "Unbounded",
+    "file": "fonts/Unbounded_600SemiBold.ttf",
+    "weight": "600",
+    "style": "normal"
+   },
+   {
+    "family": "Unbounded",
+    "file": "fonts/Unbounded_700Bold.ttf",
+    "weight": "700",
+    "style": "normal"
+   },
+   {
+    "family": "Unbounded",
+    "file": "fonts/Unbounded_800ExtraBold.ttf",
+    "weight": "800",
+    "style": "normal"
+   },
+   {
+    "family": "Geist",
+    "file": "fonts/Geist_400Regular.ttf",
+    "weight": "400",
+    "style": "normal"
+   },
+   {
+    "family": "Geist",
+    "file": "fonts/Geist_500Medium.ttf",
+    "weight": "500",
+    "style": "normal"
+   },
+   {
+    "family": "Geist",
+    "file": "fonts/Geist_600SemiBold.ttf",
+    "weight": "600",
+    "style": "normal"
+   },
+   {
+    "family": "Geist",
+    "file": "fonts/Geist_700Bold.ttf",
+    "weight": "700",
+    "style": "normal"
+   },
+   {
+    "family": "Geist Mono",
+    "file": "fonts/GeistMono_400Regular.ttf",
+    "weight": "400",
+    "style": "normal"
+   },
+   {
+    "family": "Geist Mono",
+    "file": "fonts/GeistMono_500Medium.ttf",
+    "weight": "500",
+    "style": "normal"
+   },
+   {
+    "family": "Geist Mono",
+    "file": "fonts/GeistMono_600SemiBold.ttf",
+    "weight": "600",
+    "style": "normal"
+   }
+  ],
+  "families": {
+   "display": "Unbounded, \"SF Pro Display\", system-ui, sans-serif",
+   "ui": "Geist, \"SF Pro Text\", system-ui, sans-serif",
+   "mono": "\"Geist Mono\", \"SF Mono\", ui-monospace, monospace"
+  },
+  "groups": [
+   {
+    "name": "Titles (Unbounded, always bold)",
+    "family": "display",
+    "styles": [
+     {
+      "name": "title",
+      "family": "display",
+      "fontSize": "30px",
+      "lineHeight": "38px",
+      "fontWeight": 800,
+      "usage": "The page title in every title bar. The only title size: a long title shrinks to fit. Replaces hero, the 26/28 overrides.",
+      "sample": "Notifications",
+      "letterSpacing": "-0.3px"
+     },
+     {
+      "name": "heading",
+      "family": "display",
+      "fontSize": "20px",
+      "lineHeight": "25px",
+      "fontWeight": 700,
+      "usage": "Every other heading: the title bar once scrolled, sheet and dialog titles, empty-state titles, a heading inside a page. Same size as Apple's Title 3 (20/25). Replaces title 22, statement 24, heading 20, lede 18.",
+      "sample": "No saved moments yet"
+     },
+     {
+      "name": "number",
+      "family": "display",
+      "fontSize": "34px",
+      "lineHeight": "43px",
+      "fontWeight": 800,
+      "usage": "A big number that is the point of a card: the Saved moments count, Hot now. Replaces figure and the 40 count.",
+      "sample": "128"
+     }
+    ]
+   },
+   {
+    "name": "Interface (Geist)",
+    "family": "ui",
+    "styles": [
+     {
+      "name": "strong",
+      "family": "ui",
+      "fontSize": "15px",
+      "lineHeight": "20px",
+      "fontWeight": 600,
+      "usage": "Anything people tap or scan for: row, card and tile titles, names, button words, chip words, the now bar title, section heads. Replaces row, section 17, compact 14, chip 12.",
+      "sample": "Listening history"
+     },
+     {
+      "name": "body",
+      "family": "ui",
+      "fontSize": "15px",
+      "lineHeight": "22px",
+      "fontWeight": 400,
+      "usage": "Anything people read in full: comments, descriptions, toasts. Replaces body, quote, note.",
+      "sample": "This is the part where the tone shifts."
+     },
+     {
+      "name": "small",
+      "family": "ui",
+      "fontSize": "13px",
+      "lineHeight": "18px",
+      "fontWeight": 500,
+      "usage": "Supporting words: subtitles, meta lines, Reply, the line under an empty-state title. Always text2 unless tappable (then hotText). Replaces caption.",
+      "sample": "People you follow"
+     }
+    ]
+   },
+   {
+    "name": "Numerals (Geist Mono)",
+    "family": "mono",
+    "styles": [
+     {
+      "name": "time",
+      "family": "mono",
+      "fontSize": "12px",
+      "lineHeight": "16px",
+      "fontWeight": 500,
+      "usage": "Times, durations and counts: 0:05 / 1:00, a timestamp chip, a badge. Replaces mono, badge.",
+      "sample": "0:05 / 1:00"
+     },
+     {
+      "name": "tag",
+      "family": "mono",
+      "fontSize": "11px",
+      "lineHeight": "14px",
+      "fontWeight": 500,
+      "usage": "The smallest text (Apple's minimum is 11): episode tags, field labels, row details, and the rail labels (ME, TODAY) in capitals. Replaces tag and the Unbounded edge label.",
+      "sample": "E1 · TODAY",
+      "letterSpacing": "0.5px"
+     }
+    ]
+   }
+  ]
+ },
+ "spacing": {
+  "note": "Six steps. Inside a component: 4, 8, 12. A card's padding: 16. Between blocks: 24. Between regions: 32. The screen gutter is its own constant.",
+  "tokens": [
+   {
+    "name": "space-1",
+    "value": "4px",
+    "usage": "Icon to its word; inside a badge."
+   },
+   {
+    "name": "space-2",
+    "value": "8px",
+    "usage": "Between a title and its subtitle; between chips; between buttons in a row."
+   },
+   {
+    "name": "space-3",
+    "value": "12px",
+    "usage": "Between items in a row or card; between tiles in a grid."
+   },
+   {
+    "name": "space-4",
+    "value": "16px",
+    "usage": "Padding inside every card, panel and sheet body."
+   },
+   {
+    "name": "space-6",
+    "value": "24px",
+    "usage": "Between blocks on a page."
+   },
+   {
+    "name": "space-8",
+    "value": "32px",
+    "usage": "Between regions of a page; above an empty state."
+   },
+   {
+    "name": "gutter",
+    "value": "20px",
+    "usage": "Left and right edge of every screen (16 on phones narrower than 375 pt)."
+   }
+  ]
+ },
+ "radius": {
+  "note": "Three radii and a pill. Pick by what the thing is, never by taste.",
+  "tokens": [
+   {
+    "name": "radius-s",
+    "value": "8px",
+    "usage": "Small things: timestamp chips, covers up to 64 pt."
+   },
+   {
+    "name": "radius-m",
+    "value": "16px",
+    "usage": "Things in a list or bar: row panels, comment cards, fields, the now bar, toasts, artwork."
+   },
+   {
+    "name": "radius-l",
+    "value": "24px",
+    "usage": "Things that stand alone: cards, Me tiles, dialogs, sheet tops, big covers."
+   },
+   {
+    "name": "radius-pill",
+    "value": "999px",
+    "usage": "Buttons, chips, Segmented, circles, badges."
+   }
+  ]
+ },
+ "meta": {
+  "source": "github",
+  "repo": "Jayden0218/SocialMorning",
+  "ref": "claude/037-title-at-top@7ab4eee",
+  "package": "apps/mobile",
+  "paths": {
+   "tokens": [
+    "apps/mobile/src/design/tokens.ts",
+    "apps/mobile/src/design/type-px.ts",
+    "apps/mobile/src/design/fonts.ts",
+    "apps/mobile/src/design/accent.ts"
+   ],
+   "fonts": [
+    "@expo-google-fonts/unbounded@0.4.1",
+    "@expo-google-fonts/geist@0.4.2",
+    "@expo-google-fonts/geist-mono@0.4.3"
+   ]
+  },
+  "synced": "2026-11-04"
+ },
+ "size": {
+  "note": "Fixed frames. Text inside grows with the reader's text size; these are minimums.",
+  "tokens": [
+   {
+    "name": "size-tap",
+    "value": "44px",
+    "usage": "The minimum frame for anything tappable (Apple: 44 × 44 pt). Icon circles, Back, More, a toast's action."
+   },
+   {
+    "name": "size-button",
+    "value": "48px",
+    "usage": "Every button's height."
+   },
+   {
+    "name": "size-row",
+    "value": "56px",
+    "usage": "Every list row, and every field."
+   },
+   {
+    "name": "size-bar",
+    "value": "58px",
+    "usage": "The tab bar and the now bar."
+   },
+   {
+    "name": "size-play",
+    "value": "40px",
+    "usage": "A play disc (inside a 44 frame)."
+   }
+  ]
+ },
+ "shadow": {
+  "note": "Glows only, in the accent. Nothing in Pulse casts a shadow.",
+  "tokens": [
+   {
+    "name": "glow-dot",
+    "value": {
+     "sunrise": "0 0 5px #ff4d6d",
+     "teal": "0 0 5px #2dd4bf",
+     "coral": "0 0 5px #fb7185",
+     "violet": "0 0 5px #a78bfa",
+     "forest": "0 0 5px #4ade80",
+     "ocean": "0 0 5px #60a5fa",
+     "plum": "0 0 5px #e879f9"
+    },
+    "usage": "The active tab's dot."
+   },
+   {
+    "name": "glow-bar",
+    "value": {
+     "sunrise": "0 0 4px rgba(255,77,109,0.7)",
+     "teal": "0 0 4px rgba(45,212,191,0.7)",
+     "coral": "0 0 4px rgba(251,113,133,0.7)",
+     "violet": "0 0 4px rgba(167,139,250,0.7)",
+     "forest": "0 0 4px rgba(74,222,128,0.7)",
+     "ocean": "0 0 4px rgba(96,165,250,0.7)",
+     "plum": "0 0 4px rgba(232,121,249,0.7)"
+    },
+    "usage": "Heat-curve bars in a hot range."
+   }
+  ]
+ }
+}
