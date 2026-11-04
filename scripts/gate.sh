@@ -75,7 +75,8 @@ if wants checks; then
   run a11y sh -c 'cd apps/mobile && node scripts/a11y-audit.mjs'
   # M7 FR-002 (guard G1): every colour comes from src/design/tokens.ts.
   # M31/M32 add the retired-pattern check, the reduce-motion check and the action replay (G-E3 against m31/actions-before.json).
-  run tokens sh -c 'cd apps/mobile && node scripts/token-check.mjs && node --test scripts/retired-check.test.mjs && node scripts/retired-check.mjs && node scripts/reduce-motion-check.mjs && node --test scripts/reduce-motion-check.test.mjs && node --test scripts/action-replay.test.mjs scripts/action-replay-moved.test.mjs scripts/action-replay-passer.test.mjs && node scripts/action-replay.mjs'
+  run tokens sh -c 'cd apps/mobile && node scripts/token-check.mjs && node --test scripts/retired-check.test.mjs && node scripts/retired-check.mjs && node scripts/reduce-motion-check.mjs && node --test scripts/reduce-motion-check.test.mjs && node --test scripts/action-replay.test.mjs scripts/action-replay-moved.test.mjs scripts/action-replay-passer.test.mjs && node scripts/action-replay.mjs && node --test scripts/design-check.test.mjs && node scripts/design-check.mjs'
+  # 038 M5: the design ratchet — old text sizes, drawnType, raw text-pulse classes and typed-in fontSize only go down (scripts/design-baseline.json).
   # 2026-09-27: every <Text> and <TextInput> names a token colour — a bare <Text> sets no style, so token-check cannot see it.
   run text-colour sh -c 'cd apps/mobile && node scripts/text-colour-check.mjs'
   # Screen capture FR-003: every screen and popup in the code has a capture entry (and the guard's own tests).
