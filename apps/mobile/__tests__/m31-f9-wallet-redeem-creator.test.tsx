@@ -157,13 +157,14 @@ describe('F9-6 Creator (creator--screen, creator--host-proven)', () => {
     expect(String(link.props['className'])).toContain('bg-text');
     expect(flat(link)['opacity'] ?? 1).toBe(1);
   });
-  it('a proven show: the scroll keeps the foot\'s whole height (and the title row) under the last card', async () => {
+  // 037 D1: was "the foot's whole height AND the title row (>= 160 + 44)"; the title is at the top now, so only the foot's whole height is under the last card.
+  it('a proven show: the scroll keeps the foot\'s whole height under the last card', async () => {
     mockClaims = () => Promise.resolve([{ id: 'c1', feedUrl: 'https://a.test/feed.xml', code: 'SN-7Q4K-2M', status: 'proven' }]);
     const r = await render(createElement(CreatorScreen));
     const foot = byId(r, 'creator-foot')[0]!;
     act(() => { foot.props['onLayout']({ nativeEvent: { layout: { width: 350, height: 160, x: 0, y: 0 } } }); });
     const scroll = byId(r, 'creator-scroll')[0]!;
-    expect(Number((StyleSheet.flatten(scroll.props['contentContainerStyle']) as Record<string, unknown>)['paddingBottom'])).toBeGreaterThanOrEqual(160 + 44);
+    expect(Number((StyleSheet.flatten(scroll.props['contentContainerStyle']) as Record<string, unknown>)['paddingBottom'])).toBeGreaterThanOrEqual(160);
   });
   it('the explanation says your show’s numbers with a curly apostrophe', async () => {
     const r = await render(createElement(CreatorScreen));

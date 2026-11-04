@@ -9,6 +9,7 @@ import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act } from 'react-test-renderer';
 import { allText, episode, FEED, hash, mount, press, seededStores } from './support/screen-kit';
+import { contentTopReserve, titleBarTop } from '@/design';
 import { episodeId } from '@/storage/schema';
 import { createMemoryStores } from '@/storage/memory';
 
@@ -79,12 +80,13 @@ describe('Updates, as drawn', () => {
     expect((StyleSheet.flatten(deck.props['contentContainerStyle'] as never) as Record<string, number>)['gap']).toBe(10);
   });
 
-  it('the page starts 8 under the status bar; Voice (signed in) is 92 tall, Starred 70, only when there is something', async () => {
+  // 037 D1: was "the page starts 8 under the status bar"; it starts 8 under the title block now (6 + the block's reserve + 8).
+  it('the page starts 8 under the title block; Voice (signed in) is 92 tall, Starred 70, only when there is something', async () => {
     setup({ starred: true });
     mockSocial.listener = { listenerId: 'me', displayName: 'Me' };
     const r = await mountScreen();
     const page = r.root.findAllByProps({ testID: 'updates-page' }).find((n) => typeof n.type === 'string')!;
-    expect((StyleSheet.flatten(page.props['contentContainerStyle'] as never) as Record<string, number>)['paddingTop']).toBe(8);
+    expect((StyleSheet.flatten(page.props['contentContainerStyle'] as never) as Record<string, number>)['paddingTop']).toBe(titleBarTop(0) + contentTopReserve() + 8);
     expect(style(r.root.findByProps({ testID: 'voice-block' }))['minHeight']).toBe(92); // F10: a minimum; the turned label can make it taller
     expect(style(r.root.findByProps({ testID: 'starred-block' }))['minHeight']).toBe(70);
     expect(r.root.findByProps({ testID: 'voice-posts' }).props['variant']).toBe('updates');

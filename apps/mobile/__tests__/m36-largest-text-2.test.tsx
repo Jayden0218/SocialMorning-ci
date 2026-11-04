@@ -50,7 +50,7 @@ it('E4 the comment box text is capped like the rest of the type', () => {
 
 it('E5 a long-word title at large text takes at most two lines, so shrink-to-fit can act', () => {
   mockScale = 3.1;
-  act(() => { r = create(createElement(TitleBar, { title: 'My subscriptions', bottom: 40, actions: [{ icon: 'search-outline', label: 'Search', onPress: jest.fn() }] })); });
+  act(() => { r = create(createElement(TitleBar, { title: 'My subscriptions', top: 53, actions: [{ icon: 'search-outline', label: 'Search', onPress: jest.fn() }] })); });
   const t = texts().find((x) => x.props['accessibilityRole'] === 'header')!;
   expect(t.props['adjustsFontSizeToFit']).toBe(true);
   expect(t.props['numberOfLines']).toBeLessThanOrEqual(2);

@@ -25,7 +25,7 @@ const bar = (title: string, nActions: number, size?: number): ReactTestRenderer 
   setReducedMotionForTest(true);
   const actions = [{ icon: 'grid-outline' as const, label: 'Show as a grid', onPress: () => undefined }, { icon: 'share-outline' as const, label: 'Share my list', onPress: () => undefined }].slice(0, nActions);
   let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, createElement(TitleBar, { title, bottom: 40, onBack: () => undefined, actions, ...(size ? { size } : {}) }))); });
+  act(() => { r = create(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, createElement(TitleBar, { title, top: 53, onBack: () => undefined, actions, ...(size ? { size } : {}) }))); });
   mounted.push(r);
   return r;
 };
@@ -34,10 +34,12 @@ const box = (r: ReactTestRenderer): ReactTestInstance => r.root.findAll((n) => n
 const label = (r: ReactTestRenderer): ReactTestInstance => r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && typeof n.props['numberOfLines'] === 'number')[0]!;
 
 describe('F9-4 a long title beside two circles', () => {
-  it('"My subscriptions" at 26 with two circles: two lines kept, and the title runs under the circles (negative right margin)', () => {
+  // 037 D1: was "…and the title runs under the circles (negative right margin)". The title sits under the row at the full width now (no circles beside it), so the long word
+  // fits without a run-on: two lines kept, and the margin is 0.
+  it('"My subscriptions" at 26 with two circles: two lines kept, and the title has the whole width under the row (no negative right margin)', () => {
     const r = bar('My subscriptions', 2, 26);
     expect(Number(label(r).props['numberOfLines'])).toBeGreaterThanOrEqual(2);
-    expect(Number(flat(box(r))['marginRight'] ?? 0)).toBeLessThan(0);
+    expect(Number(flat(box(r))['marginRight'] ?? 0)).toBe(0);
   });
   it('a short two-word title keeps its plain box ("My queue" with two circles: no negative margin; expected to pass today)', () => {
     const r = bar('My queue', 2);

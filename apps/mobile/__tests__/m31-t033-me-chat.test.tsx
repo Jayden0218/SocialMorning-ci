@@ -16,7 +16,7 @@ import { createElement } from 'react';
 import { StyleSheet, processColor } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { bars, colour } from '@/design';
-import { tabTitleBottom } from '@/ui/me/useTabTitle';
+import { tabTitle } from '@/ui/me/useTabTitle';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 const mockPush = jest.fn();
@@ -183,13 +183,15 @@ describe('Me (me--screen, me--signed-out, me--plus)', () => {
     expect(mockPush).toHaveBeenLastCalledWith('/account');
   });
 
-  it('the title bar is 8 above the tab bar, and 76 (8 + 58 + 10) with a now bar', async () => {
-    expect(tabTitleBottom(false)).toBe(bars.nowGap);
-    expect(tabTitleBottom(true)).toBe(bars.nowGap + bars.now + bars.titleAboveNow);
+  // 037 D1: was "the title bar is 8 above the tab bar, and 76 (8 + 58 + 10) with a now bar" (`tabTitleBottom`). The tab title hangs 6 from the page's top whatever bar is showing; with a now bar only the foot room grows by nowGap + now.
+  it('the title bar is 6 from the top whether or not a now bar floats; only the foot room grows (by 8 + 58)', async () => {
+    expect(tabTitle(false).top).toBe(6);
+    expect(tabTitle(true).top).toBe(6);
+    expect(tabTitle(true).reserve - tabTitle(false).reserve).toBe(bars.nowGap + bars.now);
     mockIdle = true;
-    expect(titleBar(await render(createElement(MeScreen))).props.bottom).toBe(8);
+    expect(titleBar(await render(createElement(MeScreen))).props.top).toBe(6);
     mockIdle = false;
-    expect(titleBar(await render(createElement(MeScreen))).props.bottom).toBe(76);
+    expect(titleBar(await render(createElement(MeScreen))).props.top).toBe(6);
   });
 
   it('signed out: "Sign in ›" is the title, Creator centre, Likes, Playlists, Wallet and Tips are not drawn, the month tile spans the row', async () => {
@@ -275,7 +277,7 @@ describe('Chat (chat--screen, chat--signed-out, chat--empty, chat--error)', () =
     mockChats = () => Promise.resolve([chat()]);
     const r = await render(createElement(ChatTab));
     const bar = titleBar(r).props;
-    expect(bar).toMatchObject({ title: 'Chat', subtitle: 'People who follow you back', bottom: 8 });
+    expect(bar).toMatchObject({ title: 'Chat', subtitle: 'People who follow you back', top: 6 }); // 037 D1: was bottom: 8
     expect(bar.actions).toHaveLength(1);
     expect(bar.actions[0]).toMatchObject({ icon: 'add', label: 'New chat' });
     act(() => bar.actions[0].onPress());

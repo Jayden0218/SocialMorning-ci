@@ -11,6 +11,7 @@
  *  - scan: the 240 frame with a 124 tile; the camera window 358 tall, 16 in; Close / Torch - same.
  * NOT VERIFIED: the look on a phone (nothing here was seen in a browser or on a device).
  */
+import { contentTopReserve, titleBarTop } from '@/design';
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -72,6 +73,8 @@ const press = async (r: ReactTestRenderer, label: string) => { const n = pressab
 const text = (r: ReactTestRenderer) => JSON.stringify(r.toJSON());
 /** The test phone's status bar is 47, the drawing's 50. */
 const at = (drawnTop: number) => 47 + drawnTop - 50;
+// 037 D1: a page with a title bar starts its content under the title block (6 + the block's reserve) instead of at the status bar, so a drawn top moves down by that much. A `bare` page (no title bar) keeps `at`.
+const under = (drawnTop: number) => at(drawnTop) + titleBarTop(0) + contentTopReserve();
 /** A bar of the curve is transparent when it sits in the gap. */
 const gapBars = (r: ReactTestRenderer) => byId(r, 'curve-bar').filter((b) => flat(b)['backgroundColor'] === 'rgba(6,6,8,0)').length;
 
@@ -163,7 +166,7 @@ describe('appeal (appeal--screen, --nothing-to-appeal, --signed-out, toast--appe
     const cards = byId(r, 'appeal-card');
     expect(cards).toHaveLength(3);
     expect([flat(cards[0]!)['borderRadius'], flat(cards[0]!)['padding']]).toEqual([22, 16]);
-    const lane = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['left'] === 28 && flat(n)['right'] === 16 && flat(n)['top'] === at(156));
+    const lane = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['left'] === 28 && flat(n)['right'] === 16 && flat(n)['top'] === under(156));
     expect(lane.length).toBeGreaterThan(0);
     const t = text(r);
     expect(t).toContain('Comment removed · 12 Oct');
@@ -258,7 +261,7 @@ describe('scan (scan--screen, scan--camera-denied, scan--camera-preview)', () =>
     mockPermission = { granted: true, canAskAgain: true };
     const r = await mount(ScanScreen);
     const win = byId(r, 'scan-window')[0]!;
-    expect([flat(win)['height'], flat(win)['left'], flat(win)['right'], flat(win)['top'], flat(win)['borderRadius']]).toEqual([358, 16, 16, at(58), 32]);
+    expect([flat(win)['height'], flat(win)['left'], flat(win)['right'], flat(win)['top'], flat(win)['borderRadius']]).toEqual([358, 16, 16, under(58), 32]);
     expect(text(r)).toContain('Scan QR code');
     expect(text(r)).toContain('Point at a QR code');
     expect(text(r)).toContain('Clip, episode and show codes open right here');

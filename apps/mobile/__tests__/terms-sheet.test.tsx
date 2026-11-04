@@ -92,13 +92,14 @@ it('Exit app leaves without accepting; where the app cannot close, it returns to
 import { StyleSheet } from 'react-native';
 const styleOf = (n: ReactTestInstance): Record<string, unknown> => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
 const hostById = (r: ReactTestRenderer, id: string): ReactTestInstance => r.root.findAll((n) => n.props['testID'] === id && typeof n.type === 'string')[0]!;
-/** The nearest ancestor (or the node) whose style sets `bottom`: the title bar's box. */
-const barBottom = (n: ReactTestInstance): number => { for (let p: ReactTestInstance | null = n; p; p = p.parent) { const b = styleOf(p)['bottom']; if (typeof b === 'number') return b; } return NaN; };
+/** The nearest ancestor (or the node) whose style sets `top`: the title bar's box. (037 D1: was `bottom`; the title bar is at the top now.) */
+const barTop = (n: ReactTestInstance): number => { for (let p: ReactTestInstance | null = n; p; p = p.parent) { const b = styleOf(p)['top']; if (typeof b === 'number') return b; } return NaN; };
 
-it('the title sits at 104 and the Disagree / Agree row at 40 above the edge (34 home strip + 6 / 70), like the drawing', () => {
+// 037 D1: was "the title sits at 104 above the edge" (over the foot row). The title is at the top (status bar 47 + 6 = 53); the Disagree / Agree row stays at 40 above the edge.
+it('the title sits at 53 from the top and the Disagree / Agree row at 40 above the edge (34 home strip + 6), like the drawing', () => {
   const r = render(page({ onAccept: jest.fn() }));
   expect(styleOf(hostById(r, 'overlay-foot'))['bottom']).toBe(40);
-  expect(barBottom(hostById(r, 'title-bar-title'))).toBe(104);
+  expect(barTop(hostById(r, 'title-bar-title'))).toBe(53);
   // Disagree is 120 wide and Agree fills the rest at 52.
   expect(styleOf(byLabel(r, 'Disagree').parent!.parent!)['width'] ?? styleOf(byLabel(r, 'Disagree').parent!)['width']).toBe(120);
   expect(styleOf(byLabel(r, 'Agree'))['height']).toBe(52);

@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { FACE_LEADING } from '@/design/tokens';
-import { bars, bottomInset, colour, fontSize, gutter, lineHeight, motion, nowBarBottom, radius, spacing, titleBarBottom, toastBottom, typeScale, typeStyle } from '@/design';
+import { bars, barsTop, bottomInset, colour, fontSize, gutter, lineHeight, motion, nowBarBottom, radius, spacing, titleBarTop, toastBottom, typeScale, typeStyle } from '@/design';
 
 const MOBILE = join(__dirname, '..');
 
@@ -76,21 +76,23 @@ it('motion: tap 120 · move 240 · sheet 360 · breathe 2.4 s · bubble 1.2 s ·
   expect([motion.tap, motion.move, motion.sheet, motion.breathe, motion.bubble, motion.nowReturn]).toEqual([120, 240, 360, 2400, 1200, 600]);
 });
 
-it('G-P3: the bars stack as drawn on a 34 pt inset — tab bar 92, now bar at 100, title bar 100 / 168, pushed 40 / 108, toast 176', () => {
+// 037 D1: was "title bar 100 / 168, pushed 40 / 108, toast 176" (a title bar at the foot); now the title bar is at the top (titleBarTop) and the toast sits 8 over the highest bar (166 / 100 / 42 / 106).
+it('G-P3: the bars stack as drawn on a 34 pt inset — tab bar 92, now bar at 100, bars tops 92 / 158 / 34 / 98, toast 166', () => {
   expect(bars.tab + 34).toBe(92);
   expect(bottomInset(34, { tabs: true })).toBe(92);
   expect(nowBarBottom(34, { tabs: true })).toBe(100); // the now bar floats 8 above the tab bar
-  expect(titleBarBottom(34, { tabs: true })).toBe(100); // the title bar with only the tab bar
-  expect(titleBarBottom(34, { tabs: true, now: true })).toBe(168); // over the now bar
-  expect(titleBarBottom(34)).toBe(40); // a pushed page
+  expect(titleBarTop(47)).toBe(53); // the title bar hangs 6 under the status bar
+  expect(barsTop(34, { tabs: true })).toBe(92); // the highest bar: the tab bar alone
+  expect(barsTop(34, { tabs: true, now: true })).toBe(158); // …the now bar over it
+  expect(barsTop(34)).toBe(34); // a pushed page: the home strip
   expect(nowBarBottom(34)).toBe(40); // …and its now bar
-  expect(titleBarBottom(34, { now: true })).toBe(108); // …with the now bar under the title bar
+  expect(barsTop(34, { now: true })).toBe(98); // …with the now bar on it
   expect(bottomInset(34, { tabs: true, now: true })).toBe(158);
-  expect(toastBottom(34)).toBe(176); // no options: both bars
-  expect(toastBottom(34, { tabs: true, now: true })).toBe(176);
-  expect(toastBottom(34, { tabs: true })).toBe(108); // the tab bar alone
-  expect(toastBottom(34, {})).toBe(48); // a pushed page, no bar
-  expect(toastBottom(34, { now: true })).toBe(116); // a pushed page with the now bar
+  expect(toastBottom(34)).toBe(166); // no options: both bars
+  expect(toastBottom(34, { tabs: true, now: true })).toBe(166);
+  expect(toastBottom(34, { tabs: true })).toBe(100); // the tab bar alone
+  expect(toastBottom(34, {})).toBe(42); // a pushed page, no bar
+  expect(toastBottom(34, { now: true })).toBe(106); // a pushed page with the now bar
   expect(toastBottom(34, { player: true })).toBe(112); // the player: clears the tray (design-pulse2 listen.html, toast at 112)
 });
 

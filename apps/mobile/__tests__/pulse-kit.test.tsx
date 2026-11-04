@@ -145,13 +145,15 @@ describe('timestamp chip', () => {
 });
 
 describe('title bar', () => {
-  const bar = (p: Partial<React.ComponentProps<typeof TitleBar>> = {}) => render(createElement(TitleBar, { title: 'Downloads', subtitle: '12 episodes · 1.4 GB', bottom: 168, onBack: jest.fn(), actions: [{ icon: 'ellipsis-horizontal', label: 'More', onPress: jest.fn() }], ...p }));
+  const bar = (p: Partial<React.ComponentProps<typeof TitleBar>> = {}) => render(createElement(TitleBar, { title: 'Downloads', subtitle: '12 episodes · 1.4 GB', top: 53, onBack: jest.fn(), actions: [{ icon: 'ellipsis-horizontal', label: 'More', onPress: jest.fn() }], ...p }));
   const title = (r: ReactTestRenderer) => r.root.findAll((n) => n.props['accessibilityRole'] === 'header')[0]!;
 
-  it('sits at `bottom` over the content, side padding 20, with the back circle, the title, the subtitle and the action', () => {
+  // 037 D1: was "sits at `bottom` 168"; the bar hangs from `top` (53 = status bar 47 + 6) now, same side padding and layer.
+  it('sits at `top` over the content, side padding 20, with the back circle, the title, the subtitle and the action', () => {
     const r = bar();
-    const box = hosts(r, (n) => flat(n.props['style'])['bottom'] === 168)[0]!;
-    expect(flat(box.props['style'])).toMatchObject({ bottom: 168, paddingHorizontal: 20, zIndex: 20 });
+    const box = hosts(r, (n) => flat(n.props['style'])['top'] === 53)[0]!;
+    expect(flat(box.props['style'])).toMatchObject({ top: 53, paddingHorizontal: 20, zIndex: 20 });
+    expect(flat(box.props['style'])['bottom']).toBeUndefined();
     expect(press(r, 'Back')).toBeTruthy();
     expect(press(r, 'More')).toBeTruthy();
     expect(words(r)).toContain('12 episodes · 1.4 GB');
@@ -165,18 +167,21 @@ describe('title bar', () => {
     expect(val(flat(title(small).props['style'])['fontSize'])).toBe(20);
     expect(title(small).props['numberOfLines']).toBe(1);
   });
-  it('F3: a one-word title runs on under the action circles (drawn: Downloads) instead of wrapping into letters; a title of words keeps its own width', () => {
+  // 037 D1: F3 kept its purpose (a one-word title is never wrapped into letters) by other means. Was: the title ran on UNDER the action circles (negative marginRight)
+  // because it shared the row with them. In option B it sits under the row at the full width, so it needs no reach: no negative margin with 0, 1 or 2 circles.
+  it('F3: a one-word title (Downloads) has the whole width under the row — no run-on under the circles is needed; a title of words keeps its own width', () => {
     const wrap = (r: ReactTestRenderer) => flat(hosts(r, (n) => n.props['testID'] === 'title-bar-title')[0]!.props['style']);
     const two = [{ icon: 'settings-outline' as const, label: 'Download settings', onPress: jest.fn() }, { icon: 'checkmark' as const, label: 'Select', onPress: jest.fn() }];
-    expect(wrap(bar({ actions: two }))['marginRight']).toBe(-(2 * (44 + 12)));
-    expect(wrap(bar())['marginRight']).toBe(-(44 + 12));
-    expect(wrap(bar({ title: 'Slow mornings', actions: two }))['marginRight']).toBe(0);
-    expect(wrap(bar({ actions: [] }))['marginRight']).toBe(0);
+    expect(wrap(bar({ actions: two }))['marginRight'] ?? 0).toBe(0);
+    expect(wrap(bar())['marginRight'] ?? 0).toBe(0);
+    expect(wrap(bar({ title: 'Slow mornings', actions: two }))['marginRight'] ?? 0).toBe(0);
+    expect(wrap(bar({ actions: [] }))['marginRight'] ?? 0).toBe(0);
+    expect(title(bar({ actions: two })).props['numberOfLines']).toBe(1);
   });
   it('a narrow phone uses the 16 gutter', () => {
     (useWindowDimensions as unknown as jest.Mock).mockReturnValue({ width: 360, height: 640, scale: 3, fontScale: 1 });
     const r = bar();
-    expect(flat(hosts(r, (n) => flat(n.props['style'])['bottom'] === 168)[0]!.props['style'])['paddingHorizontal']).toBe(16);
+    expect(flat(hosts(r, (n) => flat(n.props['style'])['top'] === 53)[0]!.props['style'])['paddingHorizontal']).toBe(16);
     (useWindowDimensions as unknown as jest.Mock).mockReturnValue({ width: 390, height: 844, scale: 3, fontScale: 1 });
   });
   it('large text: three lines before it cuts, the full name stays in the label', () => {
@@ -189,14 +194,14 @@ describe('title bar', () => {
   it('no back on a tab screen; at most two actions; a subtitle link is hot-text and pressable', () => {
     const onSubtitle = jest.fn();
     const three = ['a', 'b', 'c'].map((l) => ({ icon: 'download-outline' as const, label: l, onPress: jest.fn() }));
-    const r = render(createElement(TitleBar, { title: 'Updates', subtitle: 'My subscriptions · 6 ›', onSubtitle, actions: three, bottom: 100 }));
+    const r = render(createElement(TitleBar, { title: 'Updates', subtitle: 'My subscriptions · 6 ›', onSubtitle, actions: three, top: 53 }));
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Back')).toHaveLength(0);
     expect(hosts(r, (n) => ['a', 'b', 'c'].includes(n.props['accessibilityLabel']) && n.props['accessibilityRole'] === 'button').map((n) => n.props['accessibilityLabel'])).toEqual(['a', 'b']);
     act(() => { press(r, 'My subscriptions · 6 ›').props['onPress'](); });
     expect(onSubtitle).toHaveBeenCalled();
     expect(classOf(r.root.findAll((n) => String(n.type) === 'Text' && n.props['children'] === 'My subscriptions · 6 ›')[0]!)).toContain('text-hotText');
   });
-  it('an extra (the search field) is drawn above the row', () => {
+  it('an extra (the search field) is drawn under the title (037 D1: was above the row)', () => {
     const r = bar({ extra: createElement(Type, { step: 'body', className: 'text-text' }, 'Search field') });
     expect(words(r)).toContain('Search field');
   });

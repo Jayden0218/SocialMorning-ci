@@ -94,7 +94,8 @@ const styled = (r: ReactTestRenderer, label: string): ReactTestInstance => r.roo
 const state = (r: ReactTestRenderer, label: string): Record<string, unknown> | undefined => r.root.findAll((n) => n.props['accessibilityLabel'] === label && n.props['accessibilityState'] !== undefined)[0]?.props['accessibilityState'];
 const words = (n: ReactTestInstance): string => n.findAll((x) => typeof x.type === 'string').flatMap((x) => x.children.filter((c): c is string => typeof c === 'string')).join(' ');
 /** The bottom of the title bar: the nearest ancestor of the title that sets `bottom`. */
-const titleBottom = (r: ReactTestRenderer): number => { for (let p: ReactTestInstance | null = host(r, 'title-bar-title'); p; p = p.parent) { const b = style(p)['bottom']; if (typeof b === 'number') return b; } return NaN; };
+// 037 D1: was `titleBottom` (the nearest ancestor with a `bottom`); the title bar is at the top now.
+const titleTop = (r: ReactTestRenderer): number => { for (let p: ReactTestInstance | null = host(r, 'title-bar-title'); p; p = p.parent) { const b = style(p)['top']; if (typeof b === 'number') return b; } return NaN; };
 const type = (r: ReactTestRenderer, label: string, text: string): void => {
   const n = r.root.findAll((x) => x.props['accessibilityLabel'] === label && typeof x.props['onChangeText'] === 'function')[0];
   if (!n) throw new Error(`no field "${label}"`);
@@ -108,15 +109,15 @@ const press = async (r: ReactTestRenderer, label: string): Promise<void> => {
 
 describe('OverlayPage: the title and the foot row sit where the drawing puts them', () => {
   const page = (p: Partial<Parameters<typeof OverlayPage>[0]> = {}): React.ReactElement => createElement(OverlayPage, { title: 'T', ...p } as React.ComponentProps<typeof OverlayPage>, null);
-  it('without a foot the title is 6 above the edge (40 on a drawn phone), with a foot 70 (104) and the row 6 (40)', async () => {
+  it('the title is 6 under the status bar (56 on a 50 pt one) with or without a foot; the foot row stays 6 (40) above the edge', async () => {
     const plain = await render(page({ inset: 34, onBack: () => undefined }));
-    expect(titleBottom(plain)).toBe(40);
+    expect(titleTop(plain)).toBe(56);
     const foot = await render(page({ inset: 34, onBack: () => undefined, foot: createElement('Foot') }));
-    expect(titleBottom(foot)).toBe(104);
+    expect(titleTop(foot)).toBe(56);
     expect(style(host(foot, 'overlay-foot'))).toMatchObject({ bottom: 40, left: 20, right: 20 });
     // A route page, whose root layout already pads the strip, passes none.
     const route = await render(page({ foot: createElement('Foot') }));
-    expect(titleBottom(route)).toBe(70);
+    expect(titleTop(route)).toBe(56);
     expect(style(host(route, 'overlay-foot'))['bottom']).toBe(6);
   });
   it('draws a back circle only when it is given one', async () => {
@@ -199,10 +200,10 @@ describe('the sign-up route', () => {
 });
 
 describe('email sign-in (auth-email--screen, --code-step, --name-step, --under-age, --suspended)', () => {
-  it('step 1: the title low with a close circle, the 56 field, Send code a 52 pill that waits for an address', async () => {
+  it('step 1: the title at the top with a close circle, the 56 field, Send code a 52 pill that waits for an address', async () => {
     const r = await render(createElement(EmailScreen));
-    // The root layout pads the home strip, so the title is 70 over the foot row's 52 + 12.
-    expect(titleBottom(r)).toBe(70);
+    // 037 D1: was "the title is 70 over the foot row's 52 + 12"; the title is 6 under the status bar now.
+    expect(titleTop(r)).toBe(56);
     expect(words(host(r, 'title-bar-title'))).toBe('Continue with email');
     expect(tap(r, 'Close')).toBeDefined();
     expect(style(host(r, 'auth-field'))).toMatchObject({ height: 56, borderRadius: 18 });
@@ -330,10 +331,10 @@ describe('Keep your account? (pending-deletion--sheet)', () => {
 });
 
 describe('the legal document (terms--full-document)', () => {
-  it('Back and a short title sit low (40 on a drawn phone); the eyebrow, the title and a Contents tile with 48 rows lead the text; Back closes', async () => {
+  it('Back and a short title sit at the top (56 on a 50 pt status bar); the eyebrow, the title and a Contents tile with 48 rows lead the text; Back closes', async () => {
     const onClose = jest.fn();
     const r = await render(createElement(LegalDoc, { text: LEGAL_TEXT.agreement, name: 'Service Agreement', onClose }));
-    expect(titleBottom(r)).toBe(40);
+    expect(titleTop(r)).toBe(56);
     expect(words(host(r, 'title-bar-title'))).toBe('Service Agreement');
     expect(words(r.root)).toContain('SocialNet · legal');
     expect(words(r.root)).toContain('Contents');

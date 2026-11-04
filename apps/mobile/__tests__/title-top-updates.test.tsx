@@ -11,24 +11,33 @@ import { barsReserve, contentTopReserve, titleBarTop } from '@/design';
 import { TitleBar } from '@/ui/kit/TitleBar';
 import { seededStores, mount } from './support/screen-kit';
 
-jest.mock('@/ui/shell/providers', () => ({
-  useStores: () => mockRef.stores, useToast: () => jest.fn(), useDownloads: () => ({ subscribe: jest.fn(() => () => undefined), request: jest.fn(() => Promise.resolve({ kind: 'ok' })) }), useSubscriptionSync: () => ({ push: jest.fn(), reconcile: jest.fn(() => Promise.resolve()) }), usePositionSync: () => ({ flush: jest.fn(() => Promise.resolve()) }),
-}));
+// One object each, as the real hooks give: a new one per render re-runs the tab's focus effect for ever.
 const mockRef: { stores: ReturnType<typeof seededStores> } = { stores: undefined as never };
+const mockToast = jest.fn();
+const mockDl = { subscribe: jest.fn(() => () => undefined), request: jest.fn(() => Promise.resolve({ kind: 'ok' })) };
+const mockPos = { flush: jest.fn(() => Promise.resolve()) };
+const mockSync = { push: jest.fn(), reconcile: jest.fn(() => Promise.resolve()) };
 const mockRouter = { push: jest.fn() };
+const mockSafety = { hiddenFeeds: new Set<string>() };
+const mockSocial = { listener: undefined };
+const mockM12 = { episodeCounts: () => Promise.resolve({ counts: {} }), voicePosts: () => Promise.resolve([]), deleteVoicePost: jest.fn() };
+const mockProfile = { me: undefined };
+const mockPlayer = { load: jest.fn(), pause: jest.fn() };
+const mockDiscoverApi = { view: undefined, open: jest.fn() };
+jest.mock('@/ui/shell/providers', () => ({ useStores: () => mockRef.stores, useToast: () => mockToast, useDownloads: () => mockDl, useSubscriptionSync: () => mockSync, usePositionSync: () => mockPos }));
 jest.mock('expo-router', () => {
   const { useEffect } = require('react');
   return { useRouter: () => mockRouter, useScrollToTop: () => undefined, useFocusEffect: (f: () => void) => { useEffect(() => f(), [f]); }, router: mockRouter };
 });
 jest.mock('@/ui/shell/toastPlacement', () => ({ useToastPlacement: () => ({ tabs: true, now: false, player: false }) }));
-jest.mock('@/safety/context', () => ({ useSafety: () => ({ hiddenFeeds: new Set<string>() }) }));
-jest.mock('@/social/context', () => ({ useSocial: () => ({ listener: undefined }) }));
-jest.mock('@/social/m12-api', () => ({ useM12Api: () => ({ episodeCounts: () => Promise.resolve({ counts: {} }), voicePosts: () => Promise.resolve([]), deleteVoicePost: jest.fn() }) }));
-jest.mock('@/social/profile-api', () => ({ useProfileApi: () => ({ me: undefined }) }));
+jest.mock('@/safety/context', () => ({ useSafety: () => mockSafety }));
+jest.mock('@/social/context', () => ({ useSocial: () => mockSocial }));
+jest.mock('@/social/m12-api', () => ({ useM12Api: () => mockM12 }));
+jest.mock('@/social/profile-api', () => ({ useProfileApi: () => mockProfile }));
 jest.mock('@/me/my-avatar', () => ({ useMyAvatar: () => undefined }));
 let mockIdle = true;
-jest.mock('@/playback/store', () => ({ usePlayer: () => ({ load: jest.fn(), pause: jest.fn() }), usePlayerSelector: () => mockIdle, selectIdle: () => true }));
-jest.mock('@/discover/useDiscover', () => ({ useDiscover: () => ({ view: undefined, open: jest.fn() }) }));
+jest.mock('@/playback/store', () => ({ usePlayer: () => mockPlayer, usePlayerSelector: () => mockIdle, selectIdle: () => true }));
+jest.mock('@/discover/useDiscover', () => ({ useDiscover: () => mockDiscoverApi }));
 jest.mock('@/feeds/refresh-service', () => ({ refreshFeeds: () => Promise.resolve({ stale: [] as string[] }) }));
 jest.mock('@/ui/shell/ListDetail', () => ({ ListDetail: ({ list }: { list: React.ReactElement }) => list, EpisodePane: () => null, useOpensInPane: () => false }));
 jest.mock('@/ui/social/VoicePosts', () => ({ VoicePosts: () => null }));

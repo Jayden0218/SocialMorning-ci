@@ -113,7 +113,7 @@ describe('NowBar', () => {
 
 describe('TitleBar', () => {
   it('the back circle and each action circle reach 44', () => {
-    const r = render(createElement(TitleBar, { title: 'Queue', bottom: 40, onBack: () => undefined, actions: [{ icon: 'grid-outline', label: 'Show as a grid', onPress: () => undefined }, { icon: 'share-outline', label: 'Share my list', onPress: () => undefined }] }));
+    const r = render(createElement(TitleBar, { title: 'Queue', top: 53, onBack: () => undefined, actions: [{ icon: 'grid-outline', label: 'Show as a grid', onPress: () => undefined }, { icon: 'share-outline', label: 'Share my list', onPress: () => undefined }] }));
     big(byLabel(r, 'Back'));
     big(byLabel(r, 'Show as a grid'));
     big(byLabel(r, 'Share my list'));
@@ -146,7 +146,7 @@ describe('036 T015: frames of the now bar open area and the title links', () => 
     expect(Number(flat(byLabel(r, 'Now playing: Why mornings matter. Open the player.'))['minHeight'])).toBe(bars.circle);
   });
   it('a title link and a subtitle link are 44 tall in their frames, pulled back so the title bar is as drawn', () => {
-    const r = render(createElement(TitleBar, { title: 'Ana', titleLabel: 'Ana, open your profile', onTitle: () => undefined, subtitle: 'My profile ›', onSubtitle: () => undefined, bottom: 100 }));
+    const r = render(createElement(TitleBar, { title: 'Ana', titleLabel: 'Ana, open your profile', onTitle: () => undefined, subtitle: 'My profile ›', onSubtitle: () => undefined, top: 53 }));
     for (const label of ['Ana, open your profile', 'My profile ›']) {
       const s = flat(byLabel(r, label));
       expect(Number(s['minHeight'])).toBe(44);

@@ -42,35 +42,39 @@ const mount = (below?: React.ReactNode) => {
       createElement(PushedPage as React.ComponentType<Record<string, unknown>>, { title: 'Text status', right: createElement(Box, { testID: 'post' }), ...(below ? { below, belowHeight: 52 } : {}) }, null)));
   });
 };
-/** The title bar's own box: the absolute row that holds the title (`title-bar-title`'s ancestor with a `bottom`). */
-const titleBottom = (): number => {
-  const title = r.root.findAll((n) => n.props['testID'] === 'title-bar-title' && typeof n.type === 'string')[0]!;
-  let n: ReactTestInstance | null = title;
-  while (n) { const b = flat(n)['bottom']; if (typeof b === 'number') return b; n = n.parent; }
-  throw new Error('no title bar bottom');
+/**
+ * 037 D1: this file pinned that the TITLE BAR (with Post, Send, Save) rides above the keyboard, because it stood at the page's foot. The title bar is at the top now, where the keyboard
+ * can never cover it, so what rides is the page's foot slot (`below`: a composer, a Send button). The tests keep their keyboard-height arithmetic and now ask three things:
+ * the bar stays at its top spot; the `below` slot rides (as `titleBottom` did); the bar does not move with the keyboard.
+ */
+const titleTop = (): number => {
+  const bar = r.root.findAll((n) => n.props['testID'] === 'title-bar' && typeof n.type === 'string')[0]!;
+  return flat(bar)['top'] as number;
 };
 const belowBottom = (): number => flat(r.root.findAll((n) => n.props['testID'] === 'pushed-below' && typeof n.type === 'string')[0]!)['bottom'] as number;
 
 describe('on iOS', () => {
   beforeEach(() => { Platform.OS = 'ios'; });
 
-  it('at rest the title bar sits at its usual spot, below 100', () => {
-    mount();
-    expect(titleBottom()).toBeLessThan(100);
+  it('at rest the title bar sits at its top spot (status bar 47 + 6) and the foot slot at the foot, below 100', () => {
+    mount(createElement(Box, { testID: 'below-child' }));
+    expect(titleTop()).toBe(53);
+    expect(belowBottom()).toBeLessThan(100);
   });
 
-  it('with the keyboard up (300) the title bar sits at or above 300', () => {
+  it('with the keyboard up (300) the title bar does not move: the keyboard cannot cover the top', () => {
     mount();
     emit('keyboardWillShow', 300);
-    expect(titleBottom()).toBeGreaterThanOrEqual(300);
+    expect(titleTop()).toBe(53);
   });
 
-  it('the keyboard is read from its event, not a constant: 216 and 335 give different spots', () => {
-    mount();
+  it('the keyboard is read from its event, not a constant: 216 and 335 give different spots for the foot slot', () => {
+    mount(createElement(Box, { testID: 'below-child' }));
     emit('keyboardWillShow', 216);
-    const a = titleBottom();
+    const a = belowBottom();
     emit('keyboardWillShow', 335);
-    expect(titleBottom() - a).toBe(335 - 216);
+    expect(belowBottom() - a).toBe(335 - 216);
+    expect(titleTop()).toBe(53);
   });
 
   it('the `below` slot rides above the keyboard too', () => {
@@ -79,11 +83,11 @@ describe('on iOS', () => {
     expect(belowBottom()).toBeGreaterThanOrEqual(300);
   });
 
-  it('when the keyboard hides the title bar returns to its usual spot', () => {
-    mount();
-    const rest = titleBottom();
+  it('when the keyboard hides the foot slot returns to its usual spot', () => {
+    mount(createElement(Box, { testID: 'below-child' }));
+    const rest = belowBottom();
     emit('keyboardWillShow', 300);
     emit('keyboardWillHide');
-    expect(titleBottom()).toBe(rest);
+    expect(belowBottom()).toBe(rest);
   });
 });

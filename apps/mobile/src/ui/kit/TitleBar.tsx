@@ -1,26 +1,20 @@
-// The title bar: a screen's title, back button and actions in the thumb zone at the bottom.
+// The title bar: Back and the actions in a row under the status bar, the large title and its subtitle under that row.
 /**
- * M31 T022 (layout rule 1; design-pulse2 index.html §Bars, `kit.js` `titlebar`): the title, the
- * subtitle, the back button and the main actions sit low, 8 above whichever bar is highest — the
- * now bar when it shows, else the tab bar, else (a pushed page) 8 above the safe area.
- * `bottom` is that distance from the screen's bottom edge: `titleBarBottom(safe, { tabs, now })`
- * in src/design/tokens.ts (100 with a tab bar, 168 with a now bar too, 40 on a pushed page).
- *
- * Side padding is the gutter (20, or 16 on a phone narrower than 375). Back: a 44 circle, raise
- * fill, chevron 22. Title: Unbounded 800 30 (−1 %), up to 2 lines, 3 at large text; once the
- * page scrolls (`shrunk`) it shrinks to 20 on one line over 240 ms. The line height is the font's
- * own (38 and 25) where the drawing's 31 and 21 would crop Unbounded on Android — see `FACE_LEADING`. Subtitle: Geist 500 13/18 in
- * text2 — or, with `onSubtitle`, a hot-text link ("My subscriptions · 6 ›"). Actions: up to two
- * 44 raise circles on the right. `extra` sits above the row (a search field). Content scrolls
- * under a `Fade`; `onTitle` makes the title a link (T033, Me); the back gesture from the left edge still works. The title is the screen's header
- * for a screen reader and keeps its full name even when the lines are cut.
+ * 037 (option B, https://claude.ai/artifact/J7HKbsiAZoDFyypLbY9G9E; was M31 T022 "bottom title bars"): the bar is placed from the TOP —
+ * `top` is `titleBarTop(safeTop)` in src/design/tokens.ts (the safe area plus 6). One row of 44 holds Back on the left and up to two
+ * action circles (or a `right` control) on the right; under it sit the title (Unbounded 800 30 (−1 %), up to 2 lines, 3 at large text) and
+ * the subtitle (Geist 500 13/18 in text2 — or, with `onSubtitle`, a hot-text link), then `extra` (a search field). Once the page scrolls
+ * (`shrunk`) the title moves INTO the row at 20 on one line over 240 ms (instant under Reduce Motion) and the subtitle goes. The line
+ * height is the font's own (38 and 25) where the drawing's 31 and 21 would crop Unbounded on Android — see `FACE_LEADING`.
+ * Content scrolls under a `Fade` at the top edge; `onTitle` makes the title a link (T033, Me); the back gesture from the left edge still
+ * works. The title is the screen's header for a screen reader and keeps its full name even when the lines are cut.
  */
 import { useEffect, useState } from 'react';
 import { Animated, useWindowDimensions } from 'react-native';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
 import { useFace } from '@/ui/lib/text';
-import { bars, colour, gutter, motion, spacing, typeScale, type TypeName } from '@/design';
+import { bars, colour, gutter, motion, typeScale, type TypeName } from '@/design';
 import { FACE_LEADING } from '@/design/tokens';
 import { IconButton } from './PulseButton';
 import { Type, TYPE_CAP } from './Type';
@@ -31,7 +25,7 @@ export type TitleAction = { icon: IconName; label: string; onPress: () => void }
 
 const BIG: TypeName = 'hero';
 const LARGE_TEXT = 1.3;
-/** M31 F9: a word this long ("subscriptions") cannot sit beside two circles, so a title holding one runs under them too (it was cut to "My subscrip…"). */
+/** M31 F9 / 036 E5: a word this long ("subscriptions") at large text keeps to two lines and shrinks to fit. */
 const LONG_WORD = 10;
 const longestWord = (t: string): number => Math.max(0, ...t.split(/\s+/).map((w) => w.length));
 /** F10: the title's cap (the drawn 30 would be 60 at 200 %) and the one-word title's shrink-to-fit. */
@@ -61,13 +55,13 @@ export function TitleBar(props: {
   right?: React.ReactNode;
   /** Up to two. */
   actions?: readonly TitleAction[];
-  /** Distance from the screen's bottom edge to this bar's bottom. */
-  bottom: number;
+  /** Distance from the screen's top edge to this bar's top: `titleBarTop(safeTop)`. */
+  top: number;
   /** The page has scrolled: shrink the title to 20 on one line. */
   shrunk?: boolean;
   /** M31 W3-C: the drawn size of a long title (History is drawn at 26, Favourites at 28); 30 by default. Its line is the font's own. */
   size?: number;
-  /** Drawn above the row, e.g. the Discover search field. */
+  /** Drawn under the title, e.g. the Discover search field. */
   extra?: React.ReactNode;
 }): React.ReactElement {
   const { width, fontScale } = useWindowDimensions();
@@ -93,47 +87,51 @@ export function TitleBar(props: {
   const lines = shrunk || oneWord ? 1 : fontScale > LARGE_TEXT && !longWordLarge ? 3 : 2;
   const fit = (oneWord || longWordLarge) && !shrunk ? FIT : undefined;
   const actions = (props.actions ?? []).slice(0, 2);
-  // 035 L3: the run-on-under-the-circles reach is for normal text; at large text the title keeps to its room and (below) shrinks to fit.
-  const reach = props.right === undefined && fontScale <= LARGE_TEXT && actions.length > 0 && (!/\s/.test(props.title) || longestWord(props.title) >= LONG_WORD) ? -(actions.length * (bars.circle + spacing.row)) : 0;
+  // 037: the title sits under the row at the full width, so it never has to run on under the circles; shrunk, it shares the row and fits to one line.
+  const fitted = shrunk ? FIT : fit;
+  const titleEl = props.onTitle ? (
+    <Pressable onPress={props.onTitle} accessibilityRole="link" accessibilityLabel={props.titleLabel ?? props.title} hitSlop={TITLE_SLOP} className="self-start max-w-full" style={{ minHeight: bars.circle, marginVertical: slack(titleLine > 0 ? titleLine : drawnLine), justifyContent: 'center' }}>
+      <Animated.Text onLayout={(e) => setTitleLine(e.nativeEvent.layout.height)} numberOfLines={lines} maxFontSizeMultiplier={TYPE_CAP} {...fitted} style={[face, { color: colour.text, fontSize: size, lineHeight: line, letterSpacing: tracking }]}>
+        {props.title}
+      </Animated.Text>
+    </Pressable>
+  ) : (
+    <Animated.Text
+      accessibilityRole="header"
+      accessibilityLabel={props.title}
+      numberOfLines={lines}
+      maxFontSizeMultiplier={TYPE_CAP}
+      {...fitted}
+      style={[face, { color: colour.text, fontSize: size, lineHeight: line, letterSpacing: tracking }]}
+    >
+      {props.title}
+    </Animated.Text>
+  );
   return (
-    <Box className="absolute left-0 right-0 gap-gap" style={{ bottom: props.bottom, paddingHorizontal: gutter(width), zIndex: 20 }}>
-      {props.extra}
-      <Box className="flex-row items-end gap-row">
+    <Box testID="title-bar" className="absolute left-0 right-0" style={{ top: props.top, paddingHorizontal: gutter(width), zIndex: 20 }}>
+      <Box testID="title-bar-row" className="flex-row items-center gap-row" style={{ minHeight: bars.circle }}>
         {props.onBack ? <IconButton icon={props.backIcon ?? 'chevron-back'} label={props.backLabel ?? 'Back'} onPress={props.onBack} fill size={22} /> : null}
-        <Box className="flex-1">
-          {/* F3 (design-pulse2 `downloads`): a title that is one word cannot break, so it runs on under the action circles (they are drawn over its end) instead of wrapping into letters ("Downloa / ds"). */}
-          <Box testID="title-bar-title" style={{ marginRight: reach }}>
-          {props.onTitle ? (
-            <Pressable onPress={props.onTitle} accessibilityRole="link" accessibilityLabel={props.titleLabel ?? props.title} hitSlop={TITLE_SLOP} className="self-start max-w-full" style={{ minHeight: bars.circle, marginVertical: slack(titleLine > 0 ? titleLine : drawnLine), justifyContent: 'center' }}>
-              <Animated.Text onLayout={(e) => setTitleLine(e.nativeEvent.layout.height)} numberOfLines={lines} maxFontSizeMultiplier={TYPE_CAP} {...fit} style={[face, { color: colour.text, fontSize: size, lineHeight: line, letterSpacing: tracking }]}>
-                {props.title}
-              </Animated.Text>
-            </Pressable>
-          ) : (
-            <Animated.Text
-              accessibilityRole="header"
-              accessibilityLabel={props.title}
-              numberOfLines={lines}
-              maxFontSizeMultiplier={TYPE_CAP}
-              {...fit}
-              style={[face, { color: colour.text, fontSize: size, lineHeight: line, letterSpacing: tracking }]}
-            >
-              {props.title}
-            </Animated.Text>
-          )}
-          </Box>
-          {props.subtitle ? (
-            props.onSubtitle ? (
-              <Pressable onPress={props.onSubtitle} accessibilityRole="link" accessibilityLabel={props.subtitle} hitSlop={13} className="self-start" style={{ minHeight: bars.circle, justifyContent: 'center', marginTop: bars.titleSub + slack(subLine), marginBottom: slack(subLine) }}>
-                <Type step="caption" className="text-hotText font-semibold" numberOfLines={1} onLayout={(e) => setSubLine(e.nativeEvent.layout.height)}>{props.subtitle}</Type>
-              </Pressable>
-            ) : (
-              <Type step="caption" className="text-text2" style={SUB} numberOfLines={props.subtitleLines ?? 2}>{props.subtitle}</Type>
-            )
-          ) : null}
-        </Box>
+        {shrunk ? <Box testID="title-bar-title" className="flex-1">{titleEl}</Box> : <Box className="flex-1" />}
         {props.right ?? actions.map((a) => <IconButton key={a.label} icon={a.icon} label={a.label} onPress={a.onPress} fill />)}
       </Box>
+      {shrunk ? null : (
+        <Box className="gap-gap" style={{ marginTop: bars.titleTop }}>
+          <Box>
+            <Box testID="title-bar-title">{titleEl}</Box>
+            {props.subtitle ? (
+              props.onSubtitle ? (
+                <Pressable onPress={props.onSubtitle} accessibilityRole="link" accessibilityLabel={props.subtitle} hitSlop={13} className="self-start" style={{ minHeight: bars.circle, justifyContent: 'center', marginTop: bars.titleSub + slack(subLine), marginBottom: slack(subLine) }}>
+                  <Type step="caption" className="text-hotText font-semibold" numberOfLines={1} onLayout={(e) => setSubLine(e.nativeEvent.layout.height)}>{props.subtitle}</Type>
+                </Pressable>
+              ) : (
+                <Type step="caption" className="text-text2" style={SUB} numberOfLines={props.subtitleLines ?? 2}>{props.subtitle}</Type>
+              )
+            ) : null}
+          </Box>
+          {props.extra}
+        </Box>
+      )}
+      {shrunk ? props.extra : null}
     </Box>
   );
 }

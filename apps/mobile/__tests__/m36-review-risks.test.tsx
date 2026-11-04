@@ -122,9 +122,11 @@ describe('T030 Icon key: no icon animates its colour', () => {
 const status = { id: 's1', mine: false, author: { id: 'u2', name: 'Ana', initials: 'A' }, durationMs: 41_000, url: 'https://x/a.m4a', text: 'Hi', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 3_600_000).toISOString(), items: [], reactions: [], myReaction: null, suggested: false };
 const replies = (inside: boolean) => {
   const el = createElement(StatusReplies, { status: status as never, colours: { accent: '#fff', muted: '#888', text: '#fff', onPrimary: '#000' }, pauseAll: () => undefined, onChanged: () => undefined });
-  return inside ? createElement(PushedPage as never, { title: 'Status', tone: 'none' } as never, el) : el;
+  return inside ? createElement(PushedPage as never, { title: 'Status', tone: 'none', below: createElement('View' as never, { testID: 'foot-slot' }), belowHeight: 44 } as never, el) : el;
 };
-const titleBarBottom = () => r!.root.findAllByType(TitleBar)[0]!.props['bottom'] as number;
+// 037 D1: the page's own title bar is at the top now and never lifts; the page's foot slot (`below`) is what rides with the keyboard.
+const titleBarTop = () => r!.root.findAllByType(TitleBar)[0]!.props['top'] as number;
+const belowBottom = () => flat(host('pushed-below')[0]!)['bottom'] as number;
 
 describe('T031 one owner of the keyboard lift', () => {
   it('barLift is liftedBottom (one formula)', () => {
@@ -136,13 +138,15 @@ describe('T031 one owner of the keyboard lift', () => {
     emit('keyboardWillShow', 300);
     expect(flat(host('status-bar')[0]!)['bottom']).toBe(300 - STRIP + STAGE.keyboardGap);
   });
-  it('inside a PushedPage the bar still lifts once, and so does the page\'s own title bar', async () => {
+  it('inside a PushedPage the bar still lifts once, and the page\'s own foot slot lifts once; its title bar stays at the top', async () => {
     await mount(replies(true));
-    const rest = titleBarBottom();
+    const rest = belowBottom();
+    const top = titleBarTop();
     emit('keyboardWillShow', 300);
     expect(flat(host('status-bar')[0]!)['bottom']).toBe(300 - STRIP + STAGE.keyboardGap);
-    expect(titleBarBottom()).toBe(liftedBottom(rest, 300, STRIP, 8));
-    expect(titleBarBottom() - rest).toBeLessThan(300);
+    expect(belowBottom()).toBe(liftedBottom(rest, 300, STRIP, 8));
+    expect(belowBottom() - rest).toBeLessThan(300);
+    expect(titleBarTop()).toBe(top);
   });
 });
 

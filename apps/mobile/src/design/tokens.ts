@@ -316,7 +316,7 @@ export const hit = { min: 48 } as const;
  */
 export const bars = {
   tab: 58, rail: 88, tabIcon: 26, tabIconTop: 14, tabDotGap: 7, now: 58, nowGap: 8, nowSide: 10, nowCircle: 52, fade: 200,
-  circle: 44, playCircle: 40, cover: 42, progress: 2, dot: 5, dotSmall: 7, badge: 16, titleBack: 44, titleShrunk: 20, chip: 36, chipPad: 14, titleSub: 6, sheetGap: 14, sheetClose: 36, toastLift: 8, toastOverComposer: 162, toastOverReplies: 142, toastOverClip: 96, toastOverVoice: 90, toastOverStatus: 70, toastOverTranscript: 142, tray: 60, toastOverTray: 12, toastFootIdle: 62, toastFootPage: 126, toastFootSend: 186, toastFootDigest: 182, toastFootSearch: 156, toastFootAppeal: 156, toastFootGift: 166, toastFootProfile: 70, toastTabTitle: 132, pushedGap: 6, titleAboveNow: 10, toastSide: 14, dialogSide: 28, dialogPad: 22, stamp: 22, stampPad: 7, toast: 50, sheetGrab: 36, field: 48,
+  circle: 44, playCircle: 40, cover: 42, progress: 2, dot: 5, dotSmall: 7, badge: 16, titleBack: 44, titleTop: 6, titleShrunk: 20, chip: 36, chipPad: 14, titleSub: 6, sheetGap: 14, sheetClose: 36, toastLift: 8, toastOverComposer: 162, toastOverReplies: 142, toastOverClip: 96, toastOverVoice: 90, toastOverStatus: 70, toastOverTranscript: 142, tray: 60, toastOverTray: 12, toastFootIdle: 62, toastFootSend: 186, toastFootDigest: 182, toastFootSearch: 156, toastFootAppeal: 156, toastFootGift: 166, toastFootProfile: 70, pushedGap: 6, titleAboveNow: 10, toastSide: 14, dialogSide: 28, dialogPad: 22, stamp: 22, stampPad: 7, toast: 50, sheetGrab: 36, field: 48,
 } as const;
 
 /**
@@ -337,13 +337,34 @@ export function nowBarBottom(safe: number, opts: { tabs?: boolean } = {}): numbe
 }
 
 /**
- * Where a title bar's bottom edge sits, given the bars below it, from the drawings' own numbers:
- * 100 over a tab bar, 168 over a tab bar and a now bar (10 above the now bar's top — the text
- * of the drawing says 8), 40 on a pushed page, 108 on a pushed page with a now bar.
+ * 037 (option B, https://claude.ai/artifact/J7HKbsiAZoDFyypLbY9G9E; replaces `titleBarBottom`): the title bar is placed from the TOP —
+ * the safe area plus `titleTop` (6). Back and the actions sit in a 44 row there; the large title and its subtitle sit under the row.
  */
-export function titleBarBottom(safe: number, opts: { tabs?: boolean; now?: boolean } = {}): number {
-  if (opts.now === true) return nowBarBottom(safe, opts) + bars.now + bars.titleAboveNow;
-  return nowBarBottom(safe, opts);
+export function titleBarTop(safeTop: number): number {
+  return safeTop + bars.titleTop;
+}
+
+/**
+ * The room a page leaves at its TOP for the title block, measured from the bar's own top: the row (44), the gap, one title
+ * line, the subtitle gap, one subtitle line and a breath. A page's content starts at `safeTop + titleTop + contentTopReserve()`.
+ */
+export function contentTopReserve(): number {
+  return bars.titleBack + bars.titleTop + typeScale.hero.lineSafe + bars.titleSub + typeScale.caption.lineSafe + bars.sheetGap;
+}
+
+/**
+ * The room a page leaves at its FOOT for the bars alone (037: the title no longer sits down there). The tab bar is outside a tab
+ * page; the now bar floats `nowGap` over it, or `pushedGap` over a pushed page's foot (the root layout pads the home strip).
+ */
+export function barsReserve(opts: { tabs?: boolean; now?: boolean } = {}): number {
+  const room = opts.now === true ? (opts.tabs === true ? bars.nowGap : bars.pushedGap) + bars.now : 0;
+  return room + bars.sheetGap;
+}
+
+/** The top edge of the highest bar over a page's foot, from the screen's bottom edge: the now bar's top when it shows, else the tab bar's, else the home strip's. */
+export function barsTop(safe: number, opts: { tabs?: boolean; now?: boolean } = {}): number {
+  if (opts.now === true) return nowBarBottom(safe, opts) + bars.now;
+  return opts.tabs === true ? safe + bars.tab : safe;
 }
 
 /**
@@ -354,7 +375,7 @@ export function titleBarBottom(safe: number, opts: { tabs?: boolean; now?: boole
  * tray's top is `pushedGap` + 60 above the inset, and the toast sits `toastOverTray` (12) over it.
  * No options = both bars (what a toast over the tab screens usually clears).
  */
-export function toastBottom(safe: number, opts: { tabs?: boolean; now?: boolean; player?: boolean; foot?: 'page' | 'send' | 'digest' | 'search' | 'appeal' | 'gift' | 'profile'; composer?: 'comments' | 'replies' | 'clip' | 'voice' | 'transcript' | 'status'; updates?: boolean } = { tabs: true, now: true }): number {
+export function toastBottom(safe: number, opts: { tabs?: boolean; now?: boolean; player?: boolean; foot?: 'send' | 'digest' | 'search' | 'appeal' | 'gift' | 'profile'; composer?: 'comments' | 'replies' | 'clip' | 'voice' | 'transcript' | 'status' } = { tabs: true, now: true }): number {
   // The Comments pages (social.html `comments--toast` 196, `comment-thread--toast` 176 on a 34 pt
   // inset): the composer is the bottom zone, so the toast clears it instead of landing on it.
   if (opts.composer === 'comments') return safe + bars.toastOverComposer;
@@ -370,12 +391,11 @@ export function toastBottom(safe: number, opts: { tabs?: boolean; now?: boolean;
   // discover.html digest 216, tell-editors 190 on a 34 pt inset, with the mini player) clear it; with no now bar the toast sits 8 over the title bar's top (84 + 8).
   if (opts.foot !== undefined) {
     if (opts.now !== true) return safe + bars.toastFootIdle;
-    return safe + (opts.foot === 'send' ? bars.toastFootSend : opts.foot === 'digest' ? bars.toastFootDigest : opts.foot === 'search' ? bars.toastFootSearch : opts.foot === 'appeal' ? bars.toastFootAppeal : opts.foot === 'gift' ? bars.toastFootGift : opts.foot === 'profile' ? bars.toastFootProfile : bars.toastFootPage);
+    return safe + (opts.foot === 'send' ? bars.toastFootSend : opts.foot === 'digest' ? bars.toastFootDigest : opts.foot === 'search' ? bars.toastFootSearch : opts.foot === 'appeal' ? bars.toastFootAppeal : opts.foot === 'gift' ? bars.toastFootGift : bars.toastFootProfile);
   }
   if (opts.player === true) return safe + bars.pushedGap + bars.tray + bars.toastOverTray;
-  // M31 F9: the Updates tab's title bar is tall (toast--library 300 on a 34 pt inset with both bars): the toast sits `toastTabTitle` over the title bar's spot.
-  if (opts.updates === true) return titleBarBottom(safe, opts) + bars.toastTabTitle;
-  return titleBarBottom(safe, opts) + bars.toastLift;
+  // 037: the title is at the top now, so a toast sits `toastLift` over the highest bar and can never land on the title.
+  return barsTop(safe, opts) + bars.toastLift;
 }
 
 /**

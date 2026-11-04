@@ -24,22 +24,29 @@ import { dueDateText } from '@/social/api-m22-server';
 
 const at = (path: string, idle: boolean) => toastBottom(34, toastPlacement(path, idle, false));
 
+// 037 D1: these eight pages had only their TITLE at the foot (the drawn 160 cleared it); the title is at the top now, so a toast is 8 over the highest bar (106 with the now bar, 42 without).
+const TITLE_ONLY: [string, number][] = [
+  ['/settings/devices', 106], ['/settings/downloads', 106], ['/settings/minor', 106], ['/settings/not-interested', 106],
+  ['/settings/opml', 106], ['/settings/privacy', 106], ['/settings/queue-backups', 106], ['/report/2026-09', 106],
+];
 const DRAWN: [string, number][] = [
-  ['/settings/devices', 160], ['/settings/downloads', 160], ['/settings/minor', 160], ['/settings/not-interested', 160],
-  ['/settings/opml', 160], ['/settings/privacy', 160], ['/settings/queue-backups', 160], ['/report/2026-09', 160],
   ['/settings/feedback', 220], ['/settings/network', 220], ['/digest/2026-W43', 216], ['/search', 190],
 ];
 
-describe('F8-1 toasts on pushed pages with the title bar at the foot', () => {
+describe('F8-1 toasts on pushed pages with a foot button (the title bar is at the top since 037)', () => {
   it.each(DRAWN)('%s: the toast sits at the drawn %i with something playing', (path, drawn) => {
     expect(at(path, false)).toBe(drawn);
   });
   it.each(DRAWN)('%s: with nothing playing it still clears the foot zone (title bar top 84 + 8)', (path) => {
     expect(at(path, true)).toBeGreaterThanOrEqual(92);
   });
-  it('a pushed page that is not one of these keeps its spot (the Show page: 116 / 48)', () => {
-    expect(at('/show/x', false)).toBe(116);
-    expect(at('/show/x', true)).toBe(48);
+  it.each(TITLE_ONLY)('%s: a title-only page — the toast sits at %i with something playing, 42 without', (path, spot) => {
+    expect(at(path, false)).toBe(spot);
+    expect(at(path, true)).toBe(42);
+  });
+  it('a pushed page that is not one of these is the plain rule (the Show page: 106 / 42)', () => {
+    expect(at('/show/x', false)).toBe(106);
+    expect(at('/show/x', true)).toBe(42);
   });
 });
 

@@ -1,29 +1,30 @@
-// Where a tab page's bottom title bar sits, and how much room the page leaves under its last row.
+// Where a tab page's title bar sits (at the top) and how much room the page leaves above and under its content.
 /**
- * M31 T033 (design-pulse2 `tabShell`, index.html §Bars): a tab page ends at the tab bar's top (the tab
- * layout draws the bar below the page), and the now bar floats over the page's foot, 8 above it and 58
- * tall. The title bar sits 8 above the highest bar: `8` with no now bar, `8 + 58 + 10 = 76` with one
- * (the drawing's 100 and 168 less the tab bar's own 92). `titleBarBottom` has the rule; this takes the
- * tab bar's height off, because the page does not include it.
+ * M31 T033, moved to the top by spec 037 (option B, https://claude.ai/artifact/J7HKbsiAZoDFyypLbY9G9E): a tab page sits inside a
+ * `SafeAreaView` that already pads the status bar, so its title bar hangs `titleBarTop(0)` (6) from the page's own top. The scroll
+ * content starts under the title block (`contentTop`). A tab page ends at the tab bar's top (the tab layout draws the bar below the
+ * page), and the now bar floats over the page's foot while something is loaded: `reserve` is the room that takes (`barsReserve`).
  */
-import { bars, titleBarBottom, typeScale } from '@/design';
+import { barsReserve, contentTopReserve, titleBarTop } from '@/design';
 import { selectIdle, usePlayerSelector } from '@/playback/store';
 
-/** Distance from a tab page's bottom edge to its title bar's bottom. */
-export function tabTitleBottom(nowBar: boolean): number {
-  return titleBarBottom(0, { tabs: true, now: nowBar }) - bars.tab;
+export type TabTitle = {
+  /** The title bar's `top`, from the page's own top edge. */
+  top: number;
+  /** Where the scroll content starts (its top padding): under the title block. */
+  contentTop: number;
+  /** The room the content leaves at its foot: the now bar when it floats there, and a breath. */
+  reserve: number;
+};
+
+/** Pure: the tab page's measures with or without the now bar. */
+export function tabTitle(nowBar: boolean): TabTitle {
+  const top = titleBarTop(0);
+  return { top, contentTop: top + contentTopReserve(), reserve: barsReserve({ tabs: true, now: nowBar }) };
 }
 
-/** The title bar's tallest ordinary height: the title (two lines at most) is allowed for by `reserve`. */
-const TITLE_ROW = typeScale.hero.lineSafe + bars.titleSub + typeScale.caption.lineSafe;
-
-/** How far from the page's foot the last row must stay clear: the bar's bottom plus its one-line height and a breath. */
-export function tabTitleReserve(bottom: number): number {
-  return bottom + TITLE_ROW + bars.sheetGap;
-}
-
-/** The title bar's `bottom` for the page in front: it clears the now bar while something is loaded. */
-export function useTabTitleBottom(): number {
+/** The measures for the page in front: the foot clears the now bar while something is loaded. */
+export function useTabTitle(): TabTitle {
   const idle = usePlayerSelector(selectIdle);
-  return tabTitleBottom(!idle);
+  return tabTitle(!idle);
 }

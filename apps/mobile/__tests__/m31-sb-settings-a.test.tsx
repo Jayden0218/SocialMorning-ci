@@ -14,6 +14,7 @@
  *  - Third-party sharing: a lead tile and one tile per party, each read as one sentence: the `accessibilityLabel` dropped — red;
  *  - Widgets: drawings 120 x 60 and 60 x 60, hot squares for art: `SET.widgetWide` changed — red.
  */
+import { contentTopReserve, titleBarTop } from '@/design';
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -150,11 +151,12 @@ describe('the Settings parts (settings.html `row`, `group`, `big`, `page`)', () 
 });
 
 describe('the page body (settings.html `page`)', () => {
-  it('starts 14 under the status bar, 28 in for the edge-label lane, 16 from the right, blocks 12 apart', async () => {
+  // 037 D1: was "starts 14 under the status bar" (paddingTop 14); it starts 14 under the title block now (6 + the block's reserve + 14).
+  it('starts 14 under the title block, 28 in for the edge-label lane, 16 from the right, blocks 12 apart', async () => {
     const r = await render(createElement(WidgetsScreen));
     const scroll = byId(r, 'settings-scroll')[0]!;
     const c = StyleSheet.flatten(scroll.props['contentContainerStyle'] as never) as Record<string, unknown>;
-    expect(c).toMatchObject({ paddingTop: 14, paddingRight: 16, paddingLeft: 0, gap: 12 });
+    expect(c).toMatchObject({ paddingTop: 14 + titleBarTop(0) + contentTopReserve(), paddingRight: 16, paddingLeft: 0, gap: 12 });
     const section = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['paddingLeft'] === 28)[0];
     expect(section).toBeDefined();
   });

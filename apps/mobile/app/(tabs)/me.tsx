@@ -40,14 +40,14 @@ import { useSocial } from '@/social/context';
 import { MenuRow, MenuTile } from '@/ui/me/parts';
 import { PanelGroup } from '@/ui/me/Panel';
 import { ME_MOSAIC, TALL_TILE, HALF } from '@/ui/me/mosaic';
-import { tabTitleReserve, useTabTitleBottom } from '@/ui/me/useTabTitle';
+import { useTabTitle } from '@/ui/me/useTabTitle';
 import { useComingSoon } from '@/ui/kit/ComingSoon';
 import { readStoreReady } from '@/social/store-ready';
 import { useStores } from '@/ui/shell/providers';
 import { lastMonth, monthName } from '@/social/m19-api';
 import { Avatar } from '@/ui/kit/Avatar';
 import { EdgeLabel } from '@/ui/kit/EdgeLabel';
-import { Fade } from '@/ui/kit/Fade';
+import { Fade, topFade } from '@/ui/kit/Fade';
 import { TitleBar } from '@/ui/kit/TitleBar';
 import { Type } from '@/ui/kit/Type';
 import { TileText } from '@/ui/me/TileText';
@@ -93,12 +93,12 @@ export default function MeScreen(): React.ReactElement {
   useFocusEffect(useCallback(() => {
     setCounts({ unread: listener ? feed.unread(feed.cached()?.items ?? []) : 0, moments: listMoments(stores.settings).length });
   }, [feed, listener, stores]));
-  const titleBottom = useTabTitleBottom();
+  const tab = useTabTitle();
   const openProfile = (): void => { if (listener) router.push({ pathname: '/profile/[id]', params: { id: listener.listenerId } }); };
 
   return (
     <SafeAreaView className="flex-1 bg-void">
-      <ScrollView ref={top} contentContainerStyle={{ paddingTop: spacing.gap, paddingBottom: tabTitleReserve(titleBottom) }}>
+      <ScrollView ref={top} contentContainerStyle={{ paddingTop: tab.contentTop + spacing.gap, paddingBottom: tab.reserve }}>
         {/* The stage: the picture, with the Stickers chip pinned top right. */}
         <Box className="items-center" style={STAGE}>
           <Box style={{ width: AVATAR, height: AVATAR }}>
@@ -200,7 +200,7 @@ export default function MeScreen(): React.ReactElement {
           </PanelGroup>
         </Box>
       </ScrollView>
-      <Fade bottom={0} height={300} />
+      <Fade top={0} height={topFade(tab.contentTop)} />
       {listener ? (
         <TitleBar
           title={listener.displayName}
@@ -209,7 +209,7 @@ export default function MeScreen(): React.ReactElement {
           subtitle="My profile ›"
           onSubtitle={openProfile}
           actions={[{ icon: 'settings-outline', label: 'Account and settings', onPress: () => router.push('/account') }]}
-          bottom={titleBottom}
+          top={tab.top}
         />
       ) : (
         <TitleBar
@@ -218,7 +218,7 @@ export default function MeScreen(): React.ReactElement {
           onTitle={() => router.push('/auth/sign-in')}
           subtitle="Keep your listening across phones"
           actions={[{ icon: 'settings-outline', label: 'Account and settings', onPress: () => router.push('/account') }]}
-          bottom={titleBottom}
+          top={tab.top}
         />
       )}
       {comingSoonDialog}

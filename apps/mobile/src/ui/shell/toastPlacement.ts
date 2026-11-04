@@ -12,7 +12,7 @@ import { usePlayerSelector } from '@/playback/store';
 import { miniPlayerShows, TAB_ROUTES } from '@/ui/player/MiniPlayer';
 import { useNowBarSignals } from '@/ui/player/nowbar-signals';
 
-export type ToastPlacement = { tabs: boolean; now: boolean; player: boolean; foot?: 'page' | 'send' | 'digest' | 'search' | 'appeal' | 'gift' | 'profile'; composer?: 'comments' | 'replies' | 'clip' | 'voice' | 'transcript' | 'status'; updates?: boolean };
+export type ToastPlacement = { tabs: boolean; now: boolean; player: boolean; foot?: 'send' | 'digest' | 'search' | 'appeal' | 'gift' | 'profile'; composer?: 'comments' | 'replies' | 'clip' | 'voice' | 'transcript' | 'status' };
 
 /** Pure: the bars for a route. */
 export function toastPlacement(path: string, idle: boolean, momentsOnScreen: boolean): ToastPlacement {
@@ -31,12 +31,12 @@ export function toastPlacement(path: string, idle: boolean, momentsOnScreen: boo
   const now = !player && !momentsOnScreen && miniPlayerShows(path, tabs ? 'tabs' : 'root', idle);
   if (composer !== undefined) return { tabs: false, now, player: false, composer };
   // M31 F8: pushed pages with the title bar (and a foot button) at the foot — the toast clears them (README wave-5 defect 1).
+  // 037: a page whose only foot was its title ('page': devices, downloads, …) no longer has one — the title is at the top, so the plain rule applies.
   const foot: ToastPlacement['foot'] = /^\/settings\/(feedback|network)$/.test(path) ? 'send' : path.startsWith('/digest/') ? 'digest' : path === '/search' ? 'search'
-    : path === '/appeal' ? 'appeal' : path.startsWith('/gift/') ? 'gift' : path.startsWith('/profile/') && !/^\/profile\/(edit|[^/]+\/)/.test(path) ? 'profile'
-    : /^\/settings\/(devices|downloads|minor|not-interested|opml|privacy|queue-backups)$/.test(path) || path.startsWith('/report/') ? 'page' : undefined;
+    : path === '/appeal' ? 'appeal' : path.startsWith('/gift/') ? 'gift' : path.startsWith('/profile/') && !/^\/profile\/(edit|[^/]+\/)/.test(path) ? 'profile' : undefined;
   if (foot !== undefined) return { tabs, now, player, foot };
-  // M31 F9: the Updates tab (design-pulse2 discover.html `toast--library`, 300 over both bars).
-  return path === '/library' ? { tabs, now, player, updates: true } : { tabs, now, player };
+  // 037: the Updates tab's tall title is at the top now, so it takes the plain rule too (`updates` is gone).
+  return { tabs, now, player };
 }
 
 export function useToastPlacement(): ToastPlacement {

@@ -127,13 +127,15 @@ describe('History (history--screen)', () => {
     ];
   });
 
-  it('the title bar is low: "Listening history" at 26, "All · 3 episodes", a search and a select circle, the chips above', async () => {
+  // 037 D1: was "the title bar is low … `bottom` 6"; it hangs from the top now (`top` defined, no `bottom`). Everything else it checks is unchanged.
+  it('the title bar is at the top: "Listening history" at 26, "All · 3 episodes", a search and a select circle, the chips above', async () => {
     const r = await render(createElement(HistoryScreen));
     const t = titleOf(r);
     expect(val(flat(t)['fontSize'])).toBe(26);
     expect(words(r)).toEqual(expect.arrayContaining(['Listening history', 'All · 3 episodes']));
-    const bar = hosts(r, (n) => flat(n)['zIndex'] === 20 && flat(n)['bottom'] !== undefined)[0]!;
-    expect(flat(bar)['bottom']).toBe(6);
+    const bar = hosts(r, (n) => flat(n)['zIndex'] === 20 && flat(n)['top'] !== undefined)[0]!;
+    expect(flat(bar)['top']).toBeGreaterThanOrEqual(6);
+    expect(flat(bar)['bottom']).toBeUndefined();
     expect(comp(r, 'Search your history')).toBeDefined();
     expect(comp(r, 'Select')).toBeDefined();
     const chips = ['All', 'Only finished'].map((l) => comp(r, l));

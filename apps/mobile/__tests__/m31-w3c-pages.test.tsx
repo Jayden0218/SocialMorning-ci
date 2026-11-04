@@ -157,7 +157,8 @@ describe('Favourites (shell.html favourites--screen, listen.html favourites--com
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Why mornings matter' && n.props['accessibilityRole'] === 'button').length).toBeGreaterThan(0);
   });
 
-  it('the foot is the thumb zone: back and "Favourites" at 28, then the 48 search field and the 44 switch, lowest', async () => {
+  // 037 D1: was "…the title row sits above the zone: 6 + (48 + 12 + 44) + 12" (a bottom title stood on the zone). The title is at the top now; the 48 search field and the 44 switch stay lowest.
+  it('the foot is the thumb zone: the 48 search field and the 44 switch, lowest; back and "Favourites" at 28 at the top', async () => {
     const r = await render(createElement(FavouritesScreen));
     const title = r.root.findAll((n) => String(n.type) === 'Text' && n.props['accessibilityRole'] === 'header' && say(n.props['children']) === 'Favourites')[0]!;
     const val = (x: unknown): unknown => (x !== null && typeof x === 'object' && '__getValue' in x ? (x as { __getValue: () => unknown }).__getValue() : x);
@@ -167,8 +168,9 @@ describe('Favourites (shell.html favourites--screen, listen.html favourites--com
     expect(flat(byId(r, 'search-field')[0])).toMatchObject({ height: 48 });
     expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ height: 44 });
     expect(words(r)).toEqual(expect.arrayContaining(['Episodes · 5', 'Comments · 2']));
-    // The title row sits above the zone: 6 + (48 + 12 + 44) + 12.
-    expect(hosts(r, (n) => flat(n)['bottom'] === 6 + 48 + 12 + 44 + 12 && flat(n)['zIndex'] === 20)).toHaveLength(1);
+    // The title bar hangs from the top and does not stand on the zone.
+    expect(hosts(r, (n) => flat(n)['bottom'] === 6 + 48 + 12 + 44 + 12 && flat(n)['zIndex'] === 20)).toHaveLength(0);
+    expect(hosts(r, (n) => flat(n)['top'] !== undefined && flat(n)['bottom'] === undefined && flat(n)['zIndex'] === 20)).toHaveLength(1);
   });
 
   it('search filters the tiles; words that match nothing say so', async () => {

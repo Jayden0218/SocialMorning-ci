@@ -59,7 +59,7 @@ describe('F10-1 Type caps every step', () => {
 
 describe('F10-2 the title bar at font scale 2 (README F9, W8)', () => {
   const bar = (title: string, nActions = 1): ReactTestRenderer =>
-    render(createElement(TitleBar, { title, bottom: 40, onBack: () => undefined, actions: [{ icon: 'ellipsis-horizontal' as const, label: 'More', onPress: () => undefined }].slice(0, nActions) }));
+    render(createElement(TitleBar, { title, top: 53, onBack: () => undefined, actions: [{ icon: 'ellipsis-horizontal' as const, label: 'More', onPress: () => undefined }].slice(0, nActions) }));
   const label = (r: ReactTestRenderer): ReactTestInstance => r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && typeof n.props['numberOfLines'] === 'number')[0]!;
 
   it.each(['Comments', 'Notifications', 'Downloads'])('"%s" takes one line and shrinks to fit instead of breaking mid-word', (title) => {

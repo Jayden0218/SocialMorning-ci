@@ -12,7 +12,7 @@ import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { colour } from '@/design';
+import { barsReserve, colour, contentTopReserve } from '@/design';
 
 let mockNow = false;
 const mockBack = jest.fn();
@@ -39,27 +39,33 @@ const render = (el: React.ReactElement, insets = { top: 47, bottom: 34, left: 0,
 const flat = (n: ReactTestInstance): Record<string, unknown> => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
 const byLabel = (r: ReactTestRenderer, label: string) => r.root.findAll((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');
 const hostOf = (n: ReactTestInstance) => n.findAll((x) => typeof x.type === 'string')[0]!;
-const titleBar = (r: ReactTestRenderer) => r.root.findAll((n) => typeof n.type === 'string' && String(n.props['className'] ?? '').includes('absolute left-0 right-0 gap-gap'))[0]!;
+const titleBar = (r: ReactTestRenderer) => r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'title-bar')[0]!;
 
 describe('where the bars sit', () => {
-  it('the title bar is 6 above the foot, 74 with the now bar; the content leaves room for it', () => {
+  // 037 D1: was "the title bar is 6 above the foot, 74 with the now bar; top = the status bar; `extraAbove` grows the reserve". The title bar is at the top now (53 = 47 + 6) and the
+  // content starts under its block; the foot zone (6 / 74, `titleBottom`) is what a `below` slot stands on; a field under the title (`extraAbove`) moves the content start, not the foot.
+  it('the foot zone is 6 above the foot, 74 with the now bar; the content starts under the title block and leaves the bars\' room', () => {
     expect(pushedLayout(47, false).titleBottom).toBe(6);
     expect(pushedLayout(47, true).titleBottom).toBe(74);
-    expect(pushedLayout(47, false).top).toBe(47);
+    expect(pushedLayout(47, false).titleTop).toBe(53);
+    expect(pushedLayout(47, false).top).toBe(53 + contentTopReserve());
     expect(pushedLayout(47, true).reserve).toBeGreaterThan(pushedLayout(47, false).reserve);
-    expect(pushedLayout(47, false, 60).reserve - pushedLayout(47, false).reserve).toBe(60);
+    expect(pushedLayout(47, false).reserve).toBe(barsReserve({}));
+    expect(pushedLayout(47, false, 60).top - pushedLayout(47, false).top).toBe(60);
   });
-  it('a page draws its title bar there, and 74 with the now bar showing', () => {
+  it('a page draws its title bar at the top, the same with or without the now bar showing', () => {
     const plain = render(createElement(PushedPage, { title: 'Queue' } as React.ComponentProps<typeof PushedPage>, null));
-    expect(flat(titleBar(plain))['bottom']).toBe(6);
+    expect(flat(titleBar(plain))['top']).toBe(53);
     mockNow = true;
     const withNow = render(createElement(PushedPage, { title: 'Queue' } as React.ComponentProps<typeof PushedPage>, null));
-    expect(flat(titleBar(withNow))['bottom']).toBe(74);
+    expect(flat(titleBar(withNow))['top']).toBe(53);
   });
-  it('a page outside the root\'s padding (a modal route) adds its own strip and may say there is no now bar', () => {
+  it('a page outside the root\'s padding (a modal route) adds its own strip to the foot zone and may say there is no now bar', () => {
     mockNow = true;
-    const r = render(createElement(PushedPage, { title: 'Voice status', now: false, safeBottom: 34 } as React.ComponentProps<typeof PushedPage>, null));
-    expect(flat(titleBar(r))['bottom']).toBe(6 + 34);
+    let seen: { titleBottom: number; reserve: number } | undefined;
+    const r = render(createElement(PushedPage, { title: 'Voice status', now: false, safeBottom: 34, children: (l: { titleBottom: number; reserve: number }) => { seen = l; return null; } } as React.ComponentProps<typeof PushedPage>));
+    expect(flat(titleBar(r))['top']).toBe(53);
+    expect(seen).toMatchObject({ titleBottom: 6 + 34, reserve: barsReserve({}) + 34 });
   });
   it('back is the default (history back); onBack={null} hides it; backIcon / size / subtitle reach the bar', () => {
     const r = render(createElement(PushedPage, { title: 'Downloads', subtitle: '6 episodes' } as React.ComponentProps<typeof PushedPage>, null));
@@ -74,8 +80,8 @@ describe('where the bars sit', () => {
   it('the content may ask for the measures', () => {
     let seen: { top: number; titleBottom: number; reserve: number } | undefined;
     render(<PushedPage title="x">{(l: { top: number; titleBottom: number; reserve: number }) => { seen = l; return null; }}</PushedPage>);
-    expect(seen).toMatchObject({ top: 47, titleBottom: 6 });
-    expect(seen!.reserve).toBeGreaterThan(60);
+    expect(seen).toMatchObject({ top: 53 + contentTopReserve(), titleBottom: 6 });
+    expect(seen!.reserve).toBe(barsReserve({}));
   });
 });
 

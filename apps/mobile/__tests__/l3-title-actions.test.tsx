@@ -25,9 +25,10 @@ afterEach(() => act(() => r?.unmount()));
 const flat = (s: unknown) => (StyleSheet.flatten(s as never) ?? {}) as Record<string, unknown>;
 
 describe('TitleBar with action circles', () => {
-  const draw = () => act(() => { r = create(createElement(TitleBar, { title: 'My subscriptions', bottom: 40, actions: [{ icon: 'search-outline', label: 'Search', onPress: jest.fn() }, { icon: 'filter-outline' as never, label: 'Order options', onPress: jest.fn() }] })); });
+  const draw = () => act(() => { r = create(createElement(TitleBar, { title: 'My subscriptions', top: 53, actions: [{ icon: 'search-outline', label: 'Search', onPress: jest.fn() }, { icon: 'filter-outline' as never, label: 'Order options', onPress: jest.fn() }] })); });
   const margin = (): number => Number(flat(r.root.findAll((n) => n.props['testID'] === 'title-bar-title')[0]!.props['style'])['marginRight'] ?? 0);
-  it('at normal size a long one-word title may run on under the circles (F3 kept)', () => { mockScale = 1; draw(); expect(margin()).toBeLessThan(0); });
+  // 037 D1: was "may run on under the circles" (margin < 0); the title is under the row at the full width now, so it never needs to.
+  it('at normal size a long title keeps the whole width under the row (no run-on under the circles needed)', () => { mockScale = 1; draw(); expect(margin()).toBe(0); });
   it('at font scale 3.1 the title keeps to the room beside the circles', () => { mockScale = 3.1; draw(); expect(margin()).toBeGreaterThanOrEqual(0); });
 });
 

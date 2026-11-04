@@ -24,7 +24,7 @@ import { Box } from '@/ui/lib/box';
 import { colour, gutter, radius, spacing } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
-import { Fade } from '@/ui/kit/Fade';
+import { Fade, topFade } from '@/ui/kit/Fade';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { TitleBar } from '@/ui/kit/TitleBar';
 import { Type } from '@/ui/kit/Type';
@@ -36,7 +36,7 @@ import { EndOfList } from '@/ui/kit/EndOfList';
 import { ChatAvatar, ChatCard, NameText, Spine, THREAD } from '@/ui/chat/ChatRow';
 import { EmptyBlock } from '@/ui/chat/EmptyBlock';
 import { ME_MOSAIC } from '@/ui/me/mosaic';
-import { tabTitleReserve, useTabTitleBottom } from '@/ui/me/useTabTitle';
+import { useTabTitle } from '@/ui/me/useTabTitle';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
 const REFRESH_MS = 15_000;
@@ -55,7 +55,7 @@ export default function ChatTab(): React.ReactElement {
   const { listener } = useSocial();
   const chat = useChatApi();
   const [state, setState] = useState<State>({ kind: 'loading' });
-  const titleBottom = useTabTitleBottom();
+  const tab = useTabTitle();
 
   useFocusEffect(useCallback(() => {
     if (!listener) return undefined;
@@ -77,13 +77,13 @@ export default function ChatTab(): React.ReactElement {
   if (!listener) {
     return (
       <SafeAreaView className="flex-1 bg-void">
-        <Box style={{ paddingTop: BLOCK_TOP }}>
+        <Box style={{ paddingTop: Math.max(BLOCK_TOP, tab.contentTop) }}>
           <EmptyBlock title="Chat" line="Sign in to chat with people who follow you back">
             <PulseButton label="Sign in" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')} />
           </EmptyBlock>
         </Box>
-        <Fade bottom={0} height={300} />
-        <TitleBar title="Chat" bottom={titleBottom} />
+        <Fade top={0} height={topFade(tab.contentTop)} />
+        <TitleBar title="Chat" top={tab.top} />
       </SafeAreaView>
     );
   }
@@ -92,9 +92,9 @@ export default function ChatTab(): React.ReactElement {
   const items = state.kind === 'ok' ? state.items : [];
   return (
     <SafeAreaView className="flex-1 bg-void">
-      <ScrollView ref={top} contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView ref={top} contentContainerStyle={{ flexGrow: 1, paddingTop: tab.contentTop, paddingBottom: tab.reserve }}>
         {items.length > 0 ? (
-          <Box style={{ marginTop: THREAD.lift, paddingTop: THREAD.top, paddingLeft: THREAD.left, paddingRight: THREAD.right, paddingBottom: tabTitleReserve(titleBottom) }}>
+          <Box style={{ marginTop: THREAD.lift, paddingTop: THREAD.top, paddingLeft: THREAD.left, paddingRight: THREAD.right, }}>
             <Spine />
             <Box style={{ gap: THREAD.rowGap }}>
               {items.map((item) => {
@@ -134,17 +134,17 @@ export default function ChatTab(): React.ReactElement {
             </Box>
           </Box>
         ) : (
-          <Box style={{ paddingTop: BLOCK_TOP }}>
+          <Box style={{ paddingTop: Math.max(0, BLOCK_TOP - tab.contentTop) }}>
             <EmptyBlock title="No chats yet." line="Tap New chat to message someone who follows you back." />
           </Box>
         )}
       </ScrollView>
-      <Fade bottom={0} height={300} />
+      <Fade top={0} height={topFade(tab.contentTop)} />
       <TitleBar
         title="Chat"
         subtitle="People who follow you back"
         actions={[{ icon: 'add', label: 'New chat', onPress: () => router.push('/chat/new') }]}
-        bottom={titleBottom}
+        top={tab.top}
       />
     </SafeAreaView>
   );

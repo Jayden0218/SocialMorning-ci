@@ -59,14 +59,14 @@ import { VoicePosts } from '@/ui/social/VoicePosts';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Deck } from '@/ui/discover/Deck';
 import { EdgeLabel } from '@/ui/kit/EdgeLabel';
-import { Fade } from '@/ui/kit/Fade';
+import { Fade, topFade } from '@/ui/kit/Fade';
 import { PageGlow } from '@/ui/kit/PageGlow';
 import { TitleBar } from '@/ui/kit/TitleBar';
 import { Type } from '@/ui/kit/Type';
 import { Cover } from '@/ui/library/parts';
 import { STARRED_PITCH, UPDATES, VOICE_PITCH } from '@/ui/library/measures';
 import { DRAWN } from '@/ui/me/lists';
-import { tabTitleReserve, useTabTitleBottom } from '@/ui/me/useTabTitle';
+import { useTabTitle } from '@/ui/me/useTabTitle';
 import { useMyAvatar } from '@/me/my-avatar';
 import { useProfileApi } from '@/social/profile-api';
 import { plural } from '@socialmorning/social-core';
@@ -88,7 +88,7 @@ export default function UpdatesScreen(): React.ReactElement {
   const downloads = useDownloads();
   const toast = useToast();
   const { hiddenFeeds } = useSafety();
-  const titleBottom = useTabTitleBottom();
+  const tab = useTabTitle();
   const { width } = useWindowDimensions();
   const [dragging, setDragging] = useState(false);
   // F10: the turned edge labels' lengths, so their blocks are at least that tall (no overlap at 200 % text).
@@ -255,7 +255,7 @@ export default function UpdatesScreen(): React.ReactElement {
               ref={top}
               scrollEnabled={!dragging}
               testID="updates-page"
-              contentContainerStyle={{ paddingTop: UPDATES.voiceTop - DRAWN.status, paddingBottom: tabTitleReserve(titleBottom) }}
+              contentContainerStyle={{ paddingTop: tab.contentTop + UPDATES.voiceTop - DRAWN.status, paddingBottom: tab.reserve }}
             >
               {/* M12 FR-104: voice statuses from you and the people you follow (signed in only). */}
               {listenerId !== undefined ? (
@@ -293,8 +293,8 @@ export default function UpdatesScreen(): React.ReactElement {
                 <Type step="body" className="text-text2" style={{ paddingHorizontal: side }}>No episodes yet.</Type>
               )}
             </ScrollView>
-            <Fade bottom={0} height={300} />
-            <TitleBar title="Updates" subtitle={`My subscriptions · ${subscribed} ›`} onSubtitle={() => router.push('/subscriptions')} bottom={titleBottom} />
+            <Fade top={0} height={topFade(tab.contentTop)} />
+            <TitleBar title="Updates" subtitle={`My subscriptions · ${subscribed} ›`} onSubtitle={() => router.push('/subscriptions')} top={tab.top} />
           </Box>
         }
       />

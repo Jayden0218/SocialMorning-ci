@@ -311,12 +311,12 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `EdgeLabel.tsx` | A section's name, written vertically along the page's left edge. |
 | `Fade.tsx` | The fade behind a title bar, so content scrolling under it stays readable. |
 | `NowBar.tsx` | The now bar: what is playing, floating above the tab bar — cover, title, a live ticker, play, playlist. |
-| `OverlayPage.tsx` | A page drawn outside the router's pages — Terms, a legal document, the sign-in steps: glow, content, fade, low title bar, optional foot row. |
-| `PushedPage.tsx` | A pushed page in the Pulse shape: the glow, the content, a fade, and the title bar low by the thumb. |
+| `OverlayPage.tsx` | A page drawn outside the router's pages — Terms, a legal document, the sign-in steps: glow, content, fade, title bar at the top, optional foot row. |
+| `PushedPage.tsx` | A pushed page in the Pulse shape: the glow, the content, a fade, and the title bar at the top (037, option B). |
 | `PulseButton.tsx` | The Pulse buttons: light, hot, ring and quiet pills, and the round icon button; kind quiet / ring is the kit's TextAction (no separate part). |
 | `RingScrubber.tsx` | The ring scrubber: the reaction curve wrapped round a circle — 100 spokes, a knob, avatar pins; drag to seek. |
 | `TimestampChip.tsx` | The timestamp chip: a time like 14:32 in mono on a hot-tinted pill; tapping it plays from there. |
-| `TitleBar.tsx` | The title bar: a screen's title, back button and actions in the thumb zone at the bottom. |
+| `TitleBar.tsx` | The title bar: Back and the actions in a row under the status bar, the large title and its subtitle under that row. |
 | `Toast.tsx` | A toast: a light pill with one line and, optionally, one action word. |
 | `Type.tsx` | Words in one step of the Pulse type scale: face, size, line height and tracking from the tokens. |
 | `Text.tsx` | The app's plain Text with the font-size cap already on it (use Type for a step of the scale). |
@@ -747,7 +747,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `lists.tsx` | The parts the Me tab's list pages share: a thread's cards and day tags, a mosaic tile, a deck's dots, the search field. |
 | `measures.ts` | The type sizes the Me tab's list pages are drawn with, where the scale has no step for them. |
 | `mosaic.ts` | The Me tab's grid and panel measures, from the drawing. |
-| `useTabTitle.ts` | Where a tab page's bottom title bar sits, and how much room the page leaves under its last row. |
+| `useTabTitle.ts` | Where a tab page's title bar sits (at the top) and how much room the page leaves above and under its content. |
 | `parts.tsx` | Me page pieces: a menu row with icon and arrow, and an empty-page picture. |
 | `PlusCard.tsx` | The PLUS card in Wallet: what PLUS gives, its price, Subscribe, and Restore purchases. |
 | `StickerCanvas.tsx` | The sticker canvas: drag, pinch and turn your stickers on a copy of your profile header (our own design). |
