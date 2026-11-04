@@ -51,7 +51,7 @@ export function DataPrompt(): React.ReactElement {
   return (
     <ActionSheet open={ask !== undefined} onClose={close} label="Play on mobile data?">
       <Icon name="wifi" size={30} color={c.hotText} />
-      <Type step="title" className="text-text" style={drawnType.prompt} accessibilityRole="header">Play on mobile data?</Type>
+      <Type step="heading" className="text-text" style={drawnType.prompt} accessibilityRole="header">Play on mobile data?</Type>
       <Type step="body" className="text-text2">This episode is not downloaded. Streaming it uses your mobile data.</Type>
       <Pressable onPress={once} accessibilityRole="button" accessibilityLabel="Allow this time" className="items-center justify-center rounded-pill bg-text" style={PILL}>
         <Type step="row" className="text-void">Allow this time</Type>

@@ -195,7 +195,7 @@ describe('4/5 the Discover shortcut tiles, the pick and Hot now', () => {
     const cols = chars.map((c) => String(flat(c)['color']));
     expect(new Set(cols).size).toBe(5);
     expect(cols[0]).not.toBe(cols[4]);
-    expect(classOf(texts(r)[0]!)).toContain('text-pulse-figure');
+    expect(classOf(texts(r)[0]!)).toContain('text-pulse-number'); // 038 D3: was text-pulse-figure; figure is an alias of number
     expect(typeScale.figure.size).toBe(34);
   });
   it('Premium is its own solid tile colour; Queue carries its count in mono after the label', () => {
@@ -236,7 +236,7 @@ describe('the Moments card as drawn', () => {
   it('the sound pill is 10 under the status bar, 14 in; the Play circle and the action column are 16 from the right; the title block ends 84 from it', () => {
     const r = card();
     expect(flat(labelled(r, 'Sound off. Turn sound on'))).toMatchObject({ left: 14, top: 60, height: 32 });
-    expect(classOf(textWith(r, 'Sound off'))).toContain('text-pulse-chip');
+    expect(classOf(textWith(r, 'Sound off'))).toContain('text-pulse-strong'); // 038 D3: was text-pulse-chip (12); chip is an alias of strong (15)
     expect(flat(labelled(r, 'Play from 14:32'))).toMatchObject({ right: 16, bottom: 104, width: 56, height: 56 });
     expect(withStyle(labelled(r, 'Share a clip of 14:32'), 'right')).toMatchObject({ right: 16, bottom: 208 });
     expect(withStyle(textWith(r, 'Why mornings matter'), 'right')).toMatchObject({ left: 20, right: 84, bottom: 114 });
@@ -312,7 +312,7 @@ describe('Launch as drawn', () => {
     expect(flat(img)['borderRadius']).toBe(9);
     const name = textWith(r, 'SocialNet');
     expect(classOf(name)).toContain('font-display');
-    expect(classOf(name)).toContain('text-pulse-row'); // 15
+    expect(classOf(name)).toContain('text-pulse-strong'); // 15 (038 D3: was text-pulse-row; row is an alias of strong)
   });
   it('round 3: "Open →" is trimmed to its drawn 15 line, so the label block is the drawn 40 tall (red if OPEN_LINE is dropped: it is 45)', () => {
     expect(OPEN_LINE).toEqual({ marginVertical: -2.5 });

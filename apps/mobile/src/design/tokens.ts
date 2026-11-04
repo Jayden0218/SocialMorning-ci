@@ -193,8 +193,10 @@ export type AccentName = keyof typeof ACCENTS;
  */
 export const fontSize = {
   micro: 11, xs: 12, meta: 13, body: 14, sm: 16, title: 17, base: 20, lg: 24, hero: 28, display: 32,
-  'pulse-hero': 30, 'pulse-title': 22, 'pulse-heading': 20, 'pulse-section': 17, 'pulse-row': 15, 'pulse-body': 15,
-  'pulse-compact': 14, 'pulse-note': 14, 'pulse-lede': 18, 'pulse-statement': 24, 'pulse-caption': 13, 'pulse-mono': 12, 'pulse-edge': 11, 'pulse-badge': 10, 'pulse-tag': 11, 'pulse-chip': 12, 'pulse-quote': 14, 'pulse-figure': 34,
+  // 038: the eight styles of the design system, then the old names at their target's size (aliases until Phase 3 renames the callers).
+  'pulse-title': 30, 'pulse-heading': 20, 'pulse-number': 34, 'pulse-strong': 15, 'pulse-body': 15, 'pulse-small': 13, 'pulse-time': 12, 'pulse-tag': 11,
+  'pulse-hero': 30, 'pulse-section': 15, 'pulse-row': 15, 'pulse-compact': 15, 'pulse-note': 15, 'pulse-lede': 20, 'pulse-statement': 20,
+  'pulse-caption': 13, 'pulse-mono': 12, 'pulse-edge': 11, 'pulse-badge': 12, 'pulse-chip': 15, 'pulse-quote': 15, 'pulse-figure': 34,
 } as const;
 
 /**
@@ -238,25 +240,28 @@ function step<F extends keyof typeof FACE_LEADING>(face: F, cls: string, size: n
  *   Figure   Unbounded 800 34/34         Hot now's timestamp (M31 L7)
  *   Quote    Geist 400 14/20             the owner's note on the pick tile, in italics (M31 L7)
  */
-export const typeScale = {
-  hero: step('display', 'font-display font-extrabold text-pulse-hero', 30, 31, -0.3),
-  title: step('display', 'font-display text-pulse-title', 22, 26, 0),
-  heading: step('display', 'font-display text-pulse-heading', 20, 23, 0),
-  section: step('ui', 'font-semibold text-pulse-section', 17, 22, 0),
-  row: step('ui', 'font-semibold text-pulse-row', 15, 20, 0),
+const eight = {
+  title: step('display', 'font-display font-extrabold text-pulse-title', 30, 38, -0.3),
+  heading: step('display', 'font-display text-pulse-heading', 20, 25, 0),
+  number: step('display', 'font-display font-extrabold text-pulse-number', 34, 43, 0),
+  strong: step('ui', 'font-semibold text-pulse-strong', 15, 20, 0),
   body: step('ui', 'text-pulse-body', 15, 22, 0),
-  compact: step('ui', 'font-semibold text-pulse-compact', 14, 18, 0),
-  note: step('ui', 'font-medium text-pulse-note', 14, 20, 0),
-  lede: step('display', 'font-display text-pulse-lede', 18, 22, 0),
-  statement: step('display', 'font-display text-pulse-statement', 24, 29, 0),
-  caption: step('ui', 'font-medium text-pulse-caption', 13, 18, 0),
-  mono: step('mono', 'font-mono text-pulse-mono', 12, 22, 0),
-  edge: step('display', 'font-display text-pulse-edge', 11, 11, 2.64),
-  badge: step('mono', 'font-mono font-semibold text-pulse-badge', 10, 16, 0),
-  tag: step('mono', 'font-mono text-pulse-tag', 11, 14, 0),
-  chip: step('ui', 'font-semibold text-pulse-chip', 12, 16, 0),
-  quote: step('ui', 'text-pulse-quote', 14, 20, 0),
-  figure: step('display', 'font-display font-extrabold text-pulse-figure', 34, 34, 0),
+  small: step('ui', 'font-medium text-pulse-small', 13, 18, 0),
+  time: step('mono', 'font-mono text-pulse-time', 12, 16, 0),
+  tag: step('mono', 'font-mono text-pulse-tag', 11, 14, 0.5),
+};
+export const typeScale = {
+  ...eight,
+  // 038 (design-system "Replaces" lines): the old names, as the same objects, until Phase 3 renames every caller. `title` was 22 and is now the page title (30);
+  // its nine old callers were renamed to `heading`.
+  hero: eight.title,
+  statement: eight.heading, lede: eight.heading,
+  figure: eight.number,
+  section: eight.strong, row: eight.strong, compact: eight.strong, chip: eight.strong,
+  quote: eight.body, note: eight.body,
+  caption: eight.small,
+  mono: eight.time, badge: eight.time,
+  edge: eight.tag,
 };
 export type TypeName = keyof typeof typeScale;
 

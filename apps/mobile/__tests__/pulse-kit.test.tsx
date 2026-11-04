@@ -51,9 +51,9 @@ describe('Type', () => {
     const r = render(createElement(Type, { step: 'hero', className: 'text-text' }, 'Why mornings matter'));
     const t = r.root.findAll((n) => String(n.type) === 'Text')[0]!;
     expect(classOf(t)).toContain('font-display');
-    expect(classOf(t)).toContain('text-pulse-hero');
+    expect(classOf(t)).toContain('text-pulse-title'); // 038 D3: was text-pulse-hero; hero is an alias of title
     expect(classOf(t)).toContain('text-text');
-    expect(flat(t.props['style'])).toMatchObject({ lineHeight: 38, letterSpacing: typeScale.hero.tracking }); // drawn 31; Unbounded is 1.24 tall
+    expect(flat(t.props['style'])).toMatchObject({ lineHeight: 38, letterSpacing: typeScale.hero.tracking }); // 038: title 30/38 (was 31 drawn; Unbounded is 1.24 tall)
   });
 });
 
@@ -215,7 +215,7 @@ describe('fade and edge label', () => {
     expect(flat(g.props['style'])).toMatchObject({ bottom: 160, height: 200, zIndex: 15 });
     expect(g.props['pointerEvents']).toBe('none');
   });
-  it('edge label: the section name in Unbounded 11, spaced, uppercase, text3, still a header for a screen reader', () => {
+  it('edge label: the section name in Geist Mono 11 (the tag style), uppercase, text3, still a header for a screen reader', () => {
     const r = render(createElement(EdgeLabel, { label: "Today's pick", top: 30 }));
     const h = r.root.findAll((n) => n.props['accessibilityRole'] === 'header')[0]!;
     expect(h.props['accessibilityLabel']).toBe("Today's pick");
@@ -223,7 +223,7 @@ describe('fade and edge label', () => {
     expect(words(r)).toEqual(["TODAY'S PICK", "TODAY'S PICK"]);
     const t = r.root.findAll((n) => String(n.type) === 'Text' && n.props['numberOfLines'] === 1)[0]!;
     expect(classOf(t)).toContain('text-text3');
-    expect(classOf(t)).toContain('font-display');
+    expect(classOf(t)).toContain('font-mono'); // 038 D3: was font-display; the edge label is the tag style
     expect(flat(t.props['style'])).toMatchObject({ letterSpacing: typeScale.edge.tracking });
     expect(JSON.stringify(flat(t.props['style'])['transform'])).toContain('-90deg');
   });

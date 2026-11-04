@@ -86,7 +86,7 @@ it('the active tab differs by weight as well as colour (FR-016: never hue alone)
   // UniWind writes the weight as the number 700, NativeWind wrote the string '700'; React
   // Native reads both the same (M9). The claim — the active tab is bold — is unchanged.
   expect(String(labels[0]!['fontWeight'])).toBe('700');
-  expect(labels[1]!['fontWeight']).toBeUndefined();
+  expect(String(labels[1]!['fontWeight'])).toBe('400'); // 038 D3: was undefined; with no font loaded the system font now keeps the face's weight (FR-001)
 });
 
 it('with icons (owner, 2026-09-27): the active tab shows the filled icon, the others the outline', () => {

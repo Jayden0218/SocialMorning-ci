@@ -89,7 +89,7 @@ export function QueueChooser(props: {
     <ActionSheet open={props.open && c !== undefined} onClose={props.onClose} label={LABEL}>
       {c !== undefined ? (
         <>
-          <Type step="title" className="text-text" accessibilityRole="header">{LABEL}</Type>
+          <Type step="heading" className="text-text" accessibilityRole="header">{LABEL}</Type>
           <Type step="body" className="text-text2">Your playlist changed on this phone and on another device. The one you keep is used on both; the other is saved in Playlist backups.</Type>
           <Box className="flex-row" style={{ gap: CHOOSER.tileGap }}>
             <ListTile heading="This phone" ids={c.local} feeds={props.feeds} chosen />

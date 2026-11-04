@@ -697,7 +697,7 @@ describe('F2b: the sheets and cards are the drawing\'s height', () => {
   it('the rules are Geist 400 14/20 (the quote step), not the 600 compact step that wrapped the drawn one-line rules; five rules, the fifth kept on purpose', () => {
     const r = mount(createElement(RulesSheet, { open: true, onAccepted: jest.fn(), onClose: jest.fn() }));
     const rule = r.root.findAll((n) => typeof n.type === 'string' && n.props['children'] === 'Be kind. Talk about the episode, not the person.')[0]!;
-    expect(String(rule.props['className'])).toContain('text-pulse-quote');
+    expect(String(rule.props['className'])).toContain('text-pulse-body'); // 038 D3: was text-pulse-quote (14/20); quote is an alias of body (15/22)
     expect(String(rule.props['className'])).not.toContain('font-semibold');
     expect(text(r)).toContain("Don't share anyone's private details.");
   });

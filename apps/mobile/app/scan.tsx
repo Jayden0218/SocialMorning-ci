@@ -187,7 +187,7 @@ export default function ScanScreen(): React.ReactElement {
             </Box>
           </Box>
           <Box className="absolute" style={{ left: side, right: side, top: below(layout.top, SCAN.hintTop), gap: SCAN.hintGap }}>
-            <Type step="title" className="text-text">Point at a QR code</Type>
+            <Type step="heading" className="text-text">Point at a QR code</Type>
             <Type step="note" className="text-text2">Clip, episode and show codes open right here</Type>
           </Box>
         </Box>

@@ -195,7 +195,7 @@ export default function ThreadScreen(): React.ReactElement {
             accessibilityLabel={[name, relativeTime(parent.createdAt, serverTime), parent.body ?? ''].filter((x) => x !== '').join(', ')}
             accessibilityHint="Opens reply, share, copy, mute and report"
           >
-            {parent.body ? <Type step="title" className="text-text" numberOfLines={6} style={drawnType.threadParent}>{parent.body}</Type> : null}
+            {parent.body ? <Type step="heading" className="text-text" numberOfLines={6} style={drawnType.threadParent}>{parent.body}</Type> : null}
           </Pressable>
           <Box className="flex-row items-center" style={{ gap: COMMENTS.actionGap }}>
             {parent.mine ? (

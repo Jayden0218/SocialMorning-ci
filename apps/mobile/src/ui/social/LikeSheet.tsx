@@ -33,7 +33,7 @@ export function LikeSheet(props: { open: boolean; title?: string; initialNote?: 
           <Icon name="heart" size={likeMeasure.heartIcon} color={c.void} />
         </Box>
         <Box className="flex-1">
-          <Type step="title" className="text-text" accessibilityRole="header">Liked</Type>
+          <Type step="heading" className="text-text" accessibilityRole="header">Liked</Type>
           {props.title ? <Type step="caption" className="text-text2" numberOfLines={2}>{props.title}</Type> : null}
         </Box>
       </Box>

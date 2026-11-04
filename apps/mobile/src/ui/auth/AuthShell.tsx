@@ -157,7 +157,7 @@ export function CodeCells(props: { value: string; onChange: (v: string) => void 
           const next = i === digits.length;
           return (
             <Box key={i} testID={next ? 'code-cell-next' : 'code-cell'} className="flex-1 bg-raise2 items-center justify-center" style={{ height: AUTH.cells.height, borderRadius: AUTH.cells.radius, ...(next ? { borderWidth: AUTH.cells.ring, borderColor: c.hot } : null) }}>
-              {i < digits.length ? <Type step="title" className="text-text font-bold" style={AUTH_TYPE.cell}>{digits[i]}</Type> : null}
+              {i < digits.length ? <Type step="heading" className="text-text font-bold" style={AUTH_TYPE.cell}>{digits[i]}</Type> : null}
             </Box>
           );
         })}

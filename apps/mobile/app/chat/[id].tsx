@@ -173,7 +173,7 @@ export default function ChatThread(): React.ReactElement {
       >
         <Avatar size={CHAT.headerAvatar} url={who?.avatarUrl} name={name} />
         <Box className="flex-1 min-w-0">
-          <Type step="title" className="text-text font-extrabold" numberOfLines={1}>{name}</Type>
+          <Type step="heading" className="text-text font-extrabold" numberOfLines={1}>{name}</Type>
           <Type step="tag" className="text-text3" numberOfLines={1}>open profile ›</Type>
         </Box>
       </Pressable>

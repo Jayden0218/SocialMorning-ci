@@ -28,7 +28,8 @@ it('there is no light palette left: the page is near-black and the old paper col
 });
 
 it('G-P2: every Pulse type step has a size, a line height and a class, and the scale is the one drawn', () => {
-  const drawn = { hero: [30, 31], title: [22, 26], heading: [20, 23], section: [17, 22], row: [15, 20], body: [15, 22], compact: [14, 18], note: [14, 20], lede: [18, 22], statement: [24, 29], caption: [13, 18], mono: [12, 22], badge: [10, 16] } as const;
+  // 038 D3: the eight styles of the design system (was 13 drawn steps: hero 30/31, title 22/26, section 17/22, compact 14/18, note 14/20, lede 18/22, statement 24/29, mono 12/22, badge 10/16). The old names are aliases and are checked in type-eight.test.ts.
+  const drawn = { title: [30, 38], heading: [20, 25], number: [34, 43], strong: [15, 20], body: [15, 22], small: [13, 18], time: [12, 16], tag: [11, 14] } as const;
   for (const [name, [size, line]] of Object.entries(drawn)) {
     const step = typeScale[name as keyof typeof typeScale];
     expect([name, step.size, step.line]).toEqual([name, size, line]);
@@ -40,17 +41,17 @@ it('G-P2: every Pulse type step has a size, a line height and a class, and the s
     expect(step.cls).toContain(`text-pulse-${name}`);
   }
   expect(typeScale.hero.tracking).toBeCloseTo(-0.3, 5); // −1 % of 30
-  expect(typeScale.edge.tracking).toBeCloseTo(2.64, 5); // 0.24 em of 11
+  expect(typeScale.edge.tracking).toBeCloseTo(0.5, 5); // 038 D3: was 2.64 (0.24 em of 11); the edge label is the tag style
   expect(typeStyle('row')).toEqual({ lineHeight: 20, letterSpacing: 0 });
 });
 
 it('G-P5: no step is set on a line shorter than its font is tall (Android crops it — the M17 "text has been cropped"); the Unbounded steps are taller than drawn', () => {
   for (const [name, st] of Object.entries(typeScale)) expect([name, st.lineSafe >= Math.ceil(st.size * FACE_LEADING[st.face])]).toEqual([name, true]);
-  expect(typeScale.hero.line).toBe(31); // as drawn…
+  expect(typeScale.hero.line).toBe(38); // 038 D3: was 31 as drawn; the design system's title line is 38…
   expect(typeScale.hero.lineSafe).toBe(38); // …and as set: 30 × 1.24
   expect(typeStyle('hero')).toEqual({ lineHeight: 38, letterSpacing: -0.3 });
   // Geist and Geist Mono steps the drawings set tall enough are left as drawn.
-  expect([typeScale.row.lineSafe, typeScale.body.lineSafe, typeScale.mono.lineSafe]).toEqual([20, 22, 22]);
+  expect([typeScale.row.lineSafe, typeScale.body.lineSafe, typeScale.mono.lineSafe]).toEqual([20, 22, 16]); // 038 D3: mono (time) was 22
 });
 
 it('the faces the type scale asks for are the faces the drawings use', () => {

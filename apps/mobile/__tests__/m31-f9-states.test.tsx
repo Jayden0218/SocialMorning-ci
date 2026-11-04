@@ -48,11 +48,11 @@ const say = (n: unknown): string => {
 
 describe('F9-3 Issues, load failed (states--error-page)', () => {
   beforeEach(() => { mockIssues = () => Promise.reject(new Error('offline')); });
-  it('the sentence is the page\'s own, in Unbounded 24, beside a 72 "!" tile', async () => {
+  it('the sentence is the page\'s own, in Unbounded 20 (heading, 038 D3: was 24), beside a 72 "!" tile', async () => {
     const r = await render();
     const sentence = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === "Couldn't load the issues right now.")[0];
     expect(sentence).toBeDefined();
-    expect(flat(sentence)['fontSize']).toBe(24);
+    expect(flat(sentence)['fontSize']).toBe(20);
     expect(r.root.findAll((x) => typeof x.type === 'string' && flat(x)['width'] === 72 && flat(x)['height'] === 72)).not.toHaveLength(0);
     expect(r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === '!')).not.toHaveLength(0);
   });

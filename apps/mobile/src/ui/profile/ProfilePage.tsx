@@ -63,7 +63,7 @@ export function ProfileStage(props: {
           <Avatar size={PROFILE_PAGE.photo - 2 * PROFILE_PAGE.photoInner} url={props.avatarUrl} name={props.name} />
         </Box>
       </Box>
-      <Type step="title" className="text-text text-center" style={[PAGE_TYPE.title26, { marginTop: PROFILE_PAGE.nameGap - PROFILE_PAGE.lineGap }]} accessibilityRole="header">{props.name}</Type>
+      <Type step="heading" className="text-text text-center" style={[PAGE_TYPE.title26, { marginTop: PROFILE_PAGE.nameGap - PROFILE_PAGE.lineGap }]} accessibilityRole="header">{props.name}</Type>
       {props.badge}
       {quiet ? <Box style={{ marginTop: PROFILE_PAGE.quietLine }}>{props.quiet}</Box> : props.lines}
     </Box>

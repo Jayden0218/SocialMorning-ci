@@ -108,7 +108,7 @@ export default function AppealScreen(): React.ReactElement {
             {items !== undefined && items.length === 0 && !failed ? (
               <Box testID="appeal-nothing" className="items-center text-center" style={{ marginTop: APPEAL.doneTop, gap: APPEAL.doneGap }}>
                 <GlowTile icon="checkmark" size={APPEAL.doneTile} rotate={APPEAL.doneTilt} />
-                <Type step="title" className="text-text text-center" accessibilityRole="header">Nothing to appeal</Type>
+                <Type step="heading" className="text-text text-center" accessibilityRole="header">Nothing to appeal</Type>
                 <Type step="caption" className="text-text2 text-center">No removals or suspensions on your account.</Type>
               </Box>
             ) : null}

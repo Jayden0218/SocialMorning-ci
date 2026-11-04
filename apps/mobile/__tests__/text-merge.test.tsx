@@ -31,7 +31,9 @@ it('knows every app text size that Tailwind does not have', () => {
   expect(APP_TEXT_SIZES).toEqual([
     'micro', 'meta', 'body', 'title', 'hero', 'display',
     // M31: the Pulse steps (design/tokens.ts), prefixed because the older names mean other sizes.
-    'pulse-hero', 'pulse-title', 'pulse-heading', 'pulse-section', 'pulse-row', 'pulse-body', 'pulse-compact', 'pulse-note', 'pulse-lede', 'pulse-statement', 'pulse-caption', 'pulse-mono', 'pulse-edge', 'pulse-badge', 'pulse-tag', 'pulse-chip', 'pulse-quote', 'pulse-figure',
+    // 038 D3: the eight styles first, then the old names (aliases until Phase 3 deletes them).
+    'pulse-title', 'pulse-heading', 'pulse-number', 'pulse-strong', 'pulse-body', 'pulse-small', 'pulse-time', 'pulse-tag',
+    'pulse-hero', 'pulse-section', 'pulse-row', 'pulse-compact', 'pulse-note', 'pulse-lede', 'pulse-statement', 'pulse-caption', 'pulse-mono', 'pulse-edge', 'pulse-badge', 'pulse-chip', 'pulse-quote', 'pulse-figure',
   ]);
 });
 
