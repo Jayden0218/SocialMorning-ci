@@ -82,7 +82,7 @@ export default function ChatTab(): React.ReactElement {
             <PulseButton label="Sign in" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')} />
           </EmptyBlock>
         </Box>
-        <Fade top={0} height={topFade(tab.contentTop)} />
+        <Fade top={0} height={topFade(tab.top + tab.contentTop)} />
         <TitleBar title="Chat" top={tab.top} />
       </SafeAreaView>
     );
@@ -139,7 +139,7 @@ export default function ChatTab(): React.ReactElement {
           </Box>
         )}
       </ScrollView>
-      <Fade top={0} height={topFade(tab.contentTop)} />
+      <Fade top={0} height={topFade(tab.top + tab.contentTop)} />
       <TitleBar
         title="Chat"
         subtitle="People who follow you back"

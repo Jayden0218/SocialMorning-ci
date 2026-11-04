@@ -56,8 +56,10 @@ appId: app.socialmorning.mobile
 - assertVisible: "Swipe for the next chart"
 - takeScreenshot: r04-04-chart${SUFFIX || ''}
 - tapOn: "How the charts work"
-- extendedWaitUntil:
-    visible: "How often they update"
+# 037 (run 41789693433, r04-discover-xl): the title block is at the top now, so the page's content starts ~130 pt lower and
+# "How often they update" is below the fold at the largest text size. Scroll to it instead of waiting for it.
+- scrollUntilVisible:
+    element: "How often they update"
     timeout: 30000
 - takeScreenshot: r04-05-chart-rules${SUFFIX || ''}
 - tapOn: "Back"

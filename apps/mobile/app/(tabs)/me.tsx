@@ -200,7 +200,7 @@ export default function MeScreen(): React.ReactElement {
           </PanelGroup>
         </Box>
       </ScrollView>
-      <Fade top={0} height={topFade(tab.contentTop)} />
+      <Fade top={0} height={topFade(tab.top + tab.contentTop)} />
       {listener ? (
         <TitleBar
           title={listener.displayName}

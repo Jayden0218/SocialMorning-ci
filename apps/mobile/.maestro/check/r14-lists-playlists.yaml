@@ -104,8 +104,8 @@ env:
     times: 4
     commands:
       - swipe:
-          start: 85%, 77%
-          end: 15%, 77%
+          start: 85%, 23%                # 037 (run 41789693433): the chips sit under the top title now (y 169–212 of 844), not at 77 %
+          end: 15%, 23%
 - tapOn: "Share some shows"
 - extendedWaitUntil:
     visible: "List title"

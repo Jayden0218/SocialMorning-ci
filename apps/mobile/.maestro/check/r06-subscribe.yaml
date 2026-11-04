@@ -62,14 +62,15 @@ appId: app.socialmorning.mobile
 - takeScreenshot: r06-05-subscriptions
 # The chips scroll sideways; "Manage order" starts off-screen to the right (run 41269168664: only the Sort
 # chips and "Search your shows" were in the hierarchy, y 702–738 of 844).
+# 037 (run 41789693433): the title is at the top now and the chips sit under it (y 169–212 of 844, 23 %), so the swipe is at 23 %, not 85 %.
 - repeat:
     while:
       notVisible: "Manage order"
     times: 4
     commands:
       - swipe:
-          start: 85%, 85%
-          end: 15%, 85%
+          start: 85%, 23%
+          end: 15%, 23%
 - tapOn: "Manage order"
 - extendedWaitUntil:
     visible: "Tap a show, then tap where it should go\\."

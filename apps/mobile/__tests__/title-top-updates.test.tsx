@@ -7,6 +7,7 @@
 import { createElement } from 'react';
 import { ScrollView } from 'react-native';
 import { act } from 'react-test-renderer';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { barsReserve, contentTopReserve, titleBarTop } from '@/design';
 import { TitleBar } from '@/ui/kit/TitleBar';
 import { seededStores, mount } from './support/screen-kit';
@@ -45,13 +46,23 @@ jest.mock('@/ui/kit/EpisodeRowSheet', () => ({ EpisodeRowSheet: () => null }));
 jest.mock('@/ui/episode/useEpisodeHotMoments', () => ({ useEpisodeHotMoments: () => new Map(), useEpisodeHotMomentsWith: () => new Map() }));
 
 describe('037 M4 the Updates tab title at the top', () => {
+  const withInsets = (top: number, el: React.ReactElement): React.ReactElement => createElement(SafeAreaInsetsContext.Provider, { value: { top, bottom: 34, left: 0, right: 0 } }, el);
+  it('with a 47 pt status bar the title bar sits at 47 + 6 (an absolute top ignores the page\'s padding)', async () => {
+    mockIdle = true;
+    mockRef.stores = seededStores([]) as never;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Screen = require('../app/(tabs)/library').default;
+    const r = await mount(withInsets(47, createElement(Screen)));
+    expect(r.root.findByType(TitleBar).props['top']).toBe(titleBarTop(47));
+    act(() => r.unmount());
+  });
   for (const idle of [true, false]) {
     it(`${idle ? 'idle' : 'with a now bar'}: top 6, no bottom; the content starts under the block; the foot leaves the bars' room only`, async () => {
       mockIdle = idle;
       mockRef.stores = seededStores([]) as never;
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Screen = require('../app/(tabs)/library').default;
-      const r = await mount(createElement(Screen));
+      const r = await mount(withInsets(0, createElement(Screen)));
       const bar = r.root.findByType(TitleBar);
       expect(bar.props['top']).toBe(titleBarTop(0));
       expect(bar.props['bottom']).toBeUndefined();
