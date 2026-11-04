@@ -84,8 +84,8 @@ describe('037 M3 PushedPage and OverlayPage', () => {
     mounted.push(r);
     return r;
   };
-  const pushed = (now: boolean, extra: Record<string, unknown> = {}): ReactTestRenderer => page(createElement(PushedPage as React.ComponentType<Record<string, unknown>>, { title: 'Notifications', subtitle: 'New activity', now, ...extra, children: (l: PushedLayout) => { seen = l; return null; } }));
-  const overlay = (extra: Record<string, unknown> = {}): ReactTestRenderer => page(createElement(OverlayPage as React.ComponentType<Record<string, unknown>>, { title: 'Terms', ...extra, children: (l: PushedLayout) => { seen = l; return null; } }));
+  const pushed = (now: boolean, extra: Record<string, unknown> = {}): ReactTestRenderer => page(createElement(PushedPage as React.ComponentType<Record<string, unknown>>, { title: 'Notifications', subtitle: 'New activity', now, ...extra }, ((l: PushedLayout) => { seen = l; return null; }) as never));
+  const overlay = (extra: Record<string, unknown> = {}): ReactTestRenderer => page(createElement(OverlayPage as React.ComponentType<Record<string, unknown>>, { title: 'Terms', ...extra }, ((l: PushedLayout) => { seen = l; return null; }) as never));
   const barTop = (r: ReactTestRenderer): unknown => flat(r.root.findAll((n) => n.props['testID'] === 'title-bar' && typeof n.type === 'string')[0])['top'];
 
   it('PushedPage: the title bar\'s top is the same with or without a now bar', () => {
