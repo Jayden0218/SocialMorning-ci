@@ -108,15 +108,15 @@ export function TitleBar(props: {
     </Animated.Text>
   );
   return (
-    <Box testID="title-bar" className="absolute left-0 right-0" style={{ top: props.top, paddingHorizontal: gutter(width), zIndex: 20 }}>
-      <Box testID="title-bar-row" className="flex-row items-center gap-row" style={{ minHeight: bars.circle }}>
+    <Box testID="title-bar" pointerEvents="box-none" className="absolute left-0 right-0" style={{ top: props.top, paddingHorizontal: gutter(width), zIndex: 20 }}>
+      <Box testID="title-bar-row" pointerEvents="box-none" className="flex-row items-center gap-row" style={{ minHeight: bars.circle }}>
         {props.onBack ? <IconButton icon={props.backIcon ?? 'chevron-back'} label={props.backLabel ?? 'Back'} onPress={props.onBack} fill size={22} /> : null}
-        {shrunk ? <Box testID="title-bar-title" className="flex-1">{titleEl}</Box> : <Box className="flex-1" />}
+        {shrunk ? <Box testID="title-bar-title" className="flex-1">{titleEl}</Box> : <Box className="flex-1" pointerEvents="none" />}
         {props.right ?? actions.map((a) => <IconButton key={a.label} icon={a.icon} label={a.label} onPress={a.onPress} fill />)}
       </Box>
       {shrunk ? null : (
-        <Box className="gap-gap" style={{ marginTop: bars.titleTop }}>
-          <Box>
+        <Box testID="title-bar-block" pointerEvents="box-none" className="gap-gap" style={{ marginTop: bars.titleTop }}>
+          <Box pointerEvents="box-none">
             <Box testID="title-bar-title">{titleEl}</Box>
             {props.subtitle ? (
               props.onSubtitle ? (

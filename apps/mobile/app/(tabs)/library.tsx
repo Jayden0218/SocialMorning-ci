@@ -293,8 +293,8 @@ export default function UpdatesScreen(): React.ReactElement {
                 <Type step="body" className="text-text2" style={{ paddingHorizontal: side }}>No episodes yet.</Type>
               )}
             </ScrollView>
-            <Fade top={0} height={topFade(tab.top + tab.contentTop)} />
-            <TitleBar title="Updates" subtitle={`My subscriptions · ${subscribed} ›`} onSubtitle={() => router.push('/subscriptions')} top={tab.top} />
+            <Fade top={0} height={topFade(tab.contentTop)} />
+            <TitleBar title="Updates" subtitle={`My subscriptions · ${subscribed} ›`} onSubtitle={() => router.push('/subscriptions')} top={tab.innerTop} />
           </Box>
         }
       />

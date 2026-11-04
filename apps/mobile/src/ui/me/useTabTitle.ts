@@ -14,6 +14,8 @@ import { selectIdle, usePlayerSelector } from '@/playback/store';
 export type TabTitle = {
   /** The title bar's `top`: the status bar (`safeTop`) plus the gap, from the page's own top edge. */
   top: number;
+  /** The `top` for a title bar drawn inside a pane that the page's padding already moved below the status bar (the Updates list pane): no inset. */
+  innerTop: number;
   /** Where the scroll content starts (its top padding): under the title block. */
   contentTop: number;
   /** The room the content leaves at its foot: the now bar when it floats there, and a breath. */
@@ -22,7 +24,7 @@ export type TabTitle = {
 
 /** Pure: the tab page's measures with or without the now bar. */
 export function tabTitle(nowBar: boolean, safeTop = 0): TabTitle {
-  return { top: titleBarTop(safeTop), contentTop: titleBarTop(0) + contentTopReserve(), reserve: barsReserve({ tabs: true, now: nowBar }) };
+  return { top: titleBarTop(safeTop), innerTop: titleBarTop(0), contentTop: titleBarTop(0) + contentTopReserve(), reserve: barsReserve({ tabs: true, now: nowBar }) };
 }
 
 /** The measures for the page in front: the foot clears the now bar while something is loaded. */

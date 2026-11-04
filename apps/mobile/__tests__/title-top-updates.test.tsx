@@ -47,13 +47,15 @@ jest.mock('@/ui/episode/useEpisodeHotMoments', () => ({ useEpisodeHotMoments: ()
 
 describe('037 M4 the Updates tab title at the top', () => {
   const withInsets = (top: number, el: React.ReactElement): React.ReactElement => createElement(SafeAreaInsetsContext.Provider, { value: { top, bottom: 34, left: 0, right: 0 } }, el);
-  it('with a 47 pt status bar the title bar sits at 47 + 6 (an absolute top ignores the page\'s padding)', async () => {
+  // The Updates title bar is drawn inside the list pane, a flow child that the SafeAreaView's padding already moved below the status bar (run 41813306847, r11-02:
+  // adding the inset again put the title 47 pt too low and the voice rail over the subtitle). Me and Chat draw theirs directly in the padded view, where it is added.
+  it('with a 47 pt status bar the title bar still sits 6 from the top of its pane (the pane is already below the status bar)', async () => {
     mockIdle = true;
     mockRef.stores = seededStores([]) as never;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Screen = require('../app/(tabs)/library').default;
     const r = await mount(withInsets(47, createElement(Screen)));
-    expect(r.root.findByType(TitleBar).props['top']).toBe(titleBarTop(47));
+    expect(r.root.findByType(TitleBar).props['top']).toBe(titleBarTop(0));
     act(() => r.unmount());
   });
   for (const idle of [true, false]) {
