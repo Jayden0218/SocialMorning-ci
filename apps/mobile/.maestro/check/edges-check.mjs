@@ -41,7 +41,7 @@ const files = statSync(target).isDirectory()
   : [target];
 
 const bbox = (b) => { const m = /^\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]$/.exec(b ?? ''); return m ? m.slice(1).map(Number) : undefined; };
-const CHROME = /scroll bar|battery|^Cellular$|Wi-Fi|^\d{1,2}:\d{2}\s?[AP]M$|^Dock$/u;
+const CHROME = /scroll bar|battery|^Cellular$|Wi-Fi|^\d{1,2}:\d{2}\s?[AP]M$|^Dock$|^Typing Predictions$/u;
 const labelOf = (n) => {
   const a = n.attributes ?? {};
   if (/scroll bar/i.test(String(a.accessibilityText ?? ''))) return ''; // its text is the scroll position ("0%"), not words

@@ -106,3 +106,12 @@ test('three controls side by side in ONE row, the first at 20, are one row start
   writeFileSync(col, JSON.stringify({ attributes: { bounds: '[0,0][390,844]' }, children: [n('A', 20, 200), n('B', 60, 300), n('C', 100, 400), n('D', 140, 500), n('E', 180, 600)] }));
   assert.equal(spawnSync(process.execPath, [SCRIPT, col], { encoding: 'utf8' }).status, 1);
 });
+
+// Device run 42025744841: the iOS keyboard's prediction bar ("Typing Predictions", x 0) was read as page text.
+test('the keyboard prediction bar ("Typing Predictions") is not page text', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'edges-'));
+  const n = (l, x, y) => ({ attributes: { accessibilityText: l, bounds: `[${x},${y}][${x + 100},${y + 20}]` }, children: [] });
+  const f = path.join(dir, 't.json');
+  writeFileSync(f, JSON.stringify({ attributes: { bounds: '[0,0][390,844]' }, children: [n('Body', 20, 200), n('Typing Predictions', 0, 500)] }));
+  assert.equal(spawnSync(process.execPath, [SCRIPT, f], { encoding: 'utf8' }).status, 0);
+});
