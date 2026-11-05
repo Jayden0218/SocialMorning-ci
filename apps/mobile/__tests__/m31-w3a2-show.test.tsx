@@ -152,6 +152,17 @@ describe('the chip row and the list', () => {
     const big = byId(r, 'show-big-tile');
     expect(JSON.stringify(big.findAll((n) => typeof n.props['children'] === 'string').map((n) => n.props['children']))).toContain('Episode 3');
   });
+  // 038 (run 41961274572, r07-episode-player-xl): at the large text size the newest tile's title wraps over the middle of the tile, and a title that is a
+  // plain Text over a box-none overlay is a dead zone: the full-tile Pressable sits behind it, so a tap on the words opened nothing. The words let the touch through.
+  it('a tap on the newest tile\'s words reaches the tile: its title and meta line sit under pointerEvents none', async () => {
+    const r = await mount();
+    const big = byId(r, 'show-big-tile');
+    const title = big.findAll((n) => typeof n.type === 'string' && n.props['children'] === 'Episode 0')[0]!;
+    expect(title).toBeDefined();
+    const blocked: string[] = [];
+    for (let n: ReactTestInstance | null = title; n && n !== big; n = n.parent) if (n.props['pointerEvents'] === 'none') blocked.push(String(n.type));
+    expect(blocked).not.toEqual([]);
+  });
   it('Hot moments swaps the list for the deck, and All swaps it back', async () => {
     mockMoments = { status: 'ready', cards: [{ episodeId: 'e0', showTitle: 'Morning Notes', episodeTitle: 'Episode 0', feedUrl: 'https://f/x', guid: 'g', startMs: 872_000, endMs: 890_000, reactions: 14, rank: 1, followed: false, comments: [] }], all: [], reload: () => undefined };
     const r = await mount();
