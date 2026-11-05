@@ -22,7 +22,20 @@ if (process.env.M27_WEB === '1') {
 }
 
 // UniWind must be the outermost wrapper (docs.uniwind.dev/quickstart).
-module.exports = withUniwindConfig(config, {
+const uniwindConfig = withUniwindConfig(config, {
   cssEntryFile: './global.css',
   dtsFile: './uniwind-types.d.ts',
 });
+
+// 038 M2 (FR-002): UniWind sends every `import 'react-native'` outside react-native itself to `uniwind/components`, a fixed list of names without
+// `AssetRegistry`. expo-asset imports `AssetRegistry` from 'react-native', so `loadAsync` threw "Cannot read property 'getAssetByID' of undefined"
+// and none of the ten fonts ever loaded (run 41934113529's app log). expo-asset gets the real module; screens keep the UniWind components.
+const withUniwind = uniwindConfig.resolver.resolveRequest;
+uniwindConfig.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'react-native' && context.originModulePath.includes(`${path.sep}node_modules${path.sep}expo-asset${path.sep}`)) {
+    return context.resolveRequest(context, moduleName, platform);
+  }
+  return withUniwind(context, moduleName, platform);
+};
+
+module.exports = uniwindConfig;
