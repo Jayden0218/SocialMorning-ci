@@ -51,7 +51,7 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `(tabs)/following.tsx` | `/following` | No screen: old link, sends you to Notifications. |
 | `(tabs)/index.tsx` | `/` | Home, the first screen: the Moments feed or Discover, behind one switch above the bars. |
 | `(tabs)/library.tsx` | `/library` | Updates tab: friends' voice posts, newest episodes from your shows. |
-| `(tabs)/me.tsx` | `/me` | Me tab: your picture, saved moments, menu tiles, a panel of four rows; your name sits low in the title bar. |
+| `(tabs)/me.tsx` | `/me` | Me tab: your picture and name, four tiles, Continue listening, then every other place as a pill. |
 
 ### `academy/`
 

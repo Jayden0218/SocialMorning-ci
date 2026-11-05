@@ -9,7 +9,7 @@
  */
 import { createRef, createElement } from 'react';
 import { StyleSheet } from 'react-native';
-import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
+import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { DiscoverPage } from '@/ui/discover/DiscoverPage';
 import type { DiscoverPageData } from '@/ui/discover/useDiscoverPage';
 import type { MomentsList } from '@/ui/discover/useMoments';
@@ -65,26 +65,25 @@ function render(p: DiscoverPageData): ReactTestRenderer {
   mounted.push(r);
   return r;
 }
-/** The edge labels (headers that carry a spoken name; the page's own "Discover" title is a header too, named by its words). */
-const edgeLabels = (r: ReactTestRenderer): string[] => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header' && n.props['accessibilityLabel'] !== undefined).map((n) => String(n.props['accessibilityLabel']));
-const flat = (n: ReactTestInstance): Record<string, unknown> => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
+/** The section headings (spec 039 D4, was: the edge labels, found by their `accessibilityLabel`): the `Section` titles, in order; the page's own "Discover" title is left out. */
+const edgeLabels = (r: ReactTestRenderer): string[] => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header').map((n) => [n.props['children']].flat(5).join('')).filter((t) => t !== 'Discover');
 const has = (r: ReactTestRenderer, label: string): boolean => r.root.findAll((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function').length > 0;
 
-it('the sections come in the owner\'s order, each under its edge label, after the pick tile', () => {
+it('the sections come in the owner\'s order, each under its Section heading, after Browse (spec 039 D4: was each edge label, after the pick tile)', () => {
   const r = render(page());
-  expect(edgeLabels(r)).toEqual(["Today's pick", "Editor's pick · Oct 27", 'For You', 'The chart', 'Explore by category']);
+  expect(edgeLabels(r)).toEqual(['Browse', "Editor's picks · Oct 27", 'For You', 'Charts', 'Explore by category']);
   const reordered = render(page({}, { order: ['chart', 'picks'] }));
-  expect(edgeLabels(reordered)).toEqual(["Today's pick", 'The chart', "Editor's pick · Oct 27"]);
+  expect(edgeLabels(reordered)).toEqual(['Browse', 'Charts', "Editor's picks · Oct 27"]);
 });
 
 it('a hidden section is not drawn', () => {
-  expect(edgeLabels(render(page({}, { order: ['chart'] })))).toEqual(["Today's pick", 'The chart']);
+  expect(edgeLabels(render(page({}, { order: ['chart'] })))).toEqual(['Browse', 'Charts']);
 });
 
-it('the owner\'s rename of a section is its edge label (a screen reader hears the new name too)', () => {
+it('the owner\'s rename of a section is its heading (a screen reader hears the new name too)', () => {
   applyConfig({ ...CONFIG_DEFAULTS, sectionTitles: { ...CONFIG_DEFAULTS.sectionTitles, 'For You': 'Made for you' } });
   const r = render(page({}, { order: ['forYou'] }));
-  expect(edgeLabels(r)).toEqual(["Today's pick", 'Made for you']);
+  expect(edgeLabels(r)).toEqual(['Browse', 'Made for you']);
 });
 
 it('a card just hidden keeps its slot in the deck, and Undo reaches the page', () => {
@@ -109,8 +108,10 @@ it('"Not liking these?" is under the For You deck for a signed-in listener only;
   expect(mockPush).toHaveBeenCalledWith('/onboarding/not-liking');
 });
 
-it('the pick tile is followed by 18 of room, then the first deck (the drawing\'s 18 under every section)', () => {
+// Spec 039 D4 (was: "the pick tile is followed by 18 of room, then the first deck"): the sections sit on the Page's 20 gutter with 24 between them.
+it('the sections sit on the 20 gutter with 24 between them', () => {
   const r = render(page({}, { order: ['chart'] }));
-  const tileBox = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['paddingBottom'] === 18);
-  expect(tileBox.length).toBeGreaterThan(0);
+  const scroll = r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'page-scroll')[0]!;
+  const content = StyleSheet.flatten(scroll.props['contentContainerStyle']) as Record<string, unknown>;
+  expect([content['paddingHorizontal'], content['gap']]).toEqual([20, 24]);
 });

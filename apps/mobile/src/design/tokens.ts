@@ -314,13 +314,13 @@ export const coverRadius: readonly { upTo: number; r: number }[] = [
 export const hit = { min: 48 } as const;
 
 /**
- * The Pulse bars, bottom to top (design-pulse2 `index.html` §Bars): the tab bar is 58 + the safe
+ * The Pulse bars, bottom to top (design-pulse2 `index.html` §Bars): the tab bar is 58 + one label line (039: it had no labels before) + the safe
  * area, the now bar floats 8 above it (58 tall, 10 from each side, shrinks to a 52 circle), the
  * title bar sits above whichever is highest (8 above a tab bar, 10 above a now bar — the drawings' numbers). `rail` is the tab bar on a wide window. Touch
  * targets: a title bar's circles and a now bar's buttons are 44 (`circle`), the Play circle 40.
  */
 export const bars = {
-  tab: 58, rail: 88, tabIcon: 26, tabIconTop: 14, tabDotGap: 7, now: 58, nowGap: 8, nowSide: 10, nowCircle: 52, fade: 200,
+  tab: 58 + typeScale.tag.lineSafe, tabLabel: typeScale.tag.lineSafe, tabLabelGap: 2, rail: 88, tabIcon: 26, tabIconTop: 14, tabDotGap: 7, now: 58, nowGap: 8, nowSide: 10, nowCircle: 52, fade: 200,
   circle: 44, playCircle: 40, cover: 42, progress: 2, dot: 5, dotSmall: 7, badge: 16, titleBack: 44, titleTop: 6, titleShrunk: 20, chip: 36, chipPad: 14, titleSub: 6, sheetGap: 14, sheetClose: 36, toastLift: 8, toastOverComposer: 162, toastOverReplies: 142, toastOverClip: 96, toastOverVoice: 90, toastOverStatus: 70, toastOverTranscript: 142, tray: 60, toastOverTray: 12, toastFootIdle: 62, toastFootSend: 186, toastFootDigest: 182, toastFootSearch: 156, toastFootAppeal: 156, toastFootGift: 166, toastFootProfile: 70, pushedGap: 6, titleAboveNow: 10, toastSide: 14, dialogSide: 28, dialogPad: 22, stamp: 22, stampPad: 7, toast: 50, sheetGrab: 36, field: 48,
 } as const;
 

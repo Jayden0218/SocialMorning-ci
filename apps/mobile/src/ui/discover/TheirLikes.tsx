@@ -22,7 +22,8 @@ import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { ME_TYPE } from '@/ui/me/measures';
 import { useProfileApi, type LikeItem } from '@/social/profile-api';
-import { DECK, UNBOUNDED, Deck, DeckCard, DeckSection, useEdge } from './Deck';
+import { DECK, UNBOUNDED, DeckCard, useEdge } from './Deck';
+import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
 
 /** Drawn: cards 230 x 150, the face 26, the cover 34 (radius 8). */
 export const LIKE_CARD = { width: 230, height: 150, face: 26, cover: 34, coverRadius: 8 } as const;
@@ -51,8 +52,8 @@ export function TheirLikes(props: { signedIn: boolean }): React.ReactElement | n
   if (items.length === 0) return null;
   const shown = items.filter((it): it is LikeItem & { listener: NonNullable<LikeItem['listener']> } => it.listener !== undefined);
   return (
-    <DeckSection label={edge.label} spoken={edge.spoken}>
-      <Deck width={LIKE_CARD.width} height={LIKE_CARD.height}>
+    <DiscoverSection title={edge.spoken}>
+      <DiscoverShelf width={LIKE_CARD.width} height={LIKE_CARD.height}>
         {[
           ...shown.map((it) => {
             return (
@@ -80,7 +81,7 @@ export function TheirLikes(props: { signedIn: boolean }): React.ReactElement | n
             </Pressable>
           </DeckCard>,
         ]}
-      </Deck>
-    </DeckSection>
+      </DiscoverShelf>
+    </DiscoverSection>
   );
 }

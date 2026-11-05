@@ -57,9 +57,10 @@ it('the charts: a card each (T030), rows numbered from 1, pages of three with a 
   expect(text(r)).toContain('Title z');
   expect(r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'deck-card')).toHaveLength(2);
   // The drawn card size: 270 x 220, a card per chart.
-  const deck = r.root.find((n) => typeof n.type === 'string' && n.props['testID'] === 'deck');
-  expect(deck.props['snapToInterval']).toBe(280);
-  expect(StyleSheet.flatten(deck.props['style']).height).toBe(220);
+  // Spec 039 D4 (was: a snapping `deck`, `snapToInterval` 280): a `shelf` (it scrolls freely, 12 apart) whose cards are 270 x 220.
+  expect(r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'shelf')).toHaveLength(1);
+  const sized = r.root.findAll((n) => typeof n.type === 'string' && StyleSheet.flatten(n.props['style'])?.width === 270 && StyleSheet.flatten(n.props['style'])?.height === 220);
+  expect(sized).toHaveLength(2);
   // Top has two pages (ranks 1-3, 4-5): the control says "1 / 2" and names the next page.
   expect(text(r)).toContain('1 / 2 →');
   act(() => { byLabel(r, 'Next page').props['onPress'](); });
@@ -99,6 +100,7 @@ it('Editor\'s picks links to the day\'s page; the chart links to the full chart'
   act(() => { byLabel(r, "Today's picks, with every note").props['onPress'](); });
   expect(onDaily).toHaveBeenCalledTimes(1);
   act(() => { r = create(createElement(ChartSection, { tabs: [{ key: 'top' as const, label: 'Top', rows: [card('a')] }], onOpen: jest.fn(), onPlay: jest.fn(), onFull })); });
-  act(() => { byLabel(r, 'Full chart').props['onPress'](); });
+  // Spec 039 D4 (was: the "Full chart" link under the deck): the Section's "See all".
+  act(() => { byLabel(r, 'See all Charts').props['onPress'](); });
   expect(onFull).toHaveBeenCalledTimes(1);
 });

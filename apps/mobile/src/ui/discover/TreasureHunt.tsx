@@ -19,7 +19,8 @@ import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { useExploreApi, type Hunt } from '@/discover/explore-api';
 import type { EpisodeCard } from '@/social/api';
-import { DECK, Deck, DeckCard, DeckSection, DiscPlay, PX, useEdge } from './Deck';
+import { DeckCard, DiscPlay, PX, useEdge } from './Deck';
+import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
 
 /** Drawn: cards 250 x 76, the cover 52, Play 36; the Shuffle chip 36 tall. */
 export const HUNT_CARD = { width: 250, height: 76, cover: 52, play: 36, chip: 36 } as const;
@@ -40,11 +41,11 @@ export function TreasureHunt(props: { onOpen: (card: EpisodeCard) => void; onPla
   if (!hunt || hunt.items.length === 0) return null;
   const again = (): void => { const n = shuffle + 1; setShuffle(n); load(n); };
   return (
-    <DeckSection {...edge}>
-      <Type step="caption" className="text-text2" style={{ marginLeft: DECK.lane, marginRight: spacing.section, marginBottom: spacing.gap }}>
+    <DiscoverSection title={edge.spoken}>
+      <Type step="caption" className="text-text2">
         Three lesser-heard episodes from shows you don't follow. New ones every day.
       </Type>
-      <Deck width={HUNT_CARD.width} height={HUNT_CARD.height}>
+      <DiscoverShelf width={HUNT_CARD.width} height={HUNT_CARD.height}>
         {hunt.items.map((e) => (
           <DeckCard key={e.id}>
             <Box className="flex-1 flex-row items-center" style={{ paddingHorizontal: spacing.row, gap: PX.ten }}>
@@ -59,7 +60,7 @@ export function TreasureHunt(props: { onOpen: (card: EpisodeCard) => void; onPla
             </Box>
           </DeckCard>
         ))}
-      </Deck>
+      </DiscoverShelf>
       <Pressable
         onPress={again}
         disabled={busy}
@@ -68,11 +69,11 @@ export function TreasureHunt(props: { onOpen: (card: EpisodeCard) => void; onPla
         accessibilityState={{ disabled: busy }}
         hitSlop={6}
         className={`flex-row items-center self-start bg-raise border border-line rounded-pill ${busy ? 'opacity-40' : ''}`}
-        style={{ marginLeft: DECK.lane, marginTop: PX.ten, height: HUNT_CARD.chip, paddingHorizontal: PX.fourteen, gap: PX.six }}
+        style={{ minHeight: HUNT_CARD.chip, paddingHorizontal: PX.fourteen, gap: PX.six }}
       >
         <Icon name="shuffle" size={16} color={colour.text} />
         <Type step="caption" className="text-text font-semibold">Shuffle</Type>
       </Pressable>
-    </DeckSection>
+    </DiscoverSection>
   );
 }

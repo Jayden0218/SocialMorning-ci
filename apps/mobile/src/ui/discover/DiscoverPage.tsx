@@ -1,36 +1,30 @@
-// The Discover view of Home: the mosaic on top, the sections under it, the title and search field low.
+// The Discover view of Home: a Page with the hero, the shortcuts and every section, each on one heading style.
 /**
- * M31 T025 (design-pulse2 `discover--screen`, `home--screen`; layout pattern Mosaic + thumb zone).
- * From the top: the mosaic (today's pick, Hot now, the shortcuts as tiles), then the sections in the
- * owner's order exactly as before (their redraw as decks is wave 2, T030). The bottom zone, above the
- * Moments | Discover switch the Home screen draws, holds the "Discover" title with today's date and
- * the search field (48) with Scan. The title fades over 24–72 of scroll; the field stays. A fade
- * (360 tall, void from 55 %) behind the zone hides the tiles scrolling under it; the glow behind the
- * top is `DiscoverGlow`.
+ * Spec 039 (M4; `design/B-Discover.dc.html`), replacing M31 T025's mosaic, bottom title and search field. From the top: the `Page` title
+ * "Discover" with Scan and Search at its right (44 each; Search is `openSearch`, as the field was); the hero (`MomentHero`, drawn from the
+ * FIRST moment of the Moments list, and not at all when there are none); the shortcut tiles as "Browse" in a 2 column grid; then the
+ * sections in the owner's order exactly as before (`buildModel`), each a `Section` with its cards on a `Shelf`. One left edge: the 20 gutter.
  *
- * Kept from before: the page appears whole (the loading mark until Discover and For You have both had
- * their first answer, or `FIRST_PAINT_CAP_MS`); the stale notice; pull to refresh; the Discover tab
- * pressed again scrolls to the top; "Premium" scrolls to Premium picks.
- *
- * Deviation from the drawing (gate log): the loading state is the app's sound-bar mark centred, not the
- * 16-bar breathing mark (home--loading is a wave-7 state).
+ * Kept from before: the page appears whole (the loading mark until Discover and For You have both had their first answer, or
+ * `FIRST_PAINT_CAP_MS`); the stale and offline notices (now an `InlineNotice` with Retry, which reads Discover and For You again).
+ * Kept through `Page`'s `scroll` pass-through: the pull to refresh (the mark under the status bar, as before). Kept through `Page`'s
+ * `scrollRef` and `scrollToTopOnTabPress`: the Discover tab pressed again scrolls to the top, and the Premium tile (in Browse) scrolls to
+ * Premium picks. The page title keeps its spoken name "Discover, today's picks" (`titleLabel`).
+ * Not kept by design: the trending hint in the search field (Search is an icon now) and Today's pick as a tile (the Picks section lists it).
  */
 import { Fragment, useRef } from 'react';
-import { useScrollToTop } from 'expo-router';
+import type { LayoutChangeEvent, ScrollViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { StyleSheet, useWindowDimensions, type LayoutChangeEvent } from 'react-native';
-import Animated, { Extrapolation, interpolate, runOnJS, useAnimatedScrollHandler, useAnimatedStyle, useSharedValue } from 'react-native-reanimated';
 import { Box } from '@/ui/lib/box';
-import { colour, gutter, spacing } from '@/design';
+import { Pressable } from '@/ui/lib/pressable';
+import { bars, colour, radius, spacing } from '@/design';
 import { type SectionId } from '@/discover/sections';
-import { Loader } from '@/ui/kit/Loader';
+import { Icon } from '@/ui/kit/Icon';
 import { usePullRefresh } from '@/ui/kit/PullRefresh';
-import { Fade } from '@/ui/kit/Fade';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
+import { Loader } from '@/ui/kit/Loader';
+import { Page, InlineNotice, Section, TileGrid } from '@/ui/kit/layout';
 import { Type } from '@/ui/kit/Type';
-import { TAB_PAGE_END } from '@/ui/kit/Screen';
 import { RecFeedbackLink } from './RecFeedback';
-import { DECK } from './Deck';
 import { NotInterestedSheet } from './NotInterested';
 import { TreasureHunt } from './TreasureHunt';
 import { TheirLikes } from './TheirLikes';
@@ -41,73 +35,65 @@ import { ChartSection } from './ChartSection';
 import { CategoryStrip, MoreCategories } from './CategorySections';
 import { PremiumSection, ShowTiles, VideoSection, popularShowTiles } from './ShowSections';
 import { NewArrivalsSection, SaidSection } from './ListenerSections';
-import { DiscoverMosaic } from './DiscoverMosaic';
-import { DiscoverGlow } from './DiscoverGlow';
+import { MomentHero } from './MomentHero';
 import { useShortcutTiles } from './DiscoverShortcuts';
-import { TrendingSearchBar } from './TrendingSearch';
+import type { ShortcutTile } from './DiscoverMosaic';
 import { SWITCH_HEIGHT, SWITCH_LIFT } from './HomeSwitch';
-import { hottest } from './moments-logic';
 import { useMomentActions } from './useMomentActions';
 import type { DiscoverPageData } from './useDiscoverPage';
 import type { MomentsList } from './useMoments';
 import type { PickWithFaces } from '@/discover/explore-api';
-import { setShared } from '@/ui/kit/sharedValue';
 import { nowMs } from '@/ui/kit/clock';
 
-/** How far the page scrolls before the title has gone (it fades over 24–72). */
-const COLLAPSE_FROM = 24;
-const COLLAPSE_TO = 72;
-/** The void strip under the clock is fully drawn after this much scroll; it is 8 taller than the status bar (drawn: 58 vs 50). */
-export const SCRIM_FROM = 16;
-export const CLOCK_SCRIM_EXTRA = 8;
-/** Distance from the page's bottom to the bottom zone: above the switch, 16 clear (drawn: zone at 168, switch top at 152). */
-export const ZONE_BOTTOM = SWITCH_LIFT + SWITCH_HEIGHT + 16;
-/** The title row (Unbounded 30, 38 tall) + 10 + the field (48). */
-const ZONE_HEIGHT = 38 + 10 + 48;
-/** The fade behind the zone: 360 tall from the page's foot (drawn `fade(92,360)`), void from 55 %. */
-export const FADE_HEIGHT = 360;
-/** The mosaic starts 6 under the status bar (drawn: status bar 50, mosaic at 56). */
-export const MOSAIC_TOP = 6;
-const MONTH_DAY = { weekday: 'short', day: 'numeric', month: 'short' } as const;
-/** "TUE 27 OCT" — the date in the bottom zone, from the phone's clock. */
-const today = (): string => new Date().toLocaleDateString('en-GB', MONTH_DAY).replace(/,/g, '').toUpperCase();
+/** The Moments | Discover switch floats over the foot of the page; the last section clears it. */
+export const SWITCH_CLEAR = SWITCH_LIFT + SWITCH_HEIGHT;
+
+/** A 44 icon button at the right of the title. */
+function IconButton(props: { icon: 'search-outline' | 'scan-outline'; label: string; onPress: () => void }): React.ReactElement {
+  return (
+    <Pressable onPress={props.onPress} accessibilityRole="button" accessibilityLabel={props.label} className="items-center justify-center" style={{ width: bars.circle, height: bars.circle }}>
+      <Icon name={props.icon} size={22} color={colour.text} />
+    </Pressable>
+  );
+}
+
+/** A shortcut as a tile of the Browse grid: its name (and the queue's count), on a raise card. */
+function BrowseTile(props: { tile: ShortcutTile }): React.ReactElement {
+  const t = props.tile;
+  return (
+    <Pressable
+      onPress={t.onPress}
+      accessibilityRole="button"
+      accessibilityLabel={t.label}
+      {...(t.count !== undefined ? { accessibilityValue: { text: `${t.count} queued` } } : {})}
+      className={`flex-row items-center ${t.tinted ? 'bg-premiumTint' : 'bg-raise'}`}
+      style={{ minHeight: spacing.region + spacing.section, paddingHorizontal: spacing.section, paddingVertical: spacing.row, gap: spacing.row, borderRadius: radius.row }}
+    >
+      <Icon name={t.icon} size={22} color={colour.text} />
+      <Type step="strong" className="text-text flex-1" numberOfLines={2}>
+        {t.label}
+        {t.count !== undefined ? <Type step="time" className="text-text3">{` ${t.count}`}</Type> : null}
+      </Type>
+    </Pressable>
+  );
+}
 
 export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsList }): React.ReactElement {
   const { page, moments } = props;
-  const { model, act, view, refreshing, allCategories, hiddenCats, showCat, hints, openSearch, moreFor, notInterested, scroller, shown, listener, undo } = page;
-  const { width } = useWindowDimensions();
+  const { model, act, view, refreshing, allCategories, hiddenCats, showCat, openSearch, moreFor, notInterested, shown, listener, undo } = page;
   const insets = useSafeAreaInsets();
-  const side = gutter(width);
-  useScrollToTop(scroller);
-  const scrollY = useSharedValue(0);
+  // The Premium tile scrolls the page to Premium picks: the section reports where it sits in the scroll content.
   const premiumY = useRef<number | undefined>(undefined);
-  const pull = usePullRefresh(refreshing, () => void page.refreshBoth());
-  // The pull-to-refresh backdrop still hears every scroll; the shared value drives the title.
-  const pullScroll = pull.onScroll as unknown as (e: { nativeEvent: { contentOffset: { y: number } } }) => void;
-  const onScroll = useAnimatedScrollHandler({
-    onScroll: (e) => {
-      setShared(scrollY, e.contentOffset.y);
-      runOnJS(pullScroll)({ nativeEvent: { contentOffset: { y: e.contentOffset.y } } });
-    },
-  });
-  const title = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [COLLAPSE_FROM, COLLAPSE_TO], [1, 0], Extrapolation.CLAMP),
-  }));
-  // M31 F2a (design-pulse2 `scroll(…,58)`): the drawing clips the page at 58, so nothing shows under the clock once it
-  // has scrolled; the glow belongs to the top of the page and scrolls away with it (the fold screens have none).
-  const glowShift = useAnimatedStyle(() => ({ transform: [{ translateY: -scrollY.value }] }));
-  const clockScrim = useAnimatedStyle(() => ({ opacity: interpolate(scrollY.value, [0, SCRIM_FROM], [0, 1], Extrapolation.CLAMP) }));
   const toPremium = (): void => {
     if (premiumY.current === undefined) return;
-    scroller.current?.scrollTo({ y: Math.max(0, premiumY.current - 56), animated: true });
+    page.scroller.current?.scrollTo({ y: Math.max(0, premiumY.current - 56), animated: true });
   };
-  const markPremium = (e: LayoutChangeEvent): void => {
-    premiumY.current = e.nativeEvent.layout.y;
-  };
-  const tiles = useShortcutTiles({ onCategories: page.allCategories, onPremium: toPremium });
+  const markPremium = (e: LayoutChangeEvent): void => { premiumY.current = e.nativeEvent.layout.y; };
+  const browse = useShortcutTiles({ onCategories: page.allCategories, onPremium: toPremium });
+  const pull = usePullRefresh(refreshing, () => void page.refreshBoth());
   const momentActions = useMomentActions(page.view?.body);
-  const hot = hottest(moments.items);
-  const pick = model.picks[0] as PickWithFaces | undefined;
+  // The hero is the first moment of the list as it is: nothing is ranked or invented here.
+  const first = moments.items[0];
 
   const section = (id: SectionId): React.ReactNode => {
     switch (id) {
@@ -157,7 +143,7 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
         return <ShowTiles title="Popular shows" short="Popular" shows={popularShowTiles(model.shows)} onShow={page.showPage} />;
       case 'premium':
         return (
-          <Box onLayout={markPremium}>
+          <Box testID="discover-premium" onLayout={markPremium}>
             <PremiumSection shows={model.premium} onShow={page.showPage} />
           </Box>
         );
@@ -188,43 +174,44 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
 
   return (
     <Box className="flex-1 bg-void">
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, glowShift]} testID="discover-glow-shift"><DiscoverGlow /></Animated.View>
       {/* The pull-to-refresh mark sits under the status bar, not behind it. */}
-      <Box pointerEvents="none" className="absolute left-0 right-0" style={{ top: insets.top, height: 0 }}>{pull.backdrop}</Box>
-      <Animated.ScrollView
-        ref={scroller}
-        contentContainerStyle={{ paddingTop: insets.top + MOSAIC_TOP, paddingBottom: ZONE_BOTTOM + ZONE_HEIGHT + TAB_PAGE_END }}
-        refreshControl={pull.refreshControl}
-        onScroll={onScroll}
-        scrollEventThrottle={pull.scrollEventThrottle}
-      >
-        {view ? pull.inline : null}
-        {view?.stale ? (
-          <Box className="bg-raise border border-line" style={{ marginHorizontal: side, marginBottom: spacing.row, padding: spacing.row, borderRadius: spacing.section }}>
-            <Type step="note" className="text-warn">
-              Couldn't refresh — showing what was fetched {view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.
-            </Type>
+      <Box pointerEvents="none" className="absolute left-0 right-0" style={{ top: insets.top, height: 0, zIndex: 1 }}>{pull.backdrop}</Box>
+      <Page
+        title="Discover"
+        titleLabel="Discover, today's picks"
+        tabs
+        scrollToTopOnTabPress
+        scrollRef={page.scroller}
+        scroll={{ refreshControl: pull.refreshControl, onScroll: pull.onScroll as unknown as ScrollViewProps['onScroll'], scrollEventThrottle: pull.scrollEventThrottle }}
+        trailing={
+          <Box className="flex-row items-center">
+            <IconButton icon="scan-outline" label="Scan a QR code" onPress={() => page.router.push('/scan')} />
+            <IconButton icon="search-outline" label="Search" onPress={() => openSearch(insets.top, undefined)} />
           </Box>
-        ) : null}
-        <Box style={{ paddingBottom: DECK.bottom }}>
-          <EdgeLabel label="Today's pick" top={30} />
-          <DiscoverMosaic
-            pick={pick}
-            {...(view?.body.date ? { date: view.body.date } : {})}
-            stats={pick ? act.stats?.[pick.episode.id] : undefined}
-            hot={hot}
-            tiles={tiles}
-            offline={!view}
-            actions={{
-              onOpen: act.onOpen,
-              onPlay: act.onPlay,
-              onQueue: (c) => void page.queue(c),
-              onPast: () => page.router.push({ pathname: '/picks/past', params: view?.body.date ? { before: view.body.date } : {} }),
-              onHot: (m) => momentActions.playFull(m),
-            }}
+        }
+      >
+        {view?.stale ? (
+          <InlineNotice
+            text={`Couldn't refresh — showing what was fetched ${view.fetchedAt ? new Date(view.fetchedAt).toLocaleTimeString() : 'earlier'}.`}
+            actionLabel="Retry"
+            onAction={() => void page.refreshBoth()}
           />
-        </Box>
-        {!view && refreshing ? <Loader className="mt-section" /> : null}
+        ) : null}
+        {!view ? (
+          <>
+            <InlineNotice text="Couldn't reach the server, and nothing is cached yet." actionLabel="Retry" onAction={() => void page.refreshBoth()} />
+            {refreshing ? <Loader /> : null}
+          </>
+        ) : null}
+        {view ? pull.inline : null}
+        {first ? <MomentHero moment={first} onPlay={momentActions.playFull} /> : null}
+        {browse.length > 0 ? (
+          <Section title="Browse">
+            <TileGrid>
+              {browse.map((t) => <BrowseTile key={t.label} tile={t} />)}
+            </TileGrid>
+          </Section>
+        ) : null}
 
         {/* M15 US5: the owner's order, hidden sections left out (`buildModel`). M25 A5: the
             category strip is a section of its own ("categories"), right after the chart by default. */}
@@ -232,28 +219,8 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
           <Fragment key={id}>{section(id)}</Fragment>
         ))}
         {view ? <MoreCategories onPress={allCategories} hidden={hiddenCats} onShow={showCat} /> : null}
-      </Animated.ScrollView>
-
-      <Animated.View pointerEvents="none" style={[{ position: 'absolute', left: 0, right: 0, top: 0, backgroundColor: colour.void, height: insets.top + CLOCK_SCRIM_EXTRA }, clockScrim]} testID="clock-scrim" />
-      <Fade bottom={0} height={FADE_HEIGHT} />
-      {/* The bottom zone: the title with today's date, then the search field. */}
-      <Box pointerEvents="box-none" className="absolute left-0 right-0" style={{ bottom: ZONE_BOTTOM, paddingHorizontal: side, gap: spacing.row - 2, zIndex: 25 }}>
-        {/* 035 L7: the title floats over the cards; it takes a tap (and does nothing) instead of passing it to the card underneath. */}
-        <Animated.View style={title} pointerEvents="auto">
-          <Box className="flex-row items-end justify-between">
-            <Type step="hero" className="text-text" accessibilityRole="header" aria-label="Discover, today's picks">Discover</Type>
-            <Type step="mono" className="text-text3">{today()}</Type>
-          </Box>
-        </Animated.View>
-        <TrendingSearchBar
-          hints={hints}
-          // `fromY`: where the field sits now, so Search can start its box here and move it up.
-          // M17: Search opens IN PLACE over the tabs (not the `/search` route), so a page opened
-          // from its results is an ordinary push with the edge swipe (src/ui/search/SearchOverlay.tsx).
-          onOpen={openSearch}
-          onScan={() => page.router.push('/scan')}
-        />
-      </Box>
+        <Box style={{ height: SWITCH_CLEAR }} />
+      </Page>
       <NotInterestedSheet card={moreFor} onChoose={notInterested} onClose={() => page.setMoreFor(undefined)} />
     </Box>
   );

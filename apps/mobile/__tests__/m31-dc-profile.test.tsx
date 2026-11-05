@@ -370,10 +370,11 @@ describe('Category (discover.html category--screen, category--all-sheet)', () =>
 
 describe('Their likes (discover.html home--fold-a)', () => {
   const item = (n: string, note?: string) => ({ listener: { id: n, displayName: n, avatarUrl: null }, episode: { id: `e-${n}`, title: `Episode of ${n}`, showTitle: 'Show', imageUrl: null }, createdAt: '2026-10-20T00:00:00Z', ...(note ? { note } : {}) });
-  it('is a Deck of 230 x 150 cards under the edge label, the last card "All likes"', async () => {
+  // Spec 039 D4 (was: "a Deck ... under the edge label", found by the edge label's accessibilityLabel): a `Section` heading "Their likes" over a shelf.
+  it('is a shelf of 230 x 150 cards under the Section heading, the last card "All likes"', async () => {
     mockTimeline = [item('Rui', 'the part about light got me'), item('Ana', 'saving for Sunday')];
     const r = await render(createElement(TheirLikes, { signedIn: true }));
-    expect(named(r, 'Their likes').length).toBeGreaterThan(0);
+    expect(r.root.findAll((x) => x.props['accessibilityRole'] === 'header' && say(x.props['children']) === 'Their likes').length).toBeGreaterThan(0);
     const cards = hosts(r, (n) => flat(n).width === 230 && flat(n).height === 150);
     expect(cards).toHaveLength(3);
     expect(words(r)).toEqual(expect.arrayContaining(['Rui liked', '“the part about light got me”', 'Ana liked', 'Episode of Rui']));

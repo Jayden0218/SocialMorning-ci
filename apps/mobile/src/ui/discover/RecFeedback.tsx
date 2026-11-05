@@ -35,7 +35,7 @@ import { AUTH, AUTH_TYPE } from '@/ui/auth/measures';
 import { GENRES } from '@/discover/genres';
 import { pickedInterests, savePicked, toggleGenre } from '@/discover/interests';
 import { useM22DiscoverApi, type RecFeedbackReason } from '@/social/api-m22-discover';
-import { DeckLink } from './Deck';
+import { SectionLink } from './DiscoverLayout';
 
 const NOTE_MAX = 300;
 
@@ -72,7 +72,7 @@ export function GenreTiles(props: { picked: readonly number[]; onToggle: (id: nu
 }
 
 export function RecFeedbackLink(): React.ReactElement {
-  return <DeckLink label="Not liking these?" accessibilityLabel="Not liking these? Tell us why" onPress={() => router.push('/onboarding/not-liking')} />;
+  return <SectionLink label="Not liking these?" accessibilityLabel="Not liking these? Tell us why" onPress={() => router.push('/onboarding/not-liking')} />;
 }
 
 const REASONS: readonly { id: RecFeedbackReason; label: string; icon: IconName }[] = [

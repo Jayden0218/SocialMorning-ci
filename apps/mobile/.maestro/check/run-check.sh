@@ -54,6 +54,16 @@ frames_check() {
   [ "$code" -eq 0 ] || echo "::error title=device check::a11y-frames failed (exit $code), see a11y-frames.txt"
 }
 
+# 039 (T020): the layout grid. edges-check.mjs reads hierarchy/r04, r13, r15 (and -xl) and fails text left of the 20 pt gutter or more than 4 distinct
+# left edges; its table is edges-check.txt and its result one more row of summary.tsv (`edges-check`). A red row never stops the other flows (they have run).
+edges_check() {
+  local code=0
+  node check/edges-check.mjs "$OUT" > "$OUT/edges-check.txt" 2>&1 || code=$?
+  cat "$OUT/edges-check.txt"
+  printf 'edges-check\t%s\t0\n' "$code" >> "$OUT/summary.tsv"
+  [ "$code" -eq 0 ] || echo "::error title=device check::edges-check failed (exit $code), see edges-check.txt"
+}
+
 # 036 (C2): how many `GET /v1/categories/` one Discover visit asked for. r25-categories.yaml brackets its two visits with marker requests in
 # api.log (the test server's request log, which ios-journey writes at the repo root); check-categories.mjs counts between them. Its result is
 # one more row of summary.tsv (`categories-count`), only when r25 ran. A missing api.log is a red row, not a skipped one.
@@ -76,6 +86,7 @@ done
 if [ "$PATTERN" != "r*" ]; then
   find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
   frames_check
+  edges_check
   categories_check
   cat "$OUT/summary.tsv"
   exit 0
@@ -101,6 +112,7 @@ find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/scr
 find . .. -maxdepth 1 -name 'r[0-9]*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
 echo "screenshots: $(find "$OUT/screenshots" -name '*.png' | wc -l)"
 frames_check
+edges_check
 categories_check
 cat "$OUT/summary.tsv"
 exit 0

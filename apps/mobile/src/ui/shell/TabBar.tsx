@@ -9,11 +9,12 @@
  * text — that was J5's defect, twice), nothing has a fixed height, and the touch target
  * is at least `hit.min`.
  *
- * Pulse: the bar is the void colour edge to edge, 58 tall, with a 1 px line on top at 6 % white.
- * Four equal slots, ICONS ONLY: 26, centred 14 from the top; idle = the outline icon in `idle`
+ * Pulse: the bar is the void colour edge to edge, `bars.tab` tall (58 + one label line), with a 1 px line on top at 6 % white.
+ * Four equal slots: the icon, 26, centred 14 from the top, and since 039 (B-Me.dc.html) its name under it in the `tag` step
+ * (idle in `idle`, active in `text`); idle = the outline icon in `idle`
  * (4.51 as a graphic), active = the filled icon in `text` with ONE 5 pt hot dot 7 below it, glowing
- * (10 px), that slides to the new tab in 240 ms (at once with Reduce Motion). Labels are not drawn
- * but every tab keeps its spoken name ("Updates, 3 new"). Long-press shows the name in a small
+ * (10 px), that slides to the new tab in 240 ms (at once with Reduce Motion). The label is drawn and
+ * every tab keeps its spoken name ("Updates, 3 new"). Long-press shows the name in a small
  * bubble above the icon for 1.2 s. A tab with no icon (tests, any future page) falls back to its
  * words: bold + coloured when active, never colour alone (FR-016).
  *
@@ -57,6 +58,8 @@ const DOT_TOP = bars.tabIconTop + bars.tabIcon + bars.tabDotGap;
 const ICON_BOX = { width: bars.tabIcon, height: bars.tabIcon };
 const ITEM = { minHeight: bars.tab, paddingTop: bars.tabIconTop };
 const RING = 2;
+/** 039: the label sits under the dot's spot, `tabLabelGap` clear of it. */
+const LABEL = { position: 'absolute', top: DOT_TOP + bars.dot + bars.tabLabelGap, left: 0, right: 0, textAlign: 'center' } as const;
 
 function Badge(props: { item: TabItem }): React.ReactElement | null {
   const { item } = props;
@@ -149,10 +152,14 @@ export function TabBar(props: {
             onLongPress={() => showName(item.key)}
           >
             {item.icon ? (
-              <Box style={ICON_BOX}>
-                <Icon name={selected ? item.icon.active : item.icon.idle} size={bars.tabIcon} color={selected ? c.text : c.idle} />
-                <Badge item={item} />
-              </Box>
+              <>
+                <Box style={ICON_BOX}>
+                  <Icon name={selected ? item.icon.active : item.icon.idle} size={bars.tabIcon} color={selected ? c.text : c.idle} />
+                  <Badge item={item} />
+                </Box>
+                {/* 039: the word is drawn again (the spoken name is unchanged, so the label is hidden from the screen reader). */}
+                <Type step="tag" testID={`tab-label-${tab.label}`} className={selected ? 'text-text' : 'text-idle'} style={LABEL} numberOfLines={1} accessible={false} importantForAccessibility="no">{tab.label}</Type>
+              </>
             ) : (
               // No icon (tests, a future page): the words, bold + coloured when active — never colour alone (FR-016).
               <Text className={selected ? 'text-xs text-hotText font-bold' : 'text-xs text-text2'} numberOfLines={1} maxFontSizeMultiplier={1.6} adjustsFontSizeToFit minimumFontScale={0.8}>

@@ -74,7 +74,7 @@ import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { AlertDialog } from '@/ui/lib/alert-dialog';
 import { ComingSoonDialog, type ComingSoonRequest } from '@/ui/kit/ComingSoon';
-import { MenuRow } from '@/ui/me/parts';
+import { MePill } from '@/ui/me/MePill';
 import { OtherWays } from '@/ui/auth/OtherWays';
 import MeScreen from '../app/(tabs)/me';
 import SignInScreen from '../app/auth/sign-in';
@@ -134,7 +134,7 @@ describe('G-E7: Me opens Coming soon for Wallet while the store is off, and keep
 
   it('store off: Wallet opens the sheet with the wallet mark; "Open Wallet" goes to /wallet', () => {
     const r = render(createElement(MeScreen));
-    const row = r.root.findAllByType(MenuRow).find((m) => m.props['label'] === 'Wallet');
+    const row = r.root.findAllByType(MePill).find((m) => m.props['label'] === 'Wallet');
     expect(row?.props['href']).toBe('/wallet');
     expect(sheet(r).props['request']).toBeUndefined();
     press(r, 'Wallet');
@@ -151,7 +151,7 @@ describe('G-E7: Me opens Coming soon for Wallet while the store is off, and keep
   it('store on: Wallet is a plain link to /wallet, no sheet', () => {
     mockStoreReady = true;
     const r = render(createElement(MeScreen));
-    const row = r.root.findAllByType(MenuRow).find((m) => m.props['label'] === 'Wallet');
+    const row = r.root.findAllByType(MePill).find((m) => m.props['label'] === 'Wallet');
     expect(row?.props['onPress']).toBeUndefined();
     const links = r.root.findAll((n) => n.props['href'] === '/wallet' && n.findAll((x) => typeof x.type === 'string' && x.props['accessibilityLabel'] === 'Wallet' && x.props['accessibilityRole'] === 'link').length > 0);
     expect(links.length).toBeGreaterThan(0);

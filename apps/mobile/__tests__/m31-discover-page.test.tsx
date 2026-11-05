@@ -28,7 +28,8 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({ useScrollToTop: () => undefined, useRouter: () => ({ push: (...a: unknown[]) => mockPush(...a) }), useFocusEffect: () => undefined }));
+const mockScrollToTop = jest.fn();
+jest.mock('expo-router', () => ({ useScrollToTop: (r: unknown) => mockScrollToTop(r), useRouter: () => ({ push: (...a: unknown[]) => mockPush(...a) }), useFocusEffect: () => undefined }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }) }));
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined, set: () => undefined }, feedCache: {}, queue: { list: () => [] } }), useToast: () => () => undefined, useCovered: () => false }));
 jest.mock('@/social/context', () => ({ useSocial: () => ({ api: {}, listener: undefined }) }));
@@ -53,7 +54,7 @@ function page(over: Partial<DiscoverPageData> = {}): DiscoverPageData {
   } as unknown as DiscoverPageData;
 }
 const mounted: ReactTestRenderer[] = [];
-afterEach(() => { act(() => { mounted.splice(0).forEach((x) => x.unmount()); }); mockPush.mockClear(); mockPlayFull.mockClear(); });
+afterEach(() => { act(() => { mounted.splice(0).forEach((x) => x.unmount()); }); mockPush.mockClear(); mockPlayFull.mockClear(); mockScrollToTop.mockClear(); });
 function render(p: DiscoverPageData, moments: MomentsList = list()): ReactTestRenderer {
   let r!: ReactTestRenderer;
   act(() => { r = create(createElement(DiscoverPage, { page: p, moments })); });
@@ -66,12 +67,6 @@ const one = (r: ReactTestRenderer, label: string): ReactTestInstance => {
   if (found.length !== 1) throw new Error(`${found.length} buttons named "${label}"`);
   return found[0]!;
 };
-/** The test renderer's Views answer `measureInWindow` like laid-out ones (the search field reports where it sits). */
-const layOut = (r: ReactTestRenderer): void => {
-  for (const n of r.root.findAll((x) => x.instance && typeof (x.instance as { measureInWindow?: unknown }).measureInWindow === 'function')) {
-    (n.instance as { measureInWindow: unknown }).measureInWindow = (cb: (x: number, y: number) => void) => cb(0, 640);
-  }
-};
 const words = (r: ReactTestRenderer): string[] => r.root.findAll((x) => String(x.type) === 'Text').map((x) => [x.props['children']].flat(5).join(''));
 
 it('the page is held back (a loading mark) until the first answer; then it appears whole', () => {
@@ -81,27 +76,30 @@ it('the page is held back (a loading mark) until the first answer; then it appea
   expect(words(r)).toContain('Discover');
 });
 
-it('the bottom zone: the title, the date, the search field with the trending hint, Scan', () => {
+// Spec 039 D4 (was: "the bottom zone: the title, the date, the search field with the trending hint, Scan"): the title row of the Page holds Search and Scan as
+// 44 icon buttons; the date and the trending hint are gone.
+it('the title row: the title, Search and Scan', () => {
   const p = page();
   const r = render(p);
   expect(words(r)).toContain('Discover');
-  expect(words(r).some((w) => /^[A-Z]{3} \d{1,2} [A-Z]{3}$/.test(w))).toBe(true);
-  // With one hint the field shows it (`hintAt`); the name says so.
-  expect(one(r, 'Search. Trending: morning routines')).toBeTruthy();
+  expect(words(r).some((w) => /^[A-Z]{3} \d{1,2} [A-Z]{3}$/.test(w))).toBe(false);
+  expect(one(r, 'Search')).toBeTruthy();
+  expect(one(r, 'Scan a QR code')).toBeTruthy();
 });
 
-it('the search field and Scan work', () => {
+// Was: "the search field and Scan work" (the field reported where it sat: `openSearch(640, undefined)`); the icon passes the top of the page.
+it('Search and Scan work', () => {
   const p = page({ hints: [] });
   const r = render(p);
-  layOut(r);
-  act(() => { one(r, 'Search shows and episodes').props['onPress'](); });
-  expect(p.openSearch).toHaveBeenCalledWith(640, undefined);
+  act(() => { one(r, 'Search').props['onPress'](); });
+  expect(p.openSearch).toHaveBeenCalledWith(47, undefined);
   act(() => { one(r, 'Scan a QR code').props['onPress'](); });
   expect(mockPush).toHaveBeenCalledWith('/scan');
 });
 
-it('the pick tile and its actions reach the page\'s handlers', () => {
-  const p = page();
+// Was: "the pick tile and its actions reach the page's handlers" (the tile at the top): the same three actions are on the Picks section.
+it('the picks section and its actions reach the page\'s handlers', () => {
+  const p = page({ model: { ...page().model, order: ['picks'] } as never });
   const r = render(p);
   act(() => { one(r, 'Play Pick title').props['onPress'](); });
   expect(p.act.onPlay).toHaveBeenCalledWith(PICK.episode);
@@ -111,10 +109,13 @@ it('the pick tile and its actions reach the page\'s handlers', () => {
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/picks/past', params: { before: '2026-10-27' } });
 });
 
-it('Hot now comes from the Moments list and plays from there', () => {
-  const r = render(page(), list([{ ...HOT, reactions: 3 }, HOT]));
-  act(() => { one(r, 'Hot now: play Hot ep from 14:32. 41 reacting').props['onPress'](); });
-  expect(mockPlayFull).toHaveBeenCalledWith(HOT);
+// Spec 039 D4 (was: "Hot now comes from the Moments list and plays from there": the HOTTEST moment, a tile beside the shortcuts): the hero is the FIRST moment of the list.
+it('the hero comes from the Moments list (its first moment) and plays from there', () => {
+  const first = { ...HOT, episodeId: 'f1', episodeTitle: 'First ep', startMs: 43_000, reactions: 3 };
+  const r = render(page(), list([first, HOT]));
+  act(() => { one(r, 'Play from 0:43').props['onPress'](); });
+  expect(mockPlayFull).toHaveBeenCalledWith(first);
+  expect(words(r)).not.toContain('Hot ep');
 });
 
 it('a shortcut tile goes where the shortcut always went', () => {
@@ -125,42 +126,34 @@ it('a shortcut tile goes where the shortcut always went', () => {
   expect(mockPush).toHaveBeenCalledWith('/chart');
 });
 
-it('a stale copy says so above the mosaic', () => {
+it('a stale copy says so, with Retry', () => {
   const r = render(page({ view: { body: { date: '2026-10-27' }, stale: true, fetchedAt: Date.UTC(2026, 9, 27, 9, 12) } as never }));
   expect(words(r).some((w) => w.startsWith("Couldn't refresh — showing what was fetched"))).toBe(true);
 });
 
-it('offline with nothing cached: the dashed tile says so once', () => {
-  const r = render(page({ view: undefined, model: { ...page().model, picks: [] } as never }));
+// Spec 039 D4 (was: the dashed tile with "Pull down to try again."): an `InlineNotice` with a Retry button, which reads Discover again.
+it('offline with nothing cached: the notice says so once, and Retry reads again', () => {
+  const p = page({ view: undefined, model: { ...page().model, picks: [] } as never });
+  const r = render(p);
   expect(words(r).filter((w) => w === "Couldn't reach the server, and nothing is cached yet.")).toHaveLength(1);
-  expect(words(r)).toContain('Pull down to try again.');
+  act(() => { one(r, 'Retry').props['onPress'](); });
+  expect(p.refreshBoth).toHaveBeenCalled();
   expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Past picks')).toHaveLength(0);
 });
 
 it('there is no collapsing small bar any more', () => {
   const r = render(page());
-  // One search control — the pinned field (it was two: the big box and the collapsed bar's button).
-  expect(one(r, 'Search. Trending: morning routines')).toBeTruthy();
+  // One search control — the icon (it was two: the big box and the collapsed bar's button).
+  expect(one(r, 'Search')).toBeTruthy();
   expect(words(r).filter((w) => w === 'Discover')).toHaveLength(1);
 });
 
-// M31 F2a (design-pulse2 home--fold-a/-b: the drawing clips the page at 58 and has no glow below the first screen).
-// Break: move <DiscoverGlow /> out of the `discover-glow-shift` wrapper (it stays pinned), or delete the `clock-scrim` View.
-describe('F2a: the glow scrolls away and nothing shows under the clock', () => {
-  it('the ambient glow is inside the wrapper that follows the scroll offset', () => {
-    const r = render(page());
-    const wrapper = r.root.findByProps({ testID: 'discover-glow-shift' });
-    expect(wrapper.findAllByProps({ testID: 'discover-glow' }).length).toBeGreaterThan(0);
-  });
-  it('a void strip, 8 taller than the status bar, sits above the scroll (58 = 50 + 8 drawn)', () => {
-    const r = render(page());
-    const scrim = r.root.findByProps({ testID: 'clock-scrim' });
-    const flat = Object.assign({}, ...[scrim.props['style']].flat(3).filter(Boolean));
-    expect(flat.height).toBe(47 + 8);
-    expect(flat.top).toBe(0);
-    expect(flat.backgroundColor).toBeTruthy();
-    expect(scrim.props['pointerEvents']).toBe('none');
-  });
+// Spec 039 D4 (was M31 F2a: "the glow scrolls away and nothing shows under the clock"; the `discover-glow-shift` wrapper and the `clock-scrim` strip): the Page is one
+// plain scroll on the void, with no glow and no strip over the status bar.
+it('the page draws no glow wrapper and no clock strip', () => {
+  const r = render(page());
+  expect(r.root.findAll((n) => n.props['testID'] === 'discover-glow-shift' || n.props['testID'] === 'clock-scrim' || n.props['testID'] === 'discover-glow')).toHaveLength(0);
+  expect(r.root.findAll((n) => n.props['testID'] === 'page-scroll').length).toBeGreaterThan(0);
 });
 
 // 035 T054 (device check L7): the big "Discover" title floats over the For You cards and let touches through (`pointerEvents="none"`), so a tap on
@@ -177,8 +170,8 @@ it('035 L7: a tap on the Discover title is not passed to the cards under it', ()
 });
 
 // 036 T010 (035's A4): "Discover" named four things on one screen (tab, page title, switch segment, empty-state button). The page title is a heading with its own
-// spoken name, set as `aria-label` (it reads the same to VoiceOver and Maestro; `m31-t030-wiring` lists headers that carry an `accessibilityLabel`, so the title stays out of its list).
-// Break: remove the `aria-label` from the title in DiscoverPage.tsx.
+// spoken name ("Discover, today's picks"). Spec 039: `Page` carries it as `titleLabel`; the strict assertion of before is restored (it had been reduced).
+// Break: remove `titleLabel` from the Page in DiscoverPage.tsx.
 it('036 A4: the page title is a heading named differently from the tab', () => {
   const r = render(page());
   const header = r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && n.props['children'] === 'Discover')[0];
@@ -188,3 +181,28 @@ it('036 A4: the page title is a heading named differently from the tab', () => {
   expect(name).not.toBe('Discover');
   expect(String(name)).toMatch(/^Discover/);
 });
+
+// 039 integration: what the rewrite dropped and this brings back.
+it('the Discover tab pressed again scrolls the page to the top', () => {
+  const p = page();
+  render(p);
+  expect(mockScrollToTop).toHaveBeenCalled();
+  const target = mockScrollToTop.mock.calls[0]![0] as { current: unknown };
+  // the hook is given the page's own ScrollView: the one the page's scroller handle points to
+  expect(target.current).toBeTruthy();
+  expect(target.current).toBe(p.scroller.current);
+});
+
+it('the Premium tile scrolls the page to Premium picks', () => {
+  const p = page({ model: { ...page().model, order: ['premium'] } as never });
+  const r = render(p);
+  const scrollTo = jest.fn();
+  (p.scroller.current as unknown as { scrollTo: unknown }).scrollTo = scrollTo;
+  // the section reports where it sits in the scroll content (the test renderer lays nothing out)
+  const marked = r.root.findAll((n) => n.props['testID'] === 'discover-premium' && typeof n.props['onLayout'] === 'function')[0]!;
+  act(() => { marked.props['onLayout']({ nativeEvent: { layout: { x: 0, y: 1200, width: 390, height: 200 } } }); });
+  act(() => { one(r, 'Premium').props['onPress'](); });
+  expect(scrollTo).toHaveBeenCalledWith({ y: 1200 - 56, animated: true });
+  expect(mockPush).not.toHaveBeenCalled();
+});
+

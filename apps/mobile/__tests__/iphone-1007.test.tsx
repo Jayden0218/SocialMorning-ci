@@ -244,11 +244,12 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     // M31 D-C: the profile's collapsed name is the solid void strip (`CollapsedName`, rendered in m31-dc-profile.test.tsx), shown from the page's own scroll state.
     expect(read('app/profile/[id].tsx')).toMatch(/collapsed \? <CollapsedName/);
     expect(read('src/ui/profile/ProfilePage.tsx')).toMatch(/testID="collapsed-name" className="absolute left-0 right-0 top-0 bg-void/);
-    // M31 T025: Discover has no collapsing bar any more (the title is low and fades alone, the search field
-    // stays — design-pulse2 home--screen), so nothing can show through a half-faded bar.
+    // Spec 039 D4 (was: the low title that fades with the scroll): Discover is a `Page` with its title row in the scroll, so there is no bar
+    // of any kind to show through; the title does not fade.
     const discover = read('src/ui/discover/DiscoverPage.tsx');
     expect(discover).not.toMatch(/smallBar|BAR\b/);
-    expect(discover).toMatch(/interpolate\(scrollY\.value, \[COLLAPSE_FROM, COLLAPSE_TO\], \[1, 0\], Extrapolation\.CLAMP\)/);
+    expect(discover).toMatch(/<Page\s+title="Discover"/);
+    expect(discover).not.toMatch(/COLLAPSE_FROM/);
   });
   // M31 W3-A (T040): the slim bar is gone; its show link, Subscribe and Play are in the title block, always on screen.
   // Rendered in m31-w3a-episode.test.tsx ("Back goes back; the show link opens the show"); this keeps the wiring.
@@ -305,16 +306,17 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
       expect(r.root.findAll((n) => n.props['accessibilityLabel'] === `Hide ${g.name}` && typeof n.props['onPress'] === 'function').length).toBeGreaterThan(0);
     }
     expect(heights).toEqual(new Set([36]));
-    // The cloud wraps, 8 apart, starting at the 28 lane.
+    // The cloud wraps, 8 apart, on the page's own left edge (spec 039 D4: was the 28 lane, now none).
     const cloud = r.root.findAll((n) => typeof n.type === 'string' && styleOf(n)['flexWrap'] === 'wrap')[0]!;
-    expect([styleOf(cloud)['gap'], styleOf(cloud)['marginLeft']]).toEqual([8, 28]);
+    expect([styleOf(cloud)['gap'], styleOf(cloud)['marginLeft']]).toEqual([8, undefined]);
     act(() => r.unmount());
   });
-  // KEPT as a source check: where Discover hands the mosaic its shortcut tiles is src/ui/discover/DiscoverPage.tsx.
-  it('8. Discover draws the shortcuts as mosaic tiles', () => {
+  // KEPT as a source check: where Discover hands the Browse grid its shortcut tiles is src/ui/discover/DiscoverPage.tsx.
+  // Spec 039 D4 (was: `<DiscoverMosaic tiles={tiles}>` and `onPremium: toPremium`): the tiles are a `TileGrid` under "Browse"; the page has no scroll handle, so Premium is left out.
+  it('8. Discover draws the shortcuts as a Browse grid', () => {
     const page = read('src/ui/discover/DiscoverPage.tsx');
-    expect(page).toMatch(/useShortcutTiles\(\{ onCategories: page\.allCategories, onPremium: toPremium \}\)/);
-    expect(page).toMatch(/<DiscoverMosaic[\s\S]*tiles=\{tiles\}/);
+    expect(page).toMatch(/useShortcutTiles\(\{ onCategories: page\.allCategories, onPremium: /);
+    expect(page).toMatch(/<Section title="Browse">[\s\S]*<TileGrid>/);
   });
   // KEPT as source checks: 10–12 are layouts inside app/(tabs)/me.tsx (23 imports), app/episode/[id].tsx
   // (52) and app/player.tsx, with no smaller component that carries them.

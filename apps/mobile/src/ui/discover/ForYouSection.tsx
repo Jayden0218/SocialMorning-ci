@@ -20,7 +20,8 @@ import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import type { EpisodeCard } from '@/social/api';
 import type { DismissalKind } from '@/social/profile-api';
-import { CoverBand, DECK, UNBOUNDED, Deck, DeckCard, DeckSection, DiscPlay, useEdge } from './Deck';
+import { CoverBand, DECK, UNBOUNDED, DeckCard, DiscPlay, useEdge } from './Deck';
+import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
 import { HiddenNotice } from './NotInterested';
 import { useEpisodeHeat } from './useEpisodeHeat';
 import type { Act } from './sections-common';
@@ -95,9 +96,9 @@ export function ForYouSection(props: Act & { rows: Row[]; onOpenAt: (card: Episo
   ));
   if (props.hidden) cards.splice(Math.min(props.hidden.at, cards.length), 0, <HiddenNotice key="hidden" kind={props.hidden.kind} onUndo={props.hidden.onUndo} />);
   return (
-    <DeckSection {...edge}>
-      <Deck width={FOR_YOU_CARD.width} height={FOR_YOU_CARD.height}>{cards}</Deck>
+    <DiscoverSection title={edge.spoken}>
+      <DiscoverShelf width={FOR_YOU_CARD.width} height={FOR_YOU_CARD.height}>{cards}</DiscoverShelf>
       {props.footer ?? null}
-    </DeckSection>
+    </DiscoverSection>
   );
 }

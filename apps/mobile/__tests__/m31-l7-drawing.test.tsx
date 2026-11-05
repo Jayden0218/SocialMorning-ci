@@ -23,7 +23,6 @@ import { Fade } from '@/ui/kit/Fade';
 import { Curve, spread } from '@/ui/kit/Curve';
 import { DiscoverMosaic, GradientTime, HOT_HEIGHT, HotNowTile, type MosaicActions, type ShortcutTile } from '@/ui/discover/DiscoverMosaic';
 import { DRAWN_ORDER, shortcutTiles, untouched } from '@/ui/discover/DiscoverShortcuts';
-import { FADE_HEIGHT, MOSAIC_TOP, ZONE_BOTTOM } from '@/ui/discover/DiscoverPage';
 import { SWITCH_HEIGHT, SWITCH_LIFT } from '@/ui/discover/HomeSwitch';
 import { DiscoverGlow, GLOW } from '@/ui/discover/DiscoverGlow';
 import { avatarTone } from '@/ui/kit/Avatar';
@@ -105,6 +104,8 @@ describe('4/6 edge label: the whole of "TODAY\'S PICK"', () => {
 });
 
 describe('7 Discover bottom zone', () => {
+  // Spec 039 D4 (was: `FADE_HEIGHT` imported from DiscoverPage): the page no longer draws the fade, so the drawn 360 is written here; the `Fade` part itself is unchanged.
+  const FADE_HEIGHT = 360;
   it('the fade is 360 tall above the page foot, transparent to void at 55 %', () => {
     expect(FADE_HEIGHT).toBe(360);
     const r = render(createElement(Fade, { bottom: 0, height: FADE_HEIGHT }));
@@ -113,10 +114,10 @@ describe('7 Discover bottom zone', () => {
     expect(g.props['colors']).toEqual([colour.clear, colour.void, colour.void]);
     expect(flat(g)).toMatchObject({ bottom: 0, height: 360 });
   });
-  it('the title and search sit 16 above the switch (drawn bottom 168 over a 100 + 52 switch); the mosaic starts 6 under the status bar', () => {
+  // Spec 039 D4 (was: "the title and search sit 16 above the switch (ZONE_BOTTOM 76); the mosaic starts 6 under the status bar (MOSAIC_TOP 6)"): the title and search are in the
+  // Page's title row now, so only the switch's own measure is pinned; the page clears it with an end spacer (`SWITCH_CLEAR`, rendered in layout039.test.tsx).
+  it('the switch is 60 above the tab bar', () => {
     expect(SWITCH_LIFT + SWITCH_HEIGHT).toBe(60);
-    expect(ZONE_BOTTOM).toBe(76); // 168 - 92 (the tab bar)
-    expect(MOSAIC_TOP).toBe(6); // 56 - 50
   });
   it('the hot and violet glow is the drawn box: 520 tall from 160 above the screen, 40 % strong', () => {
     expect(GLOW).toMatchObject({ top: -160, height: 520, strength: 0.4 });

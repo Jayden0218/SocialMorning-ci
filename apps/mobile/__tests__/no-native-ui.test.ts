@@ -112,7 +112,8 @@ it('every page in the stack draws the app\'s own bar', () => {
   // The chat thread's bar is the thumb zone (`BottomZone`: back, avatar, name, box; M31 W4-C).
   // A page that only redirects (`/inbox` → Updates, owner 2026-10-04) draws nothing, so needs no bar.
   // M31 S-C: `OverlayPage` (src/ui/kit/OverlayPage.tsx) is the same bar for a page that cannot ask the router (onboarding); `RecFeedbackForm` draws the whole "Not liking these?" page in it. M31 S-B: `SettingsPage` (src/ui/settings/panel.tsx) is a `PushedPage` with the settings body.
-  const bare = routes.filter((f) => !/<(PageHeader|TopBar|TitleBar|PushedPage|ZoneTitle|BottomZone|FollowList|Redirect|OverlayPage|RecFeedbackForm|SettingsPage)\b/.test(readFileSync(join(ROOT, f), 'utf8')));
+  // Spec 039 D4 (was: the list above only): a `Page` (src/ui/kit/layout/Page.tsx) is the app's own title row; on a pushed page it must carry its Back in `leading`.
+  const bare = routes.filter((f) => !/<(PageHeader|TopBar|TitleBar|PushedPage|ZoneTitle|BottomZone|FollowList|Redirect|OverlayPage|RecFeedbackForm|SettingsPage)\b|<Page\b[^>]*\bleading=/.test(readFileSync(join(ROOT, f), 'utf8')));
   expect(bare).toEqual([]);
 });
 

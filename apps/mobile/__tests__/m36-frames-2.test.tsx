@@ -72,13 +72,14 @@ describe('036 T015b: the frame is 44, the row is as drawn', () => {
     const r = await render(createElement(RecFeedbackLink));
     const s = flat(byLabel(r, 'Not liking these? Tell us why'));
     expect(s['minHeight']).toBe(bars.circle);
-    expect(s['marginBottom']).toBeLessThan(0); // the layout still takes only the words' line
-    expect(s['top']).toBeLessThan(0); // the frame reaches above the words as far as below
-    expect(Number(s['top']) * 2).toBe(Number(s['marginBottom'])); // frame centred on the words: lift half, give back the whole excess
-    expect(s['marginTop']).toBe(10); // pinned by m31-t030-decks
+    // Spec 039 D4 (was: lifted by -half with `marginBottom` giving back the excess, `marginTop` 10 under the deck): on Discover the link sits in a Section's
+    // 12 gap, a plain 44 tall frame with no lift; only the search page's `DeckLink` below keeps the lifted frame.
+    expect(s['marginBottom']).toBeUndefined();
+    expect(s['top']).toBeUndefined();
     const d = await render(createElement(DeckLink, { label: 'Full chart', onPress: jest.fn() }));
     expect(flat(byLabel(d, 'Full chart'))['minHeight']).toBe(bars.circle);
   });
+  // Spec 039 integration: the chart name is a control again (it scrolls the Charts shelf to its card), so the 036 frame assertion is back as it was.
   it('a chart name ("Top chart") is a 44 frame inside the header, -12 above and below its 20 line', async () => {
     const tabs = [{ key: 'top' as const, label: 'Top', rows: [card('a')] }, { key: 'talked' as const, label: 'Talked about', rows: [card('b')] }];
     const r = await render(createElement(ChartSection, { tabs, onOpen: jest.fn(), onPlay: jest.fn() }));

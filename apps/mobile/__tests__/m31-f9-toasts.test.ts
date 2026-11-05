@@ -12,24 +12,24 @@
 jest.mock('expo-router', () => ({ usePathname: () => '/' }));
 jest.mock('@/playback/store', () => ({ usePlayerSelector: () => false }));
 jest.mock('@/ui/shell/providers', () => ({ useDownloads: () => ({}), useToast: () => () => undefined, useStores: () => ({}) }));
-import { toastBottom } from '@/design';
+import { bars, toastBottom } from '@/design';
 import { toastPlacement } from '@/ui/shell/toastPlacement';
 
 const at = (path: string, idle: boolean) => toastBottom(34, toastPlacement(path, idle, false));
 
 describe('F9-1 toasts on Appeal, Gift, Profile and Updates', () => {
   // 037 D1: the Updates tab was the drawn 300 (over its tall bottom title) and, idle, 232; the title is at the top now, so it takes the plain tab rule (166 / 100). Appeal, Gift and Profile keep their foot buttons and spots.
-  it.each([['/appeal', 190], ['/gift/g1', 200], ['/profile/u1', 104], ['/library', 166]] as [string, number][])('%s: the toast sits at the drawn %i with something playing', (path, drawn) => {
+  it.each([['/appeal', 190], ['/gift/g1', 200], ['/profile/u1', 104], ['/library', 108 + bars.tab]] as [string, number][])('%s: the toast sits at the drawn %i with something playing', (path, drawn) => {
     expect(at(path, false)).toBe(drawn);
   });
   it.each(['/appeal', '/gift/g1', '/profile/u1'])('%s: with nothing playing it still clears the foot zone (title bar top 84 + 8)', (path) => {
     expect(at(path, true)).toBeGreaterThanOrEqual(92);
   });
   it('the Updates tab with nothing playing: 100, over the tab bar like the other tabs', () => {
-    expect(at('/library', true)).toBe(100);
+    expect(at('/library', true)).toBe(42 + bars.tab); // 039 D4: was 100
   });
   it('the other tabs sit 8 over the highest bar (Home 166 with both bars, 100 with the tab bar alone)', () => {
-    expect(at('/', false)).toBe(166);
-    expect(at('/', true)).toBe(100);
+    expect(at('/', false)).toBe(108 + bars.tab); // 039 D4: was 166
+    expect(at('/', true)).toBe(42 + bars.tab); // was 100
   });
 });

@@ -19,7 +19,8 @@ import { Type } from '@/ui/kit/Type';
 import { spacing } from '@/design';
 import type { DiscoverItem, EpisodeCard } from '@/social/api';
 import type { Face } from '@/discover/explore-api';
-import { DECK, UNBOUNDED, Deck, DeckCard, DeckLink, DeckSection, DiscPlay, RingAdd } from './Deck';
+import { DECK, UNBOUNDED, DeckCard, DiscPlay, RingAdd } from './Deck';
+import { DiscoverSection, DiscoverShelf, SectionLink } from './DiscoverLayout';
 import { shortDate, type Act } from './sections-common';
 
 export { shortDate };
@@ -45,8 +46,8 @@ function Faces(props: { faces: Face[] }): React.ReactElement | null {
 export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: Face[] })[]; date?: string; onPast?: () => void; onQueue: (card: EpisodeCard) => void; /** M21: "Today's picks" page. */ onDaily?: () => void }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   return (
-    <DeckSection label="Picks" spoken={props.date ? `Editor's pick · ${shortDate(props.date)}` : "Editor's pick"}>
-      <Deck width={PICK_CARD.width} height={PICK_CARD.height}>
+    <DiscoverSection title={props.date ? `Editor's picks · ${shortDate(props.date)}` : "Editor's picks"}>
+      <DiscoverShelf width={PICK_CARD.width} height={PICK_CARD.height}>
         {props.items.map((p) => {
           const stats = p.stats ?? props.stats?.[p.episode.id];
           const e = p.episode;
@@ -73,8 +74,9 @@ export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: F
             </DeckCard>
           );
         })}
-      </Deck>
-      {props.onDaily ? <DeckLink label="Today's picks, with every note" onPress={props.onDaily} /> : null}
-    </DeckSection>
+      </DiscoverShelf>
+      {props.onPast ? <SectionLink label="Past picks" onPress={props.onPast} /> : null}
+      {props.onDaily ? <SectionLink label="Today's picks, with every note" onPress={props.onDaily} /> : null}
+    </DiscoverSection>
   );
 }

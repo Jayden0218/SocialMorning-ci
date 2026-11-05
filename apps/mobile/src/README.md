@@ -362,6 +362,18 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `useLoad.ts` | Loads a screen's data, drops the answer once the screen has closed, and gives a retry. |
 | `openLink.ts` | Opens a link the right way: web pages in the in-app browser, our own links in the app, the rest by the system. |
 
+### `ui/kit/layout/` — The page frame: title row, sections, tile grid, shelf and notice
+
+| File | What it does |
+|---|---|
+| `InlineNotice.tsx` | A short notice inside a page ("You are offline") with one action. |
+| `Page.tsx` | A page of the app: a title row, then sections on one 20 gutter with 24 between them, and a foot that clears the bars. |
+| `Section.tsx` | A titled block of a page: a heading, an optional "See all" link, then its content. |
+| `Shelf.tsx` | A row of cards that scrolls sideways and runs off the right edge of the screen. |
+| `TileGrid.tsx` | Tiles in two equal columns, 12 apart. |
+| `index.ts` | The page layout parts of spec 039. |
+| `__tests__/Page.test.tsx` | Spec 039 US1/US3 (T011): Page, Section, TileGrid, Shelf and InlineNotice keep one gutter, one rhythm and a clear foot. |
+
 ### `ui/shell/` — The app's outer layer: start-up, tabs, terms and shared setup
 
 | File | What it does |
@@ -385,6 +397,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `stackAnimation.ts` | How the root stack animates a page in: the Comments page rises from the bottom; Reduce Motion fades. |
 | `consent.ts` | Terms version, title and text pointers; remembers if you agreed. |
 | `updater.ts` | Decides when the Android self-updater may show, and checks a downloaded APK's SHA-256 before install. |
+| `__tests__/TabBar.labels.test.tsx` | Spec 039 US3 (T019): the tab bar draws a word under each icon, and every tab is at least 44 x 44. |
 
 ### `ui/player/` — The full player page and its parts
 
@@ -546,6 +559,9 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `measures.ts` | The numbers Friends listening is drawn with, copied from the drawing. |
 | `parts.tsx` | The parts the Notifications pages share: a day-grouped thread on the spine, a raise card, and the stale line. |
+| `cards.tsx` | The parts of the 039 Notifications page: a chip row, a day heading, and one card per item. |
+| `__tests__/destinations.test.tsx` | Pins every place the Notifications page can open, so a redesign of the page cannot silently drop one. |
+| `__tests__/layout039.test.tsx` | Spec 039 US1/US2 (T015): Notifications is a Page of one chip row and one card per item, with no rail and no vertical label. |
 
 ### `ui/social/` — People: follow, block, profiles and activity
 
@@ -649,7 +665,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `measures.ts` | The type sizes and numbers the Discover group's inner pages are drawn with, where the scale has no step for them. |
 | `page-parts.tsx` | Small parts the Discover group's inner pages share: where the body starts, the numbered thread, a hot-glow figure. |
 | `DiscoverGlow.tsx` | The soft hot and violet glow behind the top of Discover, as drawn. |
-| `DiscoverPage.tsx` | The Discover view of Home: the mosaic on top, the sections under it, the title and search field low. |
+| `DiscoverPage.tsx` | The Discover view of Home: a Page with the hero, the shortcuts and every section, each on one heading style. |
 | `ForYouSection.tsx` | For You on Discover: a deck of recommendation cards, each with a cover, the reason and a Play disc. |
 | `HomeSwitch.tsx` | The Moments \| Discover switch and the search circle beside it, in the thumb zone above the bars. |
 | `ListenerSections.tsx` | What listeners said and New arrivals on Discover, as decks. |
@@ -670,6 +686,10 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `useMomentsNowBar.ts` | Tells the now bar that the Moments feed is the screen in front, so it hides (design-pulse2 §Bars). |
 | `useMoments.ts` | Loads the Moments list: the first page, more pages as you reach the end, and a refresh. |
 | `Deck.tsx` | The Deck: a section's row of cards that snaps card by card, under the section's edge label. |
+| `DiscoverLayout.tsx` | Discover's parts of the 039 layout: a section on `Section`, a row of cards on `Shelf`, and the link under a section. |
+| `MomentHero.tsx` | The hero at the top of Discover: the first moment of the Moments feed, with its curve and a Play from the moment. |
+| `__tests__/destinations.test.tsx` | Pins every place the Discover page can open, so a redesign of the page cannot silently drop one. |
+| `__tests__/layout039.test.tsx` | Spec 039 T017 (US1, M4): Discover is a Page of Sections and Shelves with a hero drawn from the first moment. |
 
 ### `ui/content/` — Pages an admin writes (Academy, Help)
 
@@ -752,6 +772,12 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `PlusCard.tsx` | The PLUS card in Wallet: what PLUS gives, its price, Subscribe, and Restore purchases. |
 | `StickerCanvas.tsx` | The sticker canvas: drag, pinch and turn your stickers on a copy of your profile header (our own design). |
 | `StickerLayer.tsx` | Draws a listener's placed stickers over the top of their profile header, for every viewer; touches pass through. |
+| `ContinueCard.tsx` | "Continue listening": the episode the player holds, with how far you got. |
+| `MePill.tsx` | A place Me opens, as a pill: the child of a `<Link asChild>` on the screen, or (Wallet while purchases are off) a button that opens Coming soon first. |
+| `MeTile.tsx` | One of the four equal tiles on Me: a glyph over the name and a count. |
+| `useMeStats.ts` | The counts the Me page shows: following and followers, and how many downloads are on the phone. |
+| `__tests__/destinations.test.tsx` | Pins every place the Me tab can open, so a redesign of the page cannot silently drop one. |
+| `__tests__/layout039.test.tsx` | Spec 039 US2 (T013): Me sits on the layout frame: Page, a 2 x 2 TileGrid of equal tiles, no EdgeLabel, "Continue listening" only while something is loaded. |
 
 ### `ui/settings/` — Parts of the settings pages
 

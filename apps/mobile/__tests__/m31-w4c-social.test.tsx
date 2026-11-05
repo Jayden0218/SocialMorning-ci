@@ -18,6 +18,8 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
+import { createElement as h } from 'react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 const mockPush = jest.fn();
@@ -110,7 +112,7 @@ beforeEach(() => {
 afterEach(() => { act(() => { mounted.splice(0).forEach((r) => r.unmount()); }); setReducedMotionForTest(undefined); });
 async function render(el: React.ReactElement): Promise<ReactTestRenderer> {
   let r!: ReactTestRenderer;
-  await act(async () => { r = create(el); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+  await act(async () => { r = create(h(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, el)); for (let i = 0; i < 8; i++) await Promise.resolve(); });
   mounted.push(r);
   return r;
 }
@@ -353,10 +355,10 @@ describe('the Notifications page (notifications--*)', () => {
     mockFeedView = { items: [{ id: 1, kind: 'commented', actor: { id: 'A', displayName: 'Ana' }, episode: { id: 'e1', title: 'Why mornings matter', showTitle: 'Morning Notes', imageUrl: null }, momentMs: 872000, refId: null, createdAt: new Date().toISOString() }], stale: false };
     const r = await render(createElement(NotificationsScreen));
     expect(byId(r, 'feed-card').length).toBe(1);
-    expect(flat(byId(r, 'feed-card')[0])).toMatchObject({ borderRadius: 18, padding: 12 });
-    expect(words(r)).toEqual(expect.arrayContaining(['Ana', ' commented at 14:32 on', 'Why mornings matter', 'TODAY'].filter((w) => w !== 'TODAY')));
-    expect(byId(r, 'day-block').length).toBe(1);
-    expect(byId(r, 'notice-entries').length).toBe(1);
+    expect(flat(byId(r, 'feed-card')[0])).toMatchObject({ borderRadius: 24, padding: 16 });
+    expect(words(r)).toEqual(expect.arrayContaining(['Ana', ' commented', 'Why mornings matter', '14:32', 'Today']));
+    expect(byId(r, 'day').length).toBe(1);
+    expect(byId(r, 'notice-chips').length).toBe(1);
     press(r, 'Ana commented at 14:32 on Why mornings matter (Morning Notes)');
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/episode/[id]', params: { id: 'e1', at: '872000' } });
   });
@@ -365,7 +367,7 @@ describe('the Notifications page (notifications--*)', () => {
     mockFeedView = undefined;
     let r = await render(createElement(NotificationsScreen));
     expect(words(r)).toContain('No activity yet — follow people from their profile');
-    expect(byId(r, 'notice-entries').length).toBe(1);
+    expect(byId(r, 'notice-chips').length).toBe(1);
     act(() => r.unmount());
     mockFeedView = { items: [], stale: true };
     r = await render(createElement(NotificationsScreen));
@@ -392,7 +394,6 @@ describe('the Notifications page (notifications--*)', () => {
     expect(badges).toEqual(['2', '2']);
     expect(byLabel(r, 'People. 2 new. New activity from people you follow')).toBeDefined();
     expect(byLabel(r, 'Interactions. 2 new. New replies, likes, mentions and follows')).toBeDefined();
-    expect(words(r)).toContain('New activity from people you follow');
   });
 
   it('Interactions: an unread notice hangs from a hot dot and has a 3 wide hot edge; ⋯ opens the mute sheet; Mute this mutes', async () => {
@@ -425,7 +426,7 @@ describe('the Notifications page (notifications--*)', () => {
     await act(async () => { await Promise.resolve(); await Promise.resolve(); });
     expect(words(r)).toContain("Couldn't load your interactions right now.");
     const retry = byLabel(r, 'Retry');
-    expect(flat(retry)).toMatchObject({ height: 40 });
+    expect(flat(retry)).toMatchObject({ minHeight: 44 });
   });
 });
 
