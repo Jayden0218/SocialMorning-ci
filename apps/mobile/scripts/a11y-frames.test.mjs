@@ -32,6 +32,10 @@ test('a real labelled control under 44 x 44 is still caught', () => {
   assert.match(r.stdout + r.stderr, /"Post" is 65 x 38 pt/);
 });
 
+test('an 18 x 18 labelled dot is still caught (the comment pins are wider than a turned label\'s 15 pt line)', () => {
+  assert.equal(run(node('Comment at 0:05', '[100,100][118,118]')).status, 1);
+});
+
 test('a 30 x 30 labelled tappable is still caught', () => {
   assert.equal(run(node('Reply', '[100,100][130,130]')).status, 1);
 });

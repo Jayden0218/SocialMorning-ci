@@ -81,8 +81,9 @@ for (const file of jsons) {
     if (CHROME.test(label) || label === 'Loading') return true;
     // 038 (run 41961274572): with the fonts loaded, an icon-font glyph (a private-use character, e.g. the rating sheet's thumbs-up) is a node of its own: it is drawing, never a control's name.
     if (/^[\ue000-\uf8ff]+$/u.test(label)) return true;
-    // A turned section label: a long word is taller than wide; a two-letter one ("Me" in Geist Mono 11) is a 15 x 15 square.
-    if (f.w < 20 && f.h >= f.w) return true;
+    // A turned section label: narrower than 20 and taller than wide; or, for a two-letter one ("Me" in Geist Mono 11, a 15 pt line), a square no wider than that line (<= 16).
+    // The 18 pt comment pins are wider than that and are still judged (__tests__/a11y-frames.test.ts, "a lone 18 x 18 dot still fails").
+    if (f.w < 20 && (f.h > f.w || f.w <= 16)) return true;
     const me = bbox(n.attributes?.bounds);
     return groups.some((g) => g.l.length > label.length && g.l.includes(label) && inside(me, g.b));
   };
