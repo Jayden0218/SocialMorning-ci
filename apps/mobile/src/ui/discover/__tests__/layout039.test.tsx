@@ -7,6 +7,7 @@
 import { createRef, createElement } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { SWITCH_HEIGHT, SWITCH_LIFT } from '@/ui/discover/HomeSwitch';
+import { bars } from '@/design';
 import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { DiscoverPage } from '@/ui/discover/DiscoverPage';
@@ -143,6 +144,13 @@ describe('Discover on the layout parts', () => {
     const scroll = byId(r, 'page-scroll')[0]!;
     const kids = scroll.findAll((n) => typeof n.type === 'string' && (StyleSheet.flatten(n.props['style']) as { height?: number } | undefined)?.height === SWITCH_LIFT + SWITCH_HEIGHT);
     expect(kids.length).toBeGreaterThan(0);
+  });
+
+  it("the page's foot padding itself includes the switch's height and lift on top of the tab bar (the For You card titles were covered, run 42025749074)", async () => {
+    const r = await render(moments);
+    const scroll = byId(r, 'page-scroll')[0]!;
+    const pad = Number((StyleSheet.flatten(scroll.props['contentContainerStyle']) as { paddingBottom?: number }).paddingBottom);
+    expect(pad).toBeGreaterThanOrEqual(bars.tab + SWITCH_LIFT + SWITCH_HEIGHT);
   });
 
   it('keeps the shortcut tiles in a 2-column grid', async () => {

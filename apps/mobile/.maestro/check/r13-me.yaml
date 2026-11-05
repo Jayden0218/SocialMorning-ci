@@ -1,3 +1,4 @@
+# 039 (run 42025739896): the Downloads tile keeps its spoken name "Downloads" (the count is drawn, not spoken); the profile link is "View profile".
 # 039: profile link is now "View profile" (run 42017007191)
 # R13 Me tab: profile, edit profile, followers, following, likes, subscriptions, history, favourites, downloads,
 # my comments, listening report — each opens and goes back. Re-run at the largest text size (R20, SUFFIX=-xl).

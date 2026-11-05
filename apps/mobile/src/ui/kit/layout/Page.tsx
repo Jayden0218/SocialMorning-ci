@@ -38,6 +38,8 @@ export function Page(props: {
   trailing?: React.ReactNode;
   /** The tab bar is showing under this page. */
   tabs?: boolean;
+  /** Extra room at the foot for something that floats over the page (Discover's Moments | Discover switch). */
+  footExtra?: number;
   /** The now bar is showing over its foot. */
   now?: boolean;
   /** Scroll behaviour the page keeps from before (pull to refresh, load more on scroll): passed to the ScrollView as is. */
@@ -52,7 +54,7 @@ export function Page(props: {
   const content = {
     paddingHorizontal: side,
     paddingTop: safe.top + spacing.section,
-    paddingBottom: bottomInset(safe.bottom, { tabs: props.tabs === true, now: props.now === true }),
+    paddingBottom: bottomInset(safe.bottom, { tabs: props.tabs === true, now: props.now === true }) + (props.footExtra ?? 0),
     gap: spacing.block,
   };
   return (

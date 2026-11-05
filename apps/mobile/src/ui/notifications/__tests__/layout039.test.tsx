@@ -103,7 +103,7 @@ describe('Notifications on Page (spec 039 B-Notifications)', () => {
     expect(inRow((n) => String(n.props['accessibilityLabel']).startsWith('People.'))).toBe(true);
     expect(inRow((n) => String(n.props['accessibilityLabel']).startsWith('Interactions.'))).toBe(true);
     expect(inRow((n) => /^System\b/.test(String(n.props['accessibilityLabel'])))).toBe(true);
-    expect(inRow((n) => /^Hosts\b/.test(String(n.props['accessibilityLabel'])))).toBe(true);
+    expect(inRow((n) => /^From hosts\b/.test(String(n.props['accessibilityLabel'])))).toBe(true);
     expect(byId(r, 'notice-badge').length).toBeGreaterThan(0);
   });
 
@@ -111,7 +111,7 @@ describe('Notifications on Page (spec 039 B-Notifications)', () => {
     const r = await render();
     const open = (label: RegExp) => act(() => { r.root.findAll((n) => typeof n.props['onPress'] === 'function' && label.test(String(n.props['accessibilityLabel'])))[0]!.props['onPress'](); });
     open(/^System\b/); expect(mockPush).toHaveBeenLastCalledWith('/notifications/system');
-    open(/^Hosts\b/); expect(mockPush).toHaveBeenLastCalledWith('/notifications/hosts');
+    open(/^From hosts\b/); expect(mockPush).toHaveBeenLastCalledWith('/notifications/hosts');
   });
 
   it('a failed refresh is an InlineNotice with a Retry that refreshes, not a large pink line', async () => {
@@ -137,6 +137,22 @@ describe('Notifications on Page (spec 039 B-Notifications)', () => {
     expect(byId(r, 'edge-measure').length).toBe(0);
     expect(byId(r, 'notice-time').length).toBe(1);
     expect(flat(byId(r, 'notice-card')[0])).toMatchObject({ padding: 16 });
+  });
+
+  it('an Interactions card is at least 44 tall to touch (a follow row was 318 x 40, run 42031752701)', async () => {
+    const r = await render();
+    await act(async () => { r.root.findAll((n) => typeof n.props['onPress'] === 'function' && String(n.props['accessibilityLabel']).startsWith('Interactions.'))[0]!.props['onPress'](); for (let i = 0; i < 4; i++) await Promise.resolve(); });
+    const card = byId(r, 'notice-card')[0]!;
+    const press = card.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'link' && /Bea/.test(String(n.props['accessibilityLabel'])))[0]!;
+    expect(Number(flat(press)['minHeight'])).toBeGreaterThanOrEqual(44);
+  });
+
+  it('Back: its 44 frame is pulled left so the glyph box starts ON the 20 gutter (not before it), and it is the documented -bleed element for the edges check', async () => {
+    const r = await render();
+    const back = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityLabel'] === 'Back')[0]!;
+    const s = flat(back);
+    expect(20 + Number(s['marginLeft']) + (Number(s['width']) - 22) / 2).toBeGreaterThanOrEqual(20);
+    expect(String(back.props['testID'])).toMatch(/-bleed$/);
   });
 
   const NEAR = { nativeEvent: { contentOffset: { y: 900 }, layoutMeasurement: { height: 800 }, contentSize: { height: 1500 } } };

@@ -123,3 +123,10 @@ it('Saved moments draws the bookmark glyph, Favourites the star', async () => {
   expect(icon(/^Saved moments/)).toBe('bookmark-outline');
   expect(icon(/^Favourites/)).toBe('star-outline');
 });
+
+it('the Downloads tile keeps its old spoken name "Downloads" (D2; the flow matches it whole): the count is drawn, not spoken into the name (run 42025739896)', async () => {
+  const r = await render();
+  const names = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'link').map((n) => String(n.props['accessibilityLabel']));
+  expect(names).toContain('Downloads');
+  expect(names).not.toContain('Downloads, 2');
+});

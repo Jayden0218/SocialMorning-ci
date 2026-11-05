@@ -13,7 +13,7 @@ const TILE = { flex: 1, minHeight: TILE_HEIGHT, borderRadius: radius.artworkLarg
 export function MeTile({ icon, label, count, accent, spoken, ...rest }: { icon: IconName; label: string; count?: number; accent?: boolean; /** The spoken name when it says more than the label. */ spoken?: string } & Omit<ComponentProps<typeof Pressable>, 'children'>): React.ReactElement {
   const words = accent ? 'text-void' : 'text-text';
   return (
-    <Pressable {...rest} accessibilityRole="link" accessibilityLabel={spoken ?? (count === undefined ? label : `${label}, ${count}`)} className={accent ? 'bg-hot' : 'bg-raise'} style={TILE}>
+    <Pressable {...rest} accessibilityRole="link" accessibilityLabel={spoken ?? label} className={accent ? 'bg-hot' : 'bg-raise'} style={TILE}>
       <Icon name={icon} size={spacing.block} color={accent ? colour.void : colour.text} />
       <Box>
         <Type step="strong" className={words} numberOfLines={2}>{label}</Type>

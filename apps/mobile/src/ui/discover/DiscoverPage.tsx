@@ -180,6 +180,7 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
         title="Discover"
         titleLabel="Discover, today's picks"
         tabs
+        footExtra={SWITCH_CLEAR}
         scrollToTopOnTabPress
         scrollRef={page.scroller}
         scroll={{ refreshControl: pull.refreshControl, onScroll: pull.onScroll as unknown as ScrollViewProps['onScroll'], scrollEventThrottle: pull.scrollEventThrottle }}

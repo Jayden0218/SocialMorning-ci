@@ -98,7 +98,7 @@ const titleBar = (r: ReactTestRenderer): ReactTestInstance => r.root.findByType(
 describe('Me (039 B-Me, signed in / out / plus)', () => {
   it('the four tiles are equal and tall as drawn (was: a 1 x 1 tile 84 tall): radius 22, padding 16, the raise fill', async () => {
     const r = await render(createElement(MeScreen));
-    const tile = byLabel(r, 'Downloads, 0');
+    const tile = byLabel(r, 'Downloads');
     expect(flat(tile)).toMatchObject({ minHeight: 104, borderRadius: 22, padding: 16 });
     expect(classOf(tile)).toContain('bg-raise');
     expect(words(r)).toContain('Downloads');
@@ -116,7 +116,7 @@ describe('Me (039 B-Me, signed in / out / plus)', () => {
 
   it('the places run in the drawn order (was: the mosaic order with Notifications as a tile): four tiles, then the pills, Notifications first with its 4 unread', async () => {
     const r = await render(createElement(MeScreen));
-    const order = ['Saved moments, 3. Save a moment while listening and add a note', 'Downloads, 0', 'Listening history', 'Favourites', 'Notifications, 4 new', 'Queue', 'My comments', 'Likes', 'Creator centre', 'Playlists', 'Your September: your month in listening', 'Wallet', 'Tips I gave', 'Feedback'];
+    const order = ['Saved moments, 3. Save a moment while listening and add a note', 'Downloads', 'Listening history', 'Favourites', 'Notifications, 4 new', 'Queue', 'My comments', 'Likes', 'Creator centre', 'Playlists', 'Your September: your month in listening', 'Wallet', 'Tips I gave', 'Feedback'];
     const seen = hosts(r, (n) => (n.props['accessibilityRole'] === 'link' || n.props['accessibilityRole'] === 'button') && order.includes(String(n.props['accessibilityLabel']))).map((n) => String(n.props['accessibilityLabel']));
     expect(seen).toEqual(order);
     expect(words(r)).toContain('4'); // the unread badge on Notifications

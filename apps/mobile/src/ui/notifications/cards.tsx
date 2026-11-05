@@ -27,10 +27,10 @@ const HIT = { top: 5, bottom: 5 };
 const NAME_SLOP = { top: 12, bottom: 12, left: 4, right: 4 };
 const KIND_VERB: Record<Item['kind'], string> = { listened: 'listened', clipped: 'clipped', commented: 'commented' };
 
-/** Back, in the page's title row. */
+/** Back, in the page's title row. Its 44 frame is pulled left so the 22 glyph starts on the 20 gutter; the frame itself starts at 9, so it carries the `-bleed` id the edges check exempts (the glyph, not the frame, is what the grid is about). */
 export function BackButton(): React.ReactElement {
   return (
-    <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Back" className="items-center justify-center" style={{ width: bars.titleBack, height: bars.titleBack, marginLeft: -spacing.row }}>
+    <Pressable onPress={goBack} accessibilityRole="button" accessibilityLabel="Back" testID="notif-back-bleed" className="items-center justify-center" style={{ width: bars.titleBack, height: bars.titleBack, marginLeft: -(bars.titleBack - 22) / 2 }}>
       <Icon name="arrow-back" size={22} color={colour.text} />
     </Pressable>
   );
@@ -75,7 +75,7 @@ export function NoticeChips(props: { section: NoticeSection; unread: number; int
       <Chip title="Interactions" role="tab" selected={props.section === 'interactions'} {...(props.interactionsUnread > 0 ? { badge: props.interactionsUnread } : {})}
         label={`Interactions. ${props.interactionsUnread > 0 ? `${props.interactionsUnread} new. ` : ''}${noticeLine('interactions', props.interactionsUnread)}`} onPress={() => props.onSelect('interactions')} />
       <Chip title="System ›" role="link" label="System. Messages from SocialNet" onPress={() => props.onOpen('system')} />
-      <Chip title="Hosts ›" role="link" label="Hosts. Shows you follow" onPress={() => props.onOpen('hosts')} />
+      <Chip title="Hosts ›" role="link" label="From hosts. Shows you follow" onPress={() => props.onOpen('hosts')} />
     </ScrollView>
   );
 }
@@ -149,7 +149,7 @@ export function NoticeItemCard(props: { testID?: string; unread: boolean; glow: 
   return (
     <ItemCard testID={props.testID ?? 'notice-card'} unread={props.unread}>
       <Box className="flex-row items-start" style={{ gap: spacing.gap }}>
-        <Pressable onPress={props.onOpen} accessibilityRole="link" accessibilityLabel={props.label} className="flex-1" style={{ gap: spacing.row }}>
+        <Pressable onPress={props.onOpen} accessibilityRole="link" accessibilityLabel={props.label} className="flex-1" style={{ gap: spacing.row, minHeight: bars.circle }}>
           <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
             {props.avatar}
             <Type step="strong" className="flex-1 text-text" numberOfLines={2}><Text className="text-text font-bold">{props.who}</Text><Text className="text-text2 font-normal">{` ${props.verb}`}</Text></Type>
