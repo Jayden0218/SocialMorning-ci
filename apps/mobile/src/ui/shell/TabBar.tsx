@@ -32,7 +32,7 @@ import { Animated, StyleSheet } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/lib/text';
 import { Box } from '@/ui/lib/box';
-import { bars, glow, motion, radius } from '@/design';
+import { bars, glow, motion, radius, typeScale } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
@@ -59,7 +59,7 @@ const ICON_BOX = { width: bars.tabIcon, height: bars.tabIcon };
 const ITEM = { minHeight: bars.tab, paddingTop: bars.tabIconTop };
 const RING = 2;
 /** 039: the label sits under the dot's spot, `tabLabelGap` clear of it. */
-const LABEL = { position: 'absolute', top: DOT_TOP + bars.dot + bars.tabLabelGap, left: 0, right: 0, textAlign: 'center' } as const;
+const LABEL = { position: 'absolute', top: DOT_TOP + bars.dot + bars.tabLabelGap, left: 0, right: 0, textAlign: 'center', fontSize: typeScale.tag.size, lineHeight: typeScale.tag.lineSafe, letterSpacing: typeScale.tag.tracking } as const;
 
 function Badge(props: { item: TabItem }): React.ReactElement | null {
   const { item } = props;
@@ -158,7 +158,7 @@ export function TabBar(props: {
                   <Badge item={item} />
                 </Box>
                 {/* 039: the word is drawn again (the spoken name is unchanged, so the label is hidden from the screen reader). */}
-                <Type step="tag" testID={`tab-label-${tab.label}`} className={selected ? 'text-text' : 'text-idle'} style={LABEL} numberOfLines={1} accessible={false} importantForAccessibility="no">{tab.label}</Type>
+                <Type step="small" testID={`tab-label-${tab.label}`} className={selected ? 'text-text' : 'text-idle'} style={LABEL} numberOfLines={1} accessible={false} importantForAccessibility="no">{tab.label}</Type>
               </>
             ) : (
               // No icon (tests, a future page): the words, bold + coloured when active — never colour alone (FR-016).

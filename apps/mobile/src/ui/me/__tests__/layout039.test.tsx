@@ -26,7 +26,7 @@ jest.mock('expo-router', () => {
   return {
     router: { push: (...a: unknown[]) => mockPush(...a), back: jest.fn(), replace: jest.fn(), canGoBack: () => false },
     Link: ({ href, children, asChild }: { href: unknown; children: unknown; asChild?: boolean }) =>
-      (asChild && valid(children) ? clone(children as never, { onPress: () => mockPush(href) }) : make(Pressable, { onPress: () => mockPush(href) }, children)),
+      (asChild && valid(children) ? clone(children as never, { onPress: () => mockPush(href), style: undefined }) : make(Pressable, { onPress: () => mockPush(href) }, children)),
     useFocusEffect: (cb: () => void) => { require('react').useEffect(cb, [cb]); },
     useScrollToTop: () => undefined,
   };
@@ -91,4 +91,35 @@ it('"Continue listening" is drawn only while an episode is loaded', async () => 
   expect(w).toContain('A minute of tone');
   expect(w).toContain('Journey Morning');
   expect(w.join(' ')).toContain('0:55 left');
+});
+
+it('every pill is ONE style: minHeight 44, minWidth 44, 14 padding, pill radius, even when the Link hands down `style: undefined` (device run 42017007191)', async () => {
+  const r = await render();
+  const pills = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'link' && typeof n.props['accessibilityLabel'] === 'string' && n.props['testID'] === undefined && /^(Notifications|Queue|My comments|Likes|Creator centre|Playlists|Your |Tips I gave|Feedback|Wallet|SocialNet)/.test(String(n.props['accessibilityLabel'])));
+  expect(pills.length).toBeGreaterThanOrEqual(3);
+  const seen = pills.map((p) => flat(p));
+  for (const s of seen) {
+    expect(Number(s['minHeight'])).toBeGreaterThanOrEqual(44);
+    expect(Number(s['minWidth'])).toBeGreaterThanOrEqual(44);
+    expect(s['paddingHorizontal']).toBe(14);
+    expect(s['borderRadius'] ?? 999).toBeGreaterThanOrEqual(0);
+  }
+});
+
+it('the Me header names you on one line, in the heading step (not the 30 pt title that wrapped "Listener 05")', async () => {
+  const r = await render();
+  const head = r.root.findAll((n) => n.type === RNText && n.props['accessibilityRole'] === 'header')[0]!;
+  expect(head.props['numberOfLines']).toBe(1);
+  expect(String(head.props['className'])).toContain('text-pulse-heading');
+  expect(String(head.props['className'])).not.toContain('text-pulse-title');
+});
+
+it('Saved moments draws the bookmark glyph, Favourites the star', async () => {
+  const r = await render();
+  const icon = (label: RegExp): unknown => {
+    const tile = r.root.findAll((n) => typeof n.type === 'string' && label.test(String(n.props['accessibilityLabel'])) && n.props['accessibilityRole'] === 'link')[0]!;
+    return tile.findAll((n) => typeof n.type !== 'string' && n.props['name'] !== undefined && n.props['size'] !== undefined)[0]?.props['name'];
+  };
+  expect(icon(/^Saved moments/)).toBe('bookmark-outline');
+  expect(icon(/^Favourites/)).toBe('star-outline');
 });

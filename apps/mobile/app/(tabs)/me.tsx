@@ -88,6 +88,7 @@ export default function MeScreen(): React.ReactElement {
       <Page
         title={listener ? listener.displayName : 'Sign in'}
         scrollToTopOnTabPress
+        nameTitle
         tabs
         now={!idle}
         leading={avatar}

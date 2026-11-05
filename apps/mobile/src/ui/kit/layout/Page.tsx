@@ -26,6 +26,8 @@ export function Page(props: {
   title: string;
   /** The header's spoken name when it differs from the words drawn (default: the title). */
   titleLabel?: string;
+  /** A person's name as the title (Me): the `heading` step on ONE line that shrinks to fit, not the 30 pt `title` that wraps (design/B-Me.dc.html 24/30). */
+  nameTitle?: boolean;
   /** The ScrollView, for pages that scroll themselves (a shortcut to a section). */
   scrollRef?: React.RefObject<Scroller | null>;
   /** Pressing this page's tab again scrolls it to the top (a page in a tab). */
@@ -57,7 +59,11 @@ export function Page(props: {
     <ScrollView ref={scroller} testID="page-scroll" className="flex-1 bg-void" contentContainerStyle={content} showsVerticalScrollIndicator={false} {...props.scroll}>
       <Box testID="page-title-row" className="flex-row items-center justify-between" style={{ gap: spacing.row }}>
         {props.leading}
-        <Type step="title" accessibilityRole="header" accessibilityLabel={props.titleLabel ?? props.title} className="text-text flex-1" numberOfLines={2}>{props.title}</Type>
+        {props.nameTitle ? (
+          <Type step="heading" accessibilityRole="header" accessibilityLabel={props.titleLabel ?? props.title} className="text-text flex-1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{props.title}</Type>
+        ) : (
+          <Type step="title" accessibilityRole="header" accessibilityLabel={props.titleLabel ?? props.title} className="text-text flex-1" numberOfLines={2}>{props.title}</Type>
+        )}
         {props.trailing}
       </Box>
       {props.scrollToTopOnTabPress === true ? <ScrollToTop target={scroller} /> : null}

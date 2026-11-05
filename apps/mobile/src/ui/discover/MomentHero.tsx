@@ -22,6 +22,24 @@ const BARS = 50;
 const MIN_BAR = 2;
 const NO_HEAT: readonly number[] = Array.from<number>({ length: 100 }).fill(0);
 
+/** The curve's bars (the parent box is the one `image` stop that speaks them). */
+function HeroBars(props: { heights: readonly number[]; lit: readonly [number, number] | undefined | null }): React.ReactElement {
+  const { lit } = props;
+  return (
+    <>
+      {props.heights.map((v, k) => (
+        <Box
+          key={k}
+          testID="hero-bar"
+          pointerEvents="none"
+          className={lit && k >= lit[0] && k <= lit[1] ? 'flex-1 bg-void rounded-tick' : 'flex-1 bg-void/25 rounded-tick'}
+          style={{ height: Math.round(MIN_BAR + (bars.circle - MIN_BAR) * v) }}
+        />
+      ))}
+    </>
+  );
+}
+
 export function MomentHero(props: { moment: Moment; onPlay: (m: Moment) => void }): React.ReactElement {
   const m = props.moment;
   const heat = useEpisodeHeat(m.episodeId, true);
@@ -41,15 +59,7 @@ export function MomentHero(props: { moment: Moment; onPlay: (m: Moment) => void 
         <Type step="statement" className="text-void font-extrabold" numberOfLines={3}>{m.episodeTitle}</Type>
       </Pressable>
       <Box className="flex-row items-end" style={{ height: bars.circle, gap: 2 }} accessible accessibilityRole="image" accessibilityLabel={`Where people reacted. This moment: ${at}`}>
-        {heights.map((v, k) => (
-          <Box
-            key={k}
-            testID="hero-bar"
-            pointerEvents="none"
-            className={lit && k >= lit[0] && k <= lit[1] ? 'flex-1 bg-void rounded-tick' : 'flex-1 bg-void/25 rounded-tick'}
-            style={{ height: Math.round(MIN_BAR + (bars.circle - MIN_BAR) * v) }}
-          />
-        ))}
+        <HeroBars heights={heights} lit={lit} />
       </Box>
       <Box className="flex-row items-center" style={{ gap: spacing.row }}>
         <Pressable

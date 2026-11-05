@@ -58,3 +58,12 @@ it('the bar grew by one label line, and the insets follow it', () => {
   const bar = flat(render().root.findAll((n) => typeof n.type === 'string')[0]!);
   expect(bar['minHeight']).toBe(bars.tab);
 });
+
+it('the labels are in the UI family (Geist), not the mono family the `tag` step uses (device run 42017007191)', () => {
+  const r = render();
+  for (const n of ['Discover', 'Updates', 'Chat', 'Me']) {
+    const l = labelOf(r, n);
+    expect(String(l.props['className'])).not.toContain('font-mono');
+    expect(String(flat(l)['fontFamily'] ?? '')).not.toMatch(/mono/i);
+  }
+});

@@ -129,7 +129,7 @@ export function FeedCard(props: { item: Item; onOpen: (item: Item) => void }): R
           <Avatar size={NOTIF.noticeAvatar} name={name} />
           <Box className="flex-1 flex-row flex-wrap items-center">
             <Link href={{ pathname: '/profile/[id]', params: { id: item.actor.id } }} asChild>
-              <Pressable accessibilityRole="link" hitSlop={NAME_SLOP} className="flex-shrink min-w-0">
+              <Pressable accessibilityRole="link" accessibilityLabel={`${name}, open profile`} hitSlop={NAME_SLOP} className="flex-shrink min-w-0">
                 {/* A name is not an action (owner's K1 note, 2026-09-25): weight tells it apart. */}
                 <Type step="strong" className="text-text font-bold" numberOfLines={1}>{name}</Type>
               </Pressable>

@@ -1,28 +1,29 @@
-# Subflow: the Me tab, signed in: its title is a link "Listener 05, open your profile" (app/(tabs)/me.tsx:205).
+# 039: profile link is now "View profile" (run 42017007191)
+# Subflow: the Me tab, signed in: its title is a link "View profile" (app/(tabs)/me.tsx:205).
 # The tab reads "Me, N new" with a badge (src/ui/shell/TabBar.tsx:141).
 appId: app.socialmorning.mobile
 ---
 - tapOn: "Me(, .*)?"
 - repeat:                                # right after a relaunch the first tap may not take (run 41289865753, r19)
     while:
-      notVisible: "Listener 05, open your profile"
+      notVisible: "View profile"
     times: 2
     commands:
       - extendedWaitUntil:
-          visible: "Listener 05, open your profile"
+          visible: "View profile"
           timeout: 15000
           optional: true
       - runFlow:
           when:
-            notVisible: "Listener 05, open your profile"
+            notVisible: "View profile"
           commands:
             - runFlow: _close-player.yaml
             - tapOn: "Me(, .*)?"
 - extendedWaitUntil:
-    visible: "Listener 05, open your profile"
+    visible: "View profile"
     timeout: 30000
 - scrollUntilVisible:
-    element: "Listener 05, open your profile"
+    element: "View profile"
     direction: UP
     timeout: 10000
     optional: true

@@ -22,7 +22,7 @@ env:
 - tapOn: "Back"
 # Follow back Listener 02
 - runFlow: _me.yaml
-- tapOn: "Listener 05, open your profile"
+- tapOn: "View profile"
 - extendedWaitUntil:
     visible: "This is you"
     timeout: 30000
