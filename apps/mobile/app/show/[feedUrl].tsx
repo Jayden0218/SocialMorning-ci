@@ -147,8 +147,11 @@ const EpisodeTile = memo(function EpisodeTile({ item, plays, talk, progress, sha
               <Type step="mono" className="text-hotText">{hot}</Type>
             </Pressable>
           ) : null}
-          <Type step="lede" className="text-text" style={drawnType.unbounded[17]} numberOfLines={2}>{item.title}</Type>
-          <EpisodeMeta {...metaIn} iconColour={iconColour} />
+          {/* 038 (run 41961274572, r07-episode-player-xl): the words let a touch through to the full-tile Pressable behind them; a title that wraps over the middle of the tile (large text) was a dead zone. */}
+          <Box pointerEvents="none" style={{ gap: 3 }}>
+            <Type step="lede" className="text-text" style={drawnType.unbounded[17]} numberOfLines={2}>{item.title}</Type>
+            <EpisodeMeta {...metaIn} iconColour={iconColour} />
+          </Box>
         </Box>
         <Box className="absolute" style={{ right: spacing.row, bottom: spacing.row }}>
           {disc(SHOW.bigPlay)}
