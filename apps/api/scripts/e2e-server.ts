@@ -65,6 +65,9 @@ const storage: EpisodeStorage = {
   list: async (prefix) => [...seen.values()].filter((f) => f.pathname.startsWith(prefix)),
 };
 
+/** 039: set by database(); POST /__e2e/drain runs the outbox to empty with it. */
+let drainNow: (() => Promise<number>) | undefined;
+
 async function database(): Promise<Db> {
   if (!process.env['DDB_ENDPOINT']) throw new Error('e2e api: DDB_ENDPOINT is not set (DynamoDB Local, e.g. scripts/ddb-local.sh)');
   const clients = createDdbClients();
@@ -74,6 +77,7 @@ async function database(): Promise<Db> {
   // The worker's job in production: run the outbox (notifications, fan-out, counters) shortly after each write.
   const timer = setInterval(() => { void drainOutbox(store).catch(() => undefined); }, 200);
   timer.unref();
+  drainNow = async () => { let done = 0; for (let i = 0; i < 20; i++) { const r = await drainOutbox(store); done += r.done; if (r.done === 0) break; } return done; };
   const drop = async () => { clearInterval(timer); await deleteTableSet(clients.raw, tables).catch(() => undefined); clients.raw.destroy(); };
   for (const sig of ['SIGINT', 'SIGTERM'] as const) process.once(sig, () => { void drop().finally(() => process.exit(0)); });
   console.log(`e2e api: DynamoDB Local tables ${tables.main}, ${tables.events}, ${tables.cache}`);
@@ -162,6 +166,11 @@ serve({
     if (fault?.mode === 'fail') return Response.json({ error: 'unavailable' }, { status: 503 });
     if (fault?.mode === 'slow') await new Promise((r) => setTimeout(r, fault.ms));
     if (url.pathname === '/__e2e/removed') return Response.json(removed);
+    // 039: run the outbox to empty now (the seed's read-backs must not race the 200 ms drain; studio-e2e run 42195254278).
+    if (url.pathname === '/__e2e/drain' && req.method === 'POST') {
+      if (!drainNow) return Response.json({ error: 'no store' }, { status: 503 });
+      return Response.json({ done: await drainNow() });
+    }
     if (url.pathname === '/__e2e/account' && req.method === 'POST') return e2eAccount(req);
     if (url.pathname === '/__e2e/code') {
       const code = inbox.get((url.searchParams.get('email') ?? '').toLowerCase());

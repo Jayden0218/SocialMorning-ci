@@ -225,6 +225,9 @@ async function seed(): Promise<void> {
   // The heat curve is written by the outbox (heat.bump, drained every ~200 ms by the worker / e2e server), so a read right after the reactions can
   // still see a short curve. The moments route caches each episode's answer for 5 minutes, so one early read would pin the empty answer: wait here,
   // on the curve the Social poll shows, until it has bucket 72 and has stopped changing. Bounded, with a clear error (studio-e2e run 42195254278).
+  // 039: drain the outbox first (deterministic), then wait for the curve as before.
+  const drained = await call<{ done: number }>('POST', '/__e2e/drain');
+  ok(drained.status === 200, `the outbox drained before the read-back (status ${drained.status}, ${drained.json?.done} entries)`);
   const settle = await settledHeat(ep1.episodeId, 72);
   ok(settle.settled, `episode 1's heat curve settled with a mark at bucket 72 (${settle.polls} polls, ${settle.ms} ms)`);
   const feed05 = await call<{ items: { episodeId: string; reactions: number }[] }>('GET', '/v1/discover/moments?limit=50', undefined, listeners[4]!.token);
