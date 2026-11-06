@@ -30,6 +30,11 @@ env:
             visible: "Agree"
           commands:
             - tapOn: "Agree"
+- extendedWaitUntil:                     # 039 (run 42210805301, r15): "Continue with email" was in the hierarchy and the tap said "not found" (the landing was still settling)
+    visible: "Continue with email"
+    timeout: 30000
+- waitForAnimationToEnd:
+    timeout: 3000
 - tapOn: "Continue with email"
 - extendedWaitUntil:
     visible: "Agree and continue"

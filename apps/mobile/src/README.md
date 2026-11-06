@@ -375,6 +375,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `index.ts` | The page layout parts of spec 039. |
 | `__tests__/Page.test.tsx` | Spec 039 US1/US3 (T011): Page, Section, TileGrid, Shelf and InlineNotice keep one gutter, one rhythm and a clear foot. |
 | `__tests__/PageList.test.tsx` | Spec 039 (D6, revised): PageList is design B's frame around a list the page owns. |
+| `__tests__/back-every-state.test.tsx` | Every Page wrapper draws a "Back" button in the pinned title row in every state: filled, loading, empty, error. |
 
 ### `ui/shell/` — The app's outer layer: start-up, tabs, terms and shared setup
 

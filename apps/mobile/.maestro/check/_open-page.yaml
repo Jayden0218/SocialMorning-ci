@@ -1,8 +1,18 @@
 # 039 (run 42195300126): the hub keeps its scroll position and its title row (Back, the gear, Scan) scrolls with it, so scroll up before looking for HUB or tapping Back.
 # Subflow: on a hub page, scroll to ENTRY (an accessible name, regex), tap it, wait for PROOF on the page it
 # opens, take screenshot SHOT, tap Back, and wait for HUB (a string only the hub shows) again.
+# 039 (run 42210800998, r13 "Listening history", r17 "Issues"): the title row is pinned, so Back on a hub leaves the hub where it was scrolled, and Maestro counts a tile
+# that sits under the pinned title as visible and taps the title row instead. Scroll the hub to its top first; scrollUntilVisible then only has to go down.
 appId: app.socialmorning.mobile
 ---
+- repeat:
+    times: 2
+    commands:
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 80%
+- waitForAnimationToEnd:
+    timeout: 5000
 - scrollUntilVisible:
     element: ${ENTRY}
     centerElement: true

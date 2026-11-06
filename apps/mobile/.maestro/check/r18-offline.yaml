@@ -14,6 +14,21 @@ env:
   OFFLINE: "(Couldn't|You're offline|.*could not refresh|.*Couldn't).*"
 ---
 - runFlow: _ensure-signed-in.yaml
+# 039 (run 42210805301): "Updates" draws a card for the opened episode only when the phone has the show's feed. A full run had it from r06 (subscribed, feed cached);
+# a narrowed shard run (r1[5-9]*) has not, and an uncached card cannot open offline ("Couldn't fetch that show right now."). Subscribe and open the show while online.
+- runFlow: _search-show.yaml
+- runFlow:
+    when:
+      visible: "Subscribe to this show"
+    commands:
+      - tapOn: "Subscribe to this show"
+      - extendedWaitUntil:
+          visible: "Unsubscribe from this show"
+          timeout: 15000
+- tapOn: "Back"
+- tapOn:
+    text: "Cancel"
+    optional: true                       # the search overlay, if it is still drawn over the tabs
 - runScript: fault-on.js
 - launchApp                              # a cold start with no answers from the server
 - extendedWaitUntil:
