@@ -19,14 +19,12 @@ import { router } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
 import { gutter, spacing } from '@/design';
 import { authColour } from '@/design/tokens';
 import { Chip } from '@/ui/kit/Chip';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { Icon, type IconName } from '@/ui/kit/Icon';
-import { OverlayPage } from '@/ui/kit/OverlayPage';
+import { Section } from '@/ui/kit/layout';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
@@ -82,23 +80,15 @@ const REASONS: readonly { id: RecFeedbackReason; label: string; icon: IconName }
   { id: 'other', label: 'Something else', icon: 'ellipsis-horizontal' },
 ];
 
-/** A section on the Panel: its edge label in the 28 lane at the left, the content beside it. */
-function Sec(props: { label: string; children: React.ReactNode }): React.ReactElement {
-  return (
-    <Box>
-      <EdgeLabel label={props.label} top={2} left={-AUTH.panel.lane + 6} />
-      {props.children}
-    </Box>
-  );
-}
-
-/** The whole "Not liking these?" page: the reasons, the note, the categories, and Send in the row under the title. */
-export function RecFeedbackForm(props: { onSent: () => void }): React.ReactElement {
+/**
+ * The "Not liking these?" form: its `body` (the reasons, the note, the categories) and its `below` (Send, disabled until a reason is chosen). The page
+ * (app/onboarding/not-liking.tsx) puts them in the Form frame, so the ratchet sees the page itself on `Page`.
+ */
+export function useRecFeedbackForm(onSent: () => void): { body: React.ReactElement; below: React.ReactElement } {
   const stores = useStores();
   const c = useColours();
   const api = useM22DiscoverApi();
   const toast = useToast();
-  const { width } = useWindowDimensions();
   const [before] = useState(() => pickedInterests(stores.settings));
   const [picked, setPicked] = useState<number[]>(before);
   const [reason, setReason] = useState<RecFeedbackReason | undefined>();
@@ -113,59 +103,51 @@ export function RecFeedbackForm(props: { onSent: () => void }): React.ReactEleme
       await api.recFeedback({ reason, ...(note.trim() ? { note: note.trim().slice(0, NOTE_MAX) } : {}), ...(add.length ? { add } : {}), ...(remove.length ? { remove } : {}) });
       savePicked(stores.settings, picked);
       toast('Thanks — For You will change on its next refresh.');
-      props.onSent();
+      onSent();
     } catch {
       toast("Couldn't send — try again when you're online.");
     } finally {
       setBusy(false);
     }
   };
-  return (
-    <OverlayPage
-      title="Not liking these?"
-      subtitle="Your answer changes For You on its next refresh."
-      size={28}
-      onBack={() => { if (router.canGoBack()) router.back(); else router.replace('/'); }}
-      foot={<PulseButton label="Send" accessibilityLabel="Send what's wrong with For You" kind="light" height={AUTH.foot.button} className="flex-1" disabled={!reason} busy={busy} onPress={() => void send()} />}
-    >
-      {(l) => (
-        <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: l.top + AUTH.bodyTop, paddingBottom: l.reserve, paddingLeft: AUTH.panel.lane, paddingRight: Math.min(gutter(width), spacing.section), gap: AUTH.bodyGap }}>
-          <Sec label="What's wrong">
-            <Box className="flex-row flex-wrap justify-between" style={{ rowGap: AUTH.panel.tileGap }}>
-              {REASONS.map((r) => {
-                const on = reason === r.id;
-                return (
-                  <Pressable
-                    key={r.id}
-                    onPress={() => setReason(r.id)}
-                    accessibilityRole="radio"
-                    accessibilityLabel={r.label}
-                    accessibilityState={{ selected: on }}
-                    className="justify-between"
-                    style={{ width: '48.5%', height: AUTH.reason.height, borderRadius: AUTH.reason.radius, paddingVertical: AUTH.reason.padY, paddingHorizontal: AUTH.reason.padX, backgroundColor: on ? authColour.reasonOn : c.raise, ...(on ? { borderWidth: AUTH.reason.ring, borderColor: c.hot } : null) }}
-                  >
-                    <Icon name={r.icon} size={AUTH.reason.icon} color={on ? c.hotText : c.text} />
-                    <Type step="compact" className="text-text" style={AUTH_TYPE.reason}>{r.label}</Type>
-                  </Pressable>
-                );
-              })}
-            </Box>
-          </Sec>
-          <Sec label="More">
-            <Textarea className="bg-raise border-0 h-auto" style={{ minHeight: AUTH.note.minHeight, borderRadius: AUTH.note.radius }}>
-              <TextareaInput value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder="Tell us more…" placeholderTextColor={c.text3} textAlignVertical="top" keyboardAppearance="dark" accessibilityLabel="Tell us more" className="text-text font-medium" style={{ padding: AUTH.note.pad, ...AUTH_TYPE.field }} />
-            </Textarea>
-          </Sec>
-          <Sec label="Categories">
-            <Box style={{ gap: spacing.gap }}>
-              <Type step="caption" className="text-text2" style={AUTH_TYPE.fieldNote}>Tap to add or remove.</Type>
-              <Box className="flex-row flex-wrap" style={{ gap: spacing.gap }}>
-                {GENRES.map((g) => <Chip key={g.id} label={g.name} chosen={picked.includes(g.id)} onPress={() => setPicked((p) => toggleGenre(p, g.id))} />)}
-              </Box>
-            </Box>
-          </Sec>
-        </ScrollView>
-      )}
-    </OverlayPage>
+  const below = <PulseButton label="Send" accessibilityLabel="Send what's wrong with For You" kind="light" height={AUTH.foot.button} className="flex-1" disabled={!reason} busy={busy} onPress={() => void send()} />;
+  const body = (
+    <>
+      <Section title="What's wrong">
+        <Box className="flex-row flex-wrap justify-between" style={{ rowGap: AUTH.panel.tileGap }}>
+          {REASONS.map((r) => {
+            const on = reason === r.id;
+            return (
+              <Pressable
+                key={r.id}
+                onPress={() => setReason(r.id)}
+                accessibilityRole="radio"
+                accessibilityLabel={r.label}
+                accessibilityState={{ selected: on }}
+                className="justify-between"
+                style={{ width: '48.5%', height: AUTH.reason.height, borderRadius: AUTH.reason.radius, paddingVertical: AUTH.reason.padY, paddingHorizontal: AUTH.reason.padX, backgroundColor: on ? authColour.reasonOn : c.raise, ...(on ? { borderWidth: AUTH.reason.ring, borderColor: c.hot } : null) }}
+              >
+                <Icon name={r.icon} size={AUTH.reason.icon} color={on ? c.hotText : c.text} />
+                <Type step="compact" className="text-text" style={AUTH_TYPE.reason}>{r.label}</Type>
+              </Pressable>
+            );
+          })}
+        </Box>
+      </Section>
+      <Section title="More">
+        <Textarea className="bg-raise border-0 h-auto" style={{ minHeight: AUTH.note.minHeight, borderRadius: AUTH.note.radius }}>
+          <TextareaInput value={note} onChangeText={setNote} maxLength={NOTE_MAX} multiline placeholder="Tell us more…" placeholderTextColor={c.text3} textAlignVertical="top" keyboardAppearance="dark" accessibilityLabel="Tell us more" className="text-text font-medium" style={{ padding: AUTH.note.pad, ...AUTH_TYPE.field }} />
+        </Textarea>
+      </Section>
+      <Section title="Categories">
+        <Box style={{ gap: spacing.gap }}>
+          <Type step="caption" className="text-text2" style={AUTH_TYPE.fieldNote}>Tap to add or remove.</Type>
+          <Box className="flex-row flex-wrap" style={{ gap: spacing.gap }}>
+            {GENRES.map((g) => <Chip key={g.id} label={g.name} chosen={picked.includes(g.id)} onPress={() => setPicked((p) => toggleGenre(p, g.id))} />)}
+          </Box>
+        </Box>
+      </Section>
+    </>
   );
+  return { body, below };
 }

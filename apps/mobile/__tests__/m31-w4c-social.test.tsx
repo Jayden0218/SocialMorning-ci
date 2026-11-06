@@ -190,10 +190,12 @@ describe('chat nodes (the ticks)', () => {
 describe('the chat page (chat-thread--*)', () => {
   const thread = (over: Record<string, unknown> = {}) => () => Promise.resolve({ with: { id: 'ana', displayName: 'Ana' }, canSend: true, messages: [msg({ id: '1', createdAt: new Date().toISOString() }), msg({ id: '2', fromMe: true, body: 'Hi', createdAt: new Date().toISOString(), read: true })], ...over });
 
-  it('the thumb zone: back, Ana at 36 with "open profile ›", the box (52) and the 52 Send, half-faded until there is text', async () => {
+  // 039 (Feed lane): was "the thumb zone: back, Ana at 36 and 'open profile ›' with the box"; the back, name and avatar are the page's title row at the TOP now; the box and Send stay in the foot zone.
+  it('the title row has Back and Ana with "open profile ›"; the foot zone the box (52) and the 52 Send, half-faded until there is text', async () => {
     mockThread = thread();
     const r = await render(createElement(ChatThread));
-    expect(byId(r, 'chat-header').length).toBe(1);
+    expect(byId(r, 'page-title-row').length).toBe(1);
+    expect(byLabel(r, 'Back')).toBeDefined();
     expect(words(r)).toContain('open profile ›');
     const send = byLabel(r, 'Send');
     expect(flat(send)).toMatchObject({ width: 52, height: 52, borderRadius: 26 });
@@ -206,12 +208,12 @@ describe('the chat page (chat-thread--*)', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/profile/[id]', params: { id: 'ana' } });
   });
 
-  it('the messages hang from the spine at x 40, with a tick for the node', async () => {
+  // 039 (Feed lane): was "the messages hang from the spine at x 40, with a tick for the node"; a gap is a small caps heading over its bubbles now (no spine).
+  it('the messages are bubbles under a heading for the gap, with no spine', async () => {
     mockThread = thread();
     const r = await render(createElement(ChatThread));
-    expect(byId(r, 'spine-line').length).toBe(1);
-    expect(flat(byId(r, 'spine-line')[0])).toMatchObject({ left: 40, width: 2 });
-    expect(byId(r, 'thread-node').length).toBe(1);
+    expect(byId(r, 'spine-line').length).toBe(0);
+    expect(byId(r, 'chat-node').length).toBe(1);
   });
 
   it('when you cannot send, a dashed 56 note replaces the box', async () => {
@@ -231,7 +233,7 @@ describe('the chat page (chat-thread--*)', () => {
     expect(flat(byId(r, 'signin-block')[0] ?? undefined)).toBeDefined();
     press(r, 'Sign in');
     expect(mockPush).toHaveBeenCalledWith('/auth/sign-in');
-    expect(byId(r, 'chat-header').length).toBe(1);
+    expect(byId(r, 'page-title-row').length).toBe(1);
     expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Message Ana').length).toBe(0);
   });
 
@@ -240,7 +242,7 @@ describe('the chat page (chat-thread--*)', () => {
     const r = await render(createElement(ChatThread));
     expect(words(r)).toContain("Couldn't reach the server.");
     expect(byId(r, 'err-block').length).toBe(1);
-    expect(byId(r, 'chat-header').length).toBe(1);
+    expect(byId(r, 'page-title-row').length).toBe(1);
     expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Message Ana').length).toBe(0);
   });
 
@@ -250,7 +252,7 @@ describe('the chat page (chat-thread--*)', () => {
     let r = await render(createElement(ChatThread));
     await act(async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); });
     expect(mockProfileOf).toHaveBeenCalledWith('ana');
-    const header = byId(r, 'chat-header')[0]!;
+    const header = byId(r, 'page-title-row')[0]!;
     expect(words(r)).toContain('Ana');
     expect(r.root.findAll((x) => x.props['accessibilityLabel'] === 'Ana, open profile' && typeof x.props['onPress'] === 'function').length).toBeGreaterThan(0);
     expect(header).toBeDefined();
@@ -284,14 +286,15 @@ describe('the chat page (chat-thread--*)', () => {
 describe('New chat (chat-new--*)', () => {
   const friends = [{ id: 'a', displayName: 'Ana' }, { id: 'b', displayName: 'Bo' }, { id: 'c', displayName: 'Cy' }];
 
-  it('the people are 84 tall tiles, radius 22, padding 14, two to a row in the 28 / 16 lane, with "follows you back"', async () => {
+  // 039 (Feed lane): was "84 tall tiles, radius 22, padding 14, two to a row in the 28 / 16 lane"; now one Feed card per person (radius 24, padding 16) in a list.
+  it('the people are cards (radius 24, padding 16), one to a row, with "follows you back"', async () => {
     mockFriends = () => Promise.resolve(friends);
     mockParams = {};
     const r = await render(createElement(NewChat));
-    const tile = byLabel(r, 'Chat with Ana');
-    expect(flat(tile)).toMatchObject({ minHeight: 84, borderRadius: 22, padding: 14, width: 168 });
-    expect(classOf(tile)).toContain('bg-raise');
-    expect(flat(byId(r, 'chat-tiles')[0])).toMatchObject({ marginLeft: 28, marginRight: 16, gap: 10 });
+    byLabel(r, 'Chat with Ana');
+    const card = byId(r, 'chat-person')[0]!;
+    expect(flat(card)).toMatchObject({ borderRadius: 24, padding: 16 });
+    expect(classOf(card)).toContain('bg-raise');
     expect(words(r).filter((w) => w === 'follows you back').length).toBe(3);
     press(r, 'Chat with Bo');
     expect(words(r)).toContain('No more to fetch');
@@ -434,7 +437,8 @@ describe('From hosts and System (notifications-hosts--*, notifications-system--*
   it('a host card: the cover at 36, "Show ›", the words, pictures 120 x 90; the card opens the show', async () => {
     mockHosts = () => Promise.resolve({ items: [{ id: 'h1', feedUrl: 'https://x/feed', showTitle: 'Morning Notes', body: 'New season starts Monday.', images: ['https://x/a.jpg', 'https://x/b.jpg'], releaseAt: new Date().toISOString() }] });
     const r = await render(createElement(HostsScreen));
-    expect(flat(byId(r, 'host-card')[0])).toMatchObject({ borderRadius: 18, padding: 12 });
+    // 039 (Feed lane): the Feed card, was radius 18 / padding 12.
+    expect(flat(byId(r, 'host-card')[0])).toMatchObject({ borderRadius: 24, padding: 16 });
     expect(words(r)).toEqual(expect.arrayContaining(['Morning Notes', ' ›', 'New season starts Monday.']));
     const pics = r.root.findAll((n) => n.props['source']?.uri === 'https://x/a.jpg' && typeof n.type === 'string');
     expect(flat(pics[0])).toMatchObject({ width: NOTIF.pictureW, height: NOTIF.pictureH });
@@ -459,10 +463,11 @@ describe('From hosts and System (notifications-hosts--*, notifications-system--*
     expect(byLabel(r, 'Retry')).toBeDefined();
   });
 
-  it('a System card: padding 14, the title, the words and a light 40 action that opens its page', async () => {
+  it('a System card: padding 16, the title, the words and a light 40 action that opens its page', async () => {
     mockSystem = () => Promise.resolve([{ id: 's1', title: 'Your appeal was accepted', body: 'Visible again.', createdAt: new Date().toISOString(), action: { label: 'Open the comment', route: '/comments/x' } }]);
     const r = await render(createElement(SystemScreen));
-    expect(flat(byId(r, 'system-card')[0])).toMatchObject({ padding: 14, borderRadius: 18 });
+    // 039 (Feed lane): the Feed card, was padding 14 / radius 18.
+    expect(flat(byId(r, 'system-card')[0])).toMatchObject({ padding: 16, borderRadius: 24 });
     expect(flat(byLabel(r, 'Open the comment'))).toMatchObject({ height: 40 });
     press(r, 'Open the comment');
     expect(mockPush).toHaveBeenCalledWith('/comments/x');
@@ -502,7 +507,7 @@ describe('Friends listening (friends-listening--*)', () => {
     press(r, 'Close');
   });
 
-  it('nothing yet: "Quiet week"; signed out: Sign in; a failed load: the error tile with Retry', async () => {
+  it('nothing yet: "Quiet week"; signed out: Sign in; a failed load: the notice with Retry', async () => {
     let r = await render(createElement(FriendsListening));
     expect(words(r)).toContain('Quiet week');
     act(() => r.unmount());
@@ -515,9 +520,10 @@ describe('Friends listening (friends-listening--*)', () => {
     mockListener = { listenerId: 'me', displayName: 'Mei' };
     mockListening = () => Promise.reject(new Error('down'));
     r = await render(createElement(FriendsListening));
-    expect(byId(r, 'err-tile').length).toBe(1);
-    expect(flat(byId(r, 'err-tile')[0])).toMatchObject({ borderRadius: 22, padding: 16, marginLeft: 28, marginRight: 16 });
-    expect(flat(byLabel(r, 'Retry'))).toMatchObject({ height: 40 });
+    // 039 (Feed lane): was the error tile (radius 22, padding 16, lane 28 / 16, Retry 40); now an InlineNotice (radius 16, padding 16, a 44 Retry).
+    expect(byId(r, 'inline-notice').length).toBe(1);
+    expect(flat(byId(r, 'inline-notice')[0])).toMatchObject({ borderRadius: 16, padding: 16 });
+    expect(flat(byLabel(r, 'Retry'))).toMatchObject({ minHeight: 44 });
   });
 });
 

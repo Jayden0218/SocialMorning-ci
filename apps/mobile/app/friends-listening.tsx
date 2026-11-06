@@ -19,25 +19,28 @@
  * that opens the sheet: the line, the privacy rule in a lock tile, Close. Signed out: an empty block with a light Sign in (the info
  * circle still works); nothing yet: "Quiet week"; a failed load: the error tile with Retry.
  *
+ * Spec 039 (Feed lane, design B): a `FeedPage`; "Their likes" is a `Section` holding a `Shelf` of the 250 x 160 cards; what people played is ONE card each (the
+ * player's avatar, "Jo played" with the age, the episode, a light Play), no spine; a failed load is an `InlineNotice` with Retry.
+ *
  * Not as drawn: the buttons' words are Geist 15 (the kit's button), the drawing's are 12.
  */
 import { useLoad } from '@/ui/kit/useLoad';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { colour, spacing } from '@/design';
 import { drawnType } from '@/design/type-px';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Avatar } from '@/ui/kit/Avatar';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { InlineNotice, Section, Shelf } from '@/ui/kit/layout';
+import { FeedEmpty, FeedPage } from '@/ui/feed/FeedPage';
+import { ItemCard } from '@/ui/notifications/cards';
 import { Type } from '@/ui/kit/Type';
 import { useCardActions } from '@/discover/useDiscover';
 import { ago } from '@/discover/sections';
@@ -46,10 +49,8 @@ import { useM12Api, type FriendListen } from '@/social/m12-api';
 import { whoListened } from '@/social/who';
 import { openLikePost } from '@/ui/discover/TheirLikes';
 import { useProfileApi, type LikeItem } from '@/social/profile-api';
-import { CenterAt, ErrTile, SignInBlock } from '@/ui/chat/blocks';
-import { LIST, PageEmpty } from '@/ui/me/lists';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
-import { SpineColumn } from '@/ui/notifications/parts';
+import { SignInBlock } from '@/ui/chat/blocks';
+import { LIST } from '@/ui/me/lists';
 import { FRIENDS } from '@/ui/notifications/measures';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
@@ -121,84 +122,66 @@ export default function FriendsListening(): React.ReactElement {
   const items = state.kind === 'ok' ? state.items : [];
   const who = (item: FriendListen): string => `${whoListened(item.listeners.map((l) => l.name))} played`;
 
+  const empty = !listener ? (
+    <SignInBlock line="Sign in to see what people you follow are playing">
+      <PulseButton label="Sign in" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')} full />
+    </SignInBlock>
+  ) : state.kind === 'loading' ? <Loader className="my-section" />
+    : state.kind === 'error' ? undefined
+      : <FeedEmpty title="Quiet week" line="Nobody you follow has played anything public this week" />;
+
   return (
-    <PushedPage
-      title="Friends listening"
-      subtitle="This week"
-      actions={[{ icon: 'information-circle-outline', label: 'What is this page?', onPress: () => setHelp(true) }]}
-    >
-      {(layout) => (
-        <>
-          {!listener ? (
-            <CenterAt top={240}>
-              <SignInBlock line="Sign in to see what people you follow are playing">
-                <PulseButton label="Sign in" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')} full />
-              </SignInBlock>
-            </CenterAt>
-          ) : (
-            <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, paddingTop: layout.top + FRIENDS.topBelowStatus, paddingBottom: layout.reserve }}>
-              {likes.length > 0 ? (
-                <Box className="relative" style={{ paddingBottom: FRIENDS.deckBelow }} testID="likes-deck">
-                  <EdgeLabel label="Their likes" top={4} />
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    snapToInterval={FRIENDS.deckWidth + FRIENDS.deckSpace}
-                    decelerationRate="fast"
-                    style={{ flexGrow: 0 }}
-                    contentContainerStyle={{ paddingLeft: ME_MOSAIC.lane, paddingRight: ME_MOSAIC.right, gap: FRIENDS.deckSpace }}
-                  >
+    <>
+      <FeedPage<FriendListen>
+        title="Friends listening"
+        subtitle="This week"
+        actions={[{ icon: 'information-circle-outline', label: 'What is this page?', onPress: () => setHelp(true) }]}
+        data={listener ? items : []}
+        keyExtractor={(item) => item.episode.id}
+        contentStyle={{ flexGrow: 1 }}
+        gap={spacing.row}
+        ListHeaderComponent={listener ? (
+          <>
+            {likes.length > 0 ? (
+              <Box testID="likes-deck">
+                <Section title="Their likes">
+                  <Shelf>
                     {likes.map((it, i) => it.listener ? (
                       <LikeDeckCard key={`${it.listener.id}|${it.episode.id}|${i}`} item={it} following={!unfollowed.has(it.listener.id)} onFollow={() => it.listener && toggleFollow(it.listener.id)} />
                     ) : null)}
-                  </ScrollView>
-                </Box>
-              ) : null}
-              {state.kind === 'loading' ? <Loader className="my-section" />
-                : state.kind === 'error' ? (
-                  <Box style={{ paddingTop: ME_MOSAIC.row }}>
-                    <ErrTile line="Couldn't load this right now.">
-                      <PulseButton label="Retry" accessibilityLabel="Retry" kind="quiet" icon="repeat-outline" onPress={load} height={40} className="self-start border border-line" />
-                    </ErrTile>
+                  </Shelf>
+                </Section>
+              </Box>
+            ) : null}
+            {state.kind === 'error' ? <InlineNotice text="Couldn't load this right now." actionLabel="Retry" onAction={load} /> : null}
+          </>
+        ) : null}
+        ListEmptyComponent={empty}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={items.length > 0 ? <EndOfList /> : undefined}
+        renderItem={({ item }) => (
+          <Box testID="friend-node">
+            <ItemCard testID="friend-card">
+              <Box className="flex-row items-center" style={{ gap: FRIENDS.rowGap }}>
+                <Avatar size={FRIENDS.avatar} name={item.listeners[0]?.name} />
+                <Type step="strong" className="text-text font-semibold flex-1" numberOfLines={1}>{who(item)}</Type>
+                <Type step="tag" className="text-text3">{ago(item.lastAt, now)}</Type>
+              </Box>
+              <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
+                <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="flex-1 flex-row items-center" style={{ gap: spacing.row - 2 }}>
+                  <Artwork url={item.episode.imageUrl} size={FRIENDS.cover} name={item.episode.showTitle} />
+                  <Box className="flex-1 min-w-0">
+                    <Type step="compact" className="text-text font-bold" numberOfLines={2}>{item.episode.title}</Type>
+                    <Type step="caption" className="text-text2" numberOfLines={1}>{item.episode.showTitle}</Type>
                   </Box>
-                )
-                  : items.length === 0 ? <PageEmpty top={ME_MOSAIC.row} title="Quiet week" line="Nobody you follow has played anything public this week" />
-                    : (
-                      <SpineColumn>
-                        <Box style={{ paddingLeft: LIST.left, paddingRight: LIST.right, gap: FRIENDS.nodeGap }}>
-                          {items.map((item) => (
-                            <Box key={item.episode.id} className="flex-row" style={{ gap: FRIENDS.rowGap }} testID="friend-node">
-                              <Box className="bg-void items-center justify-center" style={{ width: FRIENDS.avatar, height: FRIENDS.avatar, borderRadius: FRIENDS.avatar / 2, zIndex: 2 }} accessible={false} importantForAccessibility="no-hide-descendants">
-                                <Avatar size={FRIENDS.avatar - 2 * FRIENDS.ring} name={item.listeners[0]?.name} />
-                              </Box>
-                              <Box className="flex-1 min-w-0 bg-raise" style={{ borderRadius: LIST.cardRadius, padding: LIST.cardPad, gap: 8 }} testID="friend-card">
-                                <Box className="flex-row items-center" style={{ gap: 8 }}>
-                                  <Type step="caption" className="text-text font-semibold" numberOfLines={1} style={{ flexShrink: 1 }}>{who(item)}</Type>
-                                  <Type step="tag" className="text-text3">{ago(item.lastAt, now)}</Type>
-                                </Box>
-                                <Box className="flex-row items-center" style={{ gap: 10 }}>
-                                  <Pressable onPress={() => void open(item.episode)} accessibilityRole="button" accessibilityLabel={`${item.episode.title}, ${item.episode.showTitle}`} className="flex-1 flex-row items-center" style={{ gap: 10 }}>
-                                    <Artwork url={item.episode.imageUrl} size={FRIENDS.cover} name={item.episode.showTitle} />
-                                    <Box className="flex-1 min-w-0">
-                                      <Type step="compact" className="text-text font-bold" numberOfLines={2}>{item.episode.title}</Type>
-                                      <Type step="caption" className="text-text2" numberOfLines={1}>{item.episode.showTitle}</Type>
-                                    </Box>
-                                  </Pressable>
-                                  <PulseButton label="Play" accessibilityLabel={`Play ${item.episode.title}`} icon="play" height={FRIENDS.playHeight} padX={spacing.section - 2} onPress={() => void play(item.episode)} />
-                                </Box>
-                              </Box>
-                            </Box>
-                          ))}
-                          {/* Owner, 2026-10-05: the bottom of a fetched list says so. */}
-                          <EndOfList />
-                        </Box>
-                      </SpineColumn>
-                    )}
-            </ScrollView>
-          )}
-          {helpSheet}
-        </>
-      )}
-    </PushedPage>
+                </Pressable>
+                <PulseButton label="Play" accessibilityLabel={`Play ${item.episode.title}`} icon="play" height={FRIENDS.playHeight} padX={spacing.section - 2} onPress={() => void play(item.episode)} />
+              </Box>
+            </ItemCard>
+          </Box>
+        )}
+      />
+      {helpSheet}
+    </>
   );
 }

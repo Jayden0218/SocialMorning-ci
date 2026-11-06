@@ -99,24 +99,16 @@ const styled = (r: ReactTestRenderer, label: string): ReactTestInstance => {
 };
 
 describe('the page on the drawn phone', () => {
-  it('is the cover stage: 330 under a 340 veil, the words start 150 from the top (the old header and card are gone)', async () => {
+  it('is the Detail frame (039; was the 330 cover stage under a 340 veil): the header block, the words, then the comments', async () => {
     const r = await render();
-    expect(flat(byId(r, 'like-cover'))['height']).toBe(330);
-    expect(flat(byId(r, 'like-veil'))['height']).toBe(340);
-    expect(flat(byId(r, 'like-stage'))['paddingTop']).toBe(150);
-    expect(words(r)).toEqual(expect.arrayContaining(['Aisha', 'liked 2h ago', '“The rain at the end.”', 'The long walk home', 'Comments']));
+    expect(hosts(r, (n) => n.props['testID'] === 'like-cover' || n.props['testID'] === 'like-veil')).toHaveLength(0);
+    expect(byId(r, 'like-stage')).toBeTruthy();
+    expect(words(r)).toEqual(expect.arrayContaining(['Aisha', 'liked 2h ago', '“The rain at the end.”', 'The long walk home', 'Comments · 2']));
     expect(words(r)).not.toContain('Aisha liked');
-    // the old title bar (a header named "Aisha liked") is not drawn: the page's foot is the comments zone
-    expect(hosts(r, (n) => n.props['accessibilityRole'] === 'header' && (n.props['accessibilityLabel'] === 'Aisha liked' || n.props['accessibilityLabel'] === 'Like'))).toHaveLength(0);
-    expect(byId(r, 'comments-zone')).toBeTruthy();
-  });
-
-  it('a taller status bar moves the words down with it', async () => {
-    let r!: ReactTestRenderer;
-    await act(async () => { r = create(createElement(SafeAreaInsetsContext.Provider, { value: { top: 59, bottom: 34, left: 0, right: 0 } }, createElement(LikePostScreen))); for (let i = 0; i < 6; i++) await Promise.resolve(); });
-    mounted.push(r);
-    expect(flat(byId(r, 'like-stage'))['paddingTop']).toBe(159);
-    expect(flat(byId(r, 'like-cover'))['height']).toBe(339);
+    // the title row says "Like" with Back; the composer is the list's foot
+    expect(byId(r, 'page-title-row')).toBeTruthy();
+    expect(comp(r, 'Back')).toBeDefined();
+    expect(byId(r, 'like-composer')).toBeTruthy();
   });
 
   it('the person: a 36 avatar and name that open the profile, a flag that reports them (not on your own like)', async () => {
@@ -136,7 +128,7 @@ describe('the page on the drawn phone', () => {
     const r = await render();
     const strip = flat(byId(r, 'like-strip'));
     expect(strip).toMatchObject({ borderRadius: 16, padding: 8 });
-    expect(strip['backgroundColor']).toBe('rgba(17,17,22,0.80)');
+    expect(strip['backgroundColor']).toBe('rgba(26,29,35,0.80)');
     expect(hosts(r, (n) => flat(n)['width'] === 40 && flat(n)['height'] === 40 && flat(n)['borderRadius'] === 10).length).toBeGreaterThan(0);
     expect(hosts(r, (n) => n.props['testID'] === 'play-dot' && flat(n)['width'] === 32).length).toBe(1);
     await press(r, 'Open The long walk home');
@@ -158,12 +150,12 @@ describe('the page on the drawn phone', () => {
     expect(mockClear).toHaveBeenCalledWith('u-aisha', 'e2');
   });
 
-  it('the comments: raise cards on a spine, Report on another\'s, Delete on yours (and any on your own like)', async () => {
+  it('the comments: raise cards (039: no spine), Report on another\'s, Delete on yours (and any on your own like)', async () => {
     const r = await render();
-    expect(byId(r, 'spine-line')).toBeTruthy();
+    expect(hosts(r, (n) => n.props['testID'] === 'spine-line')).toHaveLength(0);
     const cards = hosts(r, (n) => n.props['testID'] === 'like-comment');
     expect(cards).toHaveLength(2);
-    expect(flat(cards[0])).toMatchObject({ borderRadius: 18, padding: 12 });
+    expect(flat(cards[0])).toMatchObject({ borderRadius: 16, padding: 16 }); // LIST.cardRadius / cardPad; 039 I2: was 18 and 12
     expect(words(r)).toEqual(expect.arrayContaining(['Adding this to my walk list.', 'Same rain as last week?', 'Rui', '1h']));
     expect(comp(r, 'Report Rui')).toBeDefined();
     await press(r, 'Delete the comment by Me');
@@ -183,7 +175,7 @@ describe('the page on the drawn phone', () => {
 
   it('the foot: the count beside "Comments", a 56 composer (radius 22) with a 36 hot Send that is dim until words are typed', async () => {
     const r = await render();
-    expect(words(r)).toEqual(expect.arrayContaining(['Comments', '2']));
+    expect(words(r)).toEqual(expect.arrayContaining(['Comments · 2']));
     expect(flat(byId(r, 'like-composer'))).toMatchObject({ height: 56, borderRadius: 22 });
     const send = styled(r, 'Send');
     expect(flat(send)).toMatchObject({ width: 36, height: 36 });

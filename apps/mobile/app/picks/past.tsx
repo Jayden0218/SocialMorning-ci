@@ -19,16 +19,19 @@
  *
  * M22 US16: on a tablet (`useOpensInPane`) a pick opens its episode in the right pane
  * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
+ *
+ * Spec 039 (Feed lane, design B): a `FeedPage`; a day is a small caps heading (the date, "2 picks") over its cards, one card per pick (the cover with the show's
+ * first letter, the note, the show, the title, Play); no spine, no chip. "Show earlier days" closes the list. A failed load is an `InlineNotice` with Retry.
  */
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { Loader } from '@/ui/kit/Loader';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { InlineNotice } from '@/ui/kit/layout';
+import { FeedEmpty, FeedPage } from '@/ui/feed/FeedPage';
+import { Day } from '@/ui/notifications/cards';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type } from '@/ui/kit/Type';
 import { initialOf } from '@/ui/kit/Artwork';
 import { useCardActions } from '@/discover/useDiscover';
@@ -37,19 +40,11 @@ import { useSafety } from '@/safety/context';
 import type { EpisodeCard } from '@/social/api';
 import { useM12Api, type PastPick, type PastPicksDay } from '@/social/m12-api';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
-import { LinearGradient } from '@/design/tailwind';
-import { colour } from '@/design';
+import { radius, spacing } from '@/design';
 import { CoverBand, DiscPlay } from '@/ui/discover/Deck';
-import { RetryTile } from '@/ui/discover/Mosaic';
 import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
-import { bodyTop } from '@/ui/discover/page-parts';
-import { DRAWN, emptyTop, PageEmpty } from '@/ui/me/lists';
 
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; days: PastPicksDay[]; next?: string; more: 'idle' | 'loading' | 'error' };
-const SPINE = [colour.hot, colour.violet, colour.line] as const;
-/** The days sit 18 apart; a day's chip is 10 over its cards, the cards 10 apart. */
-const DAY_GAP = 18;
-const NOTE_FOOT = 10;
 
 export default function PastPicksScreen(): React.ReactElement {
   const router = useRouter();
@@ -86,7 +81,7 @@ export default function PastPicksScreen(): React.ReactElement {
 
   /** A pick with an episode: the cover with the show's first letter, the note, the show, the title, Play. */
   const withEpisode = (p: PastPick, card: EpisodeCard, i: number): React.ReactElement => (
-    <Box key={`${card.id}-${i}`} testID="past-pick" className="flex-row items-center bg-raise" style={{ borderRadius: PAGE.card.article.radius, padding: PAGE.card.issue.pad, gap: PAGE.card.issue.pad }}>
+    <Box key={`${card.id}-${i}`} testID="past-pick" className="flex-row items-center bg-raise" style={{ borderRadius: radius.card, padding: spacing.section, gap: spacing.row }}>
       <Pressable onPress={() => void open(card, pane)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`} className="flex-1 flex-row items-center min-w-0" style={{ gap: PAGE.card.issue.pad }}>
         <Box style={{ width: 56, height: 56 }} accessible={false} importantForAccessibility="no-hide-descendants">
           <CoverBand url={card.imageUrl} name={card.showTitle} height={56} width={56} />
@@ -106,7 +101,7 @@ export default function PastPicksScreen(): React.ReactElement {
 
   /** No episode yet: the note, and the show it came from. */
   const noteCard = (p: PastPick, i: number): React.ReactElement => (
-    <Pressable key={`${p.feedUrl}-${i}`} onPress={() => openShow(p.feedUrl)} accessibilityRole="link" accessibilityLabel={`${p.why}. Open the show`} className="bg-raise" style={{ borderRadius: PAGE.card.article.radius, padding: PAGE.card.issue.pad, gap: 4 }}>
+    <Pressable key={`${p.feedUrl}-${i}`} onPress={() => openShow(p.feedUrl)} accessibilityRole="link" accessibilityLabel={`${p.why}. Open the show`} className="bg-raise" style={{ borderRadius: radius.card, padding: spacing.section, gap: spacing.hair }}>
       <Type step="caption" className="text-quote italic" numberOfLines={4}>{`“${p.why}”`}</Type>
       <Type step="caption" className="text-hotText font-semibold">Open the show ›</Type>
     </Pressable>
@@ -116,42 +111,37 @@ export default function PastPicksScreen(): React.ReactElement {
     ? state.days.map((d) => ({ ...d, picks: d.picks.filter((p) => !hiddenFeeds.has(p.feedUrl)) })).filter((d) => d.picks.length > 0)
     : [];
 
+  const empty = state.kind === 'loading' ? <Loader className="my-section" />
+    : state.kind === 'ok' && days.length === 0 ? <FeedEmpty title="No earlier picks yet" />
+      : undefined;
+
   return (
-    <PushedPage title="Past picks" subtitle="Every day the editors picked">
-      {(layout) => (
-        <ListDetail
-          placeholder="Choose an episode to see it here."
-          detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
-          list={
-            <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body64), paddingBottom: layout.reserve }}>
-              {state.kind === 'loading' ? <Loader className="my-section" /> : null}
-              {state.kind === 'error' ? <Box style={{ marginTop: 120 - PAGE.body64 }}><RetryTile line="Couldn't load past picks right now." onRetry={first} /></Box> : null}
-              {state.kind === 'ok' && days.length === 0 ? <PageEmpty top={emptyTop(260) - (PAGE.body64 - DRAWN.listTop)} title="No earlier picks yet" /> : null}
-              {days.length > 0 ? (
-                <Box testID="past-thread" style={{ paddingLeft: PAGE.threadLeft, paddingRight: PAGE.threadRight }}>
-                  <LinearGradient colors={SPINE} locations={[0, 0.6, 1]} testID="past-spine" pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', left: PAGE.pastSpine, top: PAGE.gap, bottom: 0, width: 2 }} />
-                  {days.map((d) => (
-                    <Box key={d.date} style={{ marginBottom: DAY_GAP }}>
-                      <Box className="flex-row items-center" style={{ gap: PAGE.gap, marginBottom: PAGE.gap }}>
-                        <Box className="bg-void" style={{ paddingVertical: 2, zIndex: 2 }}><TimestampChip text={dayTitle(d.date).replace(/ \d{4}$/, '')} solid /></Box>
-                        <Type step="tag" className="text-text3" style={PAGE_TYPE.mono11}>{d.picks.length === 1 ? '1 pick' : `${d.picks.length} picks`}</Type>
-                      </Box>
-                      <Box style={{ marginLeft: PAGE.pastCard, gap: NOTE_FOOT }}>
-                        {d.picks.map((p, i) => (p.episode ? withEpisode(p, p.episode, i) : noteCard(p, i)))}
-                      </Box>
-                    </Box>
-                  ))}
-                  {state.kind === 'ok' && state.next ? (
-                    <Box style={{ marginLeft: PAGE.pastCard, alignItems: 'flex-start' }}>
-                      {state.more === 'loading' ? <Loader /> : <PulseButton kind="quiet" height={40} label={state.more === 'error' ? "Couldn't load — try again" : 'Show earlier days'} accessibilityLabel="Show earlier days" onPress={loadMore} />}
-                    </Box>
-                  ) : null}
-                </Box>
-              ) : null}
-            </ScrollView>
-          }
+    <ListDetail
+      placeholder="Choose an episode to see it here."
+      detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+      list={
+        <FeedPage<(typeof days)[number]>
+          title="Past picks"
+          subtitle="Every day the editors picked"
+          data={days}
+          keyExtractor={(d) => d.date}
+          contentStyle={{ flexGrow: 1 }}
+          ListHeaderComponent={state.kind === 'error' ? <InlineNotice text="Couldn't load past picks right now." actionLabel="Retry" onAction={first} /> : null}
+          ListEmptyComponent={empty}
+          ListFooterComponent={state.kind === 'ok' && state.next ? (
+            <Box testID="past-thread" style={{ alignItems: 'flex-start' }}>
+              {state.more === 'loading' ? <Loader /> : <PulseButton kind="quiet" height={40} label={state.more === 'error' ? "Couldn't load — try again" : 'Show earlier days'} accessibilityLabel="Show earlier days" onPress={loadMore} />}
+            </Box>
+          ) : undefined}
+          renderItem={({ item: d }) => (
+            <Day label={`${dayTitle(d.date).replace(/ \d{4}$/, '')} · ${d.picks.length === 1 ? '1 pick' : `${d.picks.length} picks`}`}>
+              <Box style={{ gap: spacing.row }}>
+                {d.picks.map((p, i) => (p.episode ? withEpisode(p, p.episode, i) : noteCard(p, i)))}
+              </Box>
+            </Day>
+          )}
         />
-      )}
-    </PushedPage>
+      }
+    />
   );
 }

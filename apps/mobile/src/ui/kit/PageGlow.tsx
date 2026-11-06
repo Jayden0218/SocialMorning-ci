@@ -1,7 +1,7 @@
 // The soft two-colour glow behind the top of a page, as the pushed pages' drawings paint it.
 /**
  * M31 W3-B (design-pulse2 `kit.js` `glow(a, b, top, strength)`; `listen.html` `pushed()` paints
- * `glow('#FF4D6D','#7A3CFF',-220,.32)`, the error and missing-episode pages `glow('#3A3A44','#24242C',-200,.4)`).
+ * `glow(hot, violet, -220, .32)`, the error and missing-episode pages `glow('#3A3A44','#24242C',-200,.4)`).
  * Two radial glows, the first at 35 % across and 50 % down, the second at 70 % across and 40 % down,
  * in a box 520 tall that starts `top` above the screen and reaches 30 % past each side. The drawing
  * blurs a CSS gradient; React Native has no blur filter, so each is a radial gradient fading to nothing
@@ -15,10 +15,10 @@ import { colour } from '@/design';
 
 export const PAGE_GLOW = { height: 520, spread: 0.3, hotTop: -220, hotStrength: 0.32, greyTop: -200, greyStrength: 0.4, blueTop: -180, blueStrength: 0.3 } as const;
 /** `blue`: a topic list's page, drawn `glow('#3B82F6','#7A3CFF',-180,.3)` (design-pulse2 `topic--screen`). */
-/** `ember`: hot against the line colour, the crashed-screen page (`glow('#FF4D6D','#24242C',-60,.4)`, shell.html `error-boundary--screen`). */
+/** `ember`: hot against the line colour, the crashed-screen page (`glow(hot, line, -60, .4)`, shell.html `error-boundary--screen`). */
 export type GlowTone = 'hot' | 'grey' | 'blue' | 'ember';
 
-/** `flip`: the violet glow first (the status viewer is drawn `glow('#7A3CFF','#FF4D6D',-140,.45)`); hot first by default. */
+/** `flip`: the violet glow first (the status viewer is drawn `glow(violet, hot, -140, .45)`); hot first by default. */
 export function PageGlow(props: { tone?: GlowTone; top?: number; strength?: number; flip?: boolean; /** M31 W6-A: the drawing's own two colours (the gift page paints its pink then violet). */ colours?: readonly [string, string] }): React.ReactElement {
   const { width } = useWindowDimensions();
   const grey = props.tone === 'grey';

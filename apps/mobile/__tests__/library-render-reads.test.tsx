@@ -121,9 +121,10 @@ it('collected: opening an item does not count the stores again', async () => {
 it('opml: an import still refreshes the subscription count', async () => {
   setup();
   const r = await mount(createElement(OpmlScreen));
-  expect(allText(r)).toContain('EXPORT | 1 | subscription |');
+  // Spec 039 (was 'EXPORT | …': the section heading drew small capitals; the List lane's heading is sentence case, "Export").
+  expect(allText(r)).toContain('Export | 1 | subscription |');
   const input = r.root.findAll((n) => n.props['accessibilityLabel'] === 'OPML to import' && typeof n.props['onChangeText'] === 'function')[0]!;
   await act(async () => { input.props['onChangeText']('<opml><body><outline xmlUrl="https://other.example/rss.xml" text="O"/></body></opml>'); });
   await press(r, 'Subscribe to 1');
-  expect(allText(r)).toContain('EXPORT | 2 | subscriptions |');
+  expect(allText(r)).toContain('Export | 2 | subscriptions |');
 });

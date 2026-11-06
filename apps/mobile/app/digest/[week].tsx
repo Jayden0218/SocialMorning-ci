@@ -12,19 +12,23 @@
  * heat curve (40 bars, 26), the length in mono and Play (42). Under SHOWS the covers (56) of the shows they came from. None: the empty block
  * "No catch-up here." with PLUS's line, no Queue all. Error: "Couldn't load your catch-up. Try again later.".
  *
+ * Spec 039 (Feed lane, design B): a `FeedScroll`; Queue all is the hot full-width button right under the title row; "Unplayed" and "Shows" are `Section` headings
+ * (no edge labels): the Deck starts on the 20 gutter and runs off the right edge; the show covers start on the gutter. An error is the error tile with its line.
+ *
  * Not as drawn: the toast ("Added 4 to the queue") sits where a pushed page's toasts do, not 216 up over the Queue all zone — the toast's
  * lift is the shell's (`src/ui/shell/toastPlacement.ts`, not this lane's).
  */
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView } from '@/ui/lib/scroll-view';
+import { useWindowDimensions } from 'react-native';
 import { Box } from '@/ui/lib/box';
-import { hit, spacing } from '@/design';
+import { gutter } from '@/design';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Curve } from '@/ui/kit/Curve';
 import { Loader } from '@/ui/kit/Loader';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { Section } from '@/ui/kit/layout';
+import { FeedEmpty, FeedScroll } from '@/ui/feed/FeedPage';
 import { Type } from '@/ui/kit/Type';
 import { minutesLabel } from '@/ui/kit/format';
 import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
@@ -34,17 +38,12 @@ import { queueEpisode } from '@/settings/queue';
 import { useSocial } from '@/social/context';
 import { useM22Api, type Digest, type DigestEpisode } from '@/social/api-m22-server';
 import { ErrTile } from '@/ui/chat/blocks';
-import { DECK, Deck, DeckCard, DeckSection, DiscPlay } from '@/ui/discover/Deck';
+import { DECK, Deck, DeckCard, DiscPlay } from '@/ui/discover/Deck';
 import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
-import { bodyTop } from '@/ui/discover/page-parts';
 import { useEpisodeHeat } from '@/ui/discover/useEpisodeHeat';
-import { DRAWN, emptyTop, PageEmpty } from '@/ui/me/lists';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
 
 const NO_HEAT: readonly number[] = Array.from({ length: 100 }, () => 0);
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
-/** The Queue all zone is the 48 button and the gap above the title row. */
-const QUEUE_ZONE = hit.min + spacing.gap + 2;
 
 function DigestCard(props: { e: DigestEpisode; onPlay: () => void }): React.ReactElement {
   const { e } = props;
@@ -109,34 +108,30 @@ export default function DigestScreen(): React.ReactElement {
   const ready = digest !== undefined && digest !== 'none' && digest !== 'error';
   const episodes = ready ? digest.episodes : [];
   const shows = episodes.filter((e, i) => episodes.findIndex((x) => x.feedUrl === e.feedUrl) === i);
+  const side = gutter(useWindowDimensions().width);
   const queueButton = ready && episodes.length > 0 ? <PulseButton kind="hot" full icon="list-outline" label="Queue all" onPress={() => queueAll(episodes)} /> : undefined;
   return (
-    <PushedPage
-      title="Weekly catch-up"
-      {...(ready ? { subtitle: `New last week · ${episodes.length} unplayed` } : {})}
-      {...(queueButton ? { extra: queueButton, extraAbove: QUEUE_ZONE } : {})}
-    >
-      {(layout) => (
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body70), paddingBottom: layout.reserve }}>
-          {digest === undefined ? <Box className="items-center" style={{ marginTop: spacing.section }}><Loader /></Box> : null}
-          {digest === 'none' ? <PageEmpty top={emptyTop(250) - (PAGE.body70 - DRAWN.listTop)} title="No catch-up here." line="PLUS members get one on Mondays when their shows had new episodes." /> : null}
-          {digest === 'error' ? <ErrTile line="Couldn't load your catch-up. Try again later." /> : null}
-          {ready && episodes.length > 0 ? (
-            <>
-              <DeckSection label="Unplayed">
-                <Deck width={PAGE.digest.width} height={PAGE.digest.height} accessibilityLabel="Unplayed episodes">
-                  {episodes.map((e) => <DigestCard key={e.id} e={e} onPlay={() => play(e)} />)}
-                </Deck>
-              </DeckSection>
-              <DeckSection label="Shows">
-                <Box testID="digest-shows" className="flex-row" style={{ marginLeft: ME_MOSAIC.lane, gap: PAGE.gap, flexWrap: 'wrap' }}>
-                  {shows.map((e) => <Artwork key={e.feedUrl} url={e.imageUrl} size={56} name={e.showTitle ?? e.title} />)}
-                </Box>
-              </DeckSection>
-            </>
-          ) : null}
-        </ScrollView>
-      )}
-    </PushedPage>
+    <FeedScroll title="Weekly catch-up" {...(ready ? { subtitle: `New last week · ${episodes.length} unplayed` } : {})}>
+      {queueButton ?? null}
+      {digest === undefined ? <Box className="items-center"><Loader /></Box> : null}
+      {digest === 'none' ? <FeedEmpty title="No catch-up here." line="PLUS members get one on Mondays when their shows had new episodes." /> : null}
+      {digest === 'error' ? <ErrTile line="Couldn't load your catch-up. Try again later." /> : null}
+      {ready && episodes.length > 0 ? (
+        <>
+          <Section title="Unplayed">
+            <Box style={{ marginHorizontal: -side }}>
+              <Deck width={PAGE.digest.width} height={PAGE.digest.height} lead={side} accessibilityLabel="Unplayed episodes">
+                {episodes.map((e) => <DigestCard key={e.id} e={e} onPlay={() => play(e)} />)}
+              </Deck>
+            </Box>
+          </Section>
+          <Section title="Shows">
+            <Box testID="digest-shows" className="flex-row flex-wrap" style={{ gap: PAGE.gap }}>
+              {shows.map((e) => <Artwork key={e.feedUrl} url={e.imageUrl} size={56} name={e.showTitle ?? e.title} />)}
+            </Box>
+          </Section>
+        </>
+      ) : null}
+    </FeedScroll>
   );
 }

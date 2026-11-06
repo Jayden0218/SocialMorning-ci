@@ -2,12 +2,10 @@
 /**
  * M31 S-B (T060 part 2; design-pulse2 `settings.html` helpers `page`, `sec`, `tile`, `row`, `group`, `big`, `bigs`): the parts every
  * settings page from Network to Widgets is built from, so they are drawn once.
- *  - `SettingsPage`: a `PushedPage` (the glow, the title low in the bottom bar, back) whose content starts 14 under the status bar, 28
- *    in from the left (the edge-label lane; 16 for a page without one) and 16 from the right, blocks 12 apart, and leaves room for the
- *    title bar. `foot` puts the page's buttons under the title (`below`: 52 tall, 20 from each side, 10 apart).
- *  - `Section`: a block named by a vertical edge label in the lane (or unnamed).
+ *  - `SettingsPage`: a `Page` (Back + title, 20 gutter, 24 between blocks); `foot` puts the page's buttons under the title.
+ *  - `Section`: a block under the kit Section's heading (or unnamed).
  *  - `Tile`: raise, radius 22, 16 of padding, 10 between its parts.
- *  - `Row` / `SwitchRow` / `LinkRow`: a group row (60 tall, 13 / 16 of padding, an icon 22, the name Geist 600 15, the line Geist 400 13 in
+ *  - `Row` / `SwitchRow` / `LinkRow`: a group row (56 tall, 16 of padding, a tinted 34 icon tile, the name Geist 600 15, the line Geist 400 13 in
  *    text-2, the switch or a chevron at the end) for `PanelGroup`.
  *  - `BigSwitch`: the large 2-column switch tile (112 tall, icon 24 and the switch on top, the name and a mono state below; on = the
  *    warm fill with a hot ring and hot-text state).
@@ -15,62 +13,73 @@
  *  - `SettingsSegment`: the two-way track (raise-2, 4 / 4, radius 18; the chosen choice light).
  * Same names and handlers as the rows they replace (`rows.tsx` keeps the older look for pages not redrawn yet).
  */
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { useContext, type ReactNode } from 'react';
 import { Link } from 'expo-router';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
-import { colour, hit } from '@/design';
-import { settingsColour } from '@/design/tokens';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
+import { colour, hit, spacing } from '@/design';
+import { player, settingsColour } from '@/design/tokens';
 import { Icon, type IconName } from '@/ui/kit/Icon';
-import { PushedPage, type PushedLayout } from '@/ui/kit/PushedPage';
+import { goBack } from '@/ui/kit/PageHeader';
+import { IconButton } from '@/ui/kit/PulseButton';
 import { Toggle } from '@/ui/kit/Toggle';
 import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
+import { Page, Section as PageSection } from '@/ui/kit/layout';
+import { useToastPlacement } from '@/ui/shell/toastPlacement';
 import { SET, SET_TYPE } from './measures';
 
-const LaneContext = createContext<boolean>(true);
+/**
+ * Spec 039 (List lane): a settings page is a `Page` (Back + title, the 20 gutter, 24 between blocks, a clear foot); a labelled `Section` is the
+ * kit Section's heading above its block (no edge label, nothing sideways); a group row is 56 tall with a tinted icon, the name, a line and a chevron.
+ */
 
-/** A settings page: the glow, the content under the status bar, the title bar low, and an optional row of buttons under the title. */
+/** A settings page: Back + title, an optional line and row of buttons under the title, then the blocks. */
 export function SettingsPage(props: {
   title: string;
   subtitle?: string;
-  /** The drawn size of a long title (Third-party sharing 28); 30 by default. */
+  /** No longer drawn differently (kept so callers need not change): a long title wraps on the title row. */
   size?: number;
-  /** A page with no edge labels draws its content 16 from the left instead of 28. */
+  /** No longer used: there is no edge-label lane. */
   lane?: boolean;
   /** The buttons under the title (`SET.footButton` tall). */
   foot?: ReactNode;
-  /** The page lays its own scroll (a page that needs the layout's measures); the default is one ScrollView. */
-  children: ReactNode | ((layout: PushedLayout) => ReactNode);
+  /** Drawn under the title and its line (a small eyebrow, a field). */
+  extra?: ReactNode;
+  /** Replaces the default Back (a page that opens a detail inside itself). */
+  onBack?: () => void;
+  children: ReactNode;
   testID?: string;
 }): React.ReactElement {
-  const lane = props.lane !== false;
+  const insets = useContext(SafeAreaInsetsContext);
+  const placed = useToastPlacement();
+  // The root layout pads the home strip once (guard G-T1), so Page pads none of it.
+  const own = { top: insets?.top ?? 0, bottom: 0, left: insets?.left ?? 0, right: insets?.right ?? 0 };
   return (
-    <PushedPage title={props.title} {...(props.subtitle ? { subtitle: props.subtitle } : {})} {...(props.size ? { size: props.size } : {})} {...(props.foot ? { below: props.foot, belowHeight: SET.footButton } : {})}>
-      {(layout) => (
-        <LaneContext.Provider value={lane}>
-          <ScrollView testID={props.testID ?? 'settings-scroll'} className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: layout.top + SET.top, paddingRight: SET.right, paddingLeft: lane ? 0 : SET.noLane, paddingBottom: layout.reserve, gap: SET.gap }}>
-            {typeof props.children === 'function' ? props.children(layout) : props.children}
-          </ScrollView>
-        </LaneContext.Provider>
-      )}
-    </PushedPage>
+    <SafeAreaInsetsContext.Provider value={own}>
+      <Page title={props.title} now={placed.now} leading={<IconButton icon="chevron-back" label="Back" onPress={props.onBack ?? goBack} fill size={22} />}>
+        <Box testID={props.testID ?? 'settings-scroll'} style={{ gap: spacing.block }}>
+          {props.subtitle ? <Type step="caption" className="text-text2" numberOfLines={2}>{props.subtitle}</Type> : null}
+          {props.extra ?? null}
+          {props.foot ? <Box testID="settings-foot" style={{ gap: SET.footGap }}>{props.foot}</Box> : null}
+          {props.children}
+        </Box>
+      </Page>
+    </SafeAreaInsetsContext.Provider>
   );
 }
 
-/** A block of the page; with a `label` it is named by the vertical label in the 28 lane. */
+/** A block of the page; with a `label` the kit Section's heading sits above it. */
 export function Section(props: { label?: string; spoken?: string; children: ReactNode; testID?: string; style?: React.ComponentProps<typeof Box>['style'] }): React.ReactElement {
-  const lane = useContext(LaneContext);
-  // M31 F8: at least as tall as the turned label, so consecutive short sections do not overlap their labels.
-  const [len, setLen] = useState(0);
-  return (
-    <Box testID={props.testID} className="relative" style={[{ paddingLeft: lane ? SET.lane : 0 }, props.label && len > 0 ? { minHeight: len + 2 } : undefined, props.style]}>
-      {props.label ? <EdgeLabel label={props.label} {...(props.spoken ? { spoken: props.spoken } : {})} top={2} onLength={setLen} /> : null}
-      {props.children}
-    </Box>
-  );
+  if (props.label) {
+    return (
+      <Box testID={props.testID} style={props.style}>
+        <PageSection title={props.label}>{props.children}</PageSection>
+      </Box>
+    );
+  }
+  return <Box testID={props.testID} style={props.style}>{props.children}</Box>;
 }
 
 /** The raise tile: radius 22, 16 of padding, 10 between its parts. */
@@ -96,7 +105,11 @@ function RowBody(props: { icon?: IconName; label: string; line?: string; danger?
   const c = useColours();
   return (
     <>
-      {props.icon ? <Icon name={props.icon} size={SET.rowIcon} color={props.danger ? c.hotText : c.text} /> : null}
+      {props.icon ? (
+        <Box className="items-center justify-center" style={{ width: player.panelIcon, height: player.panelIcon, borderRadius: player.panelIconRadius, backgroundColor: colour.accentTint }} accessible={false} importantForAccessibility="no-hide-descendants">
+          <Icon name={props.icon} size={player.panelIconGlyph} color={c.hotText} />
+        </Box>
+      ) : null}
       <Box className="flex-1" style={{ minWidth: 0 }}>
         <Type step="row" className={props.danger ? 'text-hotText' : 'text-text'}>{props.label}</Type>
         {props.line ? <Box style={{ marginTop: SET.rowLineGap }}><Line>{props.line}</Line></Box> : null}
@@ -107,10 +120,10 @@ function RowBody(props: { icon?: IconName; label: string; line?: string; danger?
   );
 }
 
-const ROW = { minHeight: SET.rowMin, paddingVertical: SET.rowPadY, paddingHorizontal: SET.rowPadX, gap: SET.rowGap };
+const ROW = { minHeight: player.panelRow, paddingHorizontal: spacing.section, paddingVertical: spacing.gap, gap: spacing.row };
 const ROW_FLEX = 'flex-row items-center';
-/** A link row is never under 48 to the finger (a one-line row is 60 already). */
-const LINK_ROW = { ...ROW, minHeight: Math.max(SET.rowMin, hit.min) };
+/** A link row is never under 48 to the finger (a row is 56). */
+const LINK_ROW = { ...ROW, minHeight: Math.max(player.panelRow, hit.min) };
 
 /** A group row that is a plain display (a value at its end, nothing to tap). */
 export function Row(props: { icon?: IconName; label: string; line?: string; right?: ReactNode; danger?: boolean; testID?: string; accessibilityLabel?: string }): React.ReactElement {

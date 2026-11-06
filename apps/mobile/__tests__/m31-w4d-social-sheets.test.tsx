@@ -193,6 +193,15 @@ describe('the status rail', () => {
     expect(text(r)).toContain('You');
     expect(text(r)).not.toContain('New');
   });
+  it('039 I2: the rail starts on the 20 gutter and ends on it, in both variants (was 16 on the rail and 24 on the Updates tab)', async () => {
+    for (const variant of ['rail', 'updates'] as const) {
+      const r = await mount(<VoicePosts variant={variant} load={() => Promise.resolve([post] as never)} remove={jest.fn()} pauseEpisode={jest.fn()} colours={colours} />);
+      await act(async () => { await Promise.resolve(); });
+      const row = hosts(r, (n) => n.props['horizontal'] === true)[0]!;
+      const content = StyleSheet.flatten(row.props['contentContainerStyle']) as Record<string, number>;
+      expect([variant, content['paddingLeft'], content['paddingRight']]).toEqual([variant, 20, 20]);
+    }
+  });
   it('the chooser is the kit sheet with both ways to post and Cancel', async () => {
     const r = await mount(<VoicePosts load={() => Promise.resolve([])} remove={jest.fn()} pauseEpisode={jest.fn()} colours={colours} />);
     await act(async () => { byLabel(r, 'Post a status: voice or text')!.props['onPress'](); });

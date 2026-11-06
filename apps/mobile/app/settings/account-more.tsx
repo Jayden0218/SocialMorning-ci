@@ -30,19 +30,20 @@
  * until six digits are in; busy shows a bar).
  */
 import { useState } from 'react';
-import { Input, InputField } from '@/ui/lib/input';
 import { Box } from '@/ui/lib/box';
 import { colour, hit } from '@/design';
 import { ApiError } from '@/social/api';
 import { useSocial } from '@/social/context';
 import { PanelGroup } from '@/ui/me/Panel';
 import { Icon } from '@/ui/kit/Icon';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { FormPage } from '@/ui/form/FormPage';
+import { Section } from '@/ui/kit/layout';
+import { AuthField } from '@/ui/auth/AuthShell';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { KeyboardPage } from '@/ui/me/lists';
 import { dueDateText } from '@/social/api-m22-server';
-import { FieldLabel, Note, Sec, SetCard, SetPage, SetRow } from '@/ui/settings/hub-parts';
+import { Note, SetCard, SetRow } from '@/ui/settings/hub-parts';
 import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
@@ -103,49 +104,40 @@ export default function AccountMoreScreen(): React.ReactElement {
   ) : undefined;
   return (
     <KeyboardPage>
-      <PushedPage title={confirming ? 'Delete my account' : 'More'} {...(confirming ? { size: 28, below: foot, belowHeight: hit.min } : {})}>
-        {(layout) => (
-          <SetPage layout={layout}>
-            {!confirming ? (
-              <>
-                {!listener ? <SetCard><Type step="body" className="text-text font-medium">Sign in to manage your account.</Type></SetCard> : null}
-                <Sec label="Account">
-                  <PanelGroup>
-                    <SetRow icon="trash-outline" label="Delete my account…" accessibilityLabel="Delete my account" hot dim={!listener} onPress={() => setConfirming(true)} disabled={!listener} />
-                  </PanelGroup>
-                </Sec>
-              </>
-            ) : (
-              <>
-                <Sec label="What goes">
-                  <SetCard gap={SET.rowGap}>
-                    <Type step="body" className="text-text2" style={SET_TYPE.note14}>This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense.</Type>
-                    <Type step="lede" className="text-hotText font-bold" style={SET_TYPE.display17}>{`Deleted for good on ${due}.`}</Type>
-                    <Type step="body" className="text-text2" style={SET_TYPE.note14}>{`Until then your account is hidden from everyone and signed out on every phone. Changed your mind? Sign in before ${due} and keep it.`}</Type>
-                  </SetCard>
-                </Sec>
-                <Sec label="Steps">
-                  <SetCard gap={SET.tilePad}>
-                    <Step n={1} done={codeSent} active={!codeSent} title="Email me a code to confirm" line={codeSent && masked ? `Sent to ${masked}` : undefined} />
-                    <Step n={2} done={codeSent && ready} active={codeSent && !ready} title="Enter the 6-digit code">
-                      {codeSent ? (
-                        <FieldLabel label="Code">
-                          <Input className="border-0 h-auto w-auto bg-transparent">
-                            <InputField
-                              placeholderTextColor={colour.text3} placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code" className="text-text font-medium" style={[SET_TYPE.field15, { paddingHorizontal: 0, paddingVertical: 0 }]} />
-                          </Input>
-                        </FieldLabel>
-                      ) : null}
-                    </Step>
-                    <Step n={3} done={false} active={ready} title="Delete account" line={ready ? undefined : 'Available once all 6 digits are in.'} />
-                  </SetCard>
-                </Sec>
-                {error ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> : null}
-              </>
-            )}
-          </SetPage>
+      <FormPage title={confirming ? 'Delete my account' : 'More'} {...(confirming ? { below: foot, belowHeight: hit.min } : {})}>
+        {!confirming ? (
+          <>
+            {!listener ? <SetCard><Type step="body" className="text-text font-medium">Sign in to manage your account.</Type></SetCard> : null}
+            <Section title="Account">
+              <PanelGroup>
+                <SetRow icon="trash-outline" label="Delete my account…" accessibilityLabel="Delete my account" hot dim={!listener} onPress={() => setConfirming(true)} disabled={!listener} />
+              </PanelGroup>
+            </Section>
+          </>
+        ) : (
+          <>
+            <Section title="What goes">
+              <SetCard gap={SET.rowGap}>
+                <Type step="body" className="text-text2" style={SET_TYPE.note14}>This removes your comments, reactions and listening positions from every phone. Where someone replied to you, "Comment deleted" stays so their reply still makes sense.</Type>
+                <Type step="lede" className="text-hotText font-bold" style={SET_TYPE.display17}>{`Deleted for good on ${due}.`}</Type>
+                <Type step="body" className="text-text2" style={SET_TYPE.note14}>{`Until then your account is hidden from everyone and signed out on every phone. Changed your mind? Sign in before ${due} and keep it.`}</Type>
+              </SetCard>
+            </Section>
+            <Section title="Steps">
+              <SetCard gap={SET.tilePad}>
+                <Step n={1} done={codeSent} active={!codeSent} title="Email me a code to confirm" line={codeSent && masked ? `Sent to ${masked}` : undefined} />
+                <Step n={2} done={codeSent && ready} active={codeSent && !ready} title="Enter the 6-digit code">
+                  {codeSent ? (
+                    <AuthField label="Code" placeholder="The 6-digit code we emailed you" keyboardType="number-pad" maxLength={6} value={code} onChangeText={setCode} accessibilityLabel="Code" />
+                  ) : null}
+                </Step>
+                <Step n={3} done={false} active={ready} title="Delete account" line={ready ? undefined : 'Available once all 6 digits are in.'} />
+              </SetCard>
+            </Section>
+            {error ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> : null}
+          </>
         )}
-      </PushedPage>
+      </FormPage>
     </KeyboardPage>
   );
 }

@@ -15,30 +15,33 @@
  * the mosaic (Allow mobile data, the budget chips with a ring of how much is used, Remove finished downloads) and
  * becomes a ×. Select turns the title bar into the action bar: "n selected", Select all / Clear, "Delete n episodes"
  * (hot) and Done; Delete asks once (the kit dialog) and ends in "n downloads deleted.". Every handler is unchanged.
+ *
+ * Spec 039 (Feed lane, design B): a `FeedScroll` (`Page`): Back + title ("n selected" with the action bar under it in select mode), then a `Section` per
+ * group (In progress, Needs attention, Downloaded; no edge label) holding tiles in two equal columns on the 20 gutter. The settings panel is a `Section`
+ * of its own above the groups.
  */
 import { useEffect, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { router } from 'expo-router';
 import { plural } from '@socialmorning/social-core';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { Toggle } from '@/ui/kit/Toggle';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { Section } from '@/ui/kit/layout';
+import { FeedScroll } from '@/ui/feed/FeedPage';
 import { Type } from '@/ui/kit/Type';
 import { useConfirm } from '@/ui/kit/confirm';
 import { mb } from '@/ui/episode/DownloadButton';
 import { DownloadRing } from '@/ui/downloads/DownloadRing';
 import { DownloadTile, kindOf, type TileKind } from '@/ui/downloads/DownloadTile';
-import { DOWNLOADS_PAGE, DOWNLOAD_RING, DOWNLOAD_TILE, downloadsType } from '@/ui/downloads/measures';
+import { DOWNLOADS_PAGE, DOWNLOAD_RING, downloadsType } from '@/ui/downloads/measures';
 import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 import type { DownloadRow } from '@/storage/types';
-import { colour, hit, radius, spacing } from '@/design';
+import { colour, gutter, hit, radius, spacing } from '@/design';
 import { NONE, deleteLabel, keepListed, removeChosen, removedLine, toggleAll, toggleChosen } from '@/downloads/multi-select';
 
 // M31 F8: decimal storage units, as drawn ("2.0 GB").
@@ -123,11 +126,11 @@ export default function DownloadsScreen(): React.ReactElement {
   const usedShare = budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : 0;
   const finishedBytes = rows.filter((r) => r.state === 'complete').reduce((n, r) => n + (r.bytesTotal ?? 0), 0);
   const empty = rows.length === 0;
-  const tileWidth = Math.floor((width - DOWNLOAD_TILE.lane - DOWNLOAD_TILE.right - DOWNLOAD_TILE.gap) / 2);
+  const tileWidth = Math.floor((width - 2 * gutter(width) - spacing.row) / 2);
   const subtitle = selecting ? 'Downloads' : empty ? `${used === 0 ? '0' : mb(used)} of ${budgetLabel(budget)}` : `${plural(rows.length, 'episode')} · ${mb(used)} of ${budgetLabel(budget)}`;
 
   const settingsPanel = (
-    <Box style={{ marginLeft: DOWNLOAD_TILE.lane, marginRight: DOWNLOAD_TILE.right, gap: DOWNLOADS_PAGE.panelGap }}>
+    <Box style={{ gap: DOWNLOADS_PAGE.panelGap }}>
       <PanelRow icon="wifi-outline" title="Allow mobile data" detail="Allow mobile data for downloads" right={<Toggle value={downloads.allowMobile()} onChange={(v) => downloads.setAllowMobile(v)} label="Allow mobile data for downloads" />} />
       <Box className="bg-raise" style={{ borderRadius: DOWNLOADS_PAGE.panelRadius, padding: DOWNLOADS_PAGE.panelPad, gap: DOWNLOADS_PAGE.panelGap }}>
         <Box className="flex-row justify-between items-center">
@@ -163,9 +166,8 @@ export default function DownloadsScreen(): React.ReactElement {
 
   return (
     <>
-      <PushedPage
+      <FeedScroll
         title={selecting ? `${chosen.size} selected` : 'Downloads'}
-        subtitle={subtitle}
         {...(selecting ? { onBack: null } : {})}
         actions={selecting ? [] : settings
           ? [{ icon: 'close' as const, label: 'Hide download settings', onPress: () => setSettings(false) }]
@@ -173,51 +175,42 @@ export default function DownloadsScreen(): React.ReactElement {
               { icon: 'settings-outline' as const, label: 'Download settings', onPress: () => setSettings(true) },
               ...(empty ? [] : [{ icon: 'checkmark-circle-outline' as const, label: 'Select', onPress: () => setSelecting(true) }]),
             ]}
-        {...(bar ? { extra: bar, extraAbove: 60 } : {})}
+        subtitle={subtitle}
       >
-        {(layout) => (
-          <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, paddingTop: layout.top + DOWNLOADS_PAGE.top, paddingBottom: layout.reserve }} showsVerticalScrollIndicator={false} scrollEnabled={!empty || settings}>
-            {settings ? (
-              <>
-                <EdgeLabel label="Settings" top={layout.top + DOWNLOADS_PAGE.top} />
-                {settingsPanel}
-              </>
-            ) : null}
-            {empty && !settings ? (
-              <Box style={{ marginTop: DOWNLOADS_PAGE.emptyTop - DOWNLOADS_PAGE.top }}><EmptyState surface="downloads" page /></Box>
-            ) : (
-              <Box style={{ gap: DOWNLOADS_PAGE.sectionGap, ...(settings ? { opacity: 0.4, marginTop: spacing.block } : null) }} pointerEvents={settings ? 'none' : 'auto'}>
-                {sections.filter((s) => !settings || s.key === 'done').map((section) => (
-                  <Box key={section.key} style={{ minHeight: DOWNLOAD_TILE.height }}>
-                    <EdgeLabel label={section.title} top={0} />
-                    <Box className="flex-row flex-wrap" style={{ marginLeft: DOWNLOAD_TILE.lane, marginRight: DOWNLOAD_TILE.right, gap: DOWNLOAD_TILE.gap }}>
-                      {section.data.map((item) => {
-                        const { episode, show } = info.get(item.episodeId) ?? {};
-                        return (
-                          <DownloadTile
-                            key={item.episodeId}
-                            row={item}
-                            title={title(item.episodeId)}
-                            art={episode?.imageUrl ?? show?.imageUrl}
-                            artName={show?.title ?? title(item.episodeId)}
-                            state={state(item)}
-                            percent={percent(item)}
-                            width={tileWidth}
-                            {...(selecting ? { select: { chosen: chosen.has(item.episodeId), onToggle: () => setChosen((cur) => toggleChosen(cur, item.episodeId)) } } : {})}
-                            onOpen={() => router.push({ pathname: '/episode/[id]', params: { id: item.episodeId } })}
-                            onMenu={() => setMenu(item)}
-                            onRetry={() => downloads.request(item.episodeId)}
-                          />
-                        );
-                      })}
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            )}
-          </ScrollView>
+        {bar}
+        {settings ? <Section title="Settings">{settingsPanel}</Section> : null}
+        {empty && !settings ? (
+          <EmptyState surface="downloads" page />
+        ) : (
+          <Box style={{ gap: spacing.block, ...(settings ? { opacity: 0.4 } : null) }} pointerEvents={settings ? 'none' : 'auto'}>
+            {sections.filter((s) => !settings || s.key === 'done').map((section) => (
+              <Section key={section.key} title={section.title}>
+                <Box className="flex-row flex-wrap" style={{ gap: spacing.row }}>
+                  {section.data.map((item) => {
+                    const { episode, show } = info.get(item.episodeId) ?? {};
+                    return (
+                      <DownloadTile
+                        key={item.episodeId}
+                        row={item}
+                        title={title(item.episodeId)}
+                        art={episode?.imageUrl ?? show?.imageUrl}
+                        artName={show?.title ?? title(item.episodeId)}
+                        state={state(item)}
+                        percent={percent(item)}
+                        width={tileWidth}
+                        {...(selecting ? { select: { chosen: chosen.has(item.episodeId), onToggle: () => setChosen((cur) => toggleChosen(cur, item.episodeId)) } } : {})}
+                        onOpen={() => router.push({ pathname: '/episode/[id]', params: { id: item.episodeId } })}
+                        onMenu={() => setMenu(item)}
+                        onRetry={() => downloads.request(item.episodeId)}
+                      />
+                    );
+                  })}
+                </Box>
+              </Section>
+            ))}
+          </Box>
         )}
-      </PushedPage>
+      </FeedScroll>
       {/* Long-press on a tile: Remove (finished or failed) or Cancel (still running). */}
       <ActionSheet open={menu !== undefined} onClose={() => setMenu(undefined)} label="Download menu" {...(menu ? { title: title(menu.episodeId) } : {})}>
         {menu?.state === 'complete' ? (

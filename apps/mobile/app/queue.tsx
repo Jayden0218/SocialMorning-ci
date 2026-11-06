@@ -9,11 +9,12 @@
  * Edit (the circle) turns the cards into checkboxes, as the sheet's Edit does: above the title "Clear all" (asks once,
  * "Clear the playlist?"), "Remove (n)" and "Done". Empty: the shared empty block with its Discover button, Edit hidden.
  * Load, play, reorder and remove are unchanged: every write goes through `stores.queue.replace`.
+ *
+ * Spec 039 (Feed lane, design B): a `FeedScroll` (`Page`): Back + title + the Edit circle, the pills (Edit mode) under it, then a `Section` "Up next" holding the deck.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { clearQueue, remove, removeMany } from '@socialmorning/player-core';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
 import { usePlayer, usePlayerSelector, selectEpisodeId } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
@@ -21,9 +22,9 @@ import { useStores } from '@/ui/shell/providers';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { Dialog } from '@/ui/kit/Dialog';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { Section } from '@/ui/kit/layout';
+import { FeedScroll } from '@/ui/feed/FeedPage';
 import { QueueList, queueSubtitle } from '@/ui/queue/QueueList';
-import { QUEUE_PAGE } from '@/ui/queue/measures';
 
 const NONE: ReadonlySet<string> = new Set();
 
@@ -64,22 +65,20 @@ export default function QueueScreen(): React.ReactElement {
   ) : undefined;
   return (
     <>
-      <PushedPage
+      <FeedScroll
         title="Queue"
         subtitle={queueSubtitle(ids, stores)}
         {...(empty || editing ? {} : { actions: [{ icon: 'create-outline' as const, label: 'Edit', onPress: () => { setEditing(true); setChosen(NONE); } }] })}
-        {...(pills ? { extra: pills, extraAbove: 60 } : {})}
       >
-        {(layout) => (
-          <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, paddingBottom: layout.reserve }} showsVerticalScrollIndicator={false}>
-            {empty ? (
-              <Box style={{ paddingTop: layout.top + QUEUE_PAGE.emptyTop }}><EmptyState surface="queue" page /></Box>
-            ) : (
-              <QueueList ids={ids} stores={stores} top={layout.top + QUEUE_PAGE.deckTop} onChange={write} onPlay={play} onOpen={open} {...(editing ? { select: { chosen, onToggle: toggle } } : {})} />
-            )}
-          </ScrollView>
+        {pills}
+        {empty ? (
+          <EmptyState surface="queue" page />
+        ) : (
+          <Section title="Up next">
+            <QueueList ids={ids} stores={stores} onChange={write} onPlay={play} onOpen={open} {...(editing ? { select: { chosen, onToggle: toggle } } : {})} />
+          </Section>
         )}
-      </PushedPage>
+      </FeedScroll>
       <Dialog
         open={clearing}
         title="Clear the playlist?"

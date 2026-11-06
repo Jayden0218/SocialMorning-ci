@@ -11,11 +11,11 @@
  * with today's line ("Nothing to suggest yet — play something and come back.").
  */
 import { Box } from '@/ui/lib/box';
-import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { enoughNextUp, EMPTY_STATES } from '@socialmorning/social-core';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Type } from '@/ui/kit/Type';
+import { Shelf } from '@/ui/kit/layout';
 import type { EpisodeCard, NextUpItem } from '@/social/api';
 import { EmptyDeck } from './EmptyDeck';
 import { EPISODE } from './measures';
@@ -27,18 +27,12 @@ const CAPS = { textTransform: 'uppercase' as const };
 
 export function RelatedEpisodes(props: { items: readonly NextUpItem[] | undefined; onOpen: (card: EpisodeCard) => void; onMore?: (card: EpisodeCard) => void }): React.ReactElement {
   const items = props.items && enoughNextUp(props.items) ? props.items.slice(0, RELATED_MAX) : undefined;
-  // The deck bleeds to the right edge, but the empty card keeps the section's 16 margin (the drawing's card ends there).
-  if (items === undefined) return <Box style={{ marginRight: EPISODE.right }}><EmptyDeck title="Nothing to suggest" sentence={EMPTY_STATES.nextup.sentence} /></Box>;
+  if (items === undefined) return <EmptyDeck title="Nothing to suggest" sentence={EMPTY_STATES.nextup.sentence} />;
   return (
-    <FlatList
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      data={items}
-      keyExtractor={(i) => i.episode.id}
-      contentContainerClassName="pr-screen-x"
-      contentContainerStyle={{ gap: EPISODE.deckGap }}
-      renderItem={({ item: i }) => (
+    <Shelf>
+      {items.map((i) => (
         <Pressable
+          key={i.episode.id}
           onPress={() => props.onOpen(i.episode)}
           {...(props.onMore ? { onLongPress: () => props.onMore!(i.episode), accessibilityHint: 'Long-press for more actions' } : {})}
           accessibilityRole="button"
@@ -56,7 +50,7 @@ export function RelatedEpisodes(props: { items: readonly NextUpItem[] | undefine
             {i.label ? <Type step="tag" className="text-hotText" style={CAPS} numberOfLines={2}>{i.label}</Type> : null}
           </Box>
         </Pressable>
-      )}
-    />
+      ))}
+    </Shelf>
   );
 }

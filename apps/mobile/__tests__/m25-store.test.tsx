@@ -38,7 +38,9 @@ jest.mock('expo-router', () => ({
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined, set: () => undefined } }) }));
 jest.mock('@/social/context', () => ({ SUSPENDED_KEY: 'safety.suspendedMessage', useSocial: () => ({ auth: mockAuth, listener: undefined }) }));
 // Not what these guards are about: the page bar, the consent row and dialog, the art wall, the notification ask.
-jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null }));
+jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null, goBack: () => undefined }));
+// 039: the settings page is a `Page`; where the bars sit is not what this guard is about.
+jest.mock('@/ui/shell/toastPlacement', () => ({ useToastPlacement: () => ({ tabs: false, now: false, player: false }) }));
 // M31 S-B: the Updates / Notifications pages sit in the settings page body (`PushedPage` under it needs the router's path); the bar is not what these guards are about.
 const mockBody = (c: unknown): unknown => (typeof c === 'function' ? (c as (layout: { top: number; titleBottom: number; reserve: number }) => unknown)({ top: 0, titleBottom: 0, reserve: 0 }) : c);
 // M31 S-A: a page with a bottom zone (Change email's button) passes it as `below`; draw it after the body.

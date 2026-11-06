@@ -146,14 +146,16 @@ describe('Favourites (shell.html favourites--screen, listen.html favourites--com
     ];
   });
 
-  it('the newest tile is 1 x 2 (168 x 194), the next two stack at its right, then rows of two; each 92 tall with a hot star', async () => {
+  // 039 (Feed lane): was "the newest tile is 1 x 2 (168 x 194), the next two stack at its right, then rows of two, each 92 tall". Now rows of two equal square tiles.
+  it('the tiles are rows of two equal squares (169 wide on a 390 phone), each with a hot star', async () => {
     const r = await render(createElement(FavouritesScreen));
     const tiles = byId(r, 'fav-tile');
     expect(tiles).toHaveLength(5);
-    expect(tiles.map((t) => [flat(t)['width'], flat(t)['height']])).toEqual([[168, 194], [168, 92], [168, 92], [168, 92], [168, 92]]);
-    expect(tiles.every((t) => flat(t)['borderRadius'] === 22)).toBe(true);
+    expect(tiles.map((t) => [flat(t)['width'], flat(t)['height']])).toEqual(Array.from({ length: 5 }, () => [169, 169]));
+    expect(byId(r, 'tile-row')).toHaveLength(3);
+    expect(tiles.every((t) => flat(t)['borderRadius'] === 24)).toBe(true); // 039 I2: ArtTile was radius 22
     expect(byId(r, 'icon-star').length).toBe(5);
-    expect(words(r)).toEqual(expect.arrayContaining(['STARRED', 'Why mornings matter', 'Morning Notes']));
+    expect(words(r)).toEqual(expect.arrayContaining(['Why mornings matter', 'Morning Notes']));
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Why mornings matter' && n.props['accessibilityRole'] === 'button').length).toBeGreaterThan(0);
   });
 
@@ -164,13 +166,15 @@ describe('Favourites (shell.html favourites--screen, listen.html favourites--com
     const val = (x: unknown): unknown => (x !== null && typeof x === 'object' && '__getValue' in x ? (x as { __getValue: () => unknown }).__getValue() : x);
     expect(val(flat(title)['fontSize'])).toBe(30);
     const zone = byId(r, 'pushed-below')[0]!;
-    expect(flat(zone)).toMatchObject({ bottom: 6, gap: 12 });
+    // 039 (Feed lane): was bottom 6 (the old pushed page's foot); PageList stands the slot on the bars (0 without the now bar).
+    expect(flat(zone)).toMatchObject({ bottom: 0, gap: 12 });
     expect(flat(byId(r, 'search-field')[0])).toMatchObject({ height: 48 });
-    expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ height: 44 });
+    expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ height: 46 }); // 039 I2: was 44
     expect(words(r)).toEqual(expect.arrayContaining(['Episodes · 5', 'Comments · 2']));
     // The title bar hangs from the top and does not stand on the zone.
     expect(hosts(r, (n) => flat(n)['bottom'] === 6 + 48 + 12 + 44 + 12 && flat(n)['zIndex'] === 20)).toHaveLength(0);
-    expect(hosts(r, (n) => flat(n)['top'] !== undefined && flat(n)['bottom'] === undefined && flat(n)['zIndex'] === 20)).toHaveLength(1);
+    // 039 (Feed lane): was one title bar hung at the top (zIndex 20); the title row is the list's header now and scrolls with it.
+    expect(byId(r, 'page-title-row')).toHaveLength(1);
   });
 
   it('search filters the tiles; words that match nothing say so', async () => {
@@ -190,7 +194,8 @@ describe('Favourites (shell.html favourites--screen, listen.html favourites--com
   it('Comments is a thread: a solid hot moment chip, the episode beside it, the words, "Favourite" in warn; a deleted one says so', async () => {
     const r = await render(createElement(FavouritesScreen));
     await press(r, 'Comments');
-    expect(flat(byId(r, 'spine-line')[0])).toMatchObject({ left: 40, width: 2 });
+    // 039 (Feed lane): was the spine-line at left 40 / width 2; one card per comment.
+    expect(byId(r, 'spine-line')).toHaveLength(0);
     expect(words(r)).toEqual(expect.arrayContaining(['14:32', 'Why mornings matter', 'Rui', '5h', 'This is the part I replay every morning.', 'Favourite', 'This comment was deleted', '06:40']));
     const fav = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === 'Favourite')[0]!;
     expect(classOf(fav)).toContain('text-warn');
@@ -207,11 +212,11 @@ describe('Favourites (shell.html favourites--screen, listen.html favourites--com
     expect(byId(r, 'segment-switch')).toHaveLength(1);
   });
 
-  it('no favourite comments: an empty spine and "No favourite comments yet" with "Tap ☆ on a comment"', async () => {
+  it('no favourite comments: the empty block (039: was an empty spine) and "No favourite comments yet" with "Tap ☆ on a comment"', async () => {
     mockFavComments = [];
     const r = await render(createElement(FavouritesScreen));
     await press(r, 'Comments');
-    expect(byId(r, 'empty-spine')).toHaveLength(1);
+    expect(byId(r, 'comments-empty')).toHaveLength(1);
     expect(words(r)).toEqual(expect.arrayContaining(['No favourite comments yet', 'Tap ☆ on a comment']));
   });
 });
@@ -223,18 +228,19 @@ describe('Saved moments (moments--screen)', () => {
     mockMoments = [moment('m1', 'e1', 752_000, 'the coffee question — send to Ana'), moment('m2', 'e1', 1_870_000, ''), moment('m3', 'gone', 0, '')];
   });
 
-  it('a deck of 290 x 360 cards, radius 26 and a line, the cover 130 with the time at 32; the title bar says "3 moments"', async () => {
+  // 039 (Feed lane): was "a deck of 290 x 360 cards, radius 26, snapping every 300, with dots"; now a vertical stream of cards, at least 360 tall, radius 24 (radius.card).
+  it('a stream of cards at least 360 tall, radius 24 and a line, the cover 130 with the time at 32; the title bar says "3 moments"', async () => {
     const r = await render(createElement(MomentsScreen));
     const cards = byId(r, 'moment-card');
     expect(cards).toHaveLength(3);
-    expect(flat(cards[0])).toMatchObject({ height: 360, borderRadius: 26 });
+    expect(flat(cards[0])).toMatchObject({ minHeight: 360, borderRadius: 24 });
     expect(classOf(cards[0]!)).toContain('border-line');
-    expect(byId(r, 'card-deck')[0]!.props['snapToInterval']).toBe(300);
+    expect(byId(r, 'card-deck')).toHaveLength(0);
     const time = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === '12:32')[0]!;
     expect(flat(time)).toMatchObject({ fontSize: 32 });
     expect(classOf(time)).toContain('font-extrabold');
     expect(words(r)).toEqual(expect.arrayContaining(['Saved moments', '3 moments', 'Morning Notes', 'Why mornings matter', '“the coffee question — send to Ana”', 'No note', 'From 12:32']));
-    expect(byId(r, 'page-dots')).toHaveLength(1);
+    expect(byId(r, 'page-dots')).toHaveLength(0);
   });
 
   it('the foot: Edit note and Delete moment are 40 circles, "From 12:32" a light 44 pill that plays and seeks', async () => {
@@ -303,14 +309,15 @@ describe('Saved moments (moments--screen)', () => {
 
 describe('Playlists (playlists--screen)', () => {
   const pl = (id: string, title: string, count: number, isPublic = false) => ({ id, title, count, isPublic, imageUrl: undefined });
-  it('the first public playlist is the 2 x 2 tile with PUBLIC (346 x 178); the others are 168 x 84; each opens the playlist', async () => {
+  // 039 (Feed lane): was 346 x 178 for the lead and 168 x 84 for the others in the 28-lane mosaic; now the full gutter width (350) and 169 x 84.
+  it('the first public playlist is the wide tile with PUBLIC (350 x 178); the others are 169 x 84; each opens the playlist', async () => {
     mockPlaylists = () => Promise.resolve([pl('p1', 'Walks', 5), pl('p2', 'Slow mornings', 12, true), pl('p3', 'Kitchen', 8), pl('p4', 'To share', 3)]);
     const r = await render(createElement(PlaylistsScreen));
     const big = byId(r, 'playlist-tile-big');
     expect(big).toHaveLength(1);
-    expect(flat(big[0])).toMatchObject({ width: 346, height: 178, borderRadius: 22 });
+    expect(flat(big[0])).toMatchObject({ width: 350, height: 178, borderRadius: 24 }); // 039 I2: ArtTile was radius 22
     const small = byId(r, 'playlist-tile');
-    expect(small.map((t) => [flat(t)['width'], flat(t)['height']])).toEqual([[168, 84], [168, 84], [168, 84]]);
+    expect(small.map((t) => [flat(t)['width'], flat(t)['height']])).toEqual([[169, 84], [169, 84], [169, 84]]);
     expect(words(r)).toEqual(expect.arrayContaining(['PUBLIC', 'Slow mornings', '12 episodes', 'Playlists', 'Collect episodes by theme; make one public to show it on your profile']));
     await press(r, 'Slow mornings, 12 episodes, public');
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/playlists/[id]', params: { id: 'p2' } });
@@ -342,7 +349,7 @@ describe('Playlists (playlists--screen)', () => {
     expect(mockToast).toHaveBeenCalledWith("Couldn't make the playlist. Try again.");
   });
 
-  it('signed out: a light Sign in, no name field; none yet: today\'s words with the field still there; failed: the grey glow and Retry', async () => {
+  it('signed out: a light Sign in, no name field; none yet: today\'s words with the field still there; failed: the notice and Retry', async () => {
     mockListener = undefined;
     const out = await render(createElement(PlaylistsScreen));
     expect(words(out)).toEqual(expect.arrayContaining(['Playlists', 'Sign in to make playlists.', 'Sign in']));
@@ -355,8 +362,9 @@ describe('Playlists (playlists--screen)', () => {
     let calls = 0;
     mockPlaylists = () => { calls += 1; return calls === 1 ? Promise.reject(new Error('x')) : Promise.resolve([]); };
     const bad = await render(createElement(PlaylistsScreen));
-    expect(words(bad)).toEqual(expect.arrayContaining(["Couldn't load", "Couldn't load your playlists right now.", 'Retry']));
-    expect(byId(bad, 'page-glow')).toHaveLength(1);
+    // 039 (Feed lane): was the grey glow, a title "Couldn't load" and a Retry; now an InlineNotice with Retry.
+    expect(words(bad)).toEqual(expect.arrayContaining(["Couldn't load your playlists right now.", 'Retry']));
+    expect(byId(bad, 'inline-notice')).toHaveLength(1);
     await press(bad, 'Retry');
     expect(calls).toBe(2);
   });
@@ -367,13 +375,13 @@ describe('A playlist (playlist--screen)', () => {
   const mine = { id: 'p1', title: 'Slow mornings', count: 3, isPublic: true, owner: { id: 'me', displayName: 'Mei Lin' }, items: [card('e1', 'Why mornings matter'), card('e2', 'The long walk home'), card('e3', 'Bread, slowly')] };
   beforeEach(() => { mockPlaylist = () => Promise.resolve(mine); });
 
-  it('numbered cards 290 x 330 in a deck with dots; the title bar says "By you · 3 episodes" with a pencil and a bin; Play all above it', async () => {
+  it('numbered row cards (039: was 290 x 330 deck cards with dots); the title row says "By you · 3 episodes" with a pencil and a bin; Play all above it', async () => {
     const r = await render(createElement(PlaylistScreen));
     const cards = byId(r, 'playlist-card');
     expect(cards).toHaveLength(3);
-    expect(flat(cards[0])).toMatchObject({ height: 330, borderRadius: 26 });
+    expect(flat(cards[0])).toMatchObject({ borderRadius: 16 });
     expect(words(r)).toEqual(expect.arrayContaining(['Slow mornings', 'By you · 3 episodes', '1', '2', '3', 'Morning Notes', 'Why mornings matter']));
-    expect(byId(r, 'page-dots')).toHaveLength(1);
+    expect(byId(r, 'page-dots')).toHaveLength(0);
     expect(comp(r, 'Rename playlist')).toBeDefined();
     expect(comp(r, 'Delete playlist')).toBeDefined();
     const all = inner(r, 'Play all 3 episodes');
@@ -445,11 +453,11 @@ describe('A playlist (playlist--screen)', () => {
     expect(mockToast).toHaveBeenCalledWith('Playlist deleted.');
   });
 
-  it('not found: the grey glow and today\'s words; a failed read has Retry', async () => {
+  it('not found: today\'s words (039: no glow); a failed read has Retry', async () => {
     mockPlaylist = () => Promise.reject(new ApiError('not_found', 'x', 404));
     const r = await render(createElement(PlaylistScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Not found', 'This playlist was not found. It may be private, or deleted.']));
-    expect(byId(r, 'page-glow')).toHaveLength(1);
+    expect(byId(r, 'page-glow')).toHaveLength(0);
     mockPlaylist = () => Promise.reject(new Error('x'));
     const e = await render(createElement(PlaylistScreen));
     expect(words(e)).toEqual(expect.arrayContaining(["Couldn't load this playlist right now.", 'Retry']));
@@ -470,7 +478,7 @@ describe('Listening data (me-listening--screen)', () => {
 
   it('the foot switch (44), the range in mono over the total at 52, the 120 tall bars, "Tap a bar to see its minutes."', async () => {
     const r = await render(createElement(ListeningDataScreen));
-    expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ height: 44, padding: 3 });
+    expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ height: 46, padding: 4 }); // 039 I2: was 44 and 3
     const total = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === '612 min')[0]!;
     expect(flat(total)).toMatchObject({ fontSize: 52 });
     expect(classOf(total)).toContain('font-extrabold');
@@ -481,21 +489,20 @@ describe('Listening data (me-listening--screen)', () => {
 
   it('Top shows is a deck of ranked 150-wide cards (cover 130) that open the show', async () => {
     const r = await render(createElement(ListeningDataScreen));
-    const deck = byId(r, 'deck')[0]!;
-    expect(deck.props['snapToInterval']).toBe(160);
-    expect(flat(deck)).toMatchObject({ height: 212 });
-    expect(words(r)).toEqual(expect.arrayContaining(['1', 'Morning Notes', '31 h', 'Night Shift Radio']));
+    // 039: a Section of cards on a Shelf (it no longer snaps card by card).
+    expect(byId(r, 'deck')[0]).toBeDefined();
+    expect(byId(r, 'shelf').length).toBeGreaterThan(0);
+    expect(words(r)).toEqual(expect.arrayContaining(['Top shows', '1', 'Morning Notes', '31 h', 'Night Shift Radio']));
     await press(r, '1. Morning Notes, 31 h');
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/show/[feedUrl]', params: { feedUrl: 'f1' } });
   });
 
-  it('All time reads the other range, and a failure is the error tile with a Retry that reads again', async () => {
+  it('All time reads the other range, and a failure is an inline notice with a Retry that reads again', async () => {
     let n = 0;
     mockListening = (range) => { n += 1; return range === 'all' ? Promise.reject(new Error('x')) : Promise.resolve(data); };
     const r = await render(createElement(ListeningDataScreen));
     await press(r, 'All time');
-    const tile = byId(r, 'listening-error')[0]!;
-    expect(flat(tile)).toMatchObject({ borderRadius: 22, padding: 16 });
+    expect(byId(r, 'inline-notice')).toHaveLength(1); // 039: an InlineNotice (was the error tile)
     expect(words(r)).toEqual(expect.arrayContaining(["Couldn't load your listening data right now.", 'Retry']));
     const before = n;
     await press(r, 'Retry');

@@ -16,24 +16,24 @@ extension Color {
 }
 
 enum Theme {
-  // token: background #060608
-  static let background = Color(hex: 0x060608)
-  // token: surface #111116
-  static let surface = Color(hex: 0x111116)
-  // token: text #f4f2ee
-  static let text = Color(hex: 0xF4F2EE)
-  // token: muted #a3a1ab
-  static let muted = Color(hex: 0xA3A1AB)
-  // token: primary #ff4d6d
-  static let primary = Color(hex: 0xFF4D6D)
-  // token: onPrimary #060608
-  static let onPrimary = Color(hex: 0x060608)
-  // token: accent #ff8095
-  static let accent = Color(hex: 0xFF8095)
-  // token: playDisc #f4f2ee
-  static let playDisc = Color(hex: 0xF4F2EE)
-  // token: playGlyph #060608
-  static let playGlyph = Color(hex: 0x060608)
+  // token: background #111318
+  static let background = Color(hex: 0x111318)
+  // token: surface #1a1d23
+  static let surface = Color(hex: 0x1A1D23)
+  // token: text #eceef2
+  static let text = Color(hex: 0xECEEF2)
+  // token: muted #9aa1ad
+  static let muted = Color(hex: 0x9AA1AD)
+  // token: primary #f2867e
+  static let primary = Color(hex: 0xF2867E)
+  // token: onPrimary #111318
+  static let onPrimary = Color(hex: 0x111318)
+  // token: accent #f2867e
+  static let accent = Color(hex: 0xF2867E)
+  // token: playDisc #eceef2
+  static let playDisc = Color(hex: 0xECEEF2)
+  // token: playGlyph #111318
+  static let playGlyph = Color(hex: 0x111318)
 }
 
 /// Every word the Watch shows, in one place (English only).

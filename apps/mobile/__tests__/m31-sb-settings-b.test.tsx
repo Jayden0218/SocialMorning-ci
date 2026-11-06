@@ -132,7 +132,7 @@ describe('Playback (settings-playback--screen)', () => {
     const order = words(r).filter((w) => ['Skip silence', 'Music mode', 'Allow mobile data for playback', 'Voice boost'].includes(w));
     expect(order.slice(0, 4)).toEqual(['Skip silence', 'Music mode', 'Allow mobile data for playback', 'Voice boost']);
     expect(hosts(r, (n) => flat(n)['minHeight'] === 112)).toHaveLength(4);
-    expect(words(r)).toEqual(expect.arrayContaining(['MOST USED', 'PLAYING', 'SOUND']));
+    expect(words(r)).toEqual(expect.arrayContaining(['Most used', 'Playing', 'Sound']));
   });
   it('a tile says its state in mono and the switch saves at once', async () => {
     const r = await render(createElement(PlaybackSettings));
@@ -172,13 +172,12 @@ describe('Playback (settings-playback--screen)', () => {
 });
 
 describe('the audio rows: the player\'s More settings and this page are one control (AudioRows)', () => {
-  it('by default a row has the sheet\'s look: a 34 icon chip, 56 tall; on the page it is a 60 group row', async () => {
+  it('by default a row has the sheet\'s look: a 34 icon chip, 56 tall; on the page it is a 56 group row', async () => {
     const sheet = await render(createElement(MixRow));
     expect(hosts(sheet, (n) => flat(n)['width'] === 34 && flat(n)['height'] === 34)).toHaveLength(1);
     expect(hosts(sheet, (n) => flat(n)['minHeight'] === 56)).toHaveLength(1);
     const page = await render(createElement(MixRow, { look: 'page' }));
-    expect(hosts(page, (n) => flat(n)['minHeight'] === 60)).toHaveLength(1);
-    expect(hosts(page, (n) => flat(n)['width'] === 34)).toHaveLength(0);
+    expect(hosts(page, (n) => flat(n)['minHeight'] === 56)).toHaveLength(1);
   });
   it('Voice boost in the sheet saves like the tile', async () => {
     const r = await render(createElement(VoiceBoostRow));
@@ -206,10 +205,11 @@ describe('Privacy (settings-privacy--screen and its states)', () => {
     await flip(r, 'Keep my listening private');
     expect(words(r)).toContain('On — your listening is private');
   });
-  it('under the edge labels in the drawn order', async () => {
+  // 039 (List lane): was the edge labels in capitals (each found twice, drawn and measured) -> now the Section headings, once each.
+  it('under the section headings in the drawn order', async () => {
     const r = await render(createElement(PrivacySettings));
-    const labels = words(r).filter((w) => ['LISTENING', 'OTHERS SEE', 'MUTED USERS', 'THREADS', 'MY DATA', 'BLOCKED'].includes(w));
-    expect(labels.filter((_, i) => i % 2 === 0)).toEqual(['LISTENING', 'OTHERS SEE', 'MUTED USERS', 'THREADS', 'MY DATA', 'BLOCKED']);
+    const labels = words(r).filter((w) => ['Listening', 'Others see', 'Muted users', 'Threads', 'My data', 'Blocked'].includes(w));
+    expect(labels).toEqual(['Listening', 'Others see', 'Muted users', 'Threads', 'My data', 'Blocked']);
   });
   it('Others see is one group of five rows, lines kept', async () => {
     const r = await render(createElement(PrivacySettings));
@@ -262,7 +262,7 @@ describe('Privacy (settings-privacy--screen and its states)', () => {
   it('signed out: the hero ends with the sign-in sentence; only the chips and Blocked follow', async () => {
     mockListener = undefined;
     const r = await render(createElement(PrivacySettings));
-    expect(words(r)).toEqual(expect.arrayContaining(['Sign in to choose who sees your listening.', 'Always public:', 'BLOCKED', 'Blocked listeners']));
+    expect(words(r)).toEqual(expect.arrayContaining(['Sign in to choose who sees your listening.', 'Always public:', 'Blocked', 'Blocked listeners']));
     expect(words(r)).not.toContain('OTHERS SEE');
     expect(words(r)).not.toContain('Download my data');
     expect(r.root.findAll((n) => n.props['accessibilityRole'] === 'switch')).toHaveLength(0);
@@ -283,7 +283,7 @@ describe('Notifications (settings-push--screen, --signed-out)', () => {
   it('Main: New episodes and Popular content are large tiles with their lines in mono; PEOPLE has six rows, SOCIALNET one', async () => {
     const r = await render(createElement(PushSettings));
     expect(hosts(r, (n) => flat(n)['minHeight'] === 112)).toHaveLength(2);
-    expect(words(r)).toEqual(expect.arrayContaining(['MAIN', 'PEOPLE', 'SOCIALNET', 'When a show you follow publishes', "The day's pick, at most once a day", 'Replies', 'Likes', 'New followers', 'Mentions', 'Statuses', 'Weekly digest', 'System notices']));
+    expect(words(r)).toEqual(expect.arrayContaining(['Main', 'People', 'SocialNet', 'When a show you follow publishes', "The day's pick, at most once a day", 'Replies', 'Likes', 'New followers', 'Mentions', 'Statuses', 'Weekly digest', 'System notices']));
     await flip(r, 'Likes');
     expect(mockSetPush).toHaveBeenCalledWith({ likes: false });
   });
@@ -292,12 +292,12 @@ describe('Notifications (settings-push--screen, --signed-out)', () => {
     const r = await render(createElement(PushSettings));
     expect(switchOf(r, 'Replies').props['accessibilityState']).toMatchObject({ disabled: true });
     expect(words(r)).toContain('Sign in to receive notifications.');
-    expect(words(r)).not.toContain('SHOWS');
+    expect(words(r)).not.toContain('Shows');
   });
   it('Shows: tiles of two with a 48 cover, the switch and the name; all off while New episodes is off', async () => {
     mockNotifyShows = () => Promise.resolve([{ feedUrl: 'https://a/x.xml', title: 'Morning Notes', enabled: true }, { feedUrl: 'https://b/y.xml', title: 'Night Shift Radio', enabled: true }, { feedUrl: 'https://c/z.xml', title: 'Long Walks', enabled: false }]);
     const r = await render(createElement(PushSettings));
-    expect(words(r)).toEqual(expect.arrayContaining(['SHOWS', 'New episodes, show by show', 'Morning Notes', 'Night Shift Radio', 'Long Walks']));
+    expect(words(r)).toEqual(expect.arrayContaining(['Shows', 'New episodes, show by show', 'Morning Notes', 'Night Shift Radio', 'Long Walks']));
     expect(byId(r, 'show-tile')).toHaveLength(3);
     expect(flat(byId(r, 'show-tile')[0])).toMatchObject({ borderRadius: 22, padding: 12 });
     expect(hosts(r, (n) => flat(n)['width'] === 48 && flat(n)['height'] === 48).length).toBeGreaterThan(0);

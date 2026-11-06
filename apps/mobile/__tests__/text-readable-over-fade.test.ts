@@ -19,13 +19,20 @@ it.each([['hotText', colour.hotText], ['text2', colour.text2], ['text3', colour.
   expect(contrastRatio(fg, colour.raise2)).toBeGreaterThanOrEqual(4.5);
 });
 
+// 039 (Feed lane): was "<PushedPage fade={empty ? 0 : undefined}" (a PushedPage's top fade, turned off for the empty stage). Tips is a FeedPage now (a PageList): the list has no fade
+// over it at all, so the empty state's words cannot be covered; the guard is that the page does not go back to a PushedPage and draws no Fade of its own.
 it('the Tips empty state draws no fade over its words', () => {
   const src = read('app', 'tips.tsx');
-  expect(src).toMatch(/<PushedPage[^>]*\bfade=\{empty \? 0 : undefined\}/);
+  expect(src).toMatch(/<FeedPage\b/);
+  expect(src).not.toMatch(/<PushedPage\b/);
+  expect(src).not.toMatch(/<Fade\b/);
 });
 
-it('OverlayPage takes a `fade` height, and the sign-in steps (AuthShell) ask for none', () => {
+it('OverlayPage takes a `fade` height, and the sign-in steps draw none (039: they are on FormPage, which has no fade)', () => {
   expect(read('src', 'ui', 'kit', 'OverlayPage.tsx')).toMatch(/fade\?: number/);
   expect(read('src', 'ui', 'kit', 'OverlayPage.tsx')).toMatch(/props\.fade \?\?/);
-  expect(read('src', 'ui', 'auth', 'AuthShell.tsx')).toMatch(/<OverlayPage[\s\S]*?\bfade=\{0\}/);
+  // 039 (was: AuthShell's `<OverlayPage fade={0}>`; now: the sign-in steps are a `FormPage`, a transparent `Page` that draws no fade at all).
+  expect(read('app', 'auth', 'email.tsx')).toMatch(/<FormPage\b/);
+  expect(read('src', 'ui', 'auth', 'AuthShell.tsx')).not.toMatch(/<OverlayPage\b/);
+  expect(read('src', 'ui', 'form', 'FormPage.tsx')).not.toMatch(/<Fade\b|fade=|LinearGradient/);
 });

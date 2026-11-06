@@ -78,7 +78,6 @@ import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { pendingDeletionStore } from '@/social/api-m22-server';
 import { Sec } from '@/ui/settings/hub-parts';
 import { Section } from '@/ui/settings/panel';
-import { SET } from '@/ui/settings/hub-measures';
 import { LegalDoc } from '@/ui/shell/LegalDoc';
 import { LEGAL_TEXT } from '@/legal/texts';
 
@@ -171,24 +170,20 @@ describe('F8-6 Downloads: "Manage downloads ›" stays on the screen', () => {
   });
 });
 
-describe('F8-7 Edge labels: a short section still holds its rotated label', () => {
-  const LABEL_LEN = 91;
-  async function withLabel(el: React.ReactElement): Promise<ReactTestRenderer> {
-    const r = await render(el);
-    const copy = byId(r, 'edge-measure')[0]!;
-    const measured = copy.findAll((n) => String(n.type) === 'Text')[0]!;
-    act(() => { measured.props['onLayout']({ nativeEvent: { layout: { width: LABEL_LEN - 0.4, height: 14, x: 0, y: 0 } } }); });
-    return r;
-  }
+describe('F8-7 (039: was the rotated edge label) a short section keeps its heading above it', () => {
   const short = createElement('View');
 const sec = (C: typeof Sec | typeof Section, label: string): React.ReactElement => createElement(C as typeof Sec, { label, testID: 'sec' } as React.ComponentProps<typeof Sec>, short);
-  it.each(['Your shows', 'Playback', 'For You'])('Settings Sec "%s" (hub-parts, what Settings > More uses): minHeight >= label length', async (label) => {
-    const r = await withLabel(sec(Sec, label));
-    expect(Number(flat(byId(r, 'sec')[0])['minHeight'] ?? 0)).toBeGreaterThanOrEqual(LABEL_LEN + SET.edgeTop);
+  // 039 (List lane): was "Settings Sec: minHeight >= label length" (hub-parts) — Sec draws the kit Section's heading above the block too.
+  it.each(['Your shows', 'Playback', 'For You'])('Settings Sec "%s" (hub-parts, what Settings > More uses): a heading above the block, no rotated label', async (label) => {
+    const r = await render(sec(Sec, label));
+    expect(byId(r, 'edge-measure')).toHaveLength(0);
+    expect(words(r)).toContain(label);
   });
-  it.each(['Your shows', 'Playback', 'For You'])('panel Section "%s": minHeight >= label length', async (label) => {
-    const r = await withLabel(sec(Section, label));
-    expect(Number(flat(byId(r, 'sec')[0])['minHeight'] ?? 0)).toBeGreaterThanOrEqual(LABEL_LEN + 2);
+  // 039 (List lane): was "panel Section: minHeight >= label length" — the settings Section no longer hangs an edge label in a lane; its label is the kit Section's heading above the block.
+  it.each(['Your shows', 'Playback', 'For You'])('panel Section "%s": a heading above the block, no rotated label', async (label) => {
+    const r = await render(sec(Section, label));
+    expect(byId(r, 'edge-measure')).toHaveLength(0);
+    expect(words(r)).toContain(label);
   });
 });
 

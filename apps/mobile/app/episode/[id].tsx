@@ -2,7 +2,13 @@
 /**
  * One episode (FR-003), and the tap that starts audio (Story 1 scenario 2).
  *
- * History: laid out after the owner's reference (2026-09-27), the 小宇宙 episode page (2026-10-01: collapsing bar, Related
+ * Spec 039 (Detail template, design B): a `DetailPage` (Back + "Episode" in the title row, one 20 gutter, 24 between blocks). The header is
+ * the cover (112), the show link, the title (long-press copies), the counts and Play / Subscribe (`EpisodeTitleBlock`); then the heat strip
+ * (`EpisodeHeat`: date, hottest moment, the curve), the tray (queue, comments, like, share, more), and the sections Notes, Clips, Related (a
+ * `Shelf`) and Comments. The 470 tall cover stage, the glow, the fade, the absolutely placed thumb zone and the edge labels are gone; every
+ * control, label and destination stays.
+ *
+ * History (before 039): laid out after the owner's reference (2026-09-27), the 小宇宙 episode page (2026-10-01: collapsing bar, Related
  * episodes), M17 `Episode-B` (the Editorial page), M21 US4 (cover tint, selectable notes, Related as a sideways row, the ⋯ sheet's
  * Report episode, "Download to Watch").
  *
@@ -20,17 +26,13 @@
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { useWindowDimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/ui/lib/box';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { Fade } from '@/ui/kit/Fade';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { DetailPage } from '@/ui/detail/DetailPage';
+import { Artwork } from '@/ui/kit/Artwork';
 import { enqueue } from '@socialmorning/player-core';
 import { episodePlayView, livePositionMs, sameEpisodePlayView, usePlayer, usePlayerSelector } from '@/playback/store';
 import { mmss, noteParts } from '@/ui/kit/format';
 import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
-import { useLayout } from '@/ui/shell/useLayout';
 import * as Clipboard from 'expo-clipboard';
 import { toPlayable } from '@/storage/playable';
 import { useSocial } from '@/social/context';
@@ -43,16 +45,14 @@ import { ComposerSheet } from '@/ui/comments/Composer';
 import { ClipList } from '@/ui/clips/ClipList';
 import { useGraph } from '@/graph/context';
 import { useNextUp } from '@/ui/player/NextUp';
-import { PlayerBackdrop } from '@/ui/player/PlayerBackdrop';
 import { alignHeat } from '@/ui/player/hot';
-import { EpisodeStage } from '@/ui/episode/EpisodeStage';
+import { EpisodeHeat } from '@/ui/episode/EpisodeHeat';
 import { EpisodeTitleBlock } from '@/ui/episode/EpisodeTitleBlock';
 import { EpisodeTray } from '@/ui/episode/EpisodeTray';
 import { EpisodeMoreSheet } from '@/ui/episode/EpisodeMoreSheet';
 import { EpisodeSection } from '@/ui/episode/EpisodeSection';
 import { ShowNotes, hasNotes } from '@/ui/episode/ShowNotes';
 import { RelatedEpisodes } from '@/ui/episode/RelatedEpisodes';
-import { EPISODE, episodeLayout } from '@/ui/episode/measures';
 import { countsLine, datePill, hottestMoment } from '@/ui/episode/stage';
 import { useDiscover } from '@/discover/useDiscover';
 import { ApiError } from '@/social/api';
@@ -67,22 +67,13 @@ import { refreshShow } from '@/feeds/fetch';
 import type { EpisodeCard } from '@/social/api';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
-/** On a tablet the page is one column, centred (as the player's). */
-const WIDE_COLUMN = { width: '100%', maxWidth: 640, alignSelf: 'center' } as const;
-/** The glow behind the scrolled page: `glow('#FF6B8B','#5B3DF5',-300,.3)`. */
-const GLOW = { top: -300, opacity: 0.3 } as const;
-/** Room under the last section so it clears the thumb zone (title block 112 up + about 190 tall, then the tray's fade). */
-const FOOT = 340;
-/** The page counts as scrolled once the stage's pills have gone (a short way in). */
-const SCROLLED_AT = 40;
+/** The header's cover: big enough to be the thing the page is about, small enough to leave the title room. */
+const COVER = 112;
 
 export default function EpisodeScreen(): React.ReactElement {
   const stores = useStores();
   const player = usePlayer();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
-  const { wide } = useLayout();
-  const windowHeight = useWindowDimensions().height;
   const { id } = useLocalSearchParams<{ id: string }>();
   const episode = id === undefined ? undefined : stores.feeds.getEpisode(id);
   const { useEpisodeSocial, refresh, api, listener } = useSocial();
@@ -97,8 +88,6 @@ export default function EpisodeScreen(): React.ReactElement {
   const { useEpisodeClips } = useGraph();
   const clipCount = useEpisodeClips(episode?.id).clips.length;
   const subscriptionSync = useSubscriptionSync();
-  // The fade under the thumb zone is 300 tall over the stage and 260 once the page has scrolled (the drawing's two phones).
-  const [scrolled, setScrolled] = useState(false);
   const [subscribed, setSubscribed] = useState(() => episode !== undefined && stores.subscriptions.has(episode.feedUrl));
   const toast = useToast();
   // M22 US17 item 7: the title to the clipboard, with a toast.
@@ -168,7 +157,7 @@ export default function EpisodeScreen(): React.ReactElement {
 
   if (episode === undefined) {
     return (
-      <PushedPage title="This episode is no longer in the feed." tone="grey">{null}</PushedPage>
+      <DetailPage title="This episode is no longer in the feed." onBack={() => router.back()} />
     );
   }
 
@@ -231,82 +220,56 @@ export default function EpisodeScreen(): React.ReactElement {
   const rawHeat = cached?.social.heat;
   const heat = alignHeat(rawHeat?.available ? rawHeat.buckets : undefined, heatAxisMs ?? undefined, episode.durationMs);
   const hottest = hottestMoment(rawHeat?.available ? rawHeat.buckets : undefined, heatAxisMs ?? undefined, episode.durationMs);
-  const layout = episodeLayout(insets);
   const resume = saved === undefined ? undefined : saved.finished ? 'finished' : `resumes at ${mmss(saved.offsetMs)}`;
   const showNotes = hasNotes(notes) || extras !== undefined;
 
   return (
-    <Box className="flex-1 bg-void">
-      <PlayerBackdrop feedUrl={episode.feedUrl} top={GLOW.top} opacity={GLOW.opacity} />
-      <Box className="flex-1" style={wide ? WIDE_COLUMN : undefined}>
-        <ScrollView
-          testID="episode-scroll"
-          className="flex-1"
-          scrollEventThrottle={64}
-          onScroll={(e) => { const past = e.nativeEvent.contentOffset.y > SCROLLED_AT; if (past !== scrolled) setScrolled(past); }}
-          contentContainerStyle={{ paddingBottom: layout.titleBottom + FOOT }}
-        >
-          <EpisodeStage
-            layout={layout}
-            coverUrl={episode.imageUrl ?? show?.imageUrl}
-            name={show?.title}
-            date={datePill(episode.publishedAt, episode.durationMs)}
-            hottest={hottest}
-            heat={heat}
-            onHottest={() => { if (hottest) playFrom(hottest.atMs); }}
-          />
-          {/* F3: the sections start at the fold, as in the drawing (its first screen is the stage and the thumb zone, nothing behind the title block). */}
-          <Box testID="episode-fold" style={{ height: Math.max(0, windowHeight - layout.stageHeight) }} />
-          {showNotes ? (
-            <EpisodeSection label="Notes">
-              <ShowNotes parts={notes} onPlayFrom={playFrom} />
-              {extras ? <Box className={hasNotes(notes) ? 'mt-section' : ''}><ShowExtrasBlock extras={extras} onPoll={replacePoll} episodeId={episode.id} /></Box> : null}
-            </EpisodeSection>
-          ) : null}
-          <ClipList episode={playable} />
-          <EpisodeSection label="Related" bleed>
-            <RelatedEpisodes items={nextUp.items} onOpen={(card) => void discoverOpen(card)} onMore={(card) => void moreForCard(card)} />
+    <>
+      <DetailPage title="Episode" onBack={() => router.back()}>
+        <EpisodeTitleBlock
+          cover={<Artwork url={episode.imageUrl ?? show?.imageUrl ?? null} size={COVER} {...(show?.title !== undefined ? { name: show.title } : {})} />}
+          title={episode.title}
+          showTitle={show?.title}
+          playing={playing}
+          subscribed={subscribed}
+          onShow={show === undefined ? undefined : goShow}
+          onPlay={playOrPause}
+          onSubscribe={toggleSubscription}
+          onCopyTitle={() => copyTitle(episode.title)}
+          counts={countsLine({ listeners, comments: commentCount, clips: clipCount })}
+          resume={resume}
+        />
+        <EpisodeHeat date={datePill(episode.publishedAt, episode.durationMs)} hottest={hottest} heat={heat} onHottest={() => { if (hottest) playFrom(hottest.atMs); }} />
+        <EpisodeTray
+          commentCount={commentCount}
+          liked={like?.liked === true}
+          onQueue={addToQueue}
+          onComments={openComments}
+          onLike={() => void toggleLike()}
+          onShare={() => setSharing(true)}
+          onMore={() => setMore(true)}
+        />
+        {showNotes ? (
+          <EpisodeSection label="Notes">
+            <ShowNotes parts={notes} onPlayFrom={playFrom} />
+            {extras ? <Box className={hasNotes(notes) ? 'mt-section' : ''}><ShowExtrasBlock extras={extras} onPoll={replacePoll} episodeId={episode.id} /></Box> : null}
           </EpisodeSection>
-          {/* M12 FR-027: a two-comment preview; the conversation has its own page. It keeps its own heading and sits last, a section like the others (the drawing has no preview: the tray's Comments opens the page; F3: it used to sit behind the title block). */}
-          <Box testID="episode-section-comments" style={{ marginTop: EPISODE.sectionGap, marginLeft: EPISODE.lane, marginRight: EPISODE.right }}>
-            <CommentPreview
-              comments={cached?.social.comments ?? []}
-              serverTime={cached?.social.serverTime ?? new Date(clockMs()).toISOString()}
-              stale={stale}
-              onSeek={playFrom}
-              onOpen={openComments}
-            />
-          </Box>
-        </ScrollView>
-
-        <Fade bottom={0} height={scrolled ? EPISODE.fadeScrolled : EPISODE.fadeHeight} />
-        <Box testID="episode-title-pos" className="absolute" style={{ left: EPISODE.side, right: EPISODE.side, bottom: layout.titleBottom, zIndex: 20 }}>
-          <EpisodeTitleBlock
-            title={episode.title}
-            showTitle={show?.title}
-            playing={playing}
-            subscribed={subscribed}
-            onBack={() => router.back()}
-            onShow={show === undefined ? undefined : goShow}
-            onPlay={playOrPause}
-            onSubscribe={toggleSubscription}
-            onCopyTitle={() => copyTitle(episode.title)}
-            counts={countsLine({ listeners, comments: commentCount, clips: clipCount })}
-            resume={resume}
+        ) : null}
+        <ClipList episode={playable} />
+        <EpisodeSection label="Related">
+          <RelatedEpisodes items={nextUp.items} onOpen={(card) => void discoverOpen(card)} onMore={(card) => void moreForCard(card)} />
+        </EpisodeSection>
+        {/* M12 FR-027: a two-comment preview; the conversation has its own page. It keeps its own heading and sits last. */}
+        <Box testID="episode-section-comments">
+          <CommentPreview
+            comments={cached?.social.comments ?? []}
+            serverTime={cached?.social.serverTime ?? new Date(clockMs()).toISOString()}
+            stale={stale}
+            onSeek={playFrom}
+            onOpen={openComments}
           />
         </Box>
-        <Box testID="episode-tray-pos" className="absolute" style={{ left: 12, right: 12, bottom: layout.trayBottom, zIndex: 25 }}>
-          <EpisodeTray
-            commentCount={commentCount}
-            liked={like?.liked === true}
-            onQueue={addToQueue}
-            onComments={openComments}
-            onLike={() => void toggleLike()}
-            onShare={() => setSharing(true)}
-            onMore={() => setMore(true)}
-          />
-        </Box>
-      </Box>
+      </DetailPage>
 
       <ShareChooser
         open={sharing}
@@ -334,6 +297,6 @@ export default function EpisodeScreen(): React.ReactElement {
       {composing ? (
         <ComposerSheet initial={composing} onClose={() => setComposing(undefined)} onPosted={() => { void refresh(episode.id); }} />
       ) : null}
-    </Box>
+    </>
   );
 }

@@ -48,6 +48,6 @@ it('G-E2: global.css\'s two UniWind sets are the same Pulse palette, and it is d
   const block = (v: string) => (new RegExp(`@variant ${v} \\{([^}]*)\\}`).exec(css)?.[1] ?? '').trim();
   expect(block('light').length).toBeGreaterThan(100);
   expect(block('dark')).toBe(block('light'));
-  expect(block('light')).toContain('--color-void: #060608;');
+  expect(block('light')).toContain('--color-void: #111318;');
   expect(block('light')).not.toContain('#fbf8f1'); // the Editorial paper page is gone
 });

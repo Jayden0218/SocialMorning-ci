@@ -31,7 +31,6 @@ import { colour } from '@/design';
 import { getPref, setPref } from '@/settings/prefs';
 import { useStores } from '@/ui/shell/providers';
 import { Icon } from '@/ui/kit/Icon';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { Toggle } from '@/ui/kit/Toggle';
 import { Type } from '@/ui/kit/Type';
 import { PanelGroup } from '@/ui/me/Panel';
@@ -42,40 +41,36 @@ export default function MoreSettings(): React.ReactElement {
   const stores = useStores();
   const [recs, setRecs] = useState(() => getPref(stores.settings, 'personalRecs'));
   return (
-    <PushedPage title="More">
-      {(layout) => (
-        <SetPage layout={layout}>
-          <Sec label="Your shows">
-            <PanelGroup>
-              <Link href="/settings/opml" asChild accessibilityLabel="Import or export subscriptions"><SetRow icon="repeat-outline" label="Import or export subscriptions" line="OPML — the file every podcast app reads" /></Link>
-            </PanelGroup>
-          </Sec>
-          {/* M21 US10 (T110): the playback switches moved to their own page. */}
-          <Sec label="Playback">
-            <PanelGroup>
-              <Link href="/settings/playback" asChild accessibilityLabel="Playback"><SetRow icon="play" label="Playback" line="Queue, mobile data, transcript, lock screen, music mode, skip silence" /></Link>
-            </PanelGroup>
-          </Sec>
-          <Sec label="For You">
-            <Box style={{ gap: SET.tileGap }}>
-              <SetCard testID="recs-card" wash={recs} gap={SET.gap}>
-                <Box className="flex-row justify-between items-center">
-                  <Icon name="sparkles-outline" size={SET.bigIcon} color={colour.hotText} />
-                  <Toggle value={recs} onChange={(v) => { setRecs(v); setPref(stores.settings, 'personalRecs', v); }} label="Personalised recommendations" />
-                </Box>
-                <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>Personalised recommendations</Type>
-                <Note>For You on Discover, from what you follow and play. Off: no For You, and nothing is sent for it.</Note>
-              </SetCard>
-              <PanelGroup>
-                {/* M12 FR-094 */}
-                <Link href="/settings/how-for-you" asChild accessibilityLabel="How For You works"><SetRow icon="information-circle-outline" label="How For You works" line="What it uses, and what it never uses" /></Link>
-                {/* M19 T022 (moved here from Settings in M24 US20): what For You no longer recommends, each with Restore. */}
-                <Link href="/settings/not-interested" asChild accessibilityLabel="Not interested"><SetRow icon="eye-off-outline" label="Not interested" line="Episodes and shows hidden from For You" /></Link>
-              </PanelGroup>
+    <SetPage title="More">
+      <Sec label="Your shows">
+        <PanelGroup>
+          <Link href="/settings/opml" asChild accessibilityLabel="Import or export subscriptions"><SetRow icon="repeat-outline" label="Import or export subscriptions" line="OPML — the file every podcast app reads" /></Link>
+        </PanelGroup>
+      </Sec>
+      {/* M21 US10 (T110): the playback switches moved to their own page. */}
+      <Sec label="Playback">
+        <PanelGroup>
+          <Link href="/settings/playback" asChild accessibilityLabel="Playback"><SetRow icon="play" label="Playback" line="Queue, mobile data, transcript, lock screen, music mode, skip silence" /></Link>
+        </PanelGroup>
+      </Sec>
+      <Sec label="For You">
+        <Box style={{ gap: SET.tileGap }}>
+          <SetCard testID="recs-card" wash={recs} gap={SET.gap}>
+            <Box className="flex-row justify-between items-center">
+              <Icon name="sparkles-outline" size={SET.bigIcon} color={colour.hotText} />
+              <Toggle value={recs} onChange={(v) => { setRecs(v); setPref(stores.settings, 'personalRecs', v); }} label="Personalised recommendations" />
             </Box>
-          </Sec>
-        </SetPage>
-      )}
-    </PushedPage>
+            <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>Personalised recommendations</Type>
+            <Note>For You on Discover, from what you follow and play. Off: no For You, and nothing is sent for it.</Note>
+          </SetCard>
+          <PanelGroup>
+            {/* M12 FR-094 */}
+            <Link href="/settings/how-for-you" asChild accessibilityLabel="How For You works"><SetRow icon="information-circle-outline" label="How For You works" line="What it uses, and what it never uses" /></Link>
+            {/* M19 T022 (moved here from Settings in M24 US20): what For You no longer recommends, each with Restore. */}
+            <Link href="/settings/not-interested" asChild accessibilityLabel="Not interested"><SetRow icon="eye-off-outline" label="Not interested" line="Episodes and shows hidden from For You" /></Link>
+          </PanelGroup>
+        </Box>
+      </Sec>
+    </SetPage>
   );
 }

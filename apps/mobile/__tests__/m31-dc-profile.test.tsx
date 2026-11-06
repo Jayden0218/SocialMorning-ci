@@ -155,7 +155,7 @@ describe('Profile (social.html profile--screen)', () => {
     const inner = ring.children[0] as ReactTestInstance;
     expect(flat(inner)).toMatchObject({ padding: 3, borderRadius: 52 });
     const name = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === 'Rui Costa' && x.props['accessibilityRole'] === 'header')[0]!;
-    expect(flat(name).fontSize).toBe(26);
+    expect(name).toBeDefined(); // 039: the name is the `title` step now (was Unbounded 26)
     expect(words(r)).toContain('IP location: Portugal');
     expect(words(r)).toContain('Mornings, cities, long walks.');
   });
@@ -165,12 +165,11 @@ describe('Profile (social.html profile--screen)', () => {
     const tiles = byId(r, 'stat-tile');
     expect(tiles).toHaveLength(4);
     tiles.forEach((t) => expect(flat(t)).toMatchObject({ minHeight: 84, padding: 14, borderRadius: 22 }));
-    expect(named(r, 'Numbers').length).toBeGreaterThan(0);
+    expect(words(r)).toContain('Numbers');
     expect(words(r)).toEqual(expect.arrayContaining(['212', '1.2k', '3', '128 h', 'Following', 'Followers', 'Subscriptions', 'Listened']));
-    // The grid sits in the Me tab's lane (28 left, 16 right) with 10 between its tiles.
-    let up: ReactTestInstance | null = byId(r, 'stat-tiles')[0]!.parent;
-    while (up && flat(up).marginLeft === undefined) up = up.parent;
-    expect(flat(up!)).toMatchObject({ marginLeft: 28, marginRight: 16, gap: 10 });
+    // 039: the grid is a Section on the page's gutter (no 28 lane), with 10 between its tiles.
+    expect(flat(byId(r, 'numbers-section')[0]!)).toMatchObject({ gap: 10 });
+    expect(flat(byId(r, 'numbers-section')[0]!).marginLeft).toBeUndefined();
   });
 
   it('draws Listening time as the hot-tinted 2 x 1 tile with the total, the finished count and the week', async () => {
@@ -183,11 +182,10 @@ describe('Profile (social.html profile--screen)', () => {
     expect(named(r, 'Total listening time 128 hours 14 minutes').length).toBeGreaterThan(0);
   });
 
-  it('puts back, a hot Follow pill and two 48 circles in the bottom zone', async () => {
+  it('puts a hot Follow pill and two 48 circles in the actions row under the header; Back is in the title row', async () => {
     const r = await render(createElement(ProfileScreen));
-    const foot = byId(r, 'profile-foot')[0]!;
-    expect(flat(foot)).toMatchObject({ gap: 10, paddingHorizontal: 20, bottom: 6 });
-    // The bar sits at the title bar's spot: 6 above the page's foot (the root layout pads the home strip, so 40 on the drawn phone).
+    const row = byId(r, 'profile-actions')[0]!;
+    expect(flat(row)).toMatchObject({ gap: 12 });
     expect(flat(host(r, 'Back'))).toMatchObject({ width: 44, height: 44 });
     expect(classOf(host(r, 'Follow'))).toContain('bg-hot');
     expect(flat(host(r, 'Message Rui Costa'))).toMatchObject({ width: 48, height: 48 });
@@ -196,13 +194,11 @@ describe('Profile (social.html profile--screen)', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat/[id]', params: { id: 'rui', name: 'Rui Costa' } });
   });
 
-  it('hangs Recent and Likes on the spine under ticks, with View all › opening the likes page', async () => {
+  it('lists Recent and Likes as cards under a Section each (no spine), with View all opening the likes page', async () => {
     mockLikes = [{ episode: { id: 'e2', title: 'The quiet field', showTitle: 'Field Notes', feedUrl: 'https://f/b.xml' }, createdAt: new Date(Date.now() - 86_400_000 * 2).toISOString(), note: 'The ending.' }];
     const r = await render(createElement(ProfileScreen));
-    expect(named(r, 'Recent').length).toBeGreaterThan(0);
-    expect(named(r, 'Likes').length).toBeGreaterThan(0);
-    expect(words(r)).toContain('LIKES · 3'.toLowerCase() === '' ? '' : 'View all ›');
-    expect(byId(r, 'spine-line').length).toBe(2);
+    expect(words(r)).toEqual(expect.arrayContaining(['Recent', 'Likes · 3']));
+    expect(byId(r, 'spine-line')).toHaveLength(0);
     expect(byId(r, 'recent-card')).toHaveLength(1);
     expect(byId(r, 'like-card')).toHaveLength(1);
     await press(r, "View all of Rui Costa's likes");
@@ -212,25 +208,12 @@ describe('Profile (social.html profile--screen)', () => {
   it('shows public playlists as a Deck of cards under the edge label Playlists', async () => {
     mockPlaylists = [{ id: 'p1', title: 'Sunday walks', count: 4, isPublic: true, imageUrl: null }];
     const r = await render(createElement(ProfileScreen));
-    expect(named(r, 'Playlists').length).toBeGreaterThan(0);
+    expect(words(r)).toContain('Playlists');
     const deck = byId(r, 'deck')[0]!;
     expect(deck).toBeTruthy();
     expect(named(r, 'Sunday walks, 4 episodes, public').length).toBeGreaterThan(0);
     await press(r, 'Sunday walks, 4 episodes, public');
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/playlists/[id]', params: { id: 'p1' } });
-  });
-
-  it('collapses the head: past 150 the name and a 28 photo join the status-bar strip', async () => {
-    const r = await render(createElement(ProfileScreen));
-    expect(byId(r, 'collapsed-name')).toHaveLength(0);
-    const scroll = r.root.findAll((n) => typeof n.props['onScroll'] === 'function')[0]!;
-    await act(async () => { scroll.props['onScroll']({ nativeEvent: { contentOffset: { y: 140 } } }); });
-    expect(byId(r, 'collapsed-name')).toHaveLength(0);
-    await act(async () => { scroll.props['onScroll']({ nativeEvent: { contentOffset: { y: 151 } } }); });
-    expect(byId(r, 'collapsed-name')).toHaveLength(1);
-    expect(flat(r.root.findAll((x) => x.props['size'] === 28)[0]).width ?? 28).toBe(28);
-    await act(async () => { scroll.props['onScroll']({ nativeEvent: { contentOffset: { y: 0 } } }); });
-    expect(byId(r, 'collapsed-name')).toHaveLength(0);
   });
 });
 
@@ -268,14 +251,12 @@ describe('Profile variants', () => {
     expect(words(r)).toContain('0 min');
   });
 
-  it('a blocked page: the name and one line, a faint glow, back and the quiet Unblock pill', async () => {
+  it('a blocked page: the name and one line, back and the quiet Unblock pill', async () => {
     mockBlocked = true;
     const r = await render(createElement(ProfileScreen));
     expect(words(r)).toContain('You blocked this listener.');
     expect(byId(r, 'stat-tile')).toHaveLength(0);
-    const glow = byId(r, 'page-glow')[0]!;
-    const svg = glow.findAll((x) => x.props['width'] !== undefined && flat(x).opacity !== undefined)[0]!;
-    expect(flat(svg).opacity).toBe(PROFILE_PAGE.glowQuiet);
+    expect(byId(r, 'page-glow')).toHaveLength(0); // 039: no glow behind a Detail page
     expect(classOf(host(r, 'Unblock Rui Costa'))).toContain('bg-raise');
     expect(words(r)).toContain('Unblock Rui Costa');
     expect(named(r, 'Follow')).toHaveLength(0);
@@ -325,7 +306,7 @@ describe('Category (discover.html category--screen, category--all-sheet)', () =>
     const r = await render(createElement(CategoryScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Comedy', 'Categories', 'For you', 'Hot', 'Newest', 'Not subscribed only', 'New to you first']));
     expect(comp(r, 'All categories')).toBeTruthy();
-    expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ height: 44 });
+    expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ height: 46 }); // 039 I2: was 44 (one pill track, 46 tall)
     const toggle = r.root.findAll((x) => x.props['accessibilityRole'] === 'switch' && x.props['accessibilityLabel'] === 'Not subscribed only')[0]!;
     expect(toggle).toBeTruthy();
     const track = toggle.findAll((x) => typeof x.type === 'string' && flat(x).width === 46 && flat(x).height === 28);
@@ -337,7 +318,8 @@ describe('Category (discover.html category--screen, category--all-sheet)', () =>
     const r = await render(createElement(CategoryScreen));
     const lead = byId(r, 'lead-card')[0]!;
     expect(classOf(lead)).toContain('bg-text');
-    expect(flat(lead)).toMatchObject({ minHeight: 272, marginLeft: 28, marginRight: 16, borderRadius: 22 });
+    expect(flat(lead)).toMatchObject({ minHeight: 272, borderRadius: 22 }); // 039: on the page's gutter (was marginLeft 28, marginRight 16)
+    expect(flat(lead).marginLeft).toBeUndefined();
     expect(words(r)).toEqual(expect.arrayContaining(['Money, Plainly', 'J. Park · Business, Investing']));
     const tiles = byId(r, 'show-tile');
     expect(tiles).toHaveLength(2);

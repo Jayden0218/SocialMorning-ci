@@ -1,19 +1,15 @@
-// One named section of the Episode page: an edge label on the left, its content starting 28 in.
+// One named section of the Episode page: a Section heading, then its content.
 /**
- * M31 W3-A (T040; layout rule 3, design-pulse2 `edge('Notes', 20)` + the content's `margin-left:28px;margin-right:16px`):
- * a section is named by the vertical `EdgeLabel` on the page's left edge instead of a heading row, and its content starts
- * 28 from the left (the label's lane) and ends 16 from the right. A decks' cards may run to the right edge (`bleed`): the
- * drawing's decks scroll sideways under the right edge. `top` is the space above the section (22 in the drawing).
+ * Spec 039 (Detail template; was M31 W3-A's edge label and 28 lane): a section is the layout kit's `Section` (the `heading` step, 24 apart
+ * on the page's one gutter), kept in a box with the old test id so the page's order stays checkable. A row of cards in it is a `Shelf`.
  */
 import { Box } from '@/ui/lib/box';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
-import { EPISODE } from './measures';
+import { Section } from '@/ui/kit/layout';
 
-export function EpisodeSection(props: { label: string; /** What a screen reader says, when it differs. */ spoken?: string; /** The deck runs to the right edge. */ bleed?: boolean; top?: number; children: React.ReactNode }): React.ReactElement {
+export function EpisodeSection(props: { label: string; children: React.ReactNode }): React.ReactElement {
   return (
-    <Box testID={`episode-section-${props.label.toLowerCase()}`} style={{ marginTop: props.top ?? EPISODE.sectionGap }}>
-      <EdgeLabel label={props.label} {...(props.spoken !== undefined ? { spoken: props.spoken } : {})} top={0} />
-      <Box style={{ marginLeft: EPISODE.lane, marginRight: props.bleed === true ? 0 : EPISODE.right }}>{props.children}</Box>
+    <Box testID={`episode-section-${props.label.toLowerCase()}`}>
+      <Section title={props.label}>{props.children}</Section>
     </Box>
   );
 }

@@ -87,7 +87,7 @@ describe('app.json points at the Pulse files', () => {
     const splash = expo.plugins.find((p: unknown) => Array.isArray(p) && p[0] === 'expo-splash-screen')[1];
     expect(String(splash.backgroundColor).toLowerCase()).toBe(colour.background.toLowerCase());
     expect(String(splash.backgroundColor).toLowerCase()).toBe(colour.void.toLowerCase());
-    expect(String(expo.android.adaptiveIcon.backgroundColor).toLowerCase()).toBe('#060608');
+    expect(String(expo.android.adaptiveIcon.backgroundColor).toLowerCase()).toBe('#111318');
     expect(expo.userInterfaceStyle).toBe('dark');
     // Nothing light is left in the config: the old cream page or the old yellow.
     expect(JSON.stringify(expo)).not.toMatch(/fbf8f1|FDC621|"light"/i);

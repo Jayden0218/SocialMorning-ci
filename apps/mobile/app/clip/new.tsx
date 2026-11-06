@@ -14,18 +14,16 @@
  * a grey page with "This episode is not in the library." and Back only. Saved: the app's share panel, then back.
  */
 import { useState } from 'react';
-import { Box } from '@/ui/lib/box';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useGraph } from '@/graph/context';
 import { useSocial } from '@/social/context';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { toPlayable } from '@/storage/playable';
 import { ClipComposer } from '@/ui/clips/ClipComposer';
-import { COMPOSER_EMPTY } from '@/ui/clips/measures';
 import { useClipShare, useSharePanel } from '@/ui/clips/ShareChooser';
 import { EmptyBlock } from '@/ui/chat/EmptyBlock';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { FormPage } from '@/ui/form/FormPage';
 
 export default function NewClipScreen(): React.ReactElement {
   const params = useLocalSearchParams<{ episodeId: string; positionMs: string; startMs?: string; endMs?: string; caption?: string }>();
@@ -45,22 +43,18 @@ export default function NewClipScreen(): React.ReactElement {
   const episode = params.episodeId ? toPlayable(stores, params.episodeId) : undefined;
   if (!episode) {
     return (
-      <PushedPage title="New clip" tone="grey">
-        {(l) => <Box style={{ paddingTop: l.top + COMPOSER_EMPTY.missing }}><EmptyBlock title="Not in the library" line="This episode is not in the library." /></Box>}
-      </PushedPage>
+      <FormPage title="New clip" tone="grey">
+        <EmptyBlock title="Not in the library" line="This episode is not in the library." />
+      </FormPage>
     );
   }
   if (!listener) {
     return (
-      <PushedPage title="New clip">
-        {(l) => (
-          <Box style={{ paddingTop: l.top + COMPOSER_EMPTY.signedOut }}>
-            <EmptyBlock title="Sign in to make a clip." line="Clips are yours to share; they need an account.">
-              <PulseButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
-            </EmptyBlock>
-          </Box>
-        )}
-      </PushedPage>
+      <FormPage title="New clip">
+        <EmptyBlock title="Sign in to make a clip." line="Clips are yours to share; they need an account.">
+          <PulseButton label="Sign in" onPress={() => router.push('/auth/sign-in')} />
+        </EmptyBlock>
+      </FormPage>
     );
   }
   return (

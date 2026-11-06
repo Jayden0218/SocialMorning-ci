@@ -1,0 +1,4 @@
+{
+  "app/player.tsx": "fixed full-screen player stage with swipe gestures; already on the gutter and tokens; owner decision",
+  "app/auth/sign-in.tsx": "full-bleed sign-in stage, no title row by design; owner decision"
+}

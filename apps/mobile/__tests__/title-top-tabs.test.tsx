@@ -8,7 +8,7 @@ import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { bars, barsReserve, bottomInset, spacing, titleBarTop } from '@/design';
+import { bars, barsReserve, bottomInset, spacing } from '@/design';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 const mockPush = jest.fn();
@@ -62,8 +62,6 @@ async function render(el: React.ReactElement): Promise<ReactTestRenderer> {
 }
 const flat = (n: ReactTestInstance | undefined): Record<string, unknown> => (StyleSheet.flatten(n?.props['style'] as never) ?? {}) as Record<string, unknown>;
 
-const titleBar = (r: ReactTestRenderer): ReactTestInstance => r.root.findByType(TitleBar);
-
 describe('037 M4 tab titles at the top', () => {
   for (const idle of [true, false]) {
     // 039 D4: was "Me: the title bar has top 6 and no bottom; the content starts under the title block (EdgeLabel page, absolute TitleBar)". Me is now a `Page` (no TitleBar): its foot clears the tab bar and, while something plays, the now bar.
@@ -76,20 +74,23 @@ describe('037 M4 tab titles at the top', () => {
       expect(style['paddingBottom']).toBe(bottomInset(34, { tabs: true, now: !idle }));
     });
 
-    it(`Chat (${idle ? 'idle' : 'now bar'}), signed in: the title bar has top 6 and no bottom`, async () => {
+    // 039 (Feed lane): was "Chat: the title bar has top 6 and no bottom". Chat is a `PageList` now (no TitleBar): its foot clears the tab bar and, while something plays, the now bar.
+    it(`Chat (${idle ? 'idle' : 'now bar'}), signed in: no title bar; the page foot clears the tab bar${idle ? '' : ' and the now bar'}`, async () => {
       mockIdle = idle;
       mockChats = () => Promise.resolve([{ with: { id: 'u2', displayName: 'Ana', avatarUrl: undefined }, last: { createdAt: Date.now(), kind: 'text', body: 'hi' }, unread: 0 }]);
-      const r = await render(createElement(ChatTab));
-      expect(titleBar(r).props['top']).toBe(titleBarTop(0));
-      expect(titleBar(r).props['bottom']).toBeUndefined();
+      const r = await render(createElement(SafeAreaInsetsContext.Provider, { value: { top: 0, bottom: 34, left: 0, right: 0 } }, createElement(ChatTab)));
+      expect(r.root.findAllByType(TitleBar).length).toBe(0);
+      const page = r.root.findAll((n) => n.props['testID'] === 'page-scroll' && n.props['contentContainerStyle'] !== undefined)[0]!;
+      expect(flat({ props: { style: page.props['contentContainerStyle'] } } as never)['paddingBottom']).toBe(bottomInset(34, { tabs: true, now: !idle }));
     });
   }
 
-  it('Chat, signed out: the title bar is at the top too', async () => {
+  // 039 (Feed lane): was "the title bar is at the top too"; the title row is the page's first child.
+  it('Chat, signed out: the page has its title row and no title bar', async () => {
     mockListener = undefined;
     const r = await render(createElement(ChatTab));
-    expect(titleBar(r).props['top']).toBe(titleBarTop(0));
-    expect(titleBar(r).props['bottom']).toBeUndefined();
+    expect(r.root.findAllByType(TitleBar).length).toBe(0);
+    expect(r.root.findAll((n) => n.props['testID'] === 'page-title-row').length).toBeGreaterThan(0);
   });
 
   it('the now bar adds only its own room to the foot: nowGap + now', () => {
@@ -107,8 +108,10 @@ describe('037 tab title below the status bar', () => {
     expect(flat({ props: { style: page.props['contentContainerStyle'] } } as never)['paddingTop']).toBe(47 + spacing.section);
   });
 
-  it('Chat: with a 47 pt status bar the title bar sits at 47 + 6, not 6', async () => {
+  // 039 (Feed lane): was "the title bar sits at 47 + 6, not 6"; the content starts below the status bar (inset + spacing.section), as Me's.
+  it('Chat: with a 47 pt status bar the page content starts below it', async () => {
     const r = await render(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, createElement(ChatTab)));
-    expect(titleBar(r).props['top']).toBe(titleBarTop(47));
+    const page = r.root.findAll((n) => n.props['testID'] === 'page-scroll' && n.props['contentContainerStyle'] !== undefined)[0]!;
+    expect(flat({ props: { style: page.props['contentContainerStyle'] } } as never)['paddingTop']).toBe(47 + spacing.section);
   });
 });

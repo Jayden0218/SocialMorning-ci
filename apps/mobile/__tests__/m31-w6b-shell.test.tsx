@@ -11,7 +11,6 @@
  *  - scan: the 240 frame with a 124 tile; the camera window 358 tall, 16 in; Close / Torch - same.
  * NOT VERIFIED: the look on a phone (nothing here was seen in a browser or on a device).
  */
-import { contentTopReserve, titleBarTop } from '@/design';
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -74,9 +73,8 @@ const text = (r: ReactTestRenderer) => JSON.stringify(r.toJSON());
 /** The test phone's status bar is 47, the drawing's 50. */
 const at = (drawnTop: number) => 47 + drawnTop - 50;
 // 037 D1: a page with a title bar starts its content under the title block (6 + the block's reserve) instead of at the status bar, so a drawn top moves down by that much. A `bare` page (no title bar) keeps `at`.
-const under = (drawnTop: number) => at(drawnTop) + titleBarTop(0) + contentTopReserve();
 /** A bar of the curve is transparent when it sits in the gap. */
-const gapBars = (r: ReactTestRenderer) => byId(r, 'curve-bar').filter((b) => flat(b)['backgroundColor'] === 'rgba(6,6,8,0)').length;
+const gapBars = (r: ReactTestRenderer) => byId(r, 'curve-bar').filter((b) => flat(b)['backgroundColor'] === 'rgba(17,19,24,0)').length;
 
 describe('the appeal words (lines.ts)', () => {
   it('a caption is the decision and its day; a state line says not sent, waiting, or decided', () => {
@@ -116,17 +114,18 @@ describe('maintenance (maintenance--screen)', () => {
     const r = await mount(MaintenanceScreen);
     expect(gapBars(r)).toBe(6);
     expect(byId(r, 'curve-bar')).toHaveLength(40);
-    expect(r.root.findAll((n) => typeof n.type === 'string' && flat(n)['top'] === at(150) && flat(n)['left'] === 20).length).toBeGreaterThan(0);
+    // 039: the curve and its marks are blocks in the page's flow (no absolute top / left).
+    expect(r.root.findAll((n) => typeof n.type === 'string' && flat(n)['position'] === 'absolute' && flat(n)['top'] === at(150))).toHaveLength(0);
     const t = text(r);
     for (const w of ['LIVE', 'PAUSED', 'We’ll be right back', 'SocialNet is being updated.', 'Your downloaded episodes still play while we work.']) expect(t).toContain(w);
   });
 
-  it('Play your downloads (52) opens Downloads; the back circle is 52 and leaves; Check again is 52 beside it', async () => {
+  it('Play your downloads (52) opens Downloads; Back (the title row\'s) leaves; Check again is 52 under it (039)', async () => {
     const r = await mount(MaintenanceScreen);
     expect(sized(pressables(r, 'Play your downloads')[0]!)['height']).toBe(52);
     expect(sized(pressables(r, 'Check again')[0]!)['height']).toBe(52);
     const back = pressables(r, 'Back')[0]!;
-    expect([sized(back)['width'], sized(back)['height']]).toEqual([52, 52]);
+    expect([sized(back)['width'], sized(back)['height']]).toEqual([44, 44]);
     await press(r, 'Play your downloads');
     expect(mockReplace).toHaveBeenCalledWith('/downloads');
     await press(r, 'Back');
@@ -160,14 +159,14 @@ describe('appeal (appeal--screen, --nothing-to-appeal, --signed-out, toast--appe
     await act(async () => { box.props['onFocus']?.(); box.props['onChangeText'](value); });
   };
 
-  it('cards from 106 in the lane 28 from the left, 22 round, padded 16; a sent card shows its state with no box; ONE Send appeal pill', async () => {
+  it('039: cards in the Decisions section on the page gutter (no 28 lane), 22 round, padded 16; a sent card shows its state with no box; ONE Send appeal pill', async () => {
     mockList.mockResolvedValue(two);
     const r = await mount(AppealScreen);
     const cards = byId(r, 'appeal-card');
     expect(cards).toHaveLength(3);
     expect([flat(cards[0]!)['borderRadius'], flat(cards[0]!)['padding']]).toEqual([22, 16]);
-    const lane = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['left'] === 28 && flat(n)['right'] === 16 && flat(n)['top'] === under(156));
-    expect(lane.length).toBeGreaterThan(0);
+    expect(r.root.findAll((n) => typeof n.type === 'string' && flat(n)['left'] === 28 && flat(n)['right'] === 16).length).toBe(0);
+    expect(byId(r, 'section').length).toBeGreaterThan(0);
     const t = text(r);
     expect(t).toContain('Comment removed · 12 Oct');
     expect(t).toContain('Account suspended · 9 Oct');
@@ -232,11 +231,11 @@ describe('scan (scan--screen, scan--camera-denied, scan--camera-preview)', () =>
     expect(pressables(r, 'Close')).toHaveLength(0);
   });
 
-  it('not allowed yet: the 240 frame at 110 holds the 124 tile, the title and reason are low, Close is a 52 circle beside Allow camera (52), which asks', async () => {
+  it('not allowed yet (039: in the flow of the page, not placed at 110): the 240 frame holds the 124 tile, the title and reason are low, Close is a 52 circle beside Allow camera (52), which asks', async () => {
     mockPermission = { granted: false, canAskAgain: true };
     const r = await mount(ScanScreen);
     const frame = byId(r, 'scan-frame')[0]!;
-    expect([flat(frame)['width'], flat(frame)['height'], flat(frame)['top']]).toEqual([240, 240, at(110)]);
+    expect([flat(frame)['width'], flat(frame)['height'], flat(frame)['top']]).toEqual([240, 240, undefined]);
     const tile = byId(r, 'glow-tile')[0]!;
     expect([flat(tile)['width'], flat(tile)['height']]).toEqual([124, 124]);
     expect(text(r)).toContain('SocialNet needs the camera to read a QR code. It is used only on this screen, and nothing is recorded.');
@@ -257,11 +256,11 @@ describe('scan (scan--screen, scan--camera-denied, scan--camera-preview)', () =>
     expect(pressables(r, 'Close')).toHaveLength(1);
   });
 
-  it('allowed: the camera window is 358 tall, 16 in, 58 down; "Scan QR code" over Close and Torch; Torch turns hot and says "Torch on"', async () => {
+  it('allowed (039: in the flow of the page on its gutter, not placed 16 in / 58 down): the camera window is 358 tall; "Scan QR code" over Close and Torch; Torch turns hot and says "Torch on"', async () => {
     mockPermission = { granted: true, canAskAgain: true };
     const r = await mount(ScanScreen);
     const win = byId(r, 'scan-window')[0]!;
-    expect([flat(win)['height'], flat(win)['left'], flat(win)['right'], flat(win)['top'], flat(win)['borderRadius']]).toEqual([358, 16, 16, under(58), 32]);
+    expect([flat(win)['height'], flat(win)['left'], flat(win)['right'], flat(win)['top'], flat(win)['borderRadius']]).toEqual([358, undefined, undefined, undefined, 32]);
     expect(text(r)).toContain('Scan QR code');
     expect(text(r)).toContain('Point at a QR code');
     expect(text(r)).toContain('Clip, episode and show codes open right here');

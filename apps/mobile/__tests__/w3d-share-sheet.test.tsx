@@ -52,8 +52,8 @@ it('preview cards are 250 x 150 with a 22 radius; the chosen one has the 2 px li
   draw();
   const moment = flat(hostBy('Share this moment').props['style']);
   expect(moment).toMatchObject({ width: 250, height: 150, borderRadius: 22, borderWidth: 2 });
-  expect(moment['borderColor']).toBe('#f4f2ee');
-  expect(flat(hostBy('Episode · Show').props['style'])['borderColor']).not.toBe('#f4f2ee');
+  expect(moment['borderColor']).toBe('#eceef2');
+  expect(flat(hostBy('Episode · Show').props['style'])['borderColor']).not.toBe('#eceef2');
 });
 it('targets are 56 squares (radius 18): chat, the apps, then More; format tiles are 84 tall', () => {
   draw();

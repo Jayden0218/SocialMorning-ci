@@ -11,6 +11,9 @@
  * the quote card is, `src/ui/player/QuoteShare.tsx`) from the numbers on this page, downloaded,
  * and handed to the share sheet as a file. Offline, the text alone is shared. It names no other listener.
  *
+ * Spec 039 (Detail template): a `DetailPage` (Back + "Your September 2026", "Your month in listening" under it, Share at its end); the minutes figure, the four counts in a
+ * `TileGrid`, and TOP SHOWS / TOP EPISODES as `Section`s of three row cards (they were decks of 250 x 84 cards under edge labels). A failed load is an `InlineNotice`.
+ *
  * M31 W5-D (T064; design-pulse2 `discover.html` `report--screen`, `--signed-out`, `--empty`, `--error`, `report--share`, `toast--report`, layout pattern Stage):
  * a pushed page, the title bar low ("Your September 2026", "Your month in listening", and the share circle = "Share your September 2026" when
  * there is a report). The Stage: LISTENING TIME in hot-text mono, the minutes as an 88 figure in the hot-to-violet gradient (each digit a step
@@ -24,28 +27,26 @@
 import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour, spacing, tabular } from '@/design';
+import { colour, radius, spacing, tabular } from '@/design';
 import { useSocial } from '@/social/context';
 import { monthName, useM19Api, type MonthReport } from '@/social/m19-api';
 import { Loader } from '@/ui/kit/Loader';
 import { Artwork } from '@/ui/kit/Artwork';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { DetailPage } from '@/ui/detail/DetailPage';
+import { IconButton } from '@/ui/kit/PulseButton';
+import { InlineNotice, Section, TileGrid } from '@/ui/kit/layout';
 import { Type } from '@/ui/kit/Type';
 import { mixColour } from '@/ui/kit/pulse-math';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { plural } from '@socialmorning/social-core';
 import { File, Paths } from 'expo-file-system';
 import { useListeningApi } from '@/me/listening-api';
-import { Deck, DeckCard, DeckSection } from '@/ui/discover/Deck';
-import { MosaicGrid, RetryTile, type TileSpec } from '@/ui/discover/Mosaic';
+import type { TileSpec } from '@/ui/discover/Mosaic';
 import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
-import { bodyTop } from '@/ui/discover/page-parts';
 import { ME_TYPE } from '@/ui/me/measures';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
-import { DRAWN, emptyTop, PageEmpty } from '@/ui/me/lists';
+import { PageEmpty } from '@/ui/me/lists';
 
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; report: MonthReport };
 
@@ -106,7 +107,6 @@ export default function ReportScreen(): React.ReactElement {
   const r = state.kind === 'ok' ? state.report : undefined;
   const none = r !== undefined && r.minutes === 0 && r.episodes === 0;
   const title = `Your ${monthName(String(month))}`;
-  const lane = { marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right };
   const counts: TileSpec[] = r ? ([[r.shows, r.shows === 1 ? 'show' : 'shows'], [r.episodes, r.episodes === 1 ? 'episode' : 'episodes'], [r.comments, r.comments === 1 ? 'comment' : 'comments'], [r.clips, r.clips === 1 ? 'clip' : 'clips']] as const).map(([value, label]) => ({
     key: label,
     w: 1,
@@ -119,38 +119,32 @@ export default function ReportScreen(): React.ReactElement {
     ),
   })) : [];
 
-  return (
-    <PushedPage
-      title={title}
-      subtitle="Your month in listening"
-      actions={r && !none ? [{ icon: 'share-outline', label: `Share your ${monthName(r.month)}`, onPress: () => { void share(r); } }] : []}
-    >
-      {(layout) => {
-        const top = bodyTop(layout);
-        if (!listener) {
-          return <Box className="flex-1" style={{ paddingTop: top }}><PageEmpty top={emptyTop(250) - (PAGE.body - DRAWN.listTop)} title={title} line="Sign in to see your month in listening." action={{ label: 'Sign in', onPress: () => router.push('/auth/sign-in') }} /></Box>;
-        }
-        if (state.kind === 'loading') return <Box className="flex-1 items-center" style={{ paddingTop: top + spacing.section }}><Loader /></Box>;
-        if (state.kind === 'error') {
-          return <Box className="flex-1" style={{ paddingTop: top + (120 - PAGE.body) }}><RetryTile line="Couldn't load this report right now." onRetry={() => { setState({ kind: 'loading' }); load(); }} /></Box>;
-        }
-        if (!r || none) {
-          return <Box className="flex-1" style={{ paddingTop: top }}><PageEmpty top={emptyTop(250) - (PAGE.body - DRAWN.listTop)} title="Nothing here — you didn't listen that month." /></Box>;
-        }
-        return (
-          <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: top, paddingBottom: layout.reserve }}>
-            <Box style={[lane, { paddingTop: 6, paddingBottom: PAGE.pad + 2, gap: 2 }]} accessible accessibilityLabel={`${hoursMinutes(r.minutes)} of listening`}>
-              <Type step="tag" className="text-hotText" style={ME_TYPE.mono11}>LISTENING TIME</Type>
-              <GlowFigure text={Math.round(r.minutes).toLocaleString('en-US')} />
-              <Type step="body" className="text-text2 font-medium">{`minutes · ${hoursMinutes(r.minutes)}`}</Type>
-            </Box>
-            <MosaicGrid tiles={counts} />
-            <Box style={{ height: PAGE.pad + 2 }} />
-            {r.topShows.length > 0 ? (
-              <DeckSection label="Top shows">
-                <Deck width={PAGE.top.width} height={PAGE.top.height} accessibilityLabel="Top shows">
-                  {r.topShows.slice(0, 3).map((s, i) => (
-                    <DeckCard key={s.feedUrl}>
+  const share_ = r && !none ? <IconButton icon="share-outline" label={`Share your ${monthName(r.month)}`} onPress={() => { void share(r); }} fill /> : undefined;
+  const frame = (children: React.ReactNode): React.ReactElement => (
+    <DetailPage title={title} {...(share_ ? { trailing: share_ } : {})}>
+      <Type step="caption" className="text-text2">Your month in listening</Type>
+      {children}
+    </DetailPage>
+  );
+  if (!listener) return frame(<PageEmpty top={0} title={title} line="Sign in to see your month in listening." action={{ label: 'Sign in', onPress: () => router.push('/auth/sign-in') }} />);
+  if (state.kind === 'loading') return frame(<Box className="items-center"><Loader /></Box>);
+  if (state.kind === 'error') return frame(<InlineNotice text="Couldn't load this report right now." actionLabel="Retry" onAction={() => { setState({ kind: 'loading' }); load(); }} />);
+  if (!r || none) return frame(<PageEmpty top={0} title="Nothing here — you didn't listen that month." />);
+  return frame(
+    <>
+      <Box testID="report-head" style={{ gap: spacing.hair }} accessible accessibilityLabel={`${hoursMinutes(r.minutes)} of listening`}>
+        <Type step="tag" className="text-hotText" style={ME_TYPE.mono11}>LISTENING TIME</Type>
+        <GlowFigure text={Math.round(r.minutes).toLocaleString('en-US')} />
+        <Type step="body" className="text-text2 font-medium">{`minutes · ${hoursMinutes(r.minutes)}`}</Type>
+      </Box>
+      <TileGrid>
+        {counts.map((t) => <Box key={t.key} testID="mosaic-tile" className="bg-raise overflow-hidden" style={{ minHeight: PAGE.row, borderRadius: radius.row }}>{t.node}</Box>)}
+      </TileGrid>
+      {r.topShows.length > 0 ? (
+        <Section title="Top shows">
+          <Box testID="top-shows" style={{ gap: spacing.gap }}>
+            {r.topShows.slice(0, 3).map((s, i) => (
+              <Box key={s.feedUrl} className="bg-raise overflow-hidden" style={{ borderRadius: radius.row }}>
                       <Pressable onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="link" accessibilityLabel={`${i + 1}. ${s.title}, ${hoursMinutes(s.minutes)}`} className="flex-1 flex-row items-center" style={{ padding: spacing.row, gap: spacing.row }}>
                         <Type step="hero" className="text-hotText" style={[ME_TYPE.rank24, { width: 22 }]}>{String(i + 1)}</Type>
                         <Artwork url={s.imageUrl} size={PAGE.top.cover} name={s.title} />
@@ -159,16 +153,16 @@ export default function ReportScreen(): React.ReactElement {
                           <Type step="caption" className="text-text2" style={PAGE_TYPE.small12} numberOfLines={1}>{hoursMinutes(s.minutes)}</Type>
                         </Box>
                       </Pressable>
-                    </DeckCard>
-                  ))}
-                </Deck>
-              </DeckSection>
-            ) : null}
-            {r.topEpisodes.length > 0 ? (
-              <DeckSection label="Top episodes">
-                <Deck width={PAGE.top.width} height={PAGE.top.height} accessibilityLabel="Top episodes">
-                  {r.topEpisodes.slice(0, 3).map((e, i) => (
-                    <DeckCard key={e.id}>
+              </Box>
+            ))}
+          </Box>
+        </Section>
+      ) : null}
+      {r.topEpisodes.length > 0 ? (
+        <Section title="Top episodes">
+          <Box testID="top-episodes" style={{ gap: spacing.gap }}>
+            {r.topEpisodes.slice(0, 3).map((e, i) => (
+              <Box key={e.id} className="bg-raise overflow-hidden" style={{ borderRadius: radius.row }}>
                       <Pressable onPress={() => { if (stores.feeds.getEpisode(e.id)) router.push({ pathname: '/episode/[id]', params: { id: e.id } }); else toast("That episode isn't on this phone. Follow its show to open it."); }} accessibilityRole="link" accessibilityLabel={`${i + 1}. ${e.title}, ${e.showTitle}, ${hoursMinutes(e.minutes)}`} className="flex-1 flex-row items-center" style={{ padding: spacing.row, gap: spacing.row }}>
                         <Type step="hero" className="text-hotText" style={[ME_TYPE.rank24, { width: 22 }]}>{String(i + 1)}</Type>
                         <Artwork url={e.imageUrl} size={PAGE.top.cover} name={e.showTitle} />
@@ -177,14 +171,11 @@ export default function ReportScreen(): React.ReactElement {
                           <Type step="caption" className="text-text2" style={PAGE_TYPE.small12} numberOfLines={1}>{`${e.showTitle} · ${hoursMinutes(e.minutes)}`}</Type>
                         </Box>
                       </Pressable>
-                    </DeckCard>
-                  ))}
-                </Deck>
-              </DeckSection>
-            ) : null}
-          </ScrollView>
-        );
-      }}
-    </PushedPage>
+              </Box>
+            ))}
+          </Box>
+        </Section>
+      ) : null}
+    </>,
   );
 }

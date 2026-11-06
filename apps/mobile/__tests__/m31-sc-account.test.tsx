@@ -203,8 +203,8 @@ describe('email sign-in (auth-email--screen, --code-step, --name-step, --under-a
   it('step 1: the title at the top with a close circle, the 56 field, Send code a 52 pill that waits for an address', async () => {
     const r = await render(createElement(EmailScreen));
     // 037 D1: was "the title is 70 over the foot row's 52 + 12"; the title is 6 under the status bar now.
-    expect(titleTop(r)).toBe(56);
-    expect(words(host(r, 'title-bar-title'))).toBe('Continue with email');
+    // 039: the frame is Page (FormPage): the title is in the title row, not a bar placed from the top (was titleTop 56).
+    expect(words(host(r, 'page-title-row'))).toBe('Continue with email');
     expect(tap(r, 'Close')).toBeDefined();
     expect(style(host(r, 'auth-field'))).toMatchObject({ height: 56, borderRadius: 18 });
     expect(state(r, 'Send code')).toMatchObject({ disabled: true });
@@ -230,7 +230,7 @@ describe('email sign-in (auth-email--screen, --code-step, --name-step, --under-a
     const r = await render(createElement(EmailScreen));
     type(r, 'Email', 'ana@example.com');
     await press(r, 'Send code');
-    expect(words(host(r, 'title-bar-title'))).toBe('Enter the code');
+    expect(words(host(r, 'page-title-row'))).toBe('Enter the code');
     expect(words(r.root)).toContain('Check your email');
     expect(words(r.root)).toContain('ana@example.com');
     const cells = r.root.findAll((n) => (n.props['testID'] === 'code-cell' || n.props['testID'] === 'code-cell-next') && typeof n.type === 'string');
@@ -246,7 +246,7 @@ describe('email sign-in (auth-email--screen, --code-step, --name-step, --under-a
     expect(state(r, 'Continue')).toMatchObject({ disabled: false });
     // Change goes back a step.
     await press(r, 'Use a different email');
-    expect(words(host(r, 'title-bar-title'))).toBe('Continue with email');
+    expect(words(host(r, 'page-title-row'))).toBe('Continue with email');
   });
 
   it('step 3: a 110 monogram with the typed initials, the name field, the age box; Create account waits for both; "I am under 14" shows the plain line', async () => {
@@ -255,7 +255,7 @@ describe('email sign-in (auth-email--screen, --code-step, --name-step, --under-a
     await press(r, 'Send code');
     type(r, 'Code', '123456');
     await press(r, 'Continue');
-    expect(words(host(r, 'title-bar-title'))).toBe('Your name');
+    expect(words(host(r, 'page-title-row'))).toBe('Your name');
     expect(words(r.root)).toContain('This is the name others see. You can use any name.');
     expect(style(host(r, 'name-monogram'))).toMatchObject({ width: 110, height: 110, borderRadius: 55 });
     type(r, 'Display name', 'rui tanaka');
@@ -350,7 +350,7 @@ describe('onboarding (onboarding-interests--screen, --picked, onboarding-not-lik
   it('interests: two columns of 56 tiles 8 apart; the counter reads "Pick 2 more" then "2 picked"; Continue (52) waits for two and saves them', async () => {
     mockListener = { listenerId: 'me' };
     const r = await render(createElement(InterestsScreen));
-    expect(words(host(r, 'title-bar-title'))).toBe('What do you like?');
+    expect(words(host(r, 'page-title-row'))).toBe('What do you like?'); // 039: the title row of Page (was the title bar)
     const tile = tap(r, GENRES[0]!.name)!;
     expect(style(tile)).toMatchObject({ height: 56, borderRadius: 18 });
     const second = tap(r, GENRES[1]!.name)!;
@@ -382,7 +382,7 @@ describe('onboarding (onboarding-interests--screen, --picked, onboarding-not-lik
   it('not liking: four 76 reason tiles in a 2 × 2, the chosen one ringed in hot; the note box is always there; Send (52) waits for a reason, then posts it', async () => {
     mockMap.set('interests.genreIds', JSON.stringify([GENRES[0]!.id]));
     const r = await render(createElement(NotLikingScreen));
-    expect(words(host(r, 'title-bar-title'))).toBe('Not liking these?');
+    expect(words(host(r, 'page-title-row'))).toBe('Not liking these?'); // 039: the title row of Page (was the title bar)
     expect(words(r.root)).toContain('Your answer changes For You on its next refresh.');
     for (const l of ['Too familiar', 'Not my topics', 'Too long', 'Something else']) expect(style(tap(r, l)!)).toMatchObject({ height: 76, borderRadius: 22 });
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Tell us more' && typeof n.props['onChangeText'] === 'function').length).toBeGreaterThan(0);

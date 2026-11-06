@@ -27,7 +27,6 @@ import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Icon } from '@/ui/kit/Icon';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { PanelGroup } from '@/ui/me/Panel';
 import { Caps, Lede, Note, Sec, SetPage, SetRow } from '@/ui/settings/hub-parts';
@@ -54,56 +53,52 @@ export default function CollectedScreen(): React.ReactElement {
     subscriptions: stores.subscriptions.list().length,
   }), [stores, signedIn, version]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <PushedPage title="Information we collect">
-      {(layout) => (
-        <SetPage layout={layout}>
-          <Lede strong>SocialNet keeps the information below, and nothing else.</Lede>
-          <Note>Counts are from this phone and may lag the server. Tap an item for its purpose, when it is collected and what exactly.</Note>
-          {groups.map((g, gi) => (
-            <Sec key={g.title} label={EDGE[gi] ?? g.title} spoken={g.title}>
-              <Box style={{ gap: SET.gap - 4 }}>
-                <Note>{g.line}</Note>
-                <PanelGroup>
-                  {g.items.map((i) => (
-                    <SetRow
-                      key={i.id}
-                      label={i.title}
-                      onPress={() => setOpen(i)}
-                      accessibilityLabel={`${i.title}${i.count !== undefined ? `, ${i.count} held` : ''}. ${i.purpose}. Details`}
-                      right={(
-                        <Box className="flex-row items-center" style={{ gap: SET.rowGap }}>
-                          {i.count !== undefined ? <Type step="mono" className="text-text" style={SET_TYPE.mono14}>{String(i.count)}</Type> : null}
-                          <Icon name="chevron-forward" size={SET.chevron} color={colour.text3} />
-                        </Box>
-                      )}
-                    />
-                  ))}
-                </PanelGroup>
-              </Box>
-            </Sec>
-          ))}
-          <ActionSheet open={open !== undefined} onClose={() => setOpen(undefined)} label="What SocialNet keeps" title="What SocialNet keeps">
-            <Type step="hero" className="text-text" style={SET_TYPE.display26} accessibilityRole="header">{open?.title}</Type>
-            {open?.count !== undefined ? (
-              <Box className="flex-row items-end" style={{ gap: SET.gap - 4 }}>
-                <Type step="figure" className="text-hotText" style={SET_TYPE.count44}>{String(open.count)}</Type>
-                <Type step="caption" className="text-text2" style={{ paddingBottom: 6 }}>held on this account</Type>
-              </Box>
-            ) : null}
-            {([['Purpose', open?.purpose], ['When it is collected', open?.when], ['What exactly', open?.scope]] as const).map(([label, value], n) => (
-              <Box key={label} className="flex-row" style={{ gap: SET.rowGap }}>
-                <Box className="bg-raise items-center justify-center" style={{ width: STEP_DISC, height: STEP_DISC, borderRadius: STEP_DISC / 2 }} accessible={false}>
-                  <Type step="mono" className="text-hotText font-bold" style={SET_TYPE.mono12}>{`${n + 1}`}</Type>
-                </Box>
-                <Box className="flex-1" style={{ gap: 4 }}>
-                  <Caps>{label}</Caps>
-                  <Type step="body" className="text-text" style={SET_TYPE.field15}>{value ?? ''}</Type>
-                </Box>
-              </Box>
-            ))}
-          </ActionSheet>
-        </SetPage>
-      )}
-    </PushedPage>
+    <SetPage title="Information we collect">
+      <Lede strong>SocialNet keeps the information below, and nothing else.</Lede>
+      <Note>Counts are from this phone and may lag the server. Tap an item for its purpose, when it is collected and what exactly.</Note>
+      {groups.map((g, gi) => (
+        <Sec key={g.title} label={EDGE[gi] ?? g.title} spoken={g.title}>
+          <Box style={{ gap: SET.gap - 4 }}>
+            <Note>{g.line}</Note>
+            <PanelGroup>
+              {g.items.map((i) => (
+                <SetRow
+                  key={i.id}
+                  label={i.title}
+                  onPress={() => setOpen(i)}
+                  accessibilityLabel={`${i.title}${i.count !== undefined ? `, ${i.count} held` : ''}. ${i.purpose}. Details`}
+                  right={(
+                    <Box className="flex-row items-center" style={{ gap: SET.rowGap }}>
+                      {i.count !== undefined ? <Type step="mono" className="text-text" style={SET_TYPE.mono14}>{String(i.count)}</Type> : null}
+                      <Icon name="chevron-forward" size={SET.chevron} color={colour.text3} />
+                    </Box>
+                  )}
+                />
+              ))}
+            </PanelGroup>
+          </Box>
+        </Sec>
+      ))}
+      <ActionSheet open={open !== undefined} onClose={() => setOpen(undefined)} label="What SocialNet keeps" title="What SocialNet keeps">
+        <Type step="hero" className="text-text" style={SET_TYPE.display26} accessibilityRole="header">{open?.title}</Type>
+        {open?.count !== undefined ? (
+          <Box className="flex-row items-end" style={{ gap: SET.gap - 4 }}>
+            <Type step="figure" className="text-hotText" style={SET_TYPE.count44}>{String(open.count)}</Type>
+            <Type step="caption" className="text-text2" style={{ paddingBottom: 6 }}>held on this account</Type>
+          </Box>
+        ) : null}
+        {([['Purpose', open?.purpose], ['When it is collected', open?.when], ['What exactly', open?.scope]] as const).map(([label, value], n) => (
+          <Box key={label} className="flex-row" style={{ gap: SET.rowGap }}>
+            <Box className="bg-raise items-center justify-center" style={{ width: STEP_DISC, height: STEP_DISC, borderRadius: STEP_DISC / 2 }} accessible={false}>
+              <Type step="mono" className="text-hotText font-bold" style={SET_TYPE.mono12}>{`${n + 1}`}</Type>
+            </Box>
+            <Box className="flex-1" style={{ gap: 4 }}>
+              <Caps>{label}</Caps>
+              <Type step="body" className="text-text" style={SET_TYPE.field15}>{value ?? ''}</Type>
+            </Box>
+          </Box>
+        ))}
+      </ActionSheet>
+    </SetPage>
   );
 }

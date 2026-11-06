@@ -7,7 +7,7 @@
  */
 import { useMemo, useState } from 'react';
 import { Share } from 'react-native';
-import { ScrollView } from '@/ui/lib/scroll-view';
+import { Shelf } from '@/ui/kit/layout';
 import { useSafety } from '@/safety/context';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { useGraph } from '@/graph/context';
@@ -21,7 +21,6 @@ import type { Clip } from '@/social/api';
 import { EMPTY_STATES } from '@socialmorning/social-core';
 import { EmptyDeck } from '@/ui/episode/EmptyDeck';
 import { EpisodeSection } from '@/ui/episode/EpisodeSection';
-import { EPISODE } from '@/ui/episode/measures';
 
 export function ClipList(props: { episode: PlayableEpisode }): React.ReactElement {
   const { useEpisodeClips } = useGraph();
@@ -39,8 +38,8 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
   if (clips.length === 0 && pending.length === 0) return <EpisodeSection label="Clips"><EmptyDeck title="No clips yet" sentence={EMPTY_STATES.clips.sentence} /></EpisodeSection>;
   const art = { imageUrl: props.episode.artworkUrl, showTitle: props.episode.showTitle };
   return (
-    <EpisodeSection label="Clips" bleed>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: EPISODE.deckGap, paddingRight: EPISODE.right }}>
+    <EpisodeSection label="Clips">
+      <Shelf>
         {pendingAsClips.map((c) => <ClipCard key={c.id} clip={c} pending {...art} onPlay={() => player.playClip(props.episode, { startMs: c.startMs, endMs: c.endMs })} />)}
         {clips.map((c) => (
           <ClipCard
@@ -53,7 +52,7 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
             onReport={listener?.listenerId !== c.author.id ? () => setReporting({ kind: 'clip', id: c.id, authorId: c.author.id, label: 'clip' }) : undefined}
           />
         ))}
-      </ScrollView>
+      </Shelf>
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
       {sharePanel}
     </EpisodeSection>

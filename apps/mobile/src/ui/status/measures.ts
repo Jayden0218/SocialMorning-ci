@@ -15,7 +15,7 @@ export const STAGE = {
   segTop: 4, segSide: 14, segHeight: 3, segGap: 4, segRadius: 2,
   headTop: 18, headSide: 16, headGap: 10, avatar: 36, tagHeight: 24, tagPad: 9, tagRadius: 12,
   bodyTop: 90, bodyGap: 16, play: 56, playIcon: 20, wave: 56, waveBars: 46, waveMin: 4, waveGap: 12, glowTop: -140, glowStrength: 0.45,
-  /** The gradient's end: `#060608 62%` (the start is `stageTint`, at 170 degrees). */
+  /** The gradient's end: `void` at 62 % (the start is `stageTint`, at 170 degrees). */
   gradientEnd: 0.62,
   card: { pad: 10, gap: 10, radius: 18, play: 40, playIcon: 14, cover: 48 },
   photoRadius: 16, photoRatio: 4 / 3,

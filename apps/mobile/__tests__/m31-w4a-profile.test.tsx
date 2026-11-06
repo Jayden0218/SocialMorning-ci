@@ -19,6 +19,7 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 const mockPush = jest.fn();
@@ -79,7 +80,6 @@ import StickersScreen from '../app/stickers';
 import DecorateScreen from '../app/stickers/decorate';
 import StickerHelpScreen from '../app/stickers/help';
 import { compactCount, followSubtitle } from '@/ui/social/FollowList';
-import { evenList } from '@/ui/profile/parts';
 import { PROFILE } from '@/ui/profile/measures';
 
 const mounted: ReactTestRenderer[] = [];
@@ -96,7 +96,7 @@ beforeEach(() => {
 afterEach(() => { act(() => { mounted.splice(0).forEach((r) => r.unmount()); }); setReducedMotionForTest(undefined); });
 async function render(el: React.ReactElement): Promise<ReactTestRenderer> {
   let r!: ReactTestRenderer;
-  await act(async () => { r = create(el); for (let i = 0; i < 6; i++) await Promise.resolve(); });
+  await act(async () => { r = create(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, el)); for (let i = 0; i < 6; i++) await Promise.resolve(); });
   mounted.push(r);
   return r;
 }
@@ -140,10 +140,6 @@ describe('pure helpers', () => {
     expect(followSubtitle(212, undefined)).toBe('212');
     expect(followSubtitle(undefined, '  ')).toBeUndefined();
   });
-  it('makes an odd list even so the last tile keeps a half width', () => {
-    expect(evenList([1, 2, 3])).toHaveLength(4);
-    expect(evenList([1, 2])).toHaveLength(2);
-  });
 });
 
 describe('Followers (social.html profile-followers--screen, --load-failed, --other-empty, --own-empty)', () => {
@@ -152,20 +148,16 @@ describe('Followers (social.html profile-followers--screen, --load-failed, --oth
     { id: 'b', displayName: null },
     { id: 'c', displayName: 'Cy', youFollow: true },
   ];
-  it('draws people as 1 x 1 tiles in the Me tab lane, with the count in the subtitle and the label People', async () => {
+  // 039 (Feed lane): was "1 x 1 tiles in two columns in the 28 / 16 lane (min 84, radius 22, padding 14) under the edge label PEOPLE"; now one Feed card per person (radius 24, padding 16), no label.
+  it('draws people as one card each, with the count in the subtitle', async () => {
     mockFollowers = () => Promise.resolve({ listeners: people });
     const r = await render(createElement(FollowersScreen));
     const tiles = byId(r, 'person-tile');
     expect(tiles).toHaveLength(3);
-    expect(flat(tiles[0]).minHeight).toBe(84);
-    expect(flat(tiles[0]).borderRadius).toBe(22);
-    expect(flat(tiles[0]).padding).toBe(14);
-    // Two columns 10 apart in the 28 / 16 lane: the list's rows carry the margins.
-    const list = r.root.findAll((x) => x.props['testID'] === 'mosaic' && x.props['columnWrapperStyle'] !== undefined)[0]!;
-    const wrap = flat({ props: { style: list.props['columnWrapperStyle'] } } as never);
-    expect(wrap).toMatchObject({ gap: 10, marginLeft: 28, marginRight: 16 });
+    expect(flat(tiles[0]).borderRadius).toBe(24);
+    expect(flat(tiles[0]).padding).toBe(16);
     expect(words(r)).toContain('Rui Costa · 1.2k');
-    expect(words(r)).toContain('PEOPLE');
+    expect(words(r)).not.toContain('PEOPLE');
     expect(words(r)).toContain('Mornings and maps');
   });
   it('leaves a deleted account untappable and names it in italics', async () => {
@@ -186,13 +178,14 @@ describe('Followers (social.html profile-followers--screen, --load-failed, --oth
     expect(classOf(follow)).toContain('bg-hot');
     expect(classOf(named(r, 'Unfollow')[0]!)).toContain('bg-raise2');
   });
-  it('shows the failure as an inline tile at the top with a light Retry, not as nobody', async () => {
+  it('shows the failure as an inline notice at the top with Retry, not as nobody', async () => {
     mockFollowers = () => Promise.reject(new Error('network'));
     const r = await render(createElement(FollowersScreen));
     expect(words(r)).toContain("Couldn't load followers right now.");
-    const tile = byId(r, 'error-tile')[0]!;
-    expect(flat(tile)).toMatchObject({ padding: 16, borderRadius: 22, marginLeft: 28 });
-    expect(classOf(comp(r, 'Retry'))).toContain('bg-text');
+    // 039 (Feed lane): was the error tile (radius 22, lane 28, a light Retry); now an InlineNotice (radius 16, padding 16) whose Retry is a text button.
+    const tile = byId(r, 'inline-notice')[0]!;
+    expect(flat(tile)).toMatchObject({ padding: 16, borderRadius: 16 });
+    expect(comp(r, 'Retry')).toBeDefined();
     expect(words(r).join(' ')).not.toContain('Nobody');
   });
   it('names the other person on an empty list, and your own empty list offers Open Discover', async () => {
@@ -211,16 +204,16 @@ describe('Followers (social.html profile-followers--screen, --load-failed, --oth
 
 describe('Likes of a person (social.html profile-likes--screen, --empty, --load-failed)', () => {
   const like = (id: string, note?: string): unknown => ({ episode: { id, title: `Episode ${id}`, showTitle: 'Morning Notes' }, ...(note ? { note } : {}), createdAt: new Date(Date.now() - 2 * 86_400_000).toISOString() });
-  it('hangs each like on the spine under a tick, with the note in quotes and "liked this, 2d" in the card', async () => {
+  // 039 (Feed lane): was "hangs each like on the spine under a tick" (a thread-spine and a "2d" tick); now one card per like, no spine and no tick.
+  it('draws each like as a card, with the note in quotes and "liked this, 2d" in the card', async () => {
     mockLikes = () => Promise.resolve({ items: [like('x', 'Warm and short.')] });
     const r = await render(createElement(ListenerLikesScreen));
-    expect(byId(r, 'thread-spine')).toHaveLength(1);
-    expect(words(r)).toContain('2d');
+    expect(byId(r, 'thread-spine')).toHaveLength(0);
     expect(words(r)).toContain('“Warm and short.”');
     expect(words(r)).toContain('liked this, 2d');
     expect(words(r)).toContain('Episodes Rui Costa liked');
     const card = byId(r, 'like-card')[0]!;
-    expect(flat(card)).toMatchObject({ borderRadius: 18, padding: 12 });
+    expect(flat(card)).toMatchObject({ borderRadius: 16, padding: 16 }); // 039 I2: LikeCard sits on ThreadCard (radius.row, spacing.section); was 18 and 12
   });
   it('plays from the circle and opens from the row', async () => {
     mockLikes = () => Promise.resolve({ items: [like('x')] });
@@ -230,27 +223,27 @@ describe('Likes of a person (social.html profile-likes--screen, --empty, --load-
     await press(r, 'Episode x, Morning Notes');
     expect(mockOpen).toHaveBeenCalledTimes(1);
   });
-  it('says none yet, and a failure with a disc and a light Retry', async () => {
+  it('says none yet, and a failure with a notice and Retry (039: was a disc and a light Retry)', async () => {
     const none = await render(createElement(ListenerLikesScreen));
     expect(words(none)).toContain('No public likes yet.');
     mockLikes = () => Promise.reject(new Error('x'));
     const bad = await render(createElement(ListenerLikesScreen));
     expect(words(bad)).toContain("Couldn't load likes right now.");
-    expect(flat(byId(bad, 'icon-block')[0]!.children[0] as never)).toBeDefined();
-    expect(classOf(comp(bad, 'Retry'))).toContain('bg-text');
+    expect(byId(bad, 'inline-notice')).toHaveLength(1);
+    expect(comp(bad, 'Retry')).toBeDefined();
   });
 });
 
 describe('Subscriptions of a person (social.html profile-subscriptions--screen, --private, --empty)', () => {
   const shows = [{ feedUrl: 'https://a/rss', title: 'Morning Notes' }, { feedUrl: 'https://b/rss', title: 'Night Shift Radio' }, { feedUrl: 'https://c/rss', title: 'Field Notes' }];
-  it('draws each show as a 168 x 178 cover tile and opens it', async () => {
+  it('draws each show as a 169 x 178 cover tile (039: was 168, in the lane) and opens it', async () => {
     mockSubs = () => Promise.resolve({ private: false, items: shows });
     const r = await render(createElement(ListenerSubscriptionsScreen));
     const tiles = byId(r, 'show-tile');
     expect(tiles).toHaveLength(3);
-    expect(flat(tiles[0])).toMatchObject({ width: 168, height: 178, borderRadius: 22 });
+    expect(flat(tiles[0])).toMatchObject({ width: 169, height: 178, borderRadius: 24 }); // 039 I2: ArtTile was radius 22
     expect(words(r)).toContain('Shows Rui Costa follows');
-    expect(words(r)).toContain('SHOWS');
+    expect(words(r)).not.toContain('SHOWS');
     await press(r, 'Open Morning Notes');
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent('https://a/rss') } });
   });
@@ -275,7 +268,7 @@ describe('Edit profile (social.html profile-edit--screen, --signed-out, --load-f
     const chip = named(r, 'Age 25–34')[0]!;
     expect(flat(chip).height).toBe(32);
     expect(classOf(chip)).toContain('bg-text');
-    expect(words(r)).toEqual(expect.arrayContaining(['ABOUT YOU', 'PRIVATE', '6 / 30', '14 / 160']));
+    expect(words(r)).toEqual(expect.arrayContaining(['About you', 'Private', '6 / 30', '14 / 160']));
     expect(words(r)).toContain('Never shown on your profile. Creators see only totals of 10 or more.');
     expect(named(r, 'Likes are public').length).toBeGreaterThan(0);
   });
@@ -318,8 +311,8 @@ describe('Edit profile (social.html profile-edit--screen, --signed-out, --load-f
 describe('Stickers (social.html stickers--screen, --signed-out, --none-earned, --card-sheet)', () => {
   it('draws the 346 x 178 hero with "STICKERS", "n of 8 earned" and the Decorate button; earned tiles say their day', async () => {
     const r = await render(createElement(StickersScreen));
-    expect(flat(byId(r, 'stickers-hero')[0])).toMatchObject({ minHeight: 178, borderRadius: 22 }) // F14: the hero grows to hold figure, caption and button in a column; 178 is its floor;
-    expect(words(r)).toEqual(expect.arrayContaining(['STICKERS', 'EARNED']));
+    expect(flat(byId(r, 'stickers-hero')[0])).toMatchObject({ borderRadius: 24 }); // 039: was minHeight 178, radius 22; the hero is a card that grows to hold figure, caption and button in a column
+    expect(words(r)).toEqual(expect.arrayContaining(['STICKERS', 'Earned', 'Still to earn'])); // 039: section headings; was the edge label EARNED
     expect(words(r).some((w) => /^\d+ of 8\nearned$/.test(w))).toBe(true);
     expect(comp(r, 'Decorate my profile with stickers')).toBeTruthy();
     await press(r, 'Decorate my profile with stickers');
@@ -328,7 +321,7 @@ describe('Stickers (social.html stickers--screen, --signed-out, --none-earned, -
     expect(mockPush).toHaveBeenCalledWith('/stickers/help');
     const tiles = byId(r, 'sticker-tile');
     expect(tiles.length).toBe(8);
-    expect(flat(tiles[0])).toMatchObject({ minHeight: 84, borderRadius: 22 });
+    expect(flat(tiles[0])).toMatchObject({ borderRadius: 24, padding: 16 }); // 039: was minHeight 84, radius 22
     expect(words(r)).toContain('3 Oct 2026');
   });
   it('shows a sticker still to earn faint, with its progress and a 3 tall bar', async () => {
@@ -404,14 +397,14 @@ describe('Decorate my profile (social.html stickers-decorate--screen, --chosen, 
 });
 
 describe('How stickers work (social.html stickers-help--screen)', () => {
-  it('holds the rows in one raise tile with a hairline between them, under two edge labels', async () => {
+  it('holds the rows in one raise tile with a hairline between them, under two Section headings (039)', async () => {
     const r = await render(createElement(StickerHelpScreen));
     const rows = byId(r, 'help-rows')[0]!;
     expect(classOf(rows)).toContain('bg-raise');
-    expect(flat(rows)).toMatchObject({ borderRadius: 22, paddingHorizontal: 14 });
+    expect(flat(rows)).toMatchObject({ borderRadius: 16, paddingHorizontal: 16 });
     const lines = rows.findAll((x) => typeof x.type === 'string' && classOf(x).includes('border-t'));
     expect(lines).toHaveLength(7);
-    expect(words(r)).toEqual(expect.arrayContaining(['HOW EACH ONE IS EARNED', 'GOOD TO KNOW', 'First hour', 'Listen for 1 hour in all.']));
+    expect(words(r)).toEqual(expect.arrayContaining(['How each one is earned', 'Good to know', 'First hour', 'Listen for 1 hour in all.']));
   });
 });
 

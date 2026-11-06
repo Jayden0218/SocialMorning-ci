@@ -203,7 +203,6 @@ export const WAVE_FILES = [
   'src/ui/me/EpisodeExtras.tsx',
   'src/ui/me/FilterBar.tsx',
   'src/ui/me/parts.tsx',
-  'src/ui/settings/rows.tsx',
   'src/ui/social/StatsBlock.tsx',
 ];
 
@@ -416,7 +415,6 @@ export const STRICT_STYLE_FILES = [
   'src/ui/me/EpisodeExtras.tsx',
   'src/ui/me/FilterBar.tsx',
   'src/ui/me/parts.tsx',
-  'src/ui/settings/rows.tsx',
   'src/ui/social/StatsBlock.tsx',
 ];
 const STYLE_NUMBER = /\b(fontSize|lineHeight|letterSpacing)\s*:\s*-?\d/;

@@ -12,7 +12,7 @@
 import { useId } from 'react';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { colour, type TypeName } from '@/design';
 import { Type } from '@/ui/kit/Type';
 import { mixColour } from '@/ui/kit/pulse-math';
 import { STAGE_TYPE } from './measures';
@@ -45,11 +45,12 @@ export function Cap(props: { children: string; tone?: 'hot' | 'text3'; align?: A
 }
 
 /** Words in the hot-to-violet gradient; `style` is the type, `trailing` letter spacing included. */
-export function GlowWords(props: { text: string; style: object; testID?: string; selectable?: boolean; accessibilityLabel?: string }): React.ReactElement {
+export function GlowWords(props: { text: string; style: object; /** The type step (039 I2: the claim code is the `number` step); `hero` by default. */ step?: TypeName; testID?: string; selectable?: boolean; accessibilityLabel?: string }): React.ReactElement {
   const chars = [...props.text];
+  const step = props.step ?? 'hero';
   return (
-    <Type step="hero" className="text-hotText" style={props.style} selectable={props.selectable} testID={props.testID} accessibilityLabel={props.accessibilityLabel ?? props.text}>
-      {chars.map((ch, i) => <Type key={i} step="hero" className="text-hotText" style={[props.style, { color: mixColour(colour.hot, colour.hotEnd, (i + 0.5) / chars.length) }]} accessible={false}>{ch}</Type>)}
+    <Type step={step} className="text-hotText" style={props.style} selectable={props.selectable} testID={props.testID} accessibilityLabel={props.accessibilityLabel ?? props.text}>
+      {chars.map((ch, i) => <Type key={i} step={step} className="text-hotText" style={[props.style, { color: mixColour(colour.hot, colour.hotEnd, (i + 0.5) / chars.length) }]} accessible={false}>{ch}</Type>)}
     </Type>
   );
 }

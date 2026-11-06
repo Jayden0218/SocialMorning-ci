@@ -3,6 +3,9 @@
  * M21 US7 (T082): the page a topic-list card on Discover opens. The list comes from the
  * Discover copy already on the phone (no extra call), so it opens at once and offline.
  *
+ * Spec 039 (Detail template): a `DetailPage` (Back + the list's title, its subtitle under it); the episodes are a `Section` with the cards on a `Shelf` (the glow, the
+ * edge label and the 28 lane are gone).
+ *
  * M31 W5-D (T064; design-pulse2 `discover.html` `topic--screen`, layout pattern Deck): a pushed page with the list's title (26) and
  * subtitle low, a blue-to-violet glow behind, and the episodes as a Deck under the edge label EPISODES: cards 290 x 430, numbered in
  * the editors' order — the cover (200) with the number in Unbounded 800 28 over its corner, then the editors' note in quotes (Unbounded 600 15),
@@ -11,10 +14,11 @@
  */
 import { useMemo } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { DetailPage } from '@/ui/detail/DetailPage';
+import { CardShelf } from '@/ui/detail/CardShelf';
+import { Section } from '@/ui/kit/layout';
 import { Type } from '@/ui/kit/Type';
 import { Curve } from '@/ui/kit/Curve';
 import { EndOfList } from '@/ui/kit/EndOfList';
@@ -23,11 +27,10 @@ import { useCardActions } from '@/discover/useDiscover';
 import { useSafety } from '@/safety/context';
 import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
-import { CoverBand, DECK, Deck, DeckCard, DeckSection, DiscPlay } from '@/ui/discover/Deck';
+import { CoverBand, DECK, DeckCard, DiscPlay } from '@/ui/discover/Deck';
 import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
 import { useEpisodeHeat } from '@/ui/discover/useEpisodeHeat';
-import { bodyTop } from '@/ui/discover/page-parts';
-import { DRAWN, emptyTop, PageEmpty } from '@/ui/me/lists';
+import { PageEmpty } from '@/ui/me/lists';
 import type { DiscoverItem } from '@/social/api';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
@@ -67,23 +70,20 @@ export default function TopicListScreen(): React.ReactElement {
   }, [api, stores, id]);
   const items = (list?.items ?? []).filter((i) => !hiddenFeeds.has(i.episode.feedUrl));
   return (
-    <PushedPage title={list?.title ?? 'Topic list'} {...(list?.subtitle ? { subtitle: list.subtitle } : {})} tone="blue">
-      {(layout) => (
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body70), paddingBottom: layout.reserve }}>
-            {items.length === 0 ? (
-              <PageEmpty top={emptyTop(250) - (PAGE.body70 - DRAWN.listTop)} title="This list is not on the phone yet — open Discover first" />
-            ) : (
-              <DeckSection label="Episodes">
-                <Deck width={PAGE.topic.width} height={PAGE.topic.height} accessibilityLabel="Episodes">
-                  {items.map((item, i) => (
-                    <TopicCard key={item.key} item={item} n={i + 1} onOpen={() => void open(item.episode)} onPlay={() => void play(item.episode)} />
-                  ))}
-                </Deck>
-              </DeckSection>
-            )}
-            {items.length > 0 ? <EndOfList /> : null}
-        </ScrollView>
+    <DetailPage title={list?.title ?? 'Topic list'}>
+      {list?.subtitle ? <Type step="caption" className="text-text2" numberOfLines={3}>{list.subtitle}</Type> : null}
+      {items.length === 0 ? (
+        <PageEmpty top={0} title="This list is not on the phone yet — open Discover first" />
+      ) : (
+        <Section title="Episodes">
+          <CardShelf width={PAGE.topic.width} height={PAGE.topic.height} label="Episodes">
+            {items.map((item, i) => (
+              <TopicCard key={item.key} item={item} n={i + 1} onOpen={() => void open(item.episode)} onPlay={() => void play(item.episode)} />
+            ))}
+          </CardShelf>
+        </Section>
       )}
-    </PushedPage>
+      {items.length > 0 ? <EndOfList /> : null}
+    </DetailPage>
   );
 }

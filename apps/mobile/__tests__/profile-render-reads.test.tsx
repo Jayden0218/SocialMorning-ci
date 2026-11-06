@@ -37,8 +37,8 @@ jest.mock('@/discover/useDiscover', () => ({ useCardActions: () => mockApis }));
 jest.mock('@/ui/kit/confirm', () => ({ useConfirm: () => mockApis.confirm }));
 jest.mock('@/ui/lib/actionsheet', () => { const N = () => null; return { Actionsheet: N, ActionsheetBackdrop: N, ActionsheetContent: N, ActionsheetDragIndicator: N, ActionsheetDragIndicatorWrapper: N }; });
 jest.mock('@/design/tailwind', () => ({ Link: () => null }));
-// D-C: the page is a PushedPage; here it only hands its layout to the content.
-jest.mock('@/ui/kit/PushedPage', () => ({ PushedPage: (p: { children: unknown }) => (typeof p.children === 'function' ? Reflect.apply(p.children as never, undefined, [{ top: 0, titleBottom: 40, reserve: 100 }]) : p.children) }));
+// 039: the page is a DetailPage (a Page in a title row); here it only hands its content through.
+jest.mock('@/ui/detail/DetailPage', () => ({ DetailPage: (p: { children: unknown }) => p.children }));
 jest.mock('@/ui/lib/scroll-view', () => ({ ScrollView: (p: { children?: unknown }) => p.children ?? null }));
 for (const m of ['@/ui/kit/TopBar', '@/ui/me/PlusCard', '@/ui/kit/Icon', '@/ui/kit/Loader', '@/ui/social/FollowButton', '@/ui/social/BlockButton', '@/ui/kit/Artwork', '@/ui/kit/PageHeader', '@/ui/social/RecentCard', '@/ui/comments/Placeholder', '@/ui/comments/ReportSheet', '@/ui/kit/EmptyState', '@/ui/social/ProfileStatRow', '@/ui/kit/Avatar', '@/ui/social/LikeCard', '@/ui/me/PlaylistCard', '@/ui/me/StickerLayer', '@/ui/social/OftenListened', '@/ui/me/country', '@/ui/social/StatsBlock', '@/ui/profile/ProfilePage', '@/ui/discover/Deck', '@/ui/profile/parts', '@/ui/profile/StickerDisc', '@/ui/comments/MenuRows', '@/ui/kit/ActionSheet', '@/ui/kit/PulseButton', '@/ui/kit/PageHeader', '@/ui/kit/Type', '@/ui/me/lists', '@/ui/comments/Spine', '@/ui/kit/EmptyState']) {
   jest.doMock(m, () => new Proxy({}, { get: (_t, k) => (k === '__esModule' ? true : k === 'listenedLabel' ? () => ({ value: '0', spoken: '0' }) : k === 'hms' || k === 'countryName' ? () => '' : () => null) }));
@@ -52,11 +52,9 @@ it('re-rendering for unrelated state does not touch the local database again', a
   await act(async () => { await Promise.resolve(); });
   const before = { h: mockReads.history.mock.calls.length, s: mockReads.subs.mock.calls.length, st: mockReads.stickers.mock.calls.length, t: mockReads.totals.mock.calls.length, g: mockReads.show.mock.calls.length };
   expect(before.h).toBeGreaterThan(0); // it did read, for the mockProfile that loaded
-  // An unrelated render (the collapse flag flips on scroll).
-  const scroll = r.root.findAll((n) => typeof n.props['onScroll'] === 'function')[0];
-  expect(scroll).toBeDefined();
-  await act(async () => { scroll!.props['onScroll']({ nativeEvent: { contentOffset: { y: 400 } } }); });
-  await act(async () => { scroll!.props['onScroll']({ nativeEvent: { contentOffset: { y: 0 } } }); });
+  // An unrelated render (039: the collapse flag is gone, so the parent simply renders the page again).
+  await act(async () => { r.update(createElement(ProfileScreen)); });
+  await act(async () => { r.update(createElement(ProfileScreen)); });
   expect(mockReads.history.mock.calls.length).toBe(before.h);
   expect(mockReads.subs.mock.calls.length).toBe(before.s);
   expect(mockReads.stickers.mock.calls.length).toBe(before.st);

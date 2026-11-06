@@ -13,12 +13,10 @@
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { useWindowDimensions } from 'react-native';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
-import { gutter } from '@/design';
+import { spacing } from '@/design';
 import { Chip } from '@/ui/kit/Chip';
-import { OverlayPage } from '@/ui/kit/OverlayPage';
+import { FormPage } from '@/ui/form/FormPage';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { useStores } from '@/ui/shell/providers';
@@ -32,7 +30,6 @@ export default function InterestsScreen(): React.ReactElement {
   const stores = useStores();
   const { listener } = useSocial();
   const api = useM22DiscoverApi();
-  const { width } = useWindowDimensions();
   const [picked, setPicked] = useState<number[]>([]);
   const leave = () => { if (router.canGoBack()) router.back(); else router.replace('/'); };
   const skip = () => {
@@ -51,26 +48,23 @@ export default function InterestsScreen(): React.ReactElement {
   };
   const more = INTERESTS_MIN - picked.length;
   return (
-    <OverlayPage
+    <FormPage
       title="What do you like?"
       subtitle="Pick at least two — For You starts from them."
-      size={28}
       onBack={skip}
+      now={false}
       extra={<Box className="flex-row justify-end"><Chip label="Skip" accessibilityLabel="Skip choosing categories" onPress={skip} /></Box>}
-      foot={(
-        <>
+      belowHeight={AUTH.foot.button}
+      below={(
+        <Box className="flex-row items-center" style={{ gap: spacing.row }}>
           <Type step="mono" className={more > 0 ? 'text-text2 flex-1' : 'text-hotText flex-1'} style={AUTH_TYPE.counter} accessibilityLiveRegion="polite">
             {more > 0 ? `Pick ${more} more` : `${picked.length} picked`}
           </Type>
           <PulseButton label="Continue" accessibilityLabel="Continue with these categories" kind="light" height={AUTH.foot.button} padX={AUTH.foot.continuePad} disabled={more > 0} onPress={go} />
-        </>
+        </Box>
       )}
     >
-      {(l) => (
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: l.top + AUTH.bodyTop, paddingBottom: l.reserve, paddingHorizontal: gutter(width) }}>
-          <GenreTiles picked={picked} onToggle={(id) => setPicked((p) => toggleGenre(p, id))} />
-        </ScrollView>
-      )}
-    </OverlayPage>
+      <GenreTiles picked={picked} onToggle={(id) => setPicked((p) => toggleGenre(p, id))} />
+    </FormPage>
   );
 }

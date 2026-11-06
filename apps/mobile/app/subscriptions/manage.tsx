@@ -6,12 +6,15 @@
  * order saved offline is sent the next time My subscriptions opens (src/me/subscription-order.ts).
  */
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useContext, useMemo, useState } from 'react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { useWindowDimensions } from 'react-native';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { Page } from '@/ui/kit/layout';
+import { goBack } from '@/ui/kit/PageHeader';
+import { IconButton } from '@/ui/kit/PulseButton';
+import { useToastPlacement } from '@/ui/shell/toastPlacement';
 import { Artwork } from '@/ui/kit/Artwork';
 import { EmptyState } from '@/ui/kit/EmptyState';
 import { Type } from '@/ui/kit/Type';
@@ -20,14 +23,13 @@ import { readOrder, saveOrder } from '@/me/subscription-order';
 import { useUs8Api } from '@/social/us8-api';
 import { useSocial } from '@/social/context';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { colour, spacing } from '@/design';
+import { colour, gutter } from '@/design';
 
 const COLS = 3;
-/** design-pulse2 `subscriptions-manage--screen`: covers 10 apart, 28 from the left (the spine lane) and 16 from the right; radius 18; a 22 number badge at 6 / 6; the picked cover shrinks to 94 % in a 3 pt hot ring. */
-const GRID = { left: 28, right: 16, gap: 10, radius: 18, badge: 22, badgeAt: 6, ring: 3, picked: 0.94 } as const;
-/** The hint chip above the title: 36 tall, raise fill, hot words (drawn `chip` in hot text). */
+/** design-pulse2 `subscriptions-manage--screen`: covers 10 apart on the page's 20 gutter (039: was 28 / 16); radius 18; a 22 number badge at 6 / 6; the picked cover shrinks to 94 % in a 3 pt hot ring. */
+const GRID = { gap: 10, radius: 18, badge: 22, badgeAt: 6, ring: 3, picked: 0.94 } as const;
+/** The hint chip under the title: 36 tall, raise fill, hot words (drawn `chip` in hot text). */
 const HINT = { height: 36, paddingHorizontal: 14 };
-const HINT_ABOVE = 36 + spacing.gap;
 
 export default function ManageSubscriptionsScreen(): React.ReactElement {
   const stores = useStores();
@@ -35,7 +37,10 @@ export default function ManageSubscriptionsScreen(): React.ReactElement {
   const us8 = useUs8Api();
   const { listener } = useSocial();
   const { width } = useWindowDimensions();
-  const art = Math.floor((width - GRID.left - GRID.right - (COLS - 1) * GRID.gap) / COLS);
+  const insets = useContext(SafeAreaInsetsContext);
+  const side = gutter(width);
+  const placed = useToastPlacement();
+  const art = Math.floor((width - 2 * side - (COLS - 1) * GRID.gap) / COLS);
 
   const shows = useMemo(() => {
     const rows = stores.subscriptions.list().map(({ feedUrl, subscribedAt }) => {
@@ -68,18 +73,19 @@ export default function ManageSubscriptionsScreen(): React.ReactElement {
   for (let i = 0; i < order.length; i += COLS) lines.push(order.slice(i, i + COLS));
 
   return (
-    <PushedPage
+    <SafeAreaInsetsContext.Provider value={{ top: insets?.top ?? 0, bottom: 0, left: insets?.left ?? 0, right: insets?.right ?? 0 }}>
+    <Page
       title="Manage order"
-      subtitle="Tap a show, then tap where it should go."
-      {...(order.length > 0 ? { actions: [{ icon: 'checkmark' as const, label: 'Save order', onPress: save }] } : {})}
-      {...(picked ? { extra: <Box testID="manage-hint" className="self-start justify-center bg-raise border border-line rounded-pill" style={HINT} accessibilityLiveRegion="polite"><Type step="caption" className="text-hotText font-semibold">Now tap where it should go.</Type></Box>, extraAbove: HINT_ABOVE } : {})}
+      now={placed.now}
+      leading={<IconButton icon="chevron-back" label="Back" onPress={goBack} fill size={22} />}
+      {...(order.length > 0 ? { trailing: <IconButton icon="checkmark" label="Save order" onPress={save} fill /> } : {})}
     >
-      {(layout) => order.length === 0 ? (
-        <Box className="flex-1 justify-start" style={{ paddingTop: layout.top + 260 - 50 }}>
-          <EmptyState surface="library" page />
-        </Box>
+      <Type step="caption" className="text-text2">Tap a show, then tap where it should go.</Type>
+      {picked ? <Box testID="manage-hint" className="self-start justify-center bg-raise border border-line rounded-pill" style={HINT} accessibilityLiveRegion="polite"><Type step="caption" className="text-hotText font-semibold">Now tap where it should go.</Type></Box> : null}
+      {order.length === 0 ? (
+        <EmptyState surface="library" page />
       ) : (
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: layout.top + spacing.region, paddingBottom: layout.reserve, paddingLeft: GRID.left, paddingRight: GRID.right, gap: GRID.gap }}>
+        <Box style={{ gap: GRID.gap }}>
           {lines.map((line) => (
             <Box key={line.join('|')} className="flex-row" style={{ gap: GRID.gap }}>
               {line.map((feedUrl) => {
@@ -104,8 +110,9 @@ export default function ManageSubscriptionsScreen(): React.ReactElement {
               {Array.from({ length: COLS - line.length }, (_, i) => <Box key={`pad${i}`} className="flex-1" />)}
             </Box>
           ))}
-        </ScrollView>
+        </Box>
       )}
-    </PushedPage>
+    </Page>
+    </SafeAreaInsetsContext.Provider>
   );
 }

@@ -15,7 +15,6 @@ import { Box } from '@/ui/lib/box';
 import { useSafety } from '@/safety/context';
 import { BlockButton } from '@/ui/social/BlockButton';
 import { useStores } from '@/ui/shell/providers';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { PageEmpty } from '@/ui/me/lists';
 import { avatarTone } from '@/ui/kit/Avatar';
@@ -42,46 +41,42 @@ export default function BlockedScreen(): React.ReactElement {
   const pairs: (typeof rows)[] = [];
   for (let i = 0; i < rows.length; i += 2) pairs.push(rows.slice(i, i + 2));
   return (
-    <PushedPage title="Blocked listeners">
-      {(layout) => (
-        <SetPage layout={layout}>
-          {rows.length === 0 ? (
-            <>
-              <Box style={{ height: EMPTY_TOP }} />
-              <PageEmpty top={0} title="You have not blocked anyone" line="Block from a profile or the ⋯ on a comment." />
-            </>
-          ) : (
-            <>
-              <Box className="flex-row items-end" style={{ gap: SET.rowGap }}>
-                <Type step="figure" className="text-hotText" style={SET_TYPE.count64} maxFontSizeMultiplier={1.3}>{String(rows.length)}</Type>
-                <Type step="section" className="text-text" style={{ paddingBottom: SET.rowGap }}>{rows.length === 1 ? 'listener blocked' : 'listeners blocked'}</Type>
+    <SetPage title="Blocked listeners">
+      {rows.length === 0 ? (
+        <>
+          <Box style={{ height: EMPTY_TOP }} />
+          <PageEmpty top={0} title="You have not blocked anyone" line="Block from a profile or the ⋯ on a comment." />
+        </>
+      ) : (
+        <>
+          <Box className="flex-row items-end" style={{ gap: SET.rowGap }}>
+            <Type step="figure" className="text-hotText" style={SET_TYPE.count64} maxFontSizeMultiplier={1.3}>{String(rows.length)}</Type>
+            <Type step="section" className="text-text" style={{ paddingBottom: SET.rowGap }}>{rows.length === 1 ? 'listener blocked' : 'listeners blocked'}</Type>
+          </Box>
+          <Note>Nothing they write, clip or do shows for you. They are not told.</Note>
+          <Box style={{ gap: SET.bigGap }}>
+            {pairs.map((pair) => (
+              <Box key={pair[0]?.listenerId} className="flex-row" style={{ gap: SET.bigGap }}>
+                {pair.map((item) => {
+                  const name = item.displayName ?? 'A listener';
+                  return (
+                    <Box key={item.listenerId} testID="blocked-card" className="bg-raise items-start" style={{ flex: 1, minWidth: 0, borderRadius: SET.radius, padding: SET.bigPad, gap: SET.bigGap }}>
+                      <Box className="items-center justify-center" style={{ width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: avatarTone(name).fill }} accessible={false}>
+                        <Type step="row" className={avatarTone(name).ink === 'text' ? 'text-text' : 'text-void'} accessibilityElementsHidden importantForAccessibility="no">{initialsOf(name)}</Type>
+                      </Box>
+                      <Type step="row" className="text-text" numberOfLines={1}>{name}</Type>
+                      <BlockButton listenerId={item.listenerId} displayName={item.displayName ?? 'this listener'} onTile />
+                    </Box>
+                  );
+                })}
+                {pair.length === 1 ? <Box style={{ flex: 1, minWidth: 0 }} /> : null}
               </Box>
-              <Note>Nothing they write, clip or do shows for you. They are not told.</Note>
-              <Box style={{ gap: SET.bigGap }}>
-                {pairs.map((pair) => (
-                  <Box key={pair[0]?.listenerId} className="flex-row" style={{ gap: SET.bigGap }}>
-                    {pair.map((item) => {
-                      const name = item.displayName ?? 'A listener';
-                      return (
-                        <Box key={item.listenerId} testID="blocked-card" className="bg-raise items-start" style={{ flex: 1, minWidth: 0, borderRadius: SET.radius, padding: SET.bigPad, gap: SET.bigGap }}>
-                          <Box className="items-center justify-center" style={{ width: DISC, height: DISC, borderRadius: DISC / 2, backgroundColor: avatarTone(name).fill }} accessible={false}>
-                            <Type step="row" className={avatarTone(name).ink === 'text' ? 'text-text' : 'text-void'} accessibilityElementsHidden importantForAccessibility="no">{initialsOf(name)}</Type>
-                          </Box>
-                          <Type step="row" className="text-text" numberOfLines={1}>{name}</Type>
-                          <BlockButton listenerId={item.listenerId} displayName={item.displayName ?? 'this listener'} onTile />
-                        </Box>
-                      );
-                    })}
-                    {pair.length === 1 ? <Box style={{ flex: 1, minWidth: 0 }} /> : null}
-                  </Box>
-                ))}
-              </Box>
-              {/* Owner, 2026-10-05: the bottom of a fetched list says so. */}
-              <Type step="tag" className="text-text3 text-center" style={SET_TYPE.mono11}>— end of list —</Type>
-            </>
-          )}
-        </SetPage>
+            ))}
+          </Box>
+          {/* Owner, 2026-10-05: the bottom of a fetched list says so. */}
+          <Type step="tag" className="text-text3 text-center" style={SET_TYPE.mono11}>— end of list —</Type>
+        </>
       )}
-    </PushedPage>
+    </SetPage>
   );
 }

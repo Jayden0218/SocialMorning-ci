@@ -44,18 +44,4 @@ export const SHOW = {
   deckCard: { width: 290, height: 340, radius: 26, cover: 150, pad: 14, bars: 30, barsHeight: 20, play: 40 },
   similarCard: { width: 150, cover: 150, radius: 22 },
 } as const;
-
-/** The status bar's extra height (a notch taller than the drawn 50) moves the top parts down. */
-export function showShift(statusInset: number): number {
-  return Math.max(statusInset, SHOW.statusBar) - SHOW.statusBar;
-}
-
-/** Where the list's first tile starts, measured from the top of the list (the list starts at the top of the screen). */
-export function mosaicTop(statusInset: number): number {
-  return SHOW.statusBar + SHOW.mosaicTop + showShift(statusInset);
-}
-
-/** Where the chip row starts from the top of the screen. */
-export function chipsTop(statusInset: number): number {
-  return SHOW.statusBar + SHOW.chipsTop + showShift(statusInset);
-}
+// 039 I2: `showShift`, `mosaicTop` and `chipsTop` (positions measured from the status bar for ShowStage's mosaic) went with ShowStage; the Show page is a DetailPage.

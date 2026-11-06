@@ -13,7 +13,7 @@
  * Not kept by design: the trending hint in the search field (Search is an icon now) and Today's pick as a tile (the Picks section lists it).
  */
 import { Fragment, useRef } from 'react';
-import type { LayoutChangeEvent, ScrollViewProps } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
@@ -183,7 +183,7 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
         footExtra={SWITCH_CLEAR}
         scrollToTopOnTabPress
         scrollRef={page.scroller}
-        scroll={{ refreshControl: pull.refreshControl, onScroll: pull.onScroll as unknown as ScrollViewProps['onScroll'], scrollEventThrottle: pull.scrollEventThrottle }}
+        scroll={{ refreshControl: pull.refreshControl, onScroll: pull.onScroll, scrollEventThrottle: pull.scrollEventThrottle }}
         trailing={
           <Box className="flex-row items-center">
             <IconButton icon="scan-outline" label="Scan a QR code" onPress={() => page.router.push('/scan')} />

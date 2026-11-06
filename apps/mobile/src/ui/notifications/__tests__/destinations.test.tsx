@@ -102,7 +102,7 @@ it('Notifications: the places the page can open', async () => {
   // People, then Interactions through the switch.
   const r = await mount(createElement(NotificationsScreen));
   await pressAll(r, all);
-  const sw = r.root.findAll((n) => typeof n.props['onPress'] === 'function' && /^Interactions\./.test(String(n.props['accessibilityLabel'] ?? '')))[0];
+  const sw = r.root.findAll((n) => typeof n.props['onPress'] === 'function' && String(n.props['accessibilityLabel'] ?? '').startsWith('Interactions.'))[0];
   if (!sw) throw new Error('the Interactions switch is gone');
   await act(async () => { sw.props['onPress'](); await Promise.resolve(); });
   await pressAll(r, all);

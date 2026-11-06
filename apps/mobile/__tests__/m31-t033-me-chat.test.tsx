@@ -13,9 +13,9 @@
  *  - signed out / empty / error: the +, the spine and the Retry — the title bar's `actions` and `Spine` — red.
  */
 import { createElement } from 'react';
-import { StyleSheet, processColor } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { bars, colour } from '@/design';
+import { bars } from '@/design';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 const mockPush = jest.fn();
@@ -57,7 +57,6 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esM
 import MeScreen from '../app/(tabs)/me';
 import ChatTab from '../app/(tabs)/chat';
 import { TitleBar } from '@/ui/kit/TitleBar';
-import { THREAD } from '@/ui/chat/ChatRow';
 
 const mounted: ReactTestRenderer[] = [];
 beforeEach(() => { setReducedMotionForTest(true); mockPush.mockClear(); mockStoreReady = false; mockIdle = true; mockListener = { listenerId: 'me', displayName: 'Mei Lin' }; mockChats = () => Promise.resolve([]); });
@@ -90,7 +89,6 @@ const press = (r: ReactTestRenderer, label: string): void => {
   if (!n) throw new Error(`no pressable "${label}"`);
   act(() => { n.props['onPress'](); });
 };
-const titleBar = (r: ReactTestRenderer): ReactTestInstance => r.root.findByType(TitleBar);
 
 // 039 D4: this block pinned the Pulse mosaic page (84-tall tiles, a 178-tall Saved moments tile, a 96 picture, the Stickers chip pinned top right, the PLUS tile,
 // a Panel of rows, an absolute TitleBar). Each pin is replaced by its 039 equivalent (design/B-Me.dc.html); the behaviour assertions stay: counts, the unread
@@ -196,24 +194,23 @@ const chat = (over: Partial<{ id: string; name: string; unread: number; text: st
 });
 
 describe('Chat (chat--screen, chat--signed-out, chat--empty, chat--error)', () => {
-  it('the spine runs at x 40, 2 wide, hot to violet to line; the avatar is 44 on it', async () => {
+  // 039 (Feed lane): the spine at x 40 and the avatar's void ring are retired: a conversation is one card with the 44 avatar inside it.
+  it('there is no spine; the avatar is 44 inside the card', async () => {
     mockChats = () => Promise.resolve([chat({ unread: 2 }), chat({ id: 'b', name: 'Ana Ruiz' })]);
     const r = await render(createElement(ChatTab));
-    const spine = byId(r, 'chat-spine')[0]!;
-    expect(flat(spine)).toMatchObject({ left: 40, width: 2, top: 0, bottom: 0 });
-    expect(spine.props['colors']).toEqual([colour.hot, colour.violet, colour.line].map((c) => processColor(c)));
-    expect(spine.props['locations']).toEqual([0, 0.5, 1]);
-    expect(THREAD.left + THREAD.avatar / 2).toBe(40);
+    expect(byId(r, 'chat-spine')).toHaveLength(0);
     const av = byId(r, 'chat-avatar');
     expect(av).toHaveLength(2);
-    expect(flat(av[0]!)).toMatchObject({ width: 44, height: 44, zIndex: 2 });
+    expect(flat(av[0]!)).toMatchObject({ width: 44, height: 44 });
+    expect(byId(r, 'chat-card')[0]!.findAll((x) => x.props['testID'] === 'chat-avatar').length).toBeGreaterThan(0);
   });
 
-  it('a card is radius 18 raise, padding 12 / 14; unread gets the 3 wide hot bar, the bold name and the 20 pill', async () => {
+  // 039 (Feed lane): was "radius 18 raise, padding 12 / 14"; now the Feed card (radius 24, padding 16).
+  it('a card is radius 24 raise, padding 16; unread gets the 3 wide hot bar, the bold name and the 20 pill', async () => {
     mockChats = () => Promise.resolve([chat({ unread: 2 }), chat({ id: 'b', name: 'Ana Ruiz' })]);
     const r = await render(createElement(ChatTab));
     const cards = byId(r, 'chat-card');
-    expect(flat(cards[0]!)).toMatchObject({ borderRadius: 18, paddingVertical: 12, paddingHorizontal: 14 });
+    expect(flat(cards[0]!)).toMatchObject({ borderRadius: 24, padding: 16 });
     expect(classOf(cards[0]!)).toContain('bg-raise');
     expect(byId(r, 'chat-unread-bar')).toHaveLength(1); // only the unread card
     expect(flat(byId(r, 'chat-unread-bar')[0]!)).toMatchObject({ left: 0, width: 3 });
@@ -227,19 +224,15 @@ describe('Chat (chat--screen, chat--signed-out, chat--empty, chat--error)', () =
     expect(classOf(read[0]!)).not.toContain('font-bold');
   });
 
-  it('F2a: a card is as tall as drawn (63 unread, 61 read: name on a 16 line, message on 17), the list starts 14 lower, and the time reads "2m"', async () => {
-    // Break: remove `...drawnType.chatName` / `style={drawnType.chatPreview}` (ChatRow.tsx) or `marginTop: THREAD.lift` (chat.tsx).
+  it('F2a: the name is on a 16 line, the message on 17, and the time reads "2m"', async () => {
+    // Break: remove `...drawnType.chatName` / `style={drawnType.chatPreview}` (ChatRow.tsx).
+    // 039 (Feed lane): was also "the list starts 14 lower" (`THREAD.lift` / `THREAD.top`) and the 61 / 64 card heights; the card is padded 16 now.
     mockChats = () => Promise.resolve([chat({ unread: 2 }), chat({ id: 'b', name: 'Ana Ruiz' })]);
     const r = await render(createElement(ChatTab));
     const name = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === 'Rui')[0]!;
     expect(flat(name)['lineHeight']).toBe(16);
     const msg = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === 'Did you hear the bit at 14:32?')[0]!;
     expect(flat(msg)['lineHeight']).toBe(17);
-    // read card: 12 + 16 + 4 + 17 + 12 = 61 (drawn 61); unread: 12 + 16 + 4 + 20 + 12 = 64 (drawn 63) — within 4 px.
-    expect(12 + 16 + 4 + 17 + 12).toBe(61);
-    expect(THREAD.lift).toBe(14);
-    const list = r.root.findAll((x) => flat(x)['marginTop'] === THREAD.lift && flat(x)['paddingTop'] === THREAD.top);
-    expect(list.length).toBeGreaterThan(0);
     expect(words(r)).toContain('2m');
     expect(words(r)).not.toContain('just now');
   });
@@ -251,14 +244,13 @@ describe('Chat (chat--screen, chat--signed-out, chat--empty, chat--error)', () =
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/chat/[id]', params: { id: 'a', name: 'Rui' } });
   });
 
-  it('the title bar says "Chat", "People who follow you back" and has the + for New chat', async () => {
+  // 039 (Feed lane): was a TitleBar's props (title, subtitle, actions, top 6); now the page's title row and a + circle after it.
+  it('the page says "Chat", "People who follow you back" and has the + for New chat (a tab: no Back)', async () => {
     mockChats = () => Promise.resolve([chat()]);
     const r = await render(createElement(ChatTab));
-    const bar = titleBar(r).props;
-    expect(bar).toMatchObject({ title: 'Chat', subtitle: 'People who follow you back', top: 6 }); // 037 D1: was bottom: 8
-    expect(bar.actions).toHaveLength(1);
-    expect(bar.actions[0]).toMatchObject({ icon: 'add', label: 'New chat' });
-    act(() => bar.actions[0].onPress());
+    expect(words(r)).toEqual(expect.arrayContaining(['Chat', 'People who follow you back']));
+    expect(r.root.findAll((x) => x.props['accessibilityLabel'] === 'Back')).toHaveLength(0);
+    press(r, 'New chat');
     expect(mockPush).toHaveBeenCalledWith('/chat/new');
   });
 
@@ -267,7 +259,7 @@ describe('Chat (chat--screen, chat--signed-out, chat--empty, chat--error)', () =
     const r = await render(createElement(ChatTab));
     expect(byId(r, 'empty-block')).toHaveLength(1);
     expect(words(r)).toEqual(expect.arrayContaining(['Chat', 'Sign in to chat with people who follow you back']));
-    expect(titleBar(r).props.actions).toBeUndefined();
+    expect(r.root.findAll((x) => x.props['accessibilityLabel'] === 'New chat')).toHaveLength(0);
     expect(byId(r, 'chat-spine')).toHaveLength(0);
     press(r, 'Sign in');
     expect(mockPush).toHaveBeenCalledWith('/auth/sign-in');
@@ -277,20 +269,20 @@ describe('Chat (chat--screen, chat--signed-out, chat--empty, chat--error)', () =
     const r = await render(createElement(ChatTab));
     expect(words(r)).toEqual(expect.arrayContaining(['No chats yet.', 'Tap New chat to message someone who follows you back.']));
     expect(byId(r, 'chat-spine')).toHaveLength(0);
-    expect(titleBar(r).props.actions).toHaveLength(1);
+    expect(r.root.findAll((x) => x.props['accessibilityLabel'] === 'New chat').length).toBeGreaterThan(0);
   });
 
-  it('cannot load: an error tile (radius 22) with Retry, and the + stays; Retry reads again', async () => {
+  // 039 (Feed lane): was an error tile (radius 22, padding 16, `chat-error`); now an InlineNotice with Retry.
+  it('cannot load: a notice with Retry, and the + stays; Retry reads again', async () => {
     let tries = 0;
     mockChats = () => { tries += 1; return tries === 1 ? Promise.reject(new Error('down')) : Promise.resolve([chat()]); };
     const r = await render(createElement(ChatTab));
-    const tile = byId(r, 'chat-error')[0]!;
-    expect(flat(tile)).toMatchObject({ borderRadius: 22, padding: 16 });
+    expect(byId(r, 'inline-notice')).toHaveLength(1);
     expect(words(r)).toContain("Couldn't load your chats right now.");
-    expect(titleBar(r).props.actions).toHaveLength(1);
+    expect(r.root.findAll((x) => x.props['accessibilityLabel'] === 'New chat').length).toBeGreaterThan(0);
     await act(async () => { r.root.findAll((x) => x.props['accessibilityLabel'] === 'Retry' && typeof x.props['onPress'] === 'function')[0]!.props['onPress'](); await Promise.resolve(); });
     expect(tries).toBe(2);
-    expect(byId(r, 'chat-error')).toHaveLength(0);
-    expect(byId(r, 'chat-spine')).toHaveLength(1);
+    expect(byId(r, 'inline-notice')).toHaveLength(0);
+    expect(byId(r, 'chat-card')).toHaveLength(1);
   });
 });

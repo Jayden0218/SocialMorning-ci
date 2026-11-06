@@ -308,7 +308,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `PageGlow.tsx` | The soft two-colour glow behind the top of a page, as the pushed pages' drawings paint it. |
 | `PanelRow.tsx` | A Panel row on a sheet: icon, name, an optional detail and a chevron, 56 tall, inside a PanelGroup; this is the kit's RowButton (no separate part). |
 | `Dialog.tsx` | A centred dialog: a title, a line, and one or two buttons. |
-| `EdgeLabel.tsx` | A section's name, written vertically along the page's left edge. |
 | `Fade.tsx` | The fade behind a title bar, so content scrolling under it stays readable. |
 | `NowBar.tsx` | The now bar: what is playing, floating above the tab bar — cover, title, a live ticker, play, playlist. |
 | `OverlayPage.tsx` | A page drawn outside the router's pages — Terms, a legal document, the sign-in steps: glow, content, fade, title bar at the top, optional foot row. |
@@ -336,7 +335,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Chip.tsx` | A round tap-able label; turns yellow when chosen. |
 | `ComingSoon.tsx` | A "Coming soon" sheet shown when you tap a feature not ready yet. |
 | `EmptyState.tsx` | What an empty, loading, offline or failed page shows, with a Retry button. |
-| `Eyebrow.tsx` | A small grey capital-letter label above a section. |
 | `EndOfList.tsx` | The line under the last row of a fetched list: "No more to fetch". |
 | `EpisodeRowSheet.tsx` | The one sheet every episode row opens from ⋯ or a long-press: cover header and episode actions. |
 | `haptics.ts` | A light vibration tick; does nothing on an app built before expo-haptics was added. |
@@ -368,11 +366,13 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `InlineNotice.tsx` | A short notice inside a page ("You are offline") with one action. |
 | `Page.tsx` | A page of the app: a title row, then sections on one 20 gutter with 24 between them, and a foot that clears the bars. |
+| `PageList.tsx` | A page whose body is a list the page owns: design B's title row, gutter and foot around a FlatList. |
 | `Section.tsx` | A titled block of a page: a heading, an optional "See all" link, then its content. |
 | `Shelf.tsx` | A row of cards that scrolls sideways and runs off the right edge of the screen. |
 | `TileGrid.tsx` | Tiles in two equal columns, 12 apart. |
 | `index.ts` | The page layout parts of spec 039. |
 | `__tests__/Page.test.tsx` | Spec 039 US1/US3 (T011): Page, Section, TileGrid, Shelf and InlineNotice keep one gutter, one rhythm and a clear foot. |
+| `__tests__/PageList.test.tsx` | Spec 039 (D6, revised): PageList is design B's frame around a list the page owns. |
 
 ### `ui/shell/` — The app's outer layer: start-up, tabs, terms and shared setup
 
@@ -478,7 +478,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Placeholder.tsx` | Short text shown instead of a deleted, removed, blocked or reported comment. |
 | `ReportSheet.tsx` | Sheet to report a comment: pick a reason, add a note, send. |
 | `RulesSheet.tsx` | Sheet with the community rules, shown once before a first comment: Accept or Not now. |
-| `Spine.tsx` | The time spine: a 2 px line from hot to violet to the hairline, and a node's head (a moment chip and "n reacted"). |
+| `Spine.tsx` | The loading placeholder of the comment-style pages: raise bars, breathing. |
 | `VoiceComment.tsx` | A voice comment's row: a play/stop disc, a thin bar and its length; pauses the episode. |
 | `VoiceRecord.tsx` | The mic beside a comment box: tap to record a voice comment up to 60 s, then post it. |
 | `VoiceTextReview.tsx` | After a voice recording: the text the phone heard, editable, with Post and Cancel. |
@@ -545,7 +545,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 
 | File | What it does |
 |---|---|
-| `ChatRow.tsx` | The Chat tab's thread: conversations hang from a spine; each is an avatar on the spine and a card. |
+| `ChatRow.tsx` | The Chat tab's list: one card per conversation, the avatar at its left. |
 | `EmptyBlock.tsx` | The empty block of a page: a flat curve, a title, a line, and one button if there is one. |
 | `MessageBubble.tsx` | One chat message: theirs on a raise bubble, yours hot with void words on the right; an episode as a 236 card with Play. |
 | `blocks.tsx` | The centred state blocks of the social pages: signed out (lock), could not load (wifi), and the error tile. |
@@ -558,7 +558,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `measures.ts` | The numbers Friends listening is drawn with, copied from the drawing. |
-| `parts.tsx` | The parts the Notifications pages share: a day-grouped thread on the spine, a raise card, and the stale line. |
+| `parts.tsx` | The parts the Notifications pages share: the day grouping, a raise card, the unread dot. |
 | `cards.tsx` | The parts of the 039 Notifications page: a chip row, a day heading, and one card per item. |
 | `__tests__/destinations.test.tsx` | Pins every place the Notifications page can open, so a redesign of the page cannot silently drop one. |
 | `__tests__/layout039.test.tsx` | Spec 039 US1/US2 (T015): Notifications is a Page of one chip row and one card per item, with no rail and no vertical label. |
@@ -591,10 +591,31 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `measures.ts` | The numbers the profile-side pages are drawn with: people, followers, subscriptions, edit profile, stickers. |
-| `parts.tsx` | The parts the profile-side pages share: the mosaic list, the centred sign-in / error block, ghost tiles, the inline error tile. |
+| `parts.tsx` | The parts the profile-side pages share: the centred sign-in / error block and a person's name. |
 | `EditParts.tsx` | The small parts of Edit profile: a field tile, a small chip, the photo and its chips. |
 | `StickerDisc.tsx` | A sticker as a disc: the premium tint with a hot ring and a hot-text mark when earned, faint when not. |
-| `ProfilePage.tsx` | The pieces of a listener's profile page: the Stage, the tiles of the Numbers grid, the collapsed name and the bottom zone. |
+| `ProfilePage.tsx` | The pieces of a listener's profile page: the header, and the tiles of the Numbers grid. |
+
+### `ui/detail/` — The frame of a Detail page (one thing in depth) and the row of cards on a shelf
+
+| File | What it holds |
+|---|---|
+| `CardShelf.tsx` | A row of equal cards on a Shelf: each card gets the shelf's width and height (the Deck's job, without its 28 lane and edge label). |
+| `DetailPage.tsx` | The frame of a Detail page (one thing in depth): Page or PageList with Back, the toast placement's now flag and a home strip the root already padded. |
+
+### `ui/feed/` — The Feed template: a stream of items as cards under design B's title row
+
+| File | What it holds |
+|---|---|
+| `FeedPage.tsx` | The Feed template of spec 039: a stream of items as cards under design B's title row (Back, title, actions). |
+
+### `ui/form/` — The Form template: a pushed page of fields with one primary action
+
+| File | What it holds |
+|---|---|
+| `FormEmpty.tsx` | An empty state inside a Form page: the flat curve, a title and a line (the page's gutter is already there). |
+| `FormPage.tsx` | The Form template (spec 039): a pushed page of fields on design B's `Page` — Back, title, helper line, fields, ONE primary action. |
+| `__tests__/forms.test.tsx` | Pins the Form pages that no other test renders: Send feedback and Change email keep their fields, their one action and Back. |
 
 ### `ui/episode/` — Parts of episode rows and the episode page
 
@@ -613,9 +634,9 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `EmptyDeck.tsx` | The dashed card that stands where a deck of cards would be, when there is nothing to put in it. |
 | `EpisodeMoreSheet.tsx` | The Episode page's ··· sheet: the episode, then a mosaic of tiles — queue, download, favourite, moment, playlist, report. |
 | `EpisodeSheetBody.tsx` | What an episode sheet holds: the episode's head, the tiles (or a second page), and the Cancel pill. |
-| `EpisodeSection.tsx` | One named section of the Episode page: an edge label on the left, its content starting 28 in. |
-| `EpisodeStage.tsx` | The top of the Episode page: the cover to the fold, two glass pills, the episode's heat curve and its counts. |
-| `EpisodeTitleBlock.tsx` | The Episode page's thumb zone: back, the show link, the title, then Play and Subscribe. |
+| `EpisodeSection.tsx` | One named section of the Episode page: a Section heading, then its content. |
+| `EpisodeHeat.tsx` | Where people reacted: the date, the hottest moment (tap = play from it) and the episode's heat curve, in the page's flow. |
+| `EpisodeTitleBlock.tsx` | The Episode page's header: the cover, the show link, the title, then Play and Subscribe. |
 | `EpisodeTray.tsx` | The Episode page's tray: Add to queue, Comments, Like, Share and More in one raised bar. |
 | `MorePanels.tsx` | The More sheet's two second pages: "Save this moment" (with a note) and "Add to playlist". |
 | `measures.ts` | The Episode page's measurements from the drawing, and the sums behind them. |
@@ -636,7 +657,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `order.ts` | Sorts the show's episodes: newest, oldest, unplayed only, or most played. |
 | `useShowMoments.ts` | Reads a show's hot moments once, when the Show screen opens. |
 | `show-page.ts` | Show page rules: the subscriber line, the Host picks list, and Add all to the queue. |
-| `ShowStage.tsx` | The top of the Show screen: the show's art to the fold, fading to the page colour. |
 | `ShowSales.tsx` | On a show page: the show's paid episodes (buy once, then play), Gift this series, and the Tip button, Android only. |
 
 ### `ui/discover/` — The Discover (home) page and its sections
@@ -645,7 +665,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `DiscoverSections.tsx` | Discover's main sections: picks, then episode lists, with an old-data note. |
 | `DiscoverShortcuts.tsx` | The shortcut tiles of Discover's mosaic, in the order, names and set the admin chose. |
-| `FullPager.tsx` | Whole-screen pages swiped left and right (chart, search tabs, categories), kept in step with their tabs. |
 | `Plaza.tsx` | The new-shows plaza: a wall of covers dragged in any direction with one finger; tap a cover for its show. |
 | `TheirLikes.tsx` | "Their likes" on Discover: recent likes with notes from people you follow, each opening its like post. |
 | `TopicLists.tsx` | Topic lists on Discover: the editors' collections as cards, each opening its full list. |
@@ -661,9 +680,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ChartSection.tsx` | The charts on Discover: one card per chart in a deck, three ranked rows a page, "1 / 2 →" for the next three. |
 | `DiscoverMosaic.tsx` | The top of Discover as a mosaic: today's pick, the hottest moment now, and the shortcuts as tiles. |
 | `ChartTiles.tsx` | The Charts page's ranked Mosaic: the first tile 2 x 3 with a glowing 64, the next two 1 x 2, the rest 2 x 1. |
-| `Mosaic.tsx` | The Mosaic of the inner pages: tiles of 1 or 2 columns and any number of rows, packed the way the drawing's grid packs them. |
+| `Mosaic.tsx` | The small parts the Discover inner pages share: the tile a page hands the Report, a genre's corner square, and the failed-load notice. |
 | `measures.ts` | The type sizes and numbers the Discover group's inner pages are drawn with, where the scale has no step for them. |
-| `page-parts.tsx` | Small parts the Discover group's inner pages share: where the body starts, the numbered thread, a hot-glow figure. |
 | `DiscoverGlow.tsx` | The soft hot and violet glow behind the top of Discover, as drawn. |
 | `DiscoverPage.tsx` | The Discover view of Home: a Page with the hero, the shortcuts and every section, each on one heading style. |
 | `ForYouSection.tsx` | For You on Discover: a deck of recommendation cards, each with a cover, the reason and a Play disc. |
@@ -685,7 +703,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `useMomentActions.ts` | The buttons of a Moments card: play, sound, comments, react, share. |
 | `useMomentsNowBar.ts` | Tells the now bar that the Moments feed is the screen in front, so it hides (design-pulse2 §Bars). |
 | `useMoments.ts` | Loads the Moments list: the first page, more pages as you reach the end, and a refresh. |
-| `Deck.tsx` | The Deck: a section's row of cards that snaps card by card, under the section's edge label. |
+| `Deck.tsx` | The Deck: a section's row of cards that snaps card by card, under the section's heading. |
 | `DiscoverLayout.tsx` | Discover's parts of the 039 layout: a section on `Section`, a row of cards on `Shelf`, and the link under a section. |
 | `MomentHero.tsx` | The hero at the top of Discover: the first moment of the Moments feed, with its curve and a Play from the moment. |
 | `__tests__/destinations.test.tsx` | Pins every place the Discover page can open, so a redesign of the page cannot silently drop one. |
@@ -762,12 +780,10 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `ListeningBars.tsx` | Listening data's bar chart: minutes per day or month as 120 tall bars; tap one to read its minutes. |
 | `PlaylistCard.tsx` | One playlist as a card of a profile's Playlists deck: cover, name, number of episodes, public or private. |
 | `SignOut.tsx` | Sign out button that asks first. |
-| `TileText.tsx` | Words on a Me tile: the Pulse type step, named a Text so the action inventory can read a tile's name from it. |
 | `country.ts` | Turns a country code like "MY" into its name, "Malaysia". |
-| `lists.tsx` | The parts the Me tab's list pages share: a thread's cards and day tags, a mosaic tile, a deck's dots, the search field. |
+| `lists.tsx` | The parts the Me tab's list pages share: a card, the play dot, the search field, the empty block, the two-way switch, a mosaic tile. |
 | `measures.ts` | The type sizes the Me tab's list pages are drawn with, where the scale has no step for them. |
 | `mosaic.ts` | The Me tab's grid and panel measures, from the drawing. |
-| `useTabTitle.ts` | Where a tab page's title bar sits (at the top) and how much room the page leaves above and under its content. |
 | `parts.tsx` | Me page pieces: a menu row with icon and arrow, and an empty-page picture. |
 | `PlusCard.tsx` | The PLUS card in Wallet: what PLUS gives, its price, Subscribe, and Restore purchases. |
 | `StickerCanvas.tsx` | The sticker canvas: drag, pinch and turn your stickers on a copy of your profile header (our own design). |
@@ -789,7 +805,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `hub-measures.ts` | The numbers the Settings hub and its pages are drawn with (design-pulse2 settings.html). |
 | `hub-parts.tsx` | The Settings pages' shared parts in the Pulse shape: the page body, a section with its edge label, a row, a large tile. |
 | `NotifyShows.tsx` | One "new episodes" alert switch for each show you follow. |
-| `rows.tsx` | Settings rows: icon, label, optional value, then an arrow or switch. |
 | `OftenListenedSwitch.tsx` | Privacy switch: hide the "Often listened" row on your profile from other people. |
 
 ### `ui/auth/` — Sign-in and sign-up pages

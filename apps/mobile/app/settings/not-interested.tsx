@@ -22,7 +22,9 @@ import { PageEmpty } from '@/ui/me/lists';
 import { InfoGhost } from '@/ui/show/InfoGroup';
 import { useToast } from '@/ui/shell/providers';
 import { Section, SettingsPage, Tile, QuietPill } from '@/ui/settings/panel';
-import { SET, SET_TYPE } from '@/ui/settings/measures';
+import { SET_TYPE } from '@/ui/settings/measures';
+import { spacing } from '@/design';
+import { player } from '@/design/tokens';
 
 const SUBTITLE = 'Episodes and shows For You no longer recommends.';
 
@@ -40,10 +42,7 @@ export default function NotInterestedScreen(): React.ReactElement {
   };
   if (items.length === 0) {
     return page(
-      <>
-        <Box style={{ height: SET.emptyTop }} />
-        <Section><PageEmpty title="Nothing hidden" line="Nothing hidden. Use ⋯ on a For You row to hide it." top={0} /></Section>
-      </>,
+      <Section><PageEmpty title="Nothing hidden" line="Nothing hidden. Use ⋯ on a For You row to hide it." top={0} /></Section>,
     );
   }
   return page(
@@ -55,7 +54,7 @@ export default function NotInterestedScreen(): React.ReactElement {
             const kind = item.kind === 'show' ? 'Show' : 'Episode';
             const id = `${item.kind}|${item.itemKey}`;
             return (
-              <Box key={id} testID="hidden-row" className="flex-row items-center" style={{ minHeight: SET.rowMin, paddingVertical: SET.rowPadY, paddingHorizontal: SET.rowPadX, gap: SET.rowGap }}>
+              <Box key={id} testID="hidden-row" className="flex-row items-center" style={{ minHeight: player.panelRow, paddingVertical: spacing.gap, paddingHorizontal: spacing.section, gap: spacing.row }}>
                 <Box className="flex-1" style={{ minWidth: 0 }}>
                   <Type step="tag" className="text-hotText" style={SET_TYPE.kind}>{kind}</Type>
                   <Type step="row" className="text-text" numberOfLines={2}>{name}</Type>

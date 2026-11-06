@@ -20,7 +20,7 @@ import { useState } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
+import { colour, hit, spacing } from '@/design';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { TAP } from '@/ui/kit/TopBar';
 import { Toggle } from '@/ui/kit/Toggle';
@@ -42,7 +42,8 @@ const ROUTE_LINE = 'AirPlay, Bluetooth or this phone';
 const HIDDEN = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' as const };
 const SHEET_ROW = { minHeight: PLAYER.panelRow, paddingVertical: PLAYER.panelRowPadY, paddingHorizontal: PLAYER.panelPad, gap: PLAYER.rowGap };
 const SHEET_CHIP = { width: PLAYER.panelIcon, height: PLAYER.panelIcon, borderRadius: PLAYER.panelIconRadius };
-const PAGE_ROW = { minHeight: Math.max(SET.rowMin, hit.min), paddingVertical: SET.rowPadY, paddingHorizontal: SET.rowPadX, gap: SET.rowGap };
+// 039 (List lane): the page look is the panel's 56 row (the sheet look is unchanged).
+const PAGE_ROW = { minHeight: Math.max(PLAYER.panelRow, hit.min), paddingVertical: spacing.gap, paddingHorizontal: spacing.section, gap: spacing.row };
 
 export type AudioLook = 'sheet' | 'page';
 
@@ -165,7 +166,7 @@ export function RouteRow(props: { look?: AudioLook }): React.ReactElement | null
   const page = props.look === 'page';
   const body = page ? (
     <>
-      <Icon name="headset-outline" size={SET.rowIcon} color={c.text} />
+      <Box className="items-center justify-center" style={[SHEET_CHIP, { backgroundColor: colour.accentTint }]} {...HIDDEN}><Icon name="headset-outline" size={PLAYER.panelIconGlyph} color={c.hotText} /></Box>
       <Box className="flex-1">
         <Type step="row" className="text-text">{ROUTE_LABEL}</Type>
         <Box style={{ marginTop: SET.rowLineGap }}><Type step="caption" className="text-text2 font-normal">{ROUTE_LINE}</Type></Box>

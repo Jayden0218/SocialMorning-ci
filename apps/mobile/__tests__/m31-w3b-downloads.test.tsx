@@ -83,30 +83,34 @@ const sample = () => [
 ];
 
 describe('the mosaic (downloads--screen)', () => {
-  it('tiles are 1 x 2: 168 wide, 178 tall, radius 22, in a 28-lane / 16-right / 10-gap grid', () => {
+  // 039 (Feed lane): was "168 wide in a 28-lane / 16-right / 10-gap grid"; now two equal columns on the 20 gutter, 12 apart: (390 - 40 - 12) / 2 = 169.
+  it('tiles are 2 columns: 169 wide, 178 tall, radius 22, on the 20 gutter with 12 between', () => {
     mockRows = sample();
     const r = page();
     const t = tiles(r);
     expect(t).toHaveLength(6);
     for (const n of t) {
-      expect(flat(n)['width']).toBe((390 - DOWNLOAD_TILE.lane - DOWNLOAD_TILE.right - DOWNLOAD_TILE.gap) / 2);
+      expect(flat(n)['width']).toBe((390 - 2 * 20 - 12) / 2);
       expect(flat(n)['height']).toBe(178);
       expect(flat(n)['borderRadius']).toBe(22);
     }
-    expect(DOWNLOAD_TILE).toMatchObject({ lane: 28, right: 16, gap: 10, height: 178, pad: 14, cover: 56, retry: 32 });
+    expect(DOWNLOAD_TILE).toMatchObject({ height: 178, pad: 14, cover: 56, retry: 32 });
   });
 
-  it('three groups, named by an edge label: In progress, Needs attention, Downloaded', () => {
+  // 039 (Feed lane): was named by an edge label (a header with an accessibilityLabel); now a Section heading (the words are the header's text).
+  const headingsOf = (r: ReactTestRenderer): string[] => r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && typeof n.type === 'string').map((n) => [n.props['children']].flat().join(''));
+
+  it('three groups, each a Section heading: In progress, Needs attention, Downloaded', () => {
     mockRows = sample();
     const r = page();
-    const heads = r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && typeof n.props['accessibilityLabel'] === 'string' && typeof n.type === 'string').map((n) => n.props['accessibilityLabel']);
+    const heads = headingsOf(r);
     expect(heads).toEqual(expect.arrayContaining(['In progress', 'Needs attention', 'Downloaded']));
   });
 
   it('a group with no tiles is not drawn', () => {
     mockRows = [mk('d', 'complete')];
     const r = page();
-    const heads = r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && typeof n.type === 'string').map((n) => n.props['accessibilityLabel']);
+    const heads = headingsOf(r);
     expect(heads).toContain('Downloaded');
     expect(heads).not.toContain('In progress');
     expect(heads).not.toContain('Needs attention');

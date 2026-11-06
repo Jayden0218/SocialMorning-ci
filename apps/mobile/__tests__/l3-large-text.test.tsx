@@ -41,6 +41,6 @@ it('a category tile draws its name above its art', () => {
   mockScale = 1;
   act(() => { r = create(createElement(CategoriesScreen)); });
   const art = r.root.findAll((n) => n.props['testID'] === 'corner-square')[0]!;
-  const name = r.root.findAll((n) => typeof n.type === 'string' && n.props['numberOfLines'] === 3)[0]!;
+  const name = r.root.findAll((n) => n.props['testID'] === 'genre-tile')[0]!.findAll((n) => typeof n.type === 'string' && n.props['numberOfLines'] === 2)[0]!; // 039 (Feed lane): was 3 (the tall tile's name); every genre tile is the same size now, names on 2 lines
   expect(Number(flat(name.props['style'])['zIndex'] ?? 0)).toBeGreaterThan(Number(flat(art.props['style'])['zIndex'] ?? 0));
 });

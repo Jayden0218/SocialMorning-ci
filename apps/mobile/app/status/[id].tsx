@@ -9,6 +9,9 @@
  * M24 US1/US17: someone else's status has More → Report (hidden for me at once, then sent), and
  * on a suggested one "Stop suggesting <name>". A status I reported leaves the row.
  *
+ * Spec 039 (Detail template): the signed-out, loading and gone states are a `DetailPage` (Back and "Status"); the status itself is still the full-screen `StatusViewer` (tap
+ * thirds, progress bars, replies, reactions), which keeps its own frame because a story viewer is not a scrolling page.
+ *
  * M31 W4-B (T051; design-pulse2 `status--screen`, `-signed-out`, `-gone`, `-more-sheet`, `status--toast`): the page is the Stage — no header; Close
  * is the × circle at the bar's left (beside the reply box), More sits in the head row. Signed out and gone are the pushed shape: the violet-first glow,
  * a lock and a light Sign in (or the empty block), and the title bar low with a × and "Status". The More sheet lists "Stop suggesting <name>" first,
@@ -20,8 +23,7 @@ import { Box } from '@/ui/lib/box';
 import { goBack } from '@/ui/kit/PageHeader';
 import { IconButton } from '@/ui/kit/PulseButton';
 import { Loader } from '@/ui/kit/Loader';
-import { PageGlow } from '@/ui/kit/PageGlow';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { DetailPage } from '@/ui/detail/DetailPage';
 import { useColours } from '@/ui/kit/useColours';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { usePlayer } from '@/playback/store';
@@ -31,7 +33,6 @@ import { StatusViewer } from '@/ui/social/StatusViewer';
 import { MoreSheet } from '@/ui/social/MoreSheet';
 import { PageEmpty } from '@/ui/me/lists';
 import { SignInBlock } from '@/ui/status/SignInBlock';
-import { TEXT_PAGE } from '@/ui/status/measures';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { useSafety } from '@/safety/context';
 import { reportAndDrop } from '@/telemetry/reportError';
@@ -111,23 +112,18 @@ export default function StatusScreen(): React.ReactElement {
     </>
   );
 
-  // Signed out, loading and gone: the pushed shape, with Close (×) in the bottom zone.
+  // Signed out, loading and gone: a Detail page with Close (×) in the title row. The viewer below (the status itself, full screen) keeps its own frame.
   if (!listener || state.kind !== 'ok') {
     return (
-      <PushedPage title="Status" tone="none" onBack={close} backIcon="close" backLabel="Close">
-        {(layout) => (
-          <Box className="flex-1">
-            <PageGlow flip top={-200} strength={0.3} />
-            {!listener ? (
-              <Box className="absolute left-0 right-0" style={{ top: layout.top + TEXT_PAGE.signInTop }}><SignInBlock line="Sign in to see statuses." /></Box>
-            ) : state.kind === 'loading' ? (
-              <Box className="items-center" style={{ paddingTop: layout.top + TEXT_PAGE.signInTop }}><Loader /></Box>
-            ) : (
-              <Box className="absolute left-0 right-0" style={{ top: layout.top + TEXT_PAGE.signInTop }}><PageEmpty top={0} title="This status is gone" line="This status is gone. Statuses are deleted 24 hours after they are posted." /></Box>
-            )}
-          </Box>
+      <DetailPage title="Status" onBack={close} backLabel="Close">
+        {!listener ? (
+          <SignInBlock line="Sign in to see statuses." />
+        ) : state.kind === 'loading' ? (
+          <Box className="items-center"><Loader /></Box>
+        ) : (
+          <PageEmpty top={0} title="This status is gone" line="This status is gone. Statuses are deleted 24 hours after they are posted." />
         )}
-      </PushedPage>
+      </DetailPage>
     );
   }
   return (

@@ -16,6 +16,8 @@
  *   - Under the deck, four dots (the current card is the 18 wide light one) and the rest of the queue as a strip of
  *     small tiles `n. title` (cover 36), each a Play button (the drawing's action map: "Play {title} (x3) — Play circle
  *     on each card / tap a strip tile").
+ * Spec 039 (Feed lane, design B): the page puts the deck in a `Section` ("Up next"); no edge label, no lane. The first card starts on the page's 20 gutter,
+ * the deck and the strip run off the right edge like a Shelf (a negative right margin and the same padding), and the strip's tiles are two to a screen.
  * Writes go through `onChange` (`stores.queue.replace` in app/queue.tsx), as every queue change.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -25,11 +27,10 @@ import { plural } from '@socialmorning/social-core';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour, hit, radius, spacing } from '@/design';
+import { colour, gutter, hit, radius, spacing } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { Curve } from '@/ui/kit/Curve';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { IconButton } from '@/ui/kit/PulseButton';
 import { Artwork } from '@/ui/kit/Artwork';
 import { swipeA11y, type SwipeAction } from '@/ui/kit/SwipeRow';
@@ -166,8 +167,6 @@ export function QueueList(props: {
   onPlay: (id: string) => void;
   /** A tap on a card: the episode's page. */
   onOpen: (id: string) => void;
-  /** Where the deck starts, from the top of the page (under the status bar). */
-  top?: number;
   /** Edit mode: every card is a checkbox. */
   select?: Select;
 }): React.ReactElement {
@@ -194,11 +193,11 @@ export function QueueList(props: {
   }), []);
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => setCurrent(Math.max(0, Math.min(ids.length - 1, Math.round(e.nativeEvent.contentOffset.x / QUEUE_PITCH))));
   const rest = ids.slice(2);
-  const tileWidth = Math.floor((window - QUEUE_CARD.lane - spacing.section - QUEUE_TILE.gap) / 2);
+  const side = gutter(window);
+  const tileWidth = Math.floor((window - 2 * side - QUEUE_TILE.gap) / 2);
   return (
-    <Box style={{ paddingTop: props.top ?? 0 }}>
+    <Box>
       <Box>
-        <EdgeLabel label="Up next" top={QUEUE_PAGE.edgeTop} />
         <Box {...pan.panHandlers}>
           <ScrollView
             horizontal
@@ -209,8 +208,8 @@ export function QueueList(props: {
             decelerationRate="fast"
             onScroll={onScroll}
             scrollEventThrottle={64}
-            style={{ flexGrow: 0 }}
-            contentContainerStyle={{ gap: QUEUE_CARD.gap, paddingLeft: QUEUE_CARD.lane, paddingRight: spacing.section, paddingVertical: spacing.hair }}
+            style={{ flexGrow: 0, marginRight: -side }}
+            contentContainerStyle={{ gap: QUEUE_CARD.gap, paddingRight: side, paddingVertical: spacing.hair }}
           >
             {ids.map((id, index) => (
               <Card
@@ -232,11 +231,11 @@ export function QueueList(props: {
           </ScrollView>
         </Box>
       </Box>
-      <Box testID="queue-dots" accessible={false} importantForAccessibility="no-hide-descendants" className="flex-row" style={{ marginLeft: QUEUE_CARD.lane, marginTop: QUEUE_DOTS.top, gap: QUEUE_DOTS.gap }}>
+      <Box testID="queue-dots" accessible={false} importantForAccessibility="no-hide-descendants" className="flex-row" style={{ marginTop: QUEUE_DOTS.top, gap: QUEUE_DOTS.gap }}>
         {dotsFor(ids.length, current).map(({ at, on }) => <Box key={at} className={on ? 'bg-text' : 'bg-switchOff'} style={{ width: on ? QUEUE_DOTS.on : QUEUE_DOTS.off, height: QUEUE_DOTS.height, borderRadius: radius.tick }} />)}
       </Box>
       {rest.length > 0 ? (
-        <ScrollView testID="queue-strip" horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginTop: QUEUE_TILE.top }} contentContainerStyle={{ gap: QUEUE_TILE.gap, paddingLeft: QUEUE_CARD.lane, paddingRight: spacing.section }}>
+        <ScrollView testID="queue-strip" horizontal showsHorizontalScrollIndicator={false} style={{ flexGrow: 0, marginTop: QUEUE_TILE.top, marginRight: -side }} contentContainerStyle={{ gap: QUEUE_TILE.gap, paddingRight: side }}>
           {rest.map((id, k) => <StripTile key={id} id={id} number={k + 3} width={tileWidth} stores={props.stores} onPlay={props.onPlay} />)}
         </ScrollView>
       ) : null}

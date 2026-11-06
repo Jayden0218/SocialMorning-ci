@@ -55,7 +55,7 @@ const BUTTON = 40;
 const FILL = StyleSheet.absoluteFill;
 const TILE = { borderRadius: MOSAIC.radius, padding: MOSAIC.pad, overflow: 'hidden' as const };
 const WASH = [colour.violet, colour.hot] as const;
-/** The pick's foot: clear at 30 %, void at 92 % at the bottom (the drawing's `transparent 30%, rgba(6,6,8,.92)`). */
+/** The pick's foot: clear at 30 %, void at 92 % at the bottom (the `pickFoot` token: void at 92 %, from transparent at 30 %). */
 const FOOT = [colour.clear, colour.pickFoot] as const;
 const FOOT_AT = [0.3, 1] as const;
 /** Touch room round the drawn 11 pt words, so the targets are 44+ without moving the words. */

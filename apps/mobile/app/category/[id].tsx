@@ -23,6 +23,9 @@
  * opens a full-screen grid of every category in place of the sheet; every card shows two lines
  * about the show (its maker and its kinds — Apple's catalogue gives no description).
  *
+ * Spec 039 (Detail template): a `DetailList` (`PageList`): Back, the genre as the title ("Categories" under it), the grid circle at its end; the genre strip (starts on the
+ * gutter, runs off the right edge), the track and the order row are the list's header, the shows two columns 12 apart. The 28 lane is gone.
+ *
  * M31 D-C (design-pulse2 `category--screen`, `category--all-sheet`; layout pattern Mosaic): a pushed page with the title bar low — the genre as
  * the title, "Categories" under it, and the grid circle ("All categories") that opens every genre as a 3-column sheet. Under the status bar:
  * the genre strip, the 44 track (For you · Hot · Newest), the order in words with "Not subscribed only" and its 46 x 28 switch, then the
@@ -42,19 +45,18 @@ import {
 import { runOnJS } from "react-native-reanimated";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { Pressable } from "@/ui/lib/pressable";
-import { FlatList } from "@/ui/lib/flat-list";
 import { Box } from "@/ui/lib/box";
 import { Toggle } from "@/ui/kit/Toggle";
 import { Loader } from "@/ui/kit/Loader";
-import { PushedPage } from "@/ui/kit/PushedPage";
+import { DetailList } from "@/ui/detail/DetailPage";
+import { IconButton } from "@/ui/kit/PulseButton";
 import { Type } from "@/ui/kit/Type";
 import { ErrTile } from "@/ui/chat/blocks";
 import { RetryTile } from "@/ui/discover/Mosaic";
 import { SegmentSwitch } from "@/ui/me/lists";
 import { ME_MOSAIC } from "@/ui/me/mosaic";
 import { ME_TYPE } from "@/ui/me/measures";
-import { bodyTop } from "@/ui/discover/page-parts";
-import { AllCategoriesSheet, CATEGORY, GenreStrip, LeadCard, ShowTile } from "@/ui/discover/CategoryParts";
+import { AllCategoriesSheet, GenreStrip, LeadCard, ShowTile } from "@/ui/discover/CategoryParts";
 import {
   cachedCategory,
   fetchCategory,
@@ -82,10 +84,9 @@ const TAP = { minHeight: hit.min };
 const COVER_WAIT_MS = 3000;
 /** A finger lifted with no fling: the swipe's category is picked after this pause. */
 const SETTLE_MS = 150;
-/** M32: the grid's rows — two tiles side by side (10 apart, in the 28 / 16 lane); a lone last tile stays half width. */
-const COLUMNS = { gap: ME_MOSAIC.gap, marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right };
-const CELL = { flex: 1, maxWidth: "50%" as const, marginBottom: ME_MOSAIC.gap };
-const LANE = { marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right };
+/** M32: the grid's rows — two tiles side by side (12 apart, on the page's gutter); a lone last tile stays half width. */
+const COLUMNS = { gap: spacing.row };
+const CELL = { flex: 1, maxWidth: "50%" as const };
 const GENRE_IDS = GENRES.map((g) => g.id);
 /**
  * Owner, 2026-10-05: scrolling to the bottom loads the next 20 (`?page=N`) until the server says
@@ -328,39 +329,36 @@ export default function CategoryScreen(): React.ReactElement {
 
   return (
     <>
-      <PushedPage
-        title={genre?.name ?? "Categories"}
-        subtitle="Categories"
-        actions={[{ icon: "grid-outline", label: "All categories", onPress: () => setPicking(true) }]}
-      >
-        {(layout) => (
-          /* M32 T030 (review C5): the grid is a FlatList (a window of rows is mounted, not every loaded page). */
-          <GestureDetector gesture={listSwipe}>
-            <Box className="flex-1" style={{ paddingTop: bodyTop(layout) }}>
-              <FlatList
-                data={rest}
-                keyExtractor={(s: ShowCard) => s.feedUrl}
-                numColumns={2}
-                columnWrapperStyle={COLUMNS}
-                contentContainerStyle={{ paddingBottom: layout.reserve }}
-                initialNumToRender={8}
-                maxToRenderPerBatch={8}
-                windowSize={5}
-                onEndReachedThreshold={0.6}
-                onEndReached={loadMore}
-                renderItem={({ item }: { item: ShowCard }) => (
-                  <Box style={CELL}>
-                    <ShowTile
-                      show={item}
-                      subscribed={subscribed.has(item.feedUrl)}
-                      now={now}
-                      onOpen={() => open(item.feedUrl)}
-                      onToggle={() => toggleSubscription(item.feedUrl)}
-                    />
-                  </Box>
-                )}
-                ListHeaderComponent={
-                  <>
+      <GestureDetector gesture={listSwipe}>
+        <Box className="flex-1">
+          {/* M32 T030 (review C5): the grid is a FlatList (a window of rows is mounted, not every loaded page). */}
+          <DetailList<ShowCard>
+            title={genre?.name ?? "Categories"}
+            subtitle="Categories"
+            trailing={<IconButton icon="grid-outline" label="All categories" onPress={() => setPicking(true)} fill />}
+            gap={spacing.row}
+            data={rest}
+            keyExtractor={(s: ShowCard) => s.feedUrl}
+            numColumns={2}
+            columnWrapperStyle={COLUMNS}
+            initialNumToRender={8}
+            maxToRenderPerBatch={8}
+            windowSize={5}
+            onEndReachedThreshold={0.6}
+            onEndReached={loadMore}
+            renderItem={({ item }: { item: ShowCard }) => (
+              <Box style={CELL}>
+                <ShowTile
+                  show={item}
+                  subscribed={subscribed.has(item.feedUrl)}
+                  now={now}
+                  onOpen={() => open(item.feedUrl)}
+                  onToggle={() => toggleSubscription(item.feedUrl)}
+                />
+              </Box>
+            )}
+            header={
+              <Box style={{ gap: spacing.row }}>
                     {/* Owner, 2026-10-05: the sliding row of categories is how a category is chosen; the grid circle in the title bar lists them all. */}
                     <GenreStrip
                       genreId={genreId}
@@ -397,7 +395,7 @@ export default function CategoryScreen(): React.ReactElement {
                       }}
                     />
                     {/* The 44 track: For you · Hot · Newest. */}
-                    <Box style={[LANE, { marginTop: CATEGORY.rowGap, marginBottom: CATEGORY.rowGap }]}>
+                    <Box>
                       <SegmentSwitch
                         items={[
                           { value: "forYou", label: "For you", accessibilityLabel: "For you, shows you don't follow first" },
@@ -409,7 +407,7 @@ export default function CategoryScreen(): React.ReactElement {
                       />
                     </Box>
                     {/* The order in words, and the filter with its 46 x 28 switch. */}
-                    <Box className="flex-row items-center" style={[LANE, { marginBottom: CATEGORY.rowGap, gap: ME_MOSAIC.gap }]}>
+                    <Box className="flex-row items-center" style={{ gap: ME_MOSAIC.gap }}>
                       <Type step="caption" className="text-text3 flex-1" style={ME_TYPE.node12} numberOfLines={2}>
                         {sort === "newest" ? "By latest update" : sort === "forYou" ? "New to you first" : "Recommended by us"}
                       </Type>
@@ -419,19 +417,19 @@ export default function CategoryScreen(): React.ReactElement {
                     {state.kind === "loading" ? <Loader className="my-section" /> : null}
                     {state.kind === "error" ? <RetryTile line={`Couldn't load this category right now. ${state.reason}`} onRetry={() => setAttempt((a) => a + 1)} /> : null}
                     {state.kind === "ok" && state.body.stale ? (
-                      <Type step="caption" className="text-hotText" style={[LANE, { marginBottom: spacing.row }]}>
+                      <Type step="caption" className="text-hotText">
                         Couldn't refresh — showing an earlier list.
                       </Type>
                     ) : null}
                     {state.kind === "ok" && shows.length === 0 ? (
-                      <Type step="caption" className="text-text2" style={LANE}>
+                      <Type step="caption" className="text-text2">
                         {visible.length > 0 && notSubscribedOnly
                           ? "You're subscribed to every show here."
                           : "No shows here yet."}
                       </Type>
                     ) : null}
                     {lead ? (
-                      <Box style={{ marginBottom: ME_MOSAIC.gap }}>
+                      <Box>
                         <LeadCard
                           show={lead}
                           subscribed={subscribed.has(lead.feedUrl)}
@@ -441,9 +439,9 @@ export default function CategoryScreen(): React.ReactElement {
                         />
                       </Box>
                     ) : null}
-                  </>
-                }
-                ListFooterComponent={
+              </Box>
+            }
+            ListFooterComponent={
                   <>
                     {state.kind === "ok" && visible.length > 0 ? (
                       more.status === "loading" ? (
@@ -466,12 +464,10 @@ export default function CategoryScreen(): React.ReactElement {
                       ) : null
                     ) : null}
                   </>
-                }
-              />
-            </Box>
-          </GestureDetector>
-        )}
-      </PushedPage>
+            }
+          />
+        </Box>
+      </GestureDetector>
       {/* M21 T085: every category as a grid, now in a sheet (design-pulse2 `category--all-sheet`). */}
       <AllCategoriesSheet open={picking} genreId={genreId} onPick={pickFromSheet} onClose={() => setPicking(false)} />
     </>

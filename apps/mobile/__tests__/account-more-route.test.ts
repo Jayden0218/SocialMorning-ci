@@ -54,7 +54,7 @@ async function render(page: () => ReactElement): Promise<ReactTestRenderer> {
 }
 afterEach(() => { for (const r of rendered.splice(0)) act(() => r.unmount()); mockPush.mockClear(); });
 
-// The page's title is the header that holds words; an edge label (M31: ACCOUNT, DEVICES …) is a header too, but its words are drawn by a child.
+// The page's title is the header that holds words; a section heading (039: Sign-in, Devices … the kit Section; was an edge label) is a header too, after the title.
 const headers = (r: ReactTestRenderer): string[] =>
   r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header')
     .map((n) => n.children.filter((c): c is string => typeof c === 'string').join(''))
@@ -80,11 +80,13 @@ it('the More row pushes its own route', async () => {
 
 it('Account and security keeps no sub-view: one fixed title, no deletion flow, before and after More', async () => {
   const r = await render(AccountSecurityScreen);
-  expect(headers(r)).toEqual(['Account and security']);
+  // 039 (List lane): was toEqual(['Account and security']) — the section headings (Sign-in, Devices, More) are headers now, after the title.
+  expect(headers(r)[0]).toBe('Account and security');
+  expect(headers(r)).not.toContain('Delete my account');
   expect(labelled(r, 'Delete my account')).toHaveLength(0);
   await press(r, 'More account options');
   // A toggle would redraw this page as "More"; a pushed route leaves it untouched.
-  expect(headers(r)).toEqual(['Account and security']);
+  expect(headers(r)[0]).toBe('Account and security');
   expect(labelled(r, 'Delete my account')).toHaveLength(0);
   expect(text(r)).not.toMatch(/Delete my account|Email me a code to confirm/);
 });
@@ -94,11 +96,11 @@ it('the More page is a route with the app\'s own bar and the deletion flow', asy
   expect(existsSync(join(APP, 'settings', 'account-more.tsx'))).toBe(true);
   expect(typeof AccountMoreScreen).toBe('function');
   const r = await render(AccountMoreScreen);
-  expect(headers(r)).toEqual(['More']);
+  expect(headers(r)).toEqual(['More', 'Account']); // 039: the section heading "Account" is a header (was a turned edge label)
   // The app's own back button (the bottom title bar's back circle, M31), never a native header.
   expect(labelled(r, 'Back')).not.toHaveLength(0);
   await press(r, 'Delete my account');
-  expect(headers(r)).toEqual(['Delete my account']);
+  expect(headers(r)).toEqual(['Delete my account', 'What goes', 'Steps']); // 039: the section headings are headers
   await press(r, 'Email me a code to confirm');
   expect(mockAuth.requestCode).toHaveBeenCalledWith('ana@example.com');
   const field = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Code' && typeof n.props['onChangeText'] === 'function')[0]!;

@@ -12,6 +12,9 @@
  * sign, which opens the PLUS page (Wallet). Target: English, or Simplified Chinese for an English
  * show when the phone's language is Chinese.
  *
+ * Spec 039 (Detail template): a `DetailPage` (Back + "Transcript", the episode's title under it); the Translation row, its note and the lines in a box of most of a screen
+ * (the pane scrolls and follows the audio itself, as the player's does); the time spine and the empty spine are gone.
+ *
  * M31 W3-B (T041; design-pulse2 `shell.html#transcript--screen`, `toast--transcript`, `listen.html#transcript--none-on-phone`; "Layout: Thread"):
  * a pushed page with the title bar low — back, "Transcript" and the episode's title under it. The Translation row sits at
  * the top (44 tall: the words, then the switch for PLUS or the hot "PLUS" pill); under it the lines hang from the time
@@ -26,14 +29,12 @@ import * as Clipboard from 'expo-clipboard';
 import type { Transcript, TranscriptLine } from '@socialmorning/player-core';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
-import { LinearGradient } from '@/design/tailwind';
 import { EmptyBlock } from '@/ui/chat/EmptyBlock';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { DetailPage } from '@/ui/detail/DetailPage';
 import { Toggle } from '@/ui/kit/Toggle';
 import { Type } from '@/ui/kit/Type';
-import { colour, gutter, hit, spacing } from '@/design';
-import { PX } from '@/ui/discover/Deck';
+import { hit, spacing } from '@/design';
 import { toPlayable } from '@/storage/playable';
 import { playerDurationMs, playerPositionMs, usePlayer, usePlayerSelector } from '@/playback/store';
 import type { PlayerState } from '@/playback/types';
@@ -45,9 +46,11 @@ import { TranscriptReportSheet } from '@/ui/player/TranscriptExtras';
 import { useSocial } from '@/social/context';
 import { phoneLocale, targetLang, useM22Api, type Translation } from '@/social/api-m22-server';
 
-/** Drawn: the Translation row 44 tall, 8 under the status bar; the lines start 18 from the left (the spine at 40), 20 from the right; the empty spine is 2 wide. */
-export const TRANSCRIPT_PAGE = { rowTop: 8, row: 44, pill: 30, left: PX.eighteen, spine: 2, spineLeft: 40, emptyTop: 190 } as const;
-const SPINE_EMPTY = [colour.line, colour.line] as const;
+/** The Translation row is 44 tall; its PLUS pill 30. */
+export const TRANSCRIPT_PAGE = { row: 44, pill: 30 } as const;
+/** The lines' box: this share of the window's height, at least this tall. */
+const PANE_SHARE = 0.62;
+const PANE_MIN = 320;
 
 /** What this page draws from the player (T099, review C4): whether THIS episode is loaded, and its position and length — nothing else. */
 type TranscriptClock = { here: boolean; positionMs: number; durationMs: number | undefined };
@@ -59,7 +62,8 @@ const sameTranscriptClock = (a: TranscriptClock, b: TranscriptClock): boolean =>
 
 export default function TranscriptScreen(): React.ReactElement {
   const { episodeId } = useLocalSearchParams<{ episodeId: string }>();
-  const { width } = useWindowDimensions();
+  const { height } = useWindowDimensions();
+  const paneHeight = Math.max(PANE_MIN, Math.round(height * PANE_SHARE));
   const stores = useStores();
   const player = usePlayer();
   const clock = usePlayerSelector(useCallback((s: PlayerState) => transcriptClock(s, episodeId), [episodeId]), sameTranscriptClock);
@@ -72,7 +76,6 @@ export default function TranscriptScreen(): React.ReactElement {
   // M22 US9: select lines → Clip (the clip editor with the range and words), Copy, Share as image.
   const toast = useToast();
   const shareImage = useQuoteShare();
-  const side = gutter(width);
 
   // M22 US13: what the server says about a translation for this episode.
   const { listener } = useSocial();
@@ -120,11 +123,10 @@ export default function TranscriptScreen(): React.ReactElement {
     : undefined;
   return (
     <>
-      <PushedPage title="Transcript" tone="none" {...(episode?.title ? { subtitle: episode.title } : {})}>
-        {(layout) => (
-          <Box className="flex-1" style={{ paddingTop: layout.top + TRANSCRIPT_PAGE.rowTop }}>
+      <DetailPage title="Transcript">
+        {episode?.title ? <Type step="caption" className="text-text2" numberOfLines={2}>{episode.title}</Type> : null}
             {offered ? (
-              <Box className="flex-row items-center" style={{ height: TRANSCRIPT_PAGE.row, paddingHorizontal: side, gap: spacing.gap + 2 }}>
+              <Box className="flex-row items-center" style={{ height: TRANSCRIPT_PAGE.row, gap: spacing.gap + 2 }}>
                 <Type step="row" className="flex-1 text-text">Translation</Type>
                 {plus ? (
                   <Toggle value={on} onChange={turn} label={lang === 'en' ? 'Translation into English' : 'Translation into Chinese'} />
@@ -135,9 +137,10 @@ export default function TranscriptScreen(): React.ReactElement {
                 )}
               </Box>
             ) : null}
-            {note ? <Type step="caption" className="text-text2" style={{ paddingHorizontal: side }} accessibilityLiveRegion="polite">{note}</Type> : null}
-            {shown ? (
-              <Box className="flex-1" style={{ paddingLeft: TRANSCRIPT_PAGE.left, paddingRight: side, paddingTop: spacing.hair + 2, paddingBottom: layout.reserve }}>
+            {note ? <Type step="caption" className="text-text2" accessibilityLiveRegion="polite">{note}</Type> : null}
+        {shown ? (
+          // The pane scrolls and follows the audio itself (it is the player's own component), so it gets a box of its own: most of a screen, the page scrolls past it.
+          <Box testID="transcript-box" style={{ height: paneHeight }}>
                 <TranscriptPane
                   transcript={shown}
                   positionMs={positionMs}
@@ -150,21 +153,13 @@ export default function TranscriptScreen(): React.ReactElement {
                   fill
                   {...(durationMs !== undefined ? { durationMs } : {})}
                 />
-              </Box>
-            ) : (
-              <Box className="flex-1">
-                {/* An empty spine where the lines would hang (line colour), then the empty block. */}
-                <LinearGradient colors={SPINE_EMPTY} testID="transcript-empty-spine" pointerEvents="none" accessible={false} style={{ position: 'absolute', left: TRANSCRIPT_PAGE.spineLeft, width: TRANSCRIPT_PAGE.spine, top: spacing.group + 16, height: 300 }} />
-                <Box style={{ paddingTop: TRANSCRIPT_PAGE.emptyTop }}>
-                  <EmptyBlock title="No transcript yet" line="This episode has no transcript on this phone yet. Open it in the player first.">
-                    <PulseButton label="Open player" kind="light" onPress={openPlayer} />
-                  </EmptyBlock>
-                </Box>
-              </Box>
-            )}
           </Box>
+        ) : (
+          <EmptyBlock title="No transcript yet" line="This episode has no transcript on this phone yet. Open it in the player first.">
+            <PulseButton label="Open player" kind="light" onPress={openPlayer} />
+          </EmptyBlock>
         )}
-      </PushedPage>
+      </DetailPage>
       <TranscriptReportSheet episodeId={episodeId} line={reporting} onClose={() => setReporting(undefined)} />
     </>
   );

@@ -156,12 +156,12 @@ describe('the Translation row', () => {
 });
 
 describe('no transcript on this phone (transcript--none-on-phone)', () => {
-  it('says so in two parts, with an empty spine, and Open player loads the episode and opens the player', async () => {
+  it('says so in two parts (039: no empty spine), and Open player loads the episode and opens the player', async () => {
     const r = await mount();
     const t = texts(r);
     expect(t).toContain('No transcript yet');
     expect(t).toContain('This episode has no transcript on this phone yet. Open it in the player first.');
-    expect(r.root.findAll((n) => n.props['testID'] === 'transcript-empty-spine').length).toBeGreaterThan(0);
+    expect(r.root.findAll((n) => n.props['testID'] === 'transcript-empty-spine')).toHaveLength(0);
     await press(r, 'Open player');
     expect(mockLoad).toHaveBeenCalledWith({ id: 'e1' }, 'play');
     expect(mockPush).toHaveBeenCalledWith('/player');

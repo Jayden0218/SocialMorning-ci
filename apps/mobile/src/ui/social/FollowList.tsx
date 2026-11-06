@@ -25,6 +25,9 @@
  * a failed load is an inline tile at the top of the mosaic, "Couldn't load followers right now." with a light Retry; an empty
  * list is the centred empty block ("Nobody yet" and the sentence; your own with a light Open Discover).
  *
+ * Spec 039 (Feed lane, design B): a `FeedPage` (Back, the title, the subtitle); a person is ONE card (`ItemCard`: avatar 40, the name over the bio, the Follow pill
+ * under them); no edge label "People", no mosaic lane. Loading is grey rows; a failed load is an `InlineNotice` with Retry; empty is the empty block.
+ *
  * Not as drawn: the tile has no Follow button in the drawing; the M21 Follow stays, a 32 tall pill under the bio, so a tile that
  * carries one is 108 tall rather than 84 (the action inventory's rule: every action stays).
  */
@@ -41,12 +44,11 @@ import { useSafety } from '@/safety/context';
 import type { ClipAuthor } from '@/social/api';
 import { Avatar } from '@/ui/kit/Avatar';
 import { EndOfList } from '@/ui/kit/EndOfList';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { InlineNotice } from '@/ui/kit/layout';
+import { FeedEmpty, FeedLoading, FeedPage } from '@/ui/feed/FeedPage';
+import { ItemCard } from '@/ui/notifications/cards';
 import { Type } from '@/ui/kit/Type';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
-import { DRAWN, PageEmpty, emptyTop } from '@/ui/me/lists';
-import { ErrorTile, GhostTiles, MosaicList, NameText } from '@/ui/profile/parts';
+import { NameText } from '@/ui/profile/parts';
 import { PROFILE, PROFILE_TYPE } from '@/ui/profile/measures';
 import { FollowButton } from './FollowButton';
 
@@ -102,37 +104,25 @@ export function FollowList(props: { kind: FollowKind; id: string; name?: string;
   const nothing = state.kind === 'ok' && shown.length === 0;
   const subtitle = nothing && own ? 'You' : followSubtitle(props.count, props.name);
   const failure = `Couldn't load ${props.kind === 'followers' ? 'followers' : 'who this is following'} right now.`;
+  const empty = state.kind === 'loading' ? <FeedLoading testID="follow-loading" rows={6} />
+    : nothing ? (emptyLine === undefined
+      ? <FeedEmpty title="Nobody yet" line={EMPTY_STATES[props.kind].sentence} action={{ label: EMPTY_STATES[props.kind].action.label, onPress: () => router.push(EMPTY_STATES[props.kind].action.route as never) }} />
+      : <FeedEmpty title="Nobody yet" line={emptyLine} />)
+    : undefined;
   return (
-    <PushedPage title={title} {...(subtitle ? { subtitle } : {})}>
-      {(layout) => {
-        const lane = layout.top + (DRAWN.listTop - DRAWN.status);
-        if (nothing) {
-          return (
-            <Box className="flex-1" style={{ paddingTop: lane }}>
-              {emptyLine === undefined ? (
-                <PageEmpty top={emptyTop(230)} title="Nobody yet" line={EMPTY_STATES[props.kind].sentence} action={{ label: EMPTY_STATES[props.kind].action.label, onPress: () => router.push(EMPTY_STATES[props.kind].action.route as never) }} />
-              ) : (
-                <PageEmpty top={emptyTop(240)} title="Nobody yet" line={emptyLine} />
-              )}
-            </Box>
-          );
-        }
-        return (
-          <MosaicList
-            data={shown}
-            keyOf={(l) => l.id}
-            top={layout.top}
-            reserve={layout.reserve}
-            labels={state.kind === 'ok' ? [{ text: 'People', top: PROFILE.labelTop }] : []}
-            {...(state.kind === 'loading' ? { header: <GhostTiles count={8} /> } : {})}
-            footer={state.kind === 'ok' && state.rows.length > 0 && !state.next ? <EndOfList /> : null}
-            empty={state.kind === 'error' ? <ErrorTile line={failure}><PulseButton label="Retry" kind="light" onPress={load} className="self-start" /></ErrorTile> : null}
-            onEnd={more}
-            renderTile={(item) => <PersonTile person={item} youId={listener?.listenerId} />}
-          />
-        );
-      }}
-    </PushedPage>
+    <FeedPage<ClipAuthor>
+      title={title}
+      {...(subtitle ? { subtitle } : {})}
+      data={shown}
+      keyExtractor={(l) => l.id}
+      contentStyle={{ flexGrow: 1 }}
+      gap={spacing.row}
+      onEndReached={more}
+      ListHeaderComponent={state.kind === 'error' ? <InlineNotice text={failure} actionLabel="Retry" onAction={load} /> : null}
+      ListEmptyComponent={empty}
+      ListFooterComponent={state.kind === 'ok' && state.rows.length > 0 && !state.next ? <EndOfList /> : undefined}
+      renderItem={({ item }) => <PersonTile person={item} youId={listener?.listenerId} />}
+    />
   );
 }
 
@@ -145,7 +135,7 @@ function PersonTile(props: { person: ClipAuthor; youId: string | undefined }): R
   const deleted = !item.displayName;
   const canFollow = props.youId !== undefined && item.youFollow !== undefined && item.id !== props.youId;
   return (
-    <Box testID="person-tile" className="bg-raise justify-center" style={{ minHeight: ME_MOSAIC.row, padding: ME_MOSAIC.pad, borderRadius: ME_MOSAIC.radius, gap: spacing.gap }}>
+    <ItemCard testID="person-tile">
       <Link href={{ pathname: '/profile/[id]', params: { id: item.id } }} asChild>
         <Pressable disabled={deleted} accessibilityRole={deleted ? 'text' : 'link'} className="flex-row items-center" style={{ gap: PROFILE.avatarGap }}>
           <Avatar size={PROFILE.avatar} url={item.avatarUrl} name={item.displayName} />
@@ -156,6 +146,6 @@ function PersonTile(props: { person: ClipAuthor; youId: string | undefined }): R
         </Pressable>
       </Link>
       {canFollow ? <FollowButton compact listenerId={item.id} following={item.youFollow === true} /> : null}
-    </Box>
+    </ItemCard>
   );
 }

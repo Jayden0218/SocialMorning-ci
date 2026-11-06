@@ -32,14 +32,17 @@
  * playhead; mic records a voice comment; image adds a picture). Where the two drawings differ (index: one "By moment ▾" chip,
  * no strip; social: the capsule and the strip) this follows social.html, whose action map is the superset — the strip keeps
  * "Episode title → player · Play/Pause" and the capsule keeps the three orders on the page.
+ *
+ * Spec 039 (Feed lane, design B): a `FeedPage` — the title row at the TOP holds the close circle (a chevron-down, "Close"), "Comments" and the count; under it the episode strip
+ * and the map of the whole episode. The thread is a list of moments: each is a solid time chip with "n reacted" over its comment cards (no spine, no 56 indent). The thumb zone keeps
+ * the order capsule, the options circle and the composer exactly as they were (`BottomZone` rides above the keyboard; the list leaves room for it).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Clipboard } from 'react-native';
+import { Clipboard, useWindowDimensions } from 'react-native';
 import type { FlatList as RNFlatList } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { GIVE_UP_AFTER_MS, defaultDir, orderComments, type CommentDir, type CommentOrder } from '@socialmorning/social-core';
 import { Share } from 'react-native';
-import { FlatList } from '@/ui/lib/flat-list';
 import { Box } from '@/ui/lib/box';
 import { mmss } from '@/ui/kit/format';
 import { useSocial } from '@/social/context';
@@ -56,6 +59,9 @@ import { EmptyState } from '@/ui/kit/EmptyState';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Fade } from '@/ui/kit/Fade';
 import { Type } from '@/ui/kit/Type';
+import { TimestampChip } from '@/ui/kit/TimestampChip';
+import { EndOfList } from '@/ui/kit/EndOfList';
+import { FeedPage } from '@/ui/feed/FeedPage';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { episodePlayView, livePositionMs, usePlayer } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
@@ -69,15 +75,15 @@ import { playVoice } from '@/playback/expo-audio-adapter';
 import { getPref } from '@/settings/prefs';
 import { liveLabel, useListeningNow } from '@/social/live';
 import { useM22SocialApi } from '@/social/api-m22-social';
-import { BottomZone, Capsule, ComposerBar, SignInBar, ZoneTitle } from '@/ui/comments/CommentsBottom';
+import { BottomZone, Capsule, ComposerBar, SignInBar } from '@/ui/comments/CommentsBottom';
 import { IconButton } from '@/ui/kit/PulseButton';
 import { CommentsMap } from '@/ui/comments/CommentsMap';
-import { GhostRows, SpineLine, SpineNode, Tick } from '@/ui/comments/Spine';
+import { GhostRows } from '@/ui/comments/Spine';
 import { buildNodes, nearestNode, type Node } from '@/ui/comments/nodes';
 import { MenuRow } from '@/ui/comments/MenuRows';
-import { COMMENTS, ZONE_BOTTOM, belowStatus } from '@/ui/comments/measures';
+import { COMMENTS, ZONE_BOTTOM } from '@/ui/comments/measures';
+import { gutter, spacing } from '@/design';
 import { usePlayheadMs } from '@/ui/comments/usePlayhead';
-import { useInsets } from '@/ui/comments/useInsets';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
 // M24 US20 (`Comments-B`): the capsule shows the three orders. The fourth, M19 FR-042's "Smart" (likes + 2 × replies − hours
@@ -108,7 +114,7 @@ export default function CommentsScreen(): React.ReactElement {
   const m12 = useM12Api();
   const extras = useCommentExtrasApi();
   const player = usePlayer();
-  const insets = useInsets();
+  const side = gutter(useWindowDimensions().width);
   const { api, composer, listener, useEpisodeSocial, refresh, bump } = useSocial();
   const safety = useSafety();
   usePoll(episodeId);
@@ -280,7 +286,6 @@ export default function CommentsScreen(): React.ReactElement {
   ];
 
   const serverTime = cached?.social.serverTime ?? new Date(clockMs()).toISOString();
-  const top = (drawn: number) => belowStatus(insets.top, drawn);
   // First load: the ghost rows, until the page has waited as long as the shared empty states do (10 s) or the server said no.
   const [waited, setWaited] = useState(0);
   useEffect(() => {
@@ -295,70 +300,76 @@ export default function CommentsScreen(): React.ReactElement {
   const smartOn = order === 'smart';
   const reversed = dir !== defaultDir(order);
 
+  const shownNodes = failedLoad || empty || loading ? [] : nodes;
+  const body = failedLoad ? (
+    // Nothing cached and the server did not answer: the shared offline / error block, with Retry.
+    <EmptyState surface="comments" page failed onRetry={() => { if (episodeId) void refresh(episodeId); }} />
+  ) : empty ? (
+    <EmptyState surface="comments" page action={{ label: 'Comment here', onPress: () => compose() }} />
+  ) : loading ? (
+    <Box testID="comments-loading"><GhostRows /></Box>
+  ) : undefined;
+
   return (
     <Box className="flex-1 bg-void">
-      {/* Top: the episode strip, then the map of the whole episode with who is listening now. */}
-      <Box className="absolute left-0 right-0" style={{ top: top(56), zIndex: 5 }} testID="comments-strip">
-        {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
-      </Box>
-      <Box className="absolute" style={{ left: COMMENTS.gutter, right: COMMENTS.gutter, top: top(102), zIndex: 5 }} testID="comments-map-row">
-        <MapHost episodeId={episodeId} heat={heat} durationMs={durationMs} fallbackMs={stores.positions.get(episodeId ?? '')?.offsetMs} listening={listening} onJump={jump} />
-      </Box>
-      {stale ? <Type step="tag" className="absolute text-text3" style={{ left: COMMENTS.gutter, top: top(102) + COMMENTS.mapHeight + 2, zIndex: 5 }}>Couldn't refresh — showing the last copy</Type> : null}
-      {/* The spine and the thread. */}
-      <Box className="absolute left-0 right-0 bottom-0 overflow-hidden" style={{ top: top(140), zIndex: 3 }} testID="comments-thread">
-        {failedLoad ? (
-          // Nothing cached and the server did not answer: the shared offline / error block, with Retry.
-          <Box className="absolute left-0 right-0" style={{ top: 0, bottom: zone }}>
-            <EmptyState surface="comments" page failed onRetry={() => { if (episodeId) void refresh(episodeId); }} />
+      <FeedPage<Node>
+        title="Comments"
+        now={false}
+        leading={<IconButton icon="chevron-down" label="Close" onPress={goBack} fill />}
+        trailing={count > 0 ? <Type step="mono" className="text-text3">{count}</Type> : undefined}
+        scrollRef={list}
+        data={shownNodes}
+        keyExtractor={(n) => n.key}
+        footExtra={zone + 24}
+        gap={spacing.block}
+        contentStyle={{ flexGrow: 1 }}
+        ListHeaderComponent={
+          <Box style={{ gap: spacing.row }}>
+            {/* Top: the episode strip, then the map of the whole episode with who is listening now. */}
+            <Box style={{ marginHorizontal: -side }} testID="comments-strip">
+              {episodeId ? <EpisodeCard episodeId={episodeId} /> : null}
+            </Box>
+            <Box testID="comments-map-row">
+              <MapHost episodeId={episodeId} heat={heat} durationMs={durationMs} fallbackMs={stores.positions.get(episodeId ?? '')?.offsetMs} listening={listening} onJump={jump} />
+            </Box>
+            {stale ? <Type step="tag" className="text-text3">Couldn't refresh — showing the last copy</Type> : null}
           </Box>
-        ) : empty ? (
-          <Box className="absolute" style={{ left: 24, right: 24, top: 110 }}>
-            <EmptyState surface="comments" page action={{ label: 'Comment here', onPress: () => compose() }} />
+        }
+        ListEmptyComponent={body}
+        // Owner, 2026-10-05: the bottom of a fetched list says so.
+        ListFooterComponent={shownNodes.length > 0 ? <EndOfList label="That's all" /> : undefined}
+        onScrollToIndexFailed={(info) => { list.current?.scrollToOffset({ offset: Math.max(0, info.averageItemLength * info.index), animated: true }); }}
+        renderItem={({ item }) => (
+          <Box testID="comments-node" style={{ gap: spacing.row }}>
+            <Box className="flex-row items-center" style={{ gap: spacing.row }}>
+              {item.momentMs !== null ? <TimestampChip text={mmss(item.momentMs)} solid onPress={() => seek(item.momentMs!)} /> : <Type step="tag" className="text-text3">no moment</Type>}
+              {item.reacted !== undefined && item.reacted > 0 ? <Type step="mono" className="text-text3">{`${item.reacted} reacted`}</Type> : null}
+            </Box>
+            {item.comments.map((c) => (
+              <CommentRow
+                key={c.id}
+                c={c}
+                flush
+                serverTime={serverTime}
+                likeOf={likeOf}
+                onSeek={seek}
+                onLike={(x) => void like(x)}
+                onMenu={setMenu}
+                onReply={(x) => compose(x.id)}
+                playVoice={playVoice}
+                teenMode={getPref(stores.settings, 'hideExplicit')}
+                ringed={composing?.parentId === c.id}
+                onOpenThread={(x) => router.push({ pathname: '/comments/thread/[commentId]', params: { commentId: x.id, episodeId: episodeId ?? '' } })}
+              />
+            ))}
           </Box>
-        ) : loading ? (
-          <Box style={{ paddingTop: COMMENTS.listTop, paddingRight: COMMENTS.listRight }}><GhostRows /></Box>
-        ) : (
-          <>
-            <SpineLine />
-            <FlatList
-              ref={list}
-              data={nodes}
-              keyExtractor={(n) => n.key}
-              contentContainerStyle={{ paddingTop: COMMENTS.listTop, paddingLeft: COMMENTS.listLeft, paddingRight: COMMENTS.listRight, paddingBottom: zone + 24, gap: COMMENTS.nodeGap }}
-              // Owner, 2026-10-05: the bottom of a fetched list says so ("That's all", a tick on the spine).
-              ListFooterComponent={<Box className="flex-row items-center" style={{ width: COMMENTS.chipColumn, justifyContent: 'center' }}><Tick text="That's all" /></Box>}
-              onScrollToIndexFailed={(info) => { list.current?.scrollToOffset({ offset: Math.max(0, info.averageItemLength * info.index), animated: true }); }}
-              renderItem={({ item }) => (
-                <SpineNode momentMs={item.momentMs} reacted={item.reacted} onSeek={seek}>
-                  {item.comments.map((c) => (
-                    <CommentRow
-                      key={c.id}
-                      c={c}
-                      serverTime={serverTime}
-                      likeOf={likeOf}
-                      onSeek={seek}
-                      onLike={(x) => void like(x)}
-                      onMenu={setMenu}
-                      onReply={(x) => compose(x.id)}
-                      playVoice={playVoice}
-                      teenMode={getPref(stores.settings, 'hideExplicit')}
-                      ringed={composing?.parentId === c.id}
-                      onOpenThread={(x) => router.push({ pathname: '/comments/thread/[commentId]', params: { commentId: x.id, episodeId: episodeId ?? '' } })}
-                    />
-                  ))}
-                </SpineNode>
-              )}
-            />
-          </>
         )}
-      </Box>
+      />
       <Fade bottom={0} height={COMMENTS.fullHeight + 90} />
       {/* The thumb zone: close and the title, the order capsule, the composer. FR-021: it stays at the bottom and carries the moment. */}
       <BottomZone bottom={ZONE_BOTTOM}>
         <Box onLayout={(e) => setZone(e.nativeEvent.layout.height + ZONE_BOTTOM)}>
           <Box style={{ gap: COMMENTS.zoneGap }}>
-            <ZoneTitle title="Comments" count={count} back={{ icon: 'chevron-down', label: 'Close', onPress: goBack }} />
             <Box className="flex-row items-center" style={{ gap: 8, paddingHorizontal: COMMENTS.titleRowPad }}>
               <Capsule items={ORDERS} value={order === 'smart' ? 'newest' : order} onChange={setOrder} />
               {/* M24 US20: "Smart" order and M21 US6's reverse switch live in the small sheet this opens. */}

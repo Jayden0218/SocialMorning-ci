@@ -15,10 +15,10 @@
  * subscribed (owner, 2026-10-05) and says so to a screen reader.
  */
 import { type ComponentRef } from 'react';
-import { ScrollView, type ScrollViewProps } from 'react-native';
+import { ScrollView, useWindowDimensions, type ScrollViewProps } from 'react-native';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour, spacing } from '@/design';
+import { colour, gutter, spacing } from '@/design';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
@@ -33,8 +33,6 @@ import { UNBOUNDED } from './Deck';
 /** Drawn numbers of the page. */
 export const CATEGORY = {
   stripGap: 18,
-  stripLeft: 28,
-  stripRight: 20,
   stripLine: 2,
   stripLineGap: 8,
   /** The track and the order row sit 14 under / over their neighbours, 28 / 16 in from the sides. */
@@ -73,12 +71,15 @@ export function GenreStrip(props: {
   scrollProps: ScrollViewProps;
 }): React.ReactElement {
   const { scrollRef, scrollProps } = props;
+  // 039: the strip starts on the page's gutter and runs off the right edge (a Shelf, but it keeps its own ref and scroll events).
+  const side = gutter(useWindowDimensions().width);
   return (
     <ScrollView
       ref={scrollRef}
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: CATEGORY.stripGap, paddingLeft: CATEGORY.stripLeft, paddingRight: CATEGORY.stripRight }}
+      style={{ marginRight: -side }}
+      contentContainerStyle={{ gap: CATEGORY.stripGap, paddingRight: side }}
       scrollEventThrottle={16}
       testID="genre-strip"
       {...scrollProps}
@@ -120,7 +121,7 @@ export function LeadCard(props: { show: ShowCard; subscribed: boolean; now: numb
   const s = props.show;
   const ep = s.latestEpisode;
   return (
-    <Box testID="lead-card" className="bg-text" style={{ marginLeft: 28, marginRight: spacing.section, minHeight: spanHeight(CATEGORY.leadRows), borderRadius: PAGE.radius, overflow: 'hidden' }}>
+    <Box testID="lead-card" className="bg-text" style={{ minHeight: spanHeight(CATEGORY.leadRows), borderRadius: PAGE.radius, overflow: 'hidden' }}>
       <Pressable
         onPress={props.onOpen}
         accessibilityRole="button"

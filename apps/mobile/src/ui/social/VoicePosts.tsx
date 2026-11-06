@@ -24,6 +24,7 @@
  * Holding your own circle asks in the kit dialog (Cancel quiet, Delete hot). Taps, labels and destinations are as before.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useWindowDimensions } from 'react-native';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { useConfirm } from '@/ui/kit/confirm';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -37,21 +38,21 @@ import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { PanelGroup } from '@/ui/me/Panel';
 import { LinearGradient } from '@/design/tailwind';
-import { colour, hit, spacing } from '@/design';
+import { colour, gutter, hit, spacing } from '@/design';
 import { mmss } from '@/ui/kit/format';
 import type { VoicePost } from '@/social/m12-api';
 import { useM22SocialApi, type Status } from '@/social/api-m22-social';
 import { hoursLeft } from '@/social/voice';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
-/** The drawn rail: 58 circles 14 apart from 16 in; the ring is 2, the avatar inside it 54. */
-const RAIL_DRAWN = { circle: 58, inner: 54, gap: 14, lead: 16, ring: 2, plus: 22 } as const;
+/** The drawn rail: 58 circles 14 apart; the ring is 2, the avatar inside it 54. The rail starts on the page gutter (039 I2). */
+const RAIL_DRAWN = { circle: 58, inner: 54, gap: 14, ring: 2, plus: 22 } as const;
 /**
  * M31 D-A (design-pulse2 `index.html#updates--screen`, the Voice row): on the Updates tab the circles are 56 with a 2 void gap and a 2 ring round
- * them (64 over all), 12 apart from 28 in — the box-shadows' spill is part of the circle here, so the gap between items is 12 less the 8 of
- * spill and the lead 28 less 4. The first circle is yours, "You" with the mic.
+ * them (64 over all), 12 apart — the box-shadows' spill is part of the circle here, so the gap between items is 12 less the 8 of
+ * spill. The first circle is yours, "You" with the mic. 039 I2: the rail starts on the 20 gutter (it was 24 in, 16 on the plain rail).
  */
-const RAIL_UPDATES = { circle: 64, inner: 60, gap: 4, lead: 24, ring: 2, plus: 22 } as const;
+const RAIL_UPDATES = { circle: 64, inner: 60, gap: 4, ring: 2, plus: 22 } as const;
 const ITEM_MIN = { minHeight: hit.min };
 const fill = (r: { circle: number }) => ({ position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: 0, borderRadius: r.circle / 2 });
 const RING_COLOURS = [colour.hot, colour.violet] as const;
@@ -73,6 +74,7 @@ export function VoicePosts(props: {
   variant?: 'rail' | 'updates';
 }): React.ReactElement | null {
   const RAIL = props.variant === 'updates' ? RAIL_UPDATES : RAIL_DRAWN;
+  const side = gutter(useWindowDimensions().width);
   const RING = { width: RAIL.circle, height: RAIL.circle, padding: RAIL.ring };
   const INNER = { width: RAIL.inner, height: RAIL.inner };
   const ITEM = { width: RAIL.circle, gap: props.variant === 'updates' ? 2 : spacing.gap, ...ITEM_MIN };
@@ -111,7 +113,7 @@ export function VoicePosts(props: {
   const shown = posts.find((x) => x.id === playing);
   return (
     <Box>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: RAIL.gap, paddingLeft: RAIL.lead, paddingRight: RAIL.lead }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: RAIL.gap, paddingLeft: side, paddingRight: side }}>
         {/* M21 US8: my avatar with "+", opening the Voice / Text chooser. */}
         <Pressable onPress={() => setChooser(true)} accessibilityRole="button" accessibilityLabel="Post a status: voice or text" className="items-center" style={ITEM}>
           <Box className="items-center justify-center" style={RING}>

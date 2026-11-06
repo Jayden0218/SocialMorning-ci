@@ -9,54 +9,48 @@
  * square in its corner (110 on the tall ones, 60 on the rest), the genre's icon (24) and its name in Unbounded 700 (17 on a tall
  * tile, 13 on the rest). A tile opens `/category/[id]` on that genre. Same genres, same names, same destination.
  *
+ * Spec 039 (Feed lane, design B): a `FeedScroll`; the genres are equal tiles in the `TileGrid` (two columns on the 20 gutter, 12 apart, radius `radius.card`), no tall or
+ * wide places; each keeps the cover-coloured corner square (60), the icon (24) and the name. Same genres, names and destination.
+ *
  * Not as drawn: the corner square is the genre name's own cover colour (the drawing's are sample gradients); the icons are the
  * Ionicons the genres already carry.
  */
 import { useRouter } from 'expo-router';
 import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
-import { colour } from '@/design';
+import { Box } from '@/ui/lib/box';
+import { colour, radius } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { TileGrid } from '@/ui/kit/layout';
+import { FeedScroll } from '@/ui/feed/FeedPage';
 import { FIXED_TYPE, Type } from '@/ui/kit/Type';
 import { GENRES } from '@/discover/genres';
 import { useAppConfig } from '@/config/store';
-import { CornerSquare, MosaicGrid, genreSpan, type TileSpec } from '@/ui/discover/Mosaic';
+import { CornerSquare } from '@/ui/discover/Mosaic';
 import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
-import { bodyTop } from '@/ui/discover/page-parts';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
 
 export default function CategoriesScreen(): React.ReactElement {
   useAppConfig();
   const router = useRouter();
-  const tiles: TileSpec[] = GENRES.map((g, k) => {
-    const { w, h } = genreSpan(k);
-    const tall = k % 3 === 0;
-    return {
-      key: String(g.id),
-      w,
-      h,
-      node: (
-        <Pressable
-          onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(g.id) } })}
-          accessibilityRole="button"
-          accessibilityLabel={g.name}
-          className="flex-1"
-          style={{ padding: PAGE.pad }}
-        >
-          <CornerSquare name={g.name} size={tall ? 110 : 60} />
-          <Icon name={g.icon} size={24} color={colour.text} />
-          <Type step="lede" className="text-text" style={{ ...(tall ? PAGE_TYPE.tile17 : PAGE_TYPE.tile13), marginTop: PAGE.gap - 2, zIndex: 2 }} numberOfLines={tall ? 3 : 2} maxFontSizeMultiplier={tall ? undefined : FIXED_TYPE}>{g.name}</Type>
-        </Pressable>
-      ),
-    };
-  });
   return (
-    <PushedPage title="Categories" subtitle={`${GENRES.length} genres`}>
-      {(layout) => (
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout), paddingBottom: layout.reserve }}>
-          <MosaicGrid tiles={tiles} />
-        </ScrollView>
-      )}
-    </PushedPage>
+    <FeedScroll title="Categories" subtitle={`${GENRES.length} genres`}>
+      <TileGrid>
+        {GENRES.map((g) => (
+          <Box key={g.id} testID="genre-tile" className="overflow-hidden bg-raise" style={{ minHeight: ME_MOSAIC.row + PAGE.pad * 2, borderRadius: radius.card }}>
+            <Pressable
+              onPress={() => router.push({ pathname: '/category/[id]', params: { id: String(g.id) } })}
+              accessibilityRole="button"
+              accessibilityLabel={g.name}
+              className="flex-1"
+              style={{ padding: PAGE.pad }}
+            >
+              <CornerSquare name={g.name} size={60} />
+              <Icon name={g.icon} size={24} color={colour.text} />
+              <Type step="lede" className="text-text" style={{ ...PAGE_TYPE.tile13, marginTop: PAGE.gap - 2, zIndex: 2 }} numberOfLines={2} maxFontSizeMultiplier={FIXED_TYPE}>{g.name}</Type>
+            </Pressable>
+          </Box>
+        ))}
+      </TileGrid>
+    </FeedScroll>
   );
 }

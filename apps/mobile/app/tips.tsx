@@ -13,19 +13,22 @@
  * not-available sentence (15, text-2) low on the page, 110 over the title bar; the title bar is low with "Tips I gave" at 20 (the headline already says what the
  * page is) and back only. Tips, when there are any, are 64 tiles (show, date, amount in mono) ending with the end-of-list mark, with the not-available caption
  * above them while the store is not set up; loading is ghost rows; a load error is the line "Couldn't load your tips right now.". Same call, names and words.
+ *
+ * Spec 039 (Feed lane, design B): a `FeedPage` (Back + "Tips I gave"). None yet is the same stage in the list's body: the wall of 60 bars behind (reaching the
+ * gutter's width), the heart tile, "No tips yet" and the sentence under it, in flow (not pinned 110 over the foot); no page glow. Tips are the 64 tiles.
  */
 import { useLoad } from '@/ui/kit/useLoad';
-import { FlatList } from '@/ui/lib/flat-list';
+import { useWindowDimensions } from 'react-native';
 import { Box } from '@/ui/lib/box';
 import { EndOfList } from '@/ui/kit/EndOfList';
-import { PageGlow } from '@/ui/kit/PageGlow';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { FeedPage } from '@/ui/feed/FeedPage';
 import { useM12Api } from '@/social/m12-api';
 import { GlowTile } from '@/ui/me/lists';
 import { InfoGhost } from '@/ui/show/InfoGroup';
-import { TipsWall, TipTile, TIPS_SIDE } from '@/ui/tips/parts';
+import { TipsWall, TipTile } from '@/ui/tips/parts';
 import { TIPS } from '@/ui/wallet/measures';
 import { Big, Line } from '@/ui/wallet/stage';
+import { gutter, spacing } from '@/design';
 
 const NOT_READY = 'Tipping is not available yet. When it is, tips are paid through the App Store or Google Play.';
 
@@ -33,37 +36,33 @@ export default function TipsScreen(): React.ReactElement {
   const m12 = useM12Api();
   // M23 US9: cancelled on unmount.
   const [state] = useLoad(() => m12.tips(), [m12], 'tips.load');
+  const side = gutter(useWindowDimensions().width);
   const notReady = state.kind === 'ok' && !state.storeReady;
   const empty = state.kind === 'ok' && state.items.length === 0;
+  const items = state.kind === 'ok' ? state.items : [];
   return (
-    <PushedPage title="Tips I gave" tone="none" fade={empty ? 0 : undefined}>
-      {(layout) => (
-        <>
-          <PageGlow top={TIPS.glowTop} strength={TIPS.glowStrength} />
-          {empty ? (
-            <>
-              <TipsWall top={layout.top + TIPS.wallTop} />
-              <Box testID="tips-tile" className="absolute left-0 right-0 items-center" pointerEvents="none" style={{ top: layout.top + TIPS.tileTop }}><GlowTile icon="heart-outline" size={TIPS.tile} rotate={TIPS.tileRotate} /></Box>
-              <Box testID="tips-words" className="absolute" style={{ left: TIPS_SIDE, right: TIPS_SIDE, bottom: layout.titleBottom + TIPS.wordsAbove, gap: TIPS.wordsGap }} accessible accessibilityLabel={notReady ? `No tips yet. ${NOT_READY}` : 'No tips yet'}>
-                <Big size="big40">No tips yet</Big>
-                {notReady ? <Line size="line15">{NOT_READY}</Line> : null}
-              </Box>
-            </>
-          ) : (
-            <FlatList
-              className="flex-1"
-              data={state.kind === 'ok' ? state.items : []}
-              // Owner, 2026-10-05: the bottom of a fetched list says so.
-              ListFooterComponent={state.kind === 'ok' && state.items.length > 0 ? <EndOfList /> : undefined}
-              keyExtractor={(t) => t.id}
-              contentContainerStyle={{ paddingTop: layout.top + TIPS.listTop, paddingHorizontal: TIPS_SIDE, paddingBottom: layout.reserve, flexGrow: 1 }}
-              ListHeaderComponent={state.kind === 'ok' && !state.storeReady && state.items.length > 0 ? <Box style={{ marginBottom: TIPS.listGap }}><Line size="line13" tone="text3">{NOT_READY}</Line></Box> : undefined}
-              ListEmptyComponent={state.kind === 'loading' ? <Box testID="tips-loading" style={{ opacity: 0.55 }}><InfoGhost rows={5} /></Box> : state.kind === 'error' ? <Line size="line14">Couldn't load your tips right now.</Line> : undefined}
-              renderItem={({ item }) => <TipTile tip={item} />}
-            />
-          )}
-        </>
-      )}
-    </PushedPage>
+    <FeedPage
+      title="Tips I gave"
+      data={items}
+      keyExtractor={(t) => t.id}
+      gap={0}
+      contentStyle={{ flexGrow: 1 }}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={items.length > 0 ? <EndOfList /> : undefined}
+      ListHeaderComponent={state.kind === 'ok' && !state.storeReady && items.length > 0 ? <Box style={{ marginBottom: TIPS.listGap }}><Line size="line13" tone="text3">{NOT_READY}</Line></Box> : null}
+      ListEmptyComponent={
+        empty ? (
+          <Box testID="tips-stage" style={{ marginHorizontal: -side, minHeight: TIPS.wallHeight + TIPS.tile }}>
+            <TipsWall top={spacing.block} />
+            <Box testID="tips-tile" className="items-center" pointerEvents="none" style={{ paddingTop: spacing.group }}><GlowTile icon="heart-outline" size={TIPS.tile} rotate={TIPS.tileRotate} /></Box>
+            <Box testID="tips-words" style={{ paddingHorizontal: side, paddingTop: spacing.group, gap: TIPS.wordsGap }} accessible accessibilityLabel={notReady ? `No tips yet. ${NOT_READY}` : 'No tips yet'}>
+              <Big size="big40">No tips yet</Big>
+              {notReady ? <Line size="line15">{NOT_READY}</Line> : null}
+            </Box>
+          </Box>
+        ) : state.kind === 'loading' ? <Box testID="tips-loading" style={{ opacity: 0.55 }}><InfoGhost rows={5} /></Box> : state.kind === 'error' ? <Line size="line14">Couldn't load your tips right now.</Line> : undefined
+      }
+      renderItem={({ item }) => <TipTile tip={item} />}
+    />
   );
 }

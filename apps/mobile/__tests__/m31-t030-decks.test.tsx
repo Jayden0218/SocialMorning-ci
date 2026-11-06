@@ -74,27 +74,31 @@ const edgeLabels = (r: ReactTestRenderer): string[] => r.root.findAll((n) => typ
 const sized = (r: ReactTestRenderer, w: number, h: number): ReactTestInstance[] => r.root.findAll((n) => typeof n.type === 'string' && flat(n)['width'] === w && flat(n)['height'] === h);
 
 describe('the deck itself', () => {
-  it('snaps one card at a time: interval = card + 10, the first card at the 28 lane, cards 10 apart', () => {
+  it('snaps one card at a time: interval = card + 10, the first card on the 20 gutter, cards 10 apart', () => {
     const r = render(createElement(Deck, { width: 270, height: 220 } as React.ComponentProps<typeof Deck>, [createElement('i', { key: 1 }), createElement('i', { key: 2 })]));
     const deck = host(r, 'deck')[0]!;
     expect(deck.props['snapToInterval']).toBe(280);
     expect(deck.props['horizontal']).toBe(true);
     const content = StyleSheet.flatten(deck.props['contentContainerStyle']) as Record<string, number>;
     expect([content['paddingLeft'], content['gap']]).toEqual([DECK.lane, 10]);
-    expect(DECK.lane).toBe(28);
+    // 039 I2: was 28 (the edge label's lane); now the 20 gutter.
+    expect(DECK.lane).toBe(20);
     expect(flat(deck)['height']).toBe(220);
   });
-  it('a section holds its content between 2 above and 18 below, at least 120 tall, under its edge label', () => {
+  it('a section is a heading on the gutter (read as the spoken name), then its content, with 24 below it and no edge label', () => {
+    // 039 I2: was "between 2 above and 18 below, at least 120 tall, under its edge label" (the vertical label needed the height); now a Section-style heading, no minimum height.
     const r = render(createElement(DeckSection, { label: 'Charts', spoken: 'The chart' } as React.ComponentProps<typeof DeckSection>, createElement('i')));
-    const section = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['minHeight'] === 120)[0]!;
-    expect([flat(section)['paddingTop'], flat(section)['paddingBottom']]).toEqual([2, 18]);
+    const section = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['paddingBottom'] === 24)[0]!;
+    expect([flat(section)['paddingTop'], flat(section)['minHeight']]).toEqual([undefined, undefined]);
     expect(edgeLabels(r)).toEqual(['The chart']);
+    expect(words(r)).toContain('Charts');
+    expect(r.root.findAll((n) => n.props['testID'] === 'edge-measure')).toHaveLength(0);
   });
-  it('a link under a deck is hot-text 13 / 600, 10 below it and 28 from the left, named for a screen reader', () => {
+  it('a link under a deck is hot-text 13 / 600, 8 below it and 20 from the left, named for a screen reader', () => {
     const onPress = jest.fn();
     const r = render(createElement(DeckLink, { label: 'Full chart', onPress }));
     const link = one(r, 'Full chart');
-    expect([flat(link)['marginTop'], flat(link)['marginLeft']]).toEqual([10, 28]);
+    expect([flat(link)['marginTop'], flat(link)['marginLeft']]).toEqual([8, 20]); // 039 I2: was 10 and 28
     expect(words(r)).toContain('Full chart ›');
     act(() => { link.props['onPress'](); });
     expect(onPress).toHaveBeenCalled();

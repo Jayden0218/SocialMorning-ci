@@ -9,9 +9,8 @@ import { Input, InputField } from '@/ui/lib/input';
 import { Box } from '@/ui/lib/box';
 import { colour, hit } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
-import { PageGlow } from '@/ui/kit/PageGlow';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { FormPage } from '@/ui/form/FormPage';
 import { Type } from '@/ui/kit/Type';
 import { shortDate } from '@/ui/kit/format';
 import { ApiError } from '@/social/api';
@@ -47,9 +46,8 @@ export default function RedeemScreen(): React.ReactElement {
   const ring = error !== undefined && code !== '' ? colour.hot : colour.line;
   return (
     <KeyboardPage>
-      <PushedPage
+      <FormPage
         title="Redeem a code"
-        tone="none"
         belowHeight={foot}
         below={(
           <Box testID="redeem-foot" style={{ gap: REDEEM.belowGap }} onLayout={(e) => { const h = Math.round(e.nativeEvent.layout.height); if (h !== foot) setFoot(h); }}>
@@ -72,24 +70,19 @@ export default function RedeemScreen(): React.ReactElement {
           </Box>
         )}
       >
-        {(layout) => (
-          <>
-            <PageGlow top={REDEEM.glowTop} strength={REDEEM.glowStrength} />
-            <Box testID="redeem-tile" className="absolute left-0 right-0 items-center" pointerEvents="none" style={{ top: layout.top + REDEEM.tileTop }}><GlowTile icon="ticket-outline" size={REDEEM.tile} rotate={REDEEM.tileRotate} /></Box>
-            <Box testID="redeem-words" className="absolute" style={{ left: REDEEM.textSide, right: REDEEM.textSide, top: layout.top + REDEEM.textTop, gap: REDEEM.textGap }}>
-              <Big size="big30">Have a code?</Big>
-              {done ? (
-                <Box testID="redeem-done" className="flex-row items-center bg-hotSoft" style={{ borderRadius: REDEEM.doneRadius, padding: REDEEM.donePad, gap: REDEEM.doneGap }} accessible accessibilityLiveRegion="polite" accessibilityLabel={done}>
-                  <Icon name="checkmark-circle" size={REDEEM.doneIcon} color={colour.hotText} />
-                  <Type step="row" className="text-text flex-1">{done}</Type>
-                </Box>
-              ) : (
-                <Line size="line15">A code from SocialNet gives you PLUS days or a paid series, free. Each code works once per account.</Line>
-              )}
+        <Box testID="redeem-tile" className="items-center" pointerEvents="none"><GlowTile icon="ticket-outline" size={REDEEM.tile} rotate={REDEEM.tileRotate} /></Box>
+        <Box testID="redeem-words" style={{ gap: REDEEM.textGap }}>
+          <Big size="big30">Have a code?</Big>
+          {done ? (
+            <Box testID="redeem-done" className="flex-row items-center bg-hotSoft" style={{ borderRadius: REDEEM.doneRadius, padding: REDEEM.donePad, gap: REDEEM.doneGap }} accessible accessibilityLiveRegion="polite" accessibilityLabel={done}>
+              <Icon name="checkmark-circle" size={REDEEM.doneIcon} color={colour.hotText} />
+              <Type step="row" className="text-text flex-1">{done}</Type>
             </Box>
-          </>
-        )}
-      </PushedPage>
+          ) : (
+            <Line size="line15">A code from SocialNet gives you PLUS days or a paid series, free. Each code works once per account.</Line>
+          )}
+        </Box>
+      </FormPage>
     </KeyboardPage>
   );
 }

@@ -12,44 +12,45 @@
  * the spine at their moment chips with the episode beside each; "This comment was deleted" when gone. Nothing yet: the
  * Stage's glowing star tile and "No favourite comments yet" beside an empty spine. Same rows, links and spoken names.
  *
+ * Spec 039 (Feed lane, design B): a `FeedPage` whose foot slot (`below`) holds the search field and the switch. Episodes are tiles in two equal
+ * columns (rows of two, `spacing.row` apart; no edge label, no 1 x 2 tile); comments are cards (the moment chip and the episode on the head row, the words,
+ * "Favourite"); no spine. Nothing yet is an empty block (the glowing star tile stays).
+ *
  * The two drawings disagree about the switch (`favourites--comments-tab` puts an underline switch above the title, as
  * Updates; `favourites--screen` a pill switch in the foot): the pill is built, for both tabs, so the control is one thing.
  * Not as drawn: a comment's age is when you starred it (the saved copy keeps no other); no like count; the empty
  * Comments page's glow is not colour-swapped.
  */
 import { Link, router, useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
-import { colour, spacing } from '@/design';
+import { colour, gutter, spacing } from '@/design';
 import { listFavComments, type FavComment } from '@/me/fav-comments';
 import { listFavourites, type Favourite } from '@/me/favourites';
 import { matchesAll } from '@/me/history';
 import { Avatar } from '@/ui/kit/Avatar';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { Icon } from '@/ui/kit/Icon';
 import { mmss } from '@/ui/kit/format';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type } from '@/ui/kit/Type';
-import { Tick } from '@/ui/comments/Spine';
 import { useStores } from '@/ui/shell/providers';
 import { EndOfList } from '@/ui/kit/EndOfList';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
 import { ME_TYPE } from '@/ui/me/measures';
-import { ageLabel, ArtTile, DRAWN, emptyTop, EmptySpine, GlowTile, KeyboardPage, LIST, mosaicColumn, SearchField, SegmentSwitch, ThreadCard, ThreadNode, ThreadSpine, threadPad } from '@/ui/me/lists';
+import { ageLabel, ArtTile, GlowTile, KeyboardPage, LIST, SearchField, SegmentSwitch } from '@/ui/me/lists';
+import { FeedPage } from '@/ui/feed/FeedPage';
+import { ItemCard } from '@/ui/notifications/cards';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
-/** The Favourites mosaic's rows are 92 (the Me tab's are 84); the newest tile is two of them and the gap between. */
-const ROW = 92;
-const TALL = ROW * 2 + ME_MOSAIC.gap;
-/** The foot: the switch is 44, the field 48. */
+/** The foot slot: the switch is 44, the field 48. */
 const SWITCH = 44;
+/** A tile is square: its cover fills it. */
+const COLUMNS = 2;
 
 type Tab = 'episodes' | 'comments';
+type Known = { f: Favourite; e: NonNullable<ReturnType<ReturnType<typeof useStores>['feeds']['getEpisode']>> };
+type Row = { kind: 'pair'; key: string; tiles: Known[] } | { kind: 'comment'; key: string; comment: FavComment };
 
 /** "No favourites yet — star an episode on its page" → the title and the line under it. */
 function split(sentence: string): { title: string; line: string } {
@@ -67,12 +68,18 @@ export default function FavouritesScreen(): React.ReactElement {
   const [comments, setComments] = useState<FavComment[]>(() => listFavComments(stores.settings));
   const [term, setTerm] = useState('');
   useFocusEffect(useCallback(() => { setRows(listFavourites(stores.settings)); setComments(listFavComments(stores.settings)); }, [stores]));
-  const known = rows.map((f) => ({ f, e: stores.feeds.getEpisode(f.episodeId) }))
-    .filter((r) => r.e !== undefined && matchesAll(term, [r.e.title, stores.feeds.getShow(r.e.feedUrl)?.title]));
+  const known = rows.flatMap((f) => { const e = stores.feeds.getEpisode(f.episodeId); return e !== undefined && matchesAll(term, [e.title, stores.feeds.getShow(e.feedUrl)?.title]) ? [{ f, e }] : []; });
   const starred = comments.filter((c) => matchesAll(term, [c.body, c.author, stores.feeds.getEpisode(c.episodeId)?.title]));
   const any = tab === 'episodes' ? rows.length > 0 : comments.length > 0;
-  const col = mosaicColumn(width);
+  const col = Math.floor((width - 2 * gutter(width) - spacing.row * (COLUMNS - 1)) / COLUMNS);
   const now = clockMs();
+  const data = useMemo<Row[]>(() => {
+    if (tab === 'comments') return starred.map((c) => ({ kind: 'comment', key: c.commentId, comment: c }));
+    const out: Row[] = [];
+    for (let i = 0; i < known.length; i += COLUMNS) out.push({ kind: 'pair', key: known[i]!.f.episodeId, tiles: known.slice(i, i + COLUMNS) });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, rows, comments, term, stores]);
 
   // M12 FR-097 kept the two tabs; M31: the pill switch in the foot, with each tab's count (same two tabs, same handler).
   const below = (
@@ -89,141 +96,96 @@ export default function FavouritesScreen(): React.ReactElement {
     </>
   );
 
+  const tile = (r: Known) => {
+    const e = r.e;
+    const show = stores.feeds.getShow(e.feedUrl);
+    return (
+      <Link key={r.f.episodeId} href={{ pathname: '/episode/[id]', params: { id: e.id } }} asChild>
+        <Pressable accessibilityRole="button" accessibilityLabel={e.title}>
+          <ArtTile
+            url={e.imageUrl ?? show?.imageUrl}
+            name={show?.title ?? e.title}
+            width={col}
+            height={col}
+            testID="fav-tile"
+            corner={<Icon name="star" size={18} color={colour.hot} />}
+          >
+            <Type step="caption" className="text-text font-bold" style={ME_TYPE.tile13} numberOfLines={2}>{e.title}</Type>
+            <Type step="caption" className="text-quote" style={ME_TYPE.show11} numberOfLines={1}>{show?.title ?? ''}</Type>
+          </ArtTile>
+        </Pressable>
+      </Link>
+    );
+  };
+
+  const empty = term ? (
+    <Box testID={tab === 'comments' ? undefined : 'fav-empty'} className="items-center" style={{ paddingVertical: spacing.group }}><Type step="lede" className="text-text">Nothing matches</Type></Box>
+  ) : tab === 'comments' ? (
+    <Box testID="comments-empty" className="items-center" style={{ paddingVertical: spacing.group, gap: spacing.gap }}>
+      <Icon name="chatbubble-outline" size={30} color={colour.hotText} />
+      <Type step="lede" className="text-text font-extrabold text-center">{split('No favourite comments yet — tap ☆ on a comment').title}</Type>
+      <Type step="body" className="text-text2 text-center">{split('No favourite comments yet — tap ☆ on a comment').line}</Type>
+    </Box>
+  ) : (
+    <Box testID="fav-empty" className="items-center" style={{ paddingVertical: spacing.group, gap: spacing.gap }}>
+      <GlowTile icon="star-outline" size={110} rotate={-6} />
+      <Type step="statement" className="text-text font-extrabold text-center">{split('No favourites yet — star an episode on its page').title}</Type>
+      <Type step="body" className="text-text2 text-center">{split('No favourites yet — star an episode on its page').line}</Type>
+    </Box>
+  );
+
   return (
     <KeyboardPage>
-      <PushedPage title="Favourites" below={below} belowHeight={SWITCH + (any ? LIST.field + spacing.row : 0)}>
-        {(layout) => {
-          const listTop = layout.top + (DRAWN.listTop - DRAWN.status);
-          if (tab === 'comments') {
-            return (
-              <Box className="flex-1" style={{ paddingTop: listTop }}>
-                {starred.length === 0 ? (
-                  <EmptySpine top={layout.top + (LIST.emptySpineTop - DRAWN.status)} height={380} />
-                ) : <ThreadSpine top={listTop} />}
-                <FlatList
-                  key="comments"
-                  className="flex-1"
-                  data={starred}
-                  ListFooterComponent={starred.length > 0 ? <EndOfList /> : undefined}
-                  keyExtractor={(c) => c.commentId}
-                  contentContainerStyle={{ ...threadPad(layout.reserve), flexGrow: 1 }}
-                  keyboardShouldPersistTaps="handled"
-                  ItemSeparatorComponent={() => <Box style={{ height: LIST.nodeGap }} />}
-                  ListEmptyComponent={
-                    term ? (
-                      <Box style={{ marginTop: emptyTop(180) - LIST.top, marginLeft: 20, marginRight: 24 }}><Type step="lede" className="text-text">Nothing matches</Type></Box>
-                    ) : (
-                      <Box testID="comments-empty" style={{ marginTop: emptyTop(180) - LIST.top, marginLeft: 20, marginRight: 24, gap: spacing.gap }}>
-                        <Icon name="chatbubble-outline" size={30} color={colour.hotText} />
-                        <Type step="lede" className="text-text font-extrabold" style={ME_TYPE.stage22}>{split('No favourite comments yet — tap ☆ on a comment').title}</Type>
-                        <Type step="body" className="text-text2">{split('No favourite comments yet — tap ☆ on a comment').line}</Type>
-                      </Box>
-                    )
-                  }
-                  renderItem={({ item }) => {
-                    const e = stores.feeds.getEpisode(item.episodeId);
-                    return (
-                      <ThreadNode
-                        lead={item.offsetMs !== null ? <TimestampChip text={mmss(item.offsetMs)} solid /> : <Tick text="no moment" />}
-                        label={<Type step="caption" className="text-text2 flex-1" style={ME_TYPE.node12} numberOfLines={1}>{e?.title ?? ''}</Type>}
-                      >
-                        <Pressable
-                          onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.episodeId, ...(item.offsetMs !== null ? { at: String(item.offsetMs) } : {}) } })}
-                          accessibilityRole="button"
-                          accessibilityLabel={`${item.author}: ${item.body}`}
-                        >
-                          <ThreadCard>
-                            {item.body ? (
-                              <>
-                                <Box className="flex-row items-center" style={{ gap: spacing.gap }}>
-                                  <Avatar size={24} name={item.author} />
-                                  <Type step="compact" className="text-text" numberOfLines={1}>{item.author}</Type>
-                                  <Type step="mono" className="text-text3" style={ME_TYPE.mono11}>{ageLabel(item.at, now)}</Type>
-                                </Box>
-                                <Type step="body" className="text-text" numberOfLines={4}>{item.body}</Type>
-                                <Box className="flex-row items-center" style={{ gap: spacing.hair + 2 }}>
-                                  <Icon name="star" size={14} color={colour.warn} />
-                                  <Type step="caption" className="text-warn" style={ME_TYPE.node12}>Favourite</Type>
-                                </Box>
-                              </>
-                            ) : (
-                              <Type step="note" className="text-text3 italic">This comment was deleted</Type>
-                            )}
-                          </ThreadCard>
-                        </Pressable>
-                      </ThreadNode>
-                    );
-                  }}
-                />
-              </Box>
-            );
+      <FeedPage<Row>
+        key={tab}
+        title="Favourites"
+        below={below}
+        belowHeight={SWITCH + (any ? LIST.field + spacing.row : 0)}
+        data={data}
+        keyExtractor={(r) => r.key}
+        keyboardShouldPersistTaps="handled"
+        contentStyle={{ flexGrow: 1 }}
+        gap={spacing.row}
+        ListEmptyComponent={empty}
+        ListFooterComponent={data.length > 0 ? <EndOfList /> : undefined}
+        renderItem={({ item: row }) => {
+          if (row.kind === 'pair') {
+            return <Box testID="tile-row" className="flex-row" style={{ gap: spacing.row }}>{row.tiles.map(tile)}</Box>;
           }
-          // Episodes: the mosaic. The newest is the 1 x 2 tile at the left, the next two stack at its right, then rows of two.
-          const tile = (r: (typeof known)[number], height: number) => {
-            const e = r.e!;
-            const show = stores.feeds.getShow(e.feedUrl);
-            return (
-              <Link key={r.f.episodeId} href={{ pathname: '/episode/[id]', params: { id: e.id } }} asChild>
-                <Pressable accessibilityRole="button" accessibilityLabel={e.title}>
-                  <ArtTile
-                    url={e.imageUrl ?? show?.imageUrl}
-                    name={show?.title ?? e.title}
-                    width={col}
-                    height={height}
-                    testID="fav-tile"
-                    corner={<Icon name="star" size={18} color={colour.hot} />}
-                  >
-                    <Type step="caption" className="text-text font-bold" style={ME_TYPE.tile13} numberOfLines={2}>{e.title}</Type>
-                    <Type step="caption" className="text-quote" style={ME_TYPE.show11} numberOfLines={1}>{show?.title ?? ''}</Type>
-                  </ArtTile>
-                </Pressable>
-              </Link>
-            );
-          };
-          const head = known.slice(0, 3);
-          const rest = known.slice(3);
-          const pairsOf: (typeof known)[] = [];
-          for (let i = 0; i < rest.length; i += 2) pairsOf.push(rest.slice(i, i + 2));
+          const item = row.comment;
+          const e = stores.feeds.getEpisode(item.episodeId);
           return (
-            <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1, paddingTop: layout.top + (60 - DRAWN.status), paddingBottom: layout.reserve }}>
-              {known.length === 0 ? (
-                <Box className="items-center" style={{ marginTop: 140 - 60 }} testID="fav-empty">
-                  {term ? (
-                    <Box style={{ marginTop: 160 }}><Type step="lede" className="text-text">Nothing matches</Type></Box>
-                  ) : (
-                    <>
-                      <GlowTile icon="star-outline" size={110} rotate={-6} />
-                      <Box className="items-center" style={{ marginTop: 300 - 140 - 110, paddingHorizontal: 24, gap: spacing.gap }}>
-                        <Type step="statement" className="text-text font-extrabold text-center" style={ME_TYPE.stage24}>{split('No favourites yet — star an episode on its page').title}</Type>
-                        <Type step="body" className="text-text2 text-center">{split('No favourites yet — star an episode on its page').line}</Type>
-                      </Box>
-                    </>
-                  )}
+            <Pressable
+              onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.episodeId, ...(item.offsetMs !== null ? { at: String(item.offsetMs) } : {}) } })}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.author}: ${item.body}`}
+            >
+              <ItemCard testID="thread-card">
+                <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
+                  {item.offsetMs !== null ? <TimestampChip text={mmss(item.offsetMs)} solid /> : <Type step="tag" className="text-text3">no moment</Type>}
+                  <Type step="caption" className="text-text2 flex-1" numberOfLines={1}>{e?.title ?? ''}</Type>
                 </Box>
-              ) : (
-                <>
-                  <EdgeLabel label="Starred" top={20} />
-                  <Box style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right, gap: ME_MOSAIC.gap }}>
-                    <Box className="flex-row" style={{ gap: ME_MOSAIC.gap }}>
-                      {head[0] ? tile(head[0], TALL) : null}
-                      <Box style={{ gap: ME_MOSAIC.gap }}>
-                        {head[1] ? tile(head[1], ROW) : null}
-                        {head[2] ? tile(head[2], ROW) : null}
-                      </Box>
+                {item.body ? (
+                  <>
+                    <Box className="flex-row items-center" style={{ gap: spacing.gap }}>
+                      <Avatar size={24} name={item.author} />
+                      <Type step="compact" className="text-text" numberOfLines={1}>{item.author}</Type>
+                      <Type step="mono" className="text-text3">{ageLabel(item.at, now)}</Type>
                     </Box>
-                    {pairsOf.map((p) => (
-                      <Box key={p[0]!.f.episodeId} className="flex-row" style={{ gap: ME_MOSAIC.gap }}>
-                        {p.map((r) => tile(r, ROW))}
-                      </Box>
-                    ))}
-                  </Box>
-                  <EndOfList />
-                </>
-              )}
-            </ScrollView>
+                    <Type step="body" className="text-text" numberOfLines={4}>{item.body}</Type>
+                    <Box className="flex-row items-center" style={{ gap: spacing.hair + 2 }}>
+                      <Icon name="star" size={14} color={colour.warn} />
+                      <Type step="caption" className="text-warn">Favourite</Type>
+                    </Box>
+                  </>
+                ) : (
+                  <Type step="note" className="text-text3 italic">This comment was deleted</Type>
+                )}
+              </ItemCard>
+            </Pressable>
           );
         }}
-      </PushedPage>
+      />
     </KeyboardPage>
   );
 }

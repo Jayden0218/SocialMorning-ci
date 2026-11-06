@@ -139,26 +139,26 @@ const type = async (r: ReactTestRenderer, label: string, text: string): Promise<
   await act(async () => { n.props['onChangeText'](text); for (let i = 0; i < 4; i++) await Promise.resolve(); });
 };
 describe('Wallet (wallet--screen, wallet--plus, wallet--signed-out)', () => {
-  it('an empty wallet: a 170 hero with "No purchases" and the tinted pill, the Redeem row 56, the store sentence under the title', async () => {
+  it('an empty wallet: a "No purchases" card with the tinted pill, the Redeem row 56, the store sentence under the title', async () => {
     const r = await render(createElement(WalletScreen));
     const hero = byId(r, 'wallet-hero')[0]!;
-    expect(flat(hero)['height']).toBe(170);
-    expect(flat(hero)['borderRadius']).toBe(22);
-    expect(flat(hero)['padding']).toBe(18);
+    // 039 (was 170 tall, radius 22, padding 18): a card of design B, radius 24, padding 16, no fixed height.
+    expect(flat(hero)['height']).toBeUndefined();
+    expect(flat(hero)['borderRadius']).toBe(24);
+    expect(flat(hero)['padding']).toBe(16);
     expect(hero.props['accessibilityLabel']).toBe('No purchases. Purchases are not available yet.');
-    expect(byId(r, 'corner-glow')).not.toHaveLength(0);
-    expect(flat(byId(r, 'wallet-pill')[0])['height']).toBe(26);
+    expect(byId(r, 'wallet-pill')).toHaveLength(1);
     expect(words(r)).toEqual(expect.arrayContaining(['No purchases', 'Purchases are not available yet.', 'Redeem a code', 'Wallet']));
     const row = r.root.findAll((x) => x.props['accessibilityLabel'] === 'Redeem a code' && typeof x.props['onPress'] === 'function')[0]!;
     expect(flat(row)['minHeight']).toBe(56);
-    expect(flat(row)['borderRadius']).toBe(18);
-    // The store sentence is the title bar's subtitle, all three lines of it.
+    expect(flat(row)['borderRadius']).toBe(16);
+    // The store sentence sits under the title, whole.
     const sub = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']).startsWith('Purchases are made through'))[0]!;
     expect(say(sub.props['children'])).toBe('Purchases are made through Google Play. SocialNet keeps no balance and never takes money itself. Listening stays free.');
-    expect(sub.props['numberOfLines']).toBe(4);
+    expect(sub.props['numberOfLines']).toBeUndefined();
     expect(has(r, 'Manage subscriptions in the store')).toBe(true);
-    // No PLUS card here (purchases are off), so no PLUS label either.
-    expect(r.root.findAll((x) => x.props['accessibilityRole'] === 'header' && x.props['accessibilityLabel'] === 'PLUS')).toHaveLength(0);
+    // No PLUS card here (purchases are off).
+    expect(byId(r, 'plus-card')).toHaveLength(0);
   });
   it('Redeem a code opens the Redeem page; Manage opens the store', async () => {
     const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
@@ -168,36 +168,40 @@ describe('Wallet (wallet--screen, wallet--plus, wallet--signed-out)', () => {
     await press(r, 'Manage subscriptions in the store');
     expect(open).toHaveBeenCalledTimes(1);
   });
-  it('purchases are 64 tiles with the amount in mono and end with the end-of-list mark', async () => {
+  it('purchases are cards with the amount in mono under a "Purchases" heading and end with the end-of-list mark', async () => {
     mockPurchases = () => Promise.resolve({ items: [{ id: 'p1', productId: 'plus.monthly', store: 'google', status: 'active', amountMicros: 2_990_000, currency: 'USD', createdAt: '2026-10-12T00:00:00Z', expiresAt: '2026-11-12T00:00:00Z' }], storeReady: true });
     const r = await render(createElement(WalletScreen));
     const tile = byId(r, 'purchase-tile')[0]!;
-    expect(flat(tile)['minHeight']).toBe(64);
-    expect(flat(tile)['borderRadius']).toBe(18);
-    expect(flat(tile)['marginLeft']).toBe(28);
+    // 039 (was a 64 tile, radius 18, 28 in from the left): a card at the gutter, radius 24, at least a 56 row.
+    expect(flat(tile)['minHeight']).toBe(56);
+    expect(flat(tile)['borderRadius']).toBe(24);
+    expect(flat(tile)['marginLeft']).toBeUndefined();
     expect(byId(r, 'wallet-hero')).toHaveLength(0);
+    expect(words(r)).toContain('Purchases');
     expect(words(r)).toContain('plus.monthly');
     expect(words(r).some((w) => /THAT.S EVERYTHING/.test(w))).toBe(true);
   });
-  it('a failed load is a 48 mark tile beside the line, and the page stays usable', async () => {
+  it('a failed load is an inline notice with Retry that asks again, and the page stays usable', async () => {
     mockPurchases = () => Promise.reject(new Error('offline'));
     const r = await render(createElement(WalletScreen));
     expect(words(r)).toContain("Couldn't load your purchases right now.");
-    expect(words(r)).toContain('!');
-    const mark = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['width'] === 48 && flat(n)['height'] === 48)[0];
-    expect(mark).toBeDefined();
+    expect(byId(r, 'inline-notice')).toHaveLength(1);
     expect(has(r, 'Redeem a code')).toBe(true);
+    mockPurchases = () => Promise.resolve({ items: [{ id: 'p1', productId: 'plus.monthly', store: 'google', status: 'active', amountMicros: 2_990_000, currency: 'USD', createdAt: '2026-10-12T00:00:00Z' }], storeReady: true });
+    await press(r, 'Retry');
+    expect(words(r)).toContain('plus.monthly');
+    expect(byId(r, 'inline-notice')).toHaveLength(0);
   });
-  it('where purchases are on: the PLUS edge label, the card, Subscribe with the price stacked over Restore; PLUS held = no Subscribe', async () => {
+  it('where purchases are on: the card, Subscribe with the price stacked over Restore; PLUS held = no Subscribe', async () => {
     mockPurchases = () => Promise.resolve({ items: [], storeReady: true });
     mockPlay = { ...mockPlay, ready: true, price: () => 'US$2.99' };
     const r = await render(createElement(WalletScreen));
-    expect(r.root.findAll((x) => x.props['accessibilityRole'] === 'header' && x.props['accessibilityLabel'] === 'PLUS').length).toBeGreaterThan(0);
     expect(words(r)).toContain('SocialNet PLUS');
     expect(has(r, 'Subscribe · US$2.99 a month')).toBe(true);
     expect(has(r, 'Restore purchases')).toBe(true);
     expect(flat(byId(r, 'plus-buttons')[0])['flexDirection']).toBe('column');
-    expect(flat(byId(r, 'plus-card')[0])['borderRadius']).toBe(22);
+    // 039 I2: was radius 22 (the drawing's); now radius.card 24, padding 16, 12 between parts.
+    expect(flat(byId(r, 'plus-card')[0])).toMatchObject({ borderRadius: 24, padding: 16, gap: 12 });
     await press(r, 'Subscribe · US$2.99 a month');
     expect(mockBuy).toHaveBeenCalledTimes(1);
     await press(r, 'Restore purchases');
@@ -347,10 +351,10 @@ describe('Redeem (redeem--screen, redeem--bad-code)', () => {
     await type(r, 'Code', 'AAAAAAAAAAAA');
     await press(r, 'Redeem');
     expect(words(r)).toContain('That code doesn’t exist.');
-    expect(flat(byId(r, 'redeem-field')[0])['borderColor']).toBe('#ff4d6d');
+    expect(flat(byId(r, 'redeem-field')[0])['borderColor']).toBe('#f2867e');
     await type(r, 'Code', 'AAAA');
     expect(words(r)).not.toContain('That code doesn’t exist.');
-    expect(flat(byId(r, 'redeem-field')[0])['borderColor']).toBe('#24242c');
+    expect(flat(byId(r, 'redeem-field')[0])['borderColor']).toBe('#2c313a');
   });
   it('something else went wrong: the fallback sentence', async () => {
     mockRedeem = () => Promise.reject(new Error('boom'));
@@ -373,24 +377,24 @@ describe('Redeem (redeem--screen, redeem--bad-code)', () => {
 });
 
 describe('Creator centre (creator--*)', () => {
-  it('signed out: a 120 mic tile tilted 6 degrees left and "Sign in to claim your show" at 28; no foot buttons', async () => {
+  it('signed out: a card with a mic and "Sign in to claim your show" in the heading step; no foot buttons', async () => {
     mockListener = undefined;
     const r = await render(createElement(CreatorScreen));
-    const tile = hosts(r, (n) => n.props['testID'] === 'glow-tile')[0]!;
-    expect(flat(tile)['width']).toBe(120);
-    expect(flat(tile)['transform']).toEqual([{ rotate: '-6deg' }]);
+    // 039 (was a 120 mic tile tilted 6 degrees and the sentence at 28): a raise card, radius 24, the sentence at 20.
+    const tile = byId(r, 'creator-out-tile')[0]!;
+    expect(flat(tile)['borderRadius']).toBe(24);
     const line = r.root.findAll((n) => String(n.type) === 'Text' && say(n.props['children']) === 'Sign in to claim your show')[0]!;
-    expect(flat(line)['fontSize']).toBe(28);
+    expect(flat(line)['fontSize']).toBe(20);
     expect(has(r, 'Get my code')).toBe(false);
     expect(words(r)).toContain('Creator centre');
   });
-  it('the stage: 48 bars, "Claim the show you publish" at 26, the explanation; the deck of subscribed shows with 132 cards; Claim asks for the code', async () => {
+  it('the stage: "Claim the show you publish" in the heading step (039: was 26, with 48 bars), the explanation; the deck of subscribed shows with 132 cards; Claim asks for the code', async () => {
     mockSubs = ['https://a.test/feed.xml', 'https://b.test/feed.xml'];
     const r = await render(createElement(CreatorScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Claim the show you publish', "We never host your audio — you keep your own feed. Once you prove it is yours, you see your show’s numbers and your comments carry a Host mark.", 'Creator academy', 'Claiming, numbers, comments, clips, the Studio']));
     const big = r.root.findAll((n) => String(n.type) === 'Text' && say(n.props['children']) === 'Claim the show you publish')[0]!;
-    expect(flat(big)['fontSize']).toBe(26);
-    expect(r.root.findAll((x) => x.props['accessibilityRole'] === 'header' && x.props['accessibilityLabel'] === 'Claim a show').length).toBeGreaterThan(0);
+    expect(flat(big)['fontSize']).toBe(20);
+    expect(r.root.findAll((x) => x.props['accessibilityRole'] === 'header' && say(x.props['children']) === 'Claim a show').length).toBeGreaterThan(0);
     const card = r.root.findAll((x) => x.props['accessibilityLabel'] === 'Claim Morning Notes' && typeof x.props['onPress'] === 'function')[0]!;
     expect(flat(card)['width']).toBe(132);
     // The foot: the field and the one light pill, dimmed until an address is typed.
@@ -417,7 +421,7 @@ describe('Creator centre (creator--*)', () => {
     mockClaims = () => Promise.resolve([{ id: 'c1', feedUrl: 'https://a.test/feed.xml', code: 'SN-7Q4K-2M', status: 'pending' }]);
     const r = await render(createElement(CreatorScreen));
     const card = byId(r, 'claim-card-pending')[0]!;
-    expect(flat(card)['borderRadius']).toBe(22);
+    expect(flat(card)['borderRadius']).toBe(24); // 039 I2: was 22
     expect(flat(card)['padding']).toBe(16);
     expect(flat(byId(r, 'claim-cover')[0])['width']).toBe(72);
     expect(flat(byId(r, 'claim-cover')[0])['borderRadius']).toBe(16);
@@ -425,6 +429,8 @@ describe('Creator centre (creator--*)', () => {
     const code = byId(r, 'claim-code')[0]!;
     expect(code.props['accessibilityLabel']).toBe('Your code: SN-7Q4K-2M');
     expect(code.props['selectable']).toBe(true);
+    // 039 I2: was a typed fontSize 34 in the style (STAGE_TYPE.claimCode); now the `number` step (34 / 43), still 34.
+    expect(String(code.props['className'])).toContain('text-pulse-number');
     expect(flat(code)['fontSize']).toBe(34);
     expect(has(r, 'Share code')).toBe(true);
     expect(has(r, 'Verify')).toBe(true);
@@ -486,8 +492,8 @@ describe('Creator centre (creator--*)', () => {
     const r = await render(createElement(CreatorScreen));
     const card = byId(r, 'claim-card-proven')[0]!;
     expect(flat(byId(r, 'claim-cover')[0])['width']).toBe(88);
-    expect(flat(byId(r, 'claim-cover')[0])['borderRadius']).toBe(18);
-    expect(flat(card)['borderRadius']).toBe(22);
+    expect(flat(byId(r, 'claim-cover')[0])['borderRadius']).toBe(16); // 039 I2: was 18 (one artwork radius, 16)
+    expect(flat(card)['borderRadius']).toBe(24); // was 22
     expect(words(r)).toEqual(expect.arrayContaining(['Proven — you are the host', '120 listened · 14 comments · 32 episodes', 'Where people talk most', 'Why mornings matter']));
     expect(byId(r, 'proven-moment')[0]!.props['accessibilityLabel']).toBe('14:32 · Why mornings matter · 6');
     // The foot keeps the field and Get my code (nothing is waiting).
@@ -505,12 +511,12 @@ describe('Creator centre (creator--*)', () => {
     const r = await render(createElement(CreatorScreen));
     expect(byId(r, 'creator-foot')[0]!.findAll((n) => String(n.type) === 'Text' && say(n.props['children']) === "Couldn't load your shows").length).toBeGreaterThan(0);
   });
-  it('the Creator academy card is light, 62 tall, radius 20, and links to /academy', async () => {
+  it('the Creator academy card is a raise card (039: was light, 62 tall, radius 20), at least a 56 row, radius 24, and links to /academy', async () => {
     const r = await render(createElement(CreatorScreen));
     const link = byId(r, 'creator-academy')[0] ?? r.root.findAll((x) => x.props['testID'] === 'creator-academy')[0]!;
-    expect(flat(link)['minHeight']).toBe(62);
-    expect(flat(link)['borderRadius']).toBe(20);
-    expect(String(link.props['className'])).toContain('bg-text');
+    expect(flat(link)['minHeight']).toBe(56);
+    expect(flat(link)['borderRadius']).toBe(24);
+    expect(String(link.props['className'])).toContain('bg-raise');
     expect(link.props['accessibilityLabel']).toBe('Creator academy: how claiming, numbers, comments, clips and the Studio work');
   });
 });

@@ -4,8 +4,7 @@
  * specs/033-m31-redesign/design-pulse2 `discover.html` entries categories--screen, chart--screen / --error, chart-rules--screen, topic--screen,
  * academy--*, picks-daily--*, picks-past--*, issues--*, issue--screen, digest--*, report--*, plaza--*, play-latest--screen. Each guard names
  * the revert that turns it red (each was seen red once, then restored):
- *  - the Mosaic packs like the drawing's CSS grid (sparse flow): `packTiles` searching from the top-left again (dense) — red;
- *  - Categories: tile 0 is 2 x 2, tile 5 is 2 x 1, tile 3 is 1 x 2: `genreSpan` changed — red;
+ *  - (039 I2: the "Mosaic packs" guard and `genreSpan` went with the packed Mosaic, which no page draws any more; Categories are equal tiles in a TileGrid.)
  *  - Charts: the lead tile is 2 x 3 (272) with the rank at 64, the next two 1 x 2 (178), then 2 x 1 (84); the track is 46: `h: 3` -> 2 — red;
  *  - How the charts work: four weight tiles 3 / 2 / 2 / 1: `WEIGHTS` dropped — red;
  *  - Academy: the first article is the hot 2 x 3 tile, numbers plain: `fill: lead ? 'hot'` removed — red;
@@ -23,8 +22,6 @@ import { createElement } from 'react';
 import { Share, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
-import { packTiles, tileSize, columnWidth } from '@/ui/discover/Mosaic';
-import { PAGE_GLOW } from '@/ui/kit/PageGlow';
 
 // reanimated's native worklets do not load under jest (see m31-discover-page.test.tsx): a stand-in for what the wall uses.
 jest.mock('react-native-reanimated', () => {
@@ -168,45 +165,18 @@ const layOut = async (r: ReactTestRenderer): Promise<void> => {
   const boxes = r.root.findAll((x) => typeof x.type === 'string' && typeof x.props['onLayout'] === 'function' && String(x.props['className'] ?? '').includes('flex-1'));
   await act(async () => { boxes.forEach((b) => b.props['onLayout']({ nativeEvent: { layout: { width: 390, height: 600 } } })); for (let i = 0; i < 6; i++) await Promise.resolve(); });
 };
-/** The nearest ancestor that sets this style (a composite sits between a host and its parent host). */
-const up = (n: ReactTestInstance, key: string): ReactTestInstance => {
-  let p: ReactTestInstance | null = n.parent;
-  while (p && flat(p)[key] === undefined) p = p.parent;
-  if (!p) throw new Error(`no ancestor sets ${key}`);
-  return p;
-};
-const COL = columnWidth(390);
-
 const card = (id: string, title: string, show: string): Record<string, unknown> => ({ id, feedUrl: `f-${show}`, guid: id, title, showTitle: show, imageUrl: undefined, enclosureUrl: 'https://x/a.mp3', durationMs: 48 * 60_000 });
 
-describe('the Mosaic packs like the drawing\'s CSS grid', () => {
-  it('places in order and never goes back to fill a hole (sparse flow)', () => {
-    // 2 x 3 lead; two 1 x 2; then 2 x 1 rows — the Charts' pattern.
-    const { places, rows } = packTiles([{ w: 2, h: 3 }, { w: 1, h: 2 }, { w: 1, h: 2 }, { w: 2, h: 1 }, { w: 2, h: 1 }]);
-    expect(places).toEqual([{ col: 0, row: 0 }, { col: 0, row: 3 }, { col: 1, row: 3 }, { col: 0, row: 5 }, { col: 0, row: 6 }]);
-    expect(rows).toBe(7);
-    // A 1 x 1 after a 2 x 1 that did not fit leaves the hole: the next tile does not go back to fill it.
-    const holes = packTiles([{ w: 1, h: 1 }, { w: 2, h: 1 }, { w: 1, h: 1 }]);
-    expect(holes.places).toEqual([{ col: 0, row: 0 }, { col: 0, row: 1 }, { col: 0, row: 2 }]);
-  });
-  it('a tile is w columns and h rows plus the gaps between', () => {
-    expect(tileSize(COL, 2, 3)).toEqual({ width: 2 * COL + 10, height: 3 * 84 + 2 * 10 });
-    expect(tileSize(COL, 1, 2)).toEqual({ width: COL, height: 178 });
-  });
-});
-
 describe('Categories (discover.html categories--screen)', () => {
-  it('every genre is a tile; sizes vary by place: 2 x 2 first, 2 x 1 at the sixth, 1 x 2 at the fourth; corner squares 110 and 60', async () => {
+  // 039 (Feed lane): was "sizes vary by place: 2 x 2 first, 2 x 1 at the sixth, 1 x 2 at the fourth; corner squares 110 and 60" (a packed mosaic, radius 22); now
+  // equal tiles in the TileGrid (two columns), radius 24, a 60 corner square each.
+  it('every genre is a tile of the same size in two columns; a 60 corner square each', async () => {
     const r = await render(createElement(CategoriesScreen));
-    const tiles = byId(r, 'mosaic-tile');
+    const tiles = byId(r, 'genre-tile');
     expect(tiles).toHaveLength(GENRES.length);
-    const size = (k: number): [unknown, unknown] => [flat(tiles[k])['width'], flat(tiles[k])['height']];
-    expect(size(0)).toEqual([2 * COL + 10, 178]);
-    expect(size(1)).toEqual([COL, 84]);
-    expect(size(3)).toEqual([COL, 178]);
-    expect(size(5)).toEqual([2 * COL + 10, 84]);
-    expect(flat(tiles[0])['borderRadius']).toBe(22);
-    expect(byId(r, 'corner-square').map((c) => flat(c)['width']).slice(0, 4)).toEqual([110, 60, 60, 110]);
+    expect(byId(r, 'tile-grid')).toHaveLength(1);
+    expect(flat(tiles[0])['borderRadius']).toBe(24);
+    expect(byId(r, 'corner-square').every((c) => flat(c)['width'] === 60)).toBe(true);
     expect(words(r)).toEqual(expect.arrayContaining(['19 genres'].filter(() => GENRES.length === 19).concat([GENRES[0]!.name])));
   });
   it('a tile opens that genre', async () => {
@@ -228,7 +198,8 @@ describe('Charts (discover.html chart--screen, chart--error)', () => {
     // The pager keeps the next chart mounted beside this one: the first five tiles are this chart's.
     const tiles = byId(r, 'mosaic-tile').slice(0, 5);
     expect(tiles.map((t) => flat(t)['height'])).toEqual([272, 178, 178, 84, 84]);
-    expect(tiles.map((t) => flat(t)['width'])).toEqual([2 * COL + 10, COL, COL, 2 * COL + 10, 2 * COL + 10]);
+    // 039: the tiles are in the page's flow (a full row, a pair, full rows), not absolutely placed in the Mosaic's lane.
+    expect(tiles.map((t) => flat(t)['position'])).toEqual([undefined, undefined, undefined, undefined, undefined]);
     expect(flat(byId(r, 'chart-rank')[0])).toMatchObject({ fontSize: 64 });
     expect(words(r)).toContain('41 comments this week');
     expect(textNode(r, 'Charts')).toBeTruthy();
@@ -244,16 +215,16 @@ describe('Charts (discover.html chart--screen, chart--error)', () => {
     await press(r, 'How the charts work');
     expect(mockPush).toHaveBeenCalledWith('/chart-rules');
   });
-  it('a failed load keeps the track and shows the error tile with Retry', async () => {
+  it('a failed load keeps the track and shows an inline notice with Retry', async () => {
     let calls = 0;
     mockChart = () => { calls += 1; return calls === 1 ? Promise.reject(new Error('x')) : Promise.resolve({ kind: 'talked', items, updatedAt: new Date().toISOString() }); };
     const r = await render(createElement(ChartScreen));
     await layOut(r);
     expect(byId(r, 'segment-switch')).toHaveLength(1);
-    expect(byId(r, 'err-tile')).toHaveLength(1);
+    expect(byId(r, 'inline-notice')).toHaveLength(1); // 039: an InlineNotice (was the error tile)
     expect(words(r)).toContain("Couldn't load the chart right now.");
     await press(r, 'Retry');
-    expect(byId(r, 'err-tile')).toHaveLength(0);
+    expect(byId(r, 'inline-notice')).toHaveLength(0);
     expect(byId(r, 'mosaic-tile').length).toBeGreaterThanOrEqual(5);
   });
 });
@@ -263,7 +234,7 @@ describe('How the charts work (discover.html chart-rules--screen)', () => {
     const r = await render(createElement(ChartRulesScreen));
     const tiles = byId(r, 'rules-tile');
     expect(tiles).toHaveLength(3);
-    expect(flat(tiles[0])).toMatchObject({ borderRadius: 22, padding: 16 });
+    expect(flat(tiles[0])).toMatchObject({ borderRadius: 16, padding: 16 }); // 039: radius.row (was 22)
     const w = byId(r, 'weight');
     expect(w).toHaveLength(4);
     expect(w.map((x) => say(x.findAll((y) => String(y.type) === 'Text').map((y) => y.props['children'])))).toEqual(['3listener', '2comment', '2clip', '1reaction']);
@@ -298,11 +269,12 @@ describe('Creator academy (discover.html academy--screen, academy--article, acad
   beforeEach(() => {
     mockArticles = [article('first', 'Record your first episode', 'A quiet room, one microphone and twenty minutes.', 'start'), article('second', 'Write a show description', 'Say what it is.', 'grow'), article('third', 'Pick a cover', 'Reads small.', 'grow'), article('fourth', 'Answer comments', 'Be kind.', 'community'), article('fifth', 'Publish on a schedule', 'Weekly.', 'grow')];
   });
-  it('four filter chips; the first article is the hot 2 x 3 tile with void words; the rest numbered, plain, 1 x 2 then 1 x 1', async () => {
+  // 039 (Feed lane): was a packed mosaic (heights 272, 178, 178, 84, 84); now one card per article.
+  it('four filter chips; the first article is the hot card with void words; the rest numbered, plain', async () => {
     const r = await render(createElement(AcademyScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['All', 'Get started', 'Grow', 'Community', 'START HERE · 1', 'Record your first episode', '2', '3', '4', '5']));
-    const tiles = byId(r, 'mosaic-tile');
-    expect(tiles.map((t) => flat(t)['height'])).toEqual([272, 178, 178, 84, 84]);
+    const tiles = byId(r, 'academy-card');
+    expect(tiles).toHaveLength(5);
     expect(classOf(tiles[0]!)).toContain('bg-hot');
     expect(classOf(textNode(r, 'Record your first episode'))).toContain('text-void');
     expect(flat(textNode(r, 'Record your first episode'))).toMatchObject({ fontSize: 24 });
@@ -310,18 +282,16 @@ describe('Creator academy (discover.html academy--screen, academy--article, acad
   it('a chip filters; a tile opens the article', async () => {
     const r = await render(createElement(AcademyScreen));
     await press(r, 'Community');
-    expect(byId(r, 'mosaic-tile')).toHaveLength(1);
+    expect(byId(r, 'academy-card')).toHaveLength(1);
     await press(r, 'Answer comments. Be kind.');
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/academy/[slug]', params: { slug: 'fourth' } });
   });
-  it('an article: the summary, then a Thread of 36 rings on a spine at x 36, each heading numbered, in raise cards (radius 18)', async () => {
+  it('an article: the summary, then each section in a raise card with its heading (039: the numbered thread of rings is gone)', async () => {
     mockParams = { slug: 'first' };
     const r = await render(createElement(ArticleScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Record your first episode', 'Creator academy · 1', 'A quiet room, one microphone and twenty minutes.', 'Find the quietest room', 'Hold the microphone close']));
-    expect(flat(byId(r, 'numbered-spine')[0])).toMatchObject({ left: 36, width: 2 });
-    const rings = byId(r, 'thread-ring');
-    expect(rings.map((x) => [flat(x)['width'], flat(x)['height']])).toEqual([[36, 36], [36, 36]]);
-    expect(rings.map((x) => say(x.findAll((y) => String(y.type) === 'Text').map((y) => y.props['children'])))).toEqual(['1', '2']);
+    expect(byId(r, 'numbered-spine')).toHaveLength(0);
+    expect(byId(r, 'thread-ring')).toHaveLength(0);
     expect(byId(r, 'article-section')).toHaveLength(3);
   });
   it('an article that has moved says so', async () => {
@@ -333,7 +303,7 @@ describe('Creator academy (discover.html academy--screen, academy--article, acad
 
 describe('Daily picks (discover.html picks-daily--screen, --error)', () => {
   const picks = [0, 1].map((i) => ({ feedUrl: `f${i}`, guid: `g${i}`, why: ['Short, warm, and good with coffee.', 'A city story told after midnight.'][i], episode: card(`e${i}`, ['Why mornings matter', 'Cities that sleep late'][i]!, ['Morning Notes', 'Night Shift'][i]!) }));
-  it('cards 290 x 470 under TODAY ending in the dashed Past picks card; the note whole; + and Play 42; the clock circle is Past picks', async () => {
+  it('cards 290 x 470 under the Today heading ending in the dashed Past picks card; the note whole; + and Play 42; the clock circle is Past picks', async () => {
     mockDaily = () => Promise.resolve({ date: '2026-10-27', items: picks });
     const r = await render(createElement(DailyScreen));
     const deck = byId(r, 'deck')[0]!;
@@ -360,19 +330,20 @@ describe('Daily picks (discover.html picks-daily--screen, --error)', () => {
     mockDaily = () => Promise.reject(new Error('x'));
     r = await render(createElement(DailyScreen));
     expect(words(r)).toContain("Couldn't load today's picks.");
-    expect(byId(r, 'err-tile')).toHaveLength(1);
+    // 039 (Feed lane): was the error tile (err-tile); an InlineNotice with Retry now.
+    expect(byId(r, 'inline-notice')).toHaveLength(1);
   });
 });
 
 describe('Past picks (discover.html picks-past--screen, --error)', () => {
-  it('a spine at x 44; the date as a solid chip with "2 picks"; cards 46 in (raise, radius 18) with the cover letter, the note, Play 34; a note-only pick; Show earlier days', async () => {
+  // 039 (Feed lane): was a spine at x 44, the date as a solid chip, cards 46 in (radius 18); now a day heading ("Mon 26 Oct · 2 picks") over radius-24 cards, no spine, no indent.
+  it('a day heading with "2 picks"; cards (raise, radius 24) with the cover letter, the note, Play 34; a note-only pick; Show earlier days', async () => {
     mockPast = () => Promise.resolve({ next: '2026-10-20', days: [{ date: '2026-10-26', picks: [{ feedUrl: 'f1', why: 'Short, warm.', episode: card('e1', 'Why mornings matter', 'Morning Notes') }, { feedUrl: 'f2', why: 'Just a note.', episode: null }] }] });
     const r = await render(createElement(PastScreen));
-    expect(flat(byId(r, 'past-spine')[0])).toMatchObject({ left: 44, width: 2 });
-    expect(words(r)).toEqual(expect.arrayContaining(['Mon 26 Oct', '2 picks', '“Short, warm.”', 'Morning Notes', 'Why mornings matter', 'M', 'Open the show ›', 'Show earlier days']));
+    expect(byId(r, 'past-spine')).toHaveLength(0);
+    expect(words(r)).toEqual(expect.arrayContaining(['Mon 26 Oct · 2 picks', '“Short, warm.”', 'Morning Notes', 'Why mornings matter', 'M', 'Open the show ›', 'Show earlier days']));
     const picks = byId(r, 'past-pick');
-    expect(flat(picks[0])).toMatchObject({ borderRadius: 18 });
-    expect(flat(up(picks[0]!, 'marginLeft'))).toMatchObject({ marginLeft: 46 });
+    expect(flat(picks[0])).toMatchObject({ borderRadius: 24 });
     await press(r, 'Play Why mornings matter');
     expect(mockPlay).toHaveBeenCalled();
     await press(r, 'Just a note.. Open the show');
@@ -390,11 +361,13 @@ describe('Past picks (discover.html picks-past--screen, --error)', () => {
 
 describe('Issues (discover.html issues--screen, --error)', () => {
   const issues = [{ id: 'i12', date: '2026-10-27', title: 'Sounds of the city at night', number: 12 }, { id: 'i11', date: '2026-10-20', title: 'Kitchen stories', number: 11 }, { id: 'i10', date: '2026-10-13', title: 'Before the election', number: 10 }, { id: 'i9', date: '2026-10-06', title: 'Learning slowly', number: 9 }];
-  it('the latest is the light 2 x 3 tile with "Read this issue"; earlier issues 1 x 2 then 1 x 1 with number and date in mono', async () => {
+  // 039 (Feed lane): was a packed mosaic (heights 272, 178, 178, 84); now one card per issue, one under another, radius 24.
+  it('the latest is the light card with "Read this issue"; earlier issues raise cards with number and date in mono', async () => {
     mockIssues = () => Promise.resolve(issues);
     const r = await render(createElement(IssuesScreen));
-    const tiles = byId(r, 'mosaic-tile');
-    expect(tiles.map((t) => flat(t)['height'])).toEqual([272, 178, 178, 84]);
+    const tiles = byId(r, 'issue-card');
+    expect(tiles).toHaveLength(4);
+    expect(tiles.every((t) => flat(t)['borderRadius'] === 24)).toBe(true);
     expect(classOf(tiles[0]!)).toContain('bg-text');
     expect(words(r)).toEqual(expect.arrayContaining(['NO. 12 · LATEST · TUE 27 OCT 2026', 'Sounds of the city at night', 'Read this issue', 'NO. 11 · TUE 20 OCT', 'Kitchen stories']));
     expect(flat(textNode(r, 'Sounds of the city at night'))).toMatchObject({ fontSize: 26 });
@@ -424,9 +397,9 @@ describe('One issue (discover.html issue--screen)', () => {
   it('the header line and intro, then a numbered Thread: 36 rings on a spine at x 36, cards radius 20, Play 38, the note in quotes, "Open the show ›", Subscribe 32', async () => {
     const r = await render(createElement(IssueScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Sounds of the city at night', 'Issue No. 12', 'NO. 12 · TUE 27 OCT 2026', 'Six episodes for walking home late.', '“Neon, rain and a taxi driver.”', 'Open the show ›', 'Subscribe']));
-    expect(flat(byId(r, 'numbered-spine')[0])).toMatchObject({ left: 36, width: 2 });
-    expect(byId(r, 'thread-ring').map((x) => flat(x)['width'])).toEqual([36, 36]);
-    expect(flat(textNode(r, 'Sounds of the city at night'))).toMatchObject({ fontSize: 30 }); // 038 D3: the page title was 24 through a size prop
+    expect(byId(r, 'numbered-spine')).toHaveLength(0); // 039: no spine or rings; each pick is a card under a "PICK n" label
+    expect(words(r)).toEqual(expect.arrayContaining(['PICK 1', 'PICK 2']));
+    expect(byId(r, 'issue-pick')).toHaveLength(2);
     expect(flat(host(r, 'Subscribe to Night Shift Radio'))).toMatchObject({ height: 32 });
     await press(r, 'Subscribe to Night Shift Radio');
     expect(mockSubs.has('f1')).toBe(true);
@@ -488,11 +461,12 @@ describe('Your month in listening (discover.html report--*, toast--report)', () 
     const figure = byId(r, 'report-figure')[0]!;
     expect(flat(figure)).toMatchObject({ fontSize: 88 });
     expect(say(figure.props['children'])).toBe('1,284');
-    expect(byId(r, 'mosaic-tile').map((t) => [flat(t)['width'], flat(t)['height']])).toEqual(Array(4).fill([COL, 84]));
+    // 039: the four counts are TileGrid cells (84 tall at least, radius 16), and the top lists are Sections of row cards (no decks).
+    expect(byId(r, 'mosaic-tile').map((t) => [flat(t)['minHeight'], flat(t)['borderRadius']])).toEqual(Array(4).fill([84, 16]));
     expect(flat(textNode(r, '12'))).toMatchObject({ fontSize: 28 });
-    const decks = byId(r, 'deck');
-    expect(decks).toHaveLength(2);
-    expect(decks[0]!.findAll((n) => typeof n.type === 'string' && flat(n)['width'] === 250 && flat(n)['height'] === 84)).toHaveLength(2);
+    expect(byId(r, 'deck')).toHaveLength(0);
+    expect(byId(r, 'top-shows')).toHaveLength(1);
+    expect(byId(r, 'top-episodes')).toHaveLength(1);
   });
   it('a top show opens its show; a top episode opens its page, or says it is not on this phone', async () => {
     const r = await render(createElement(ReportScreen));
@@ -507,7 +481,7 @@ describe('Your month in listening (discover.html report--*, toast--report)', () 
     expect(mockToast).toHaveBeenCalledWith('Making the picture…');
     expect(mockShare).toHaveBeenCalled();
   });
-  it('signed out: the block with a light Sign in and no share; no listening: one sentence, no share; a failed load: the tile with Retry', async () => {
+  it('signed out: the block with a light Sign in and no share; no listening: one sentence, no share; a failed load: the notice with Retry', async () => {
     mockListener = undefined;
     let r = await render(createElement(ReportScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Your September 2026', 'Sign in to see your month in listening.', 'Sign in']));
@@ -522,7 +496,7 @@ describe('Your month in listening (discover.html report--*, toast--report)', () 
     mockReport = () => Promise.reject(new Error('x'));
     r = await render(createElement(ReportScreen));
     expect(words(r)).toContain("Couldn't load this report right now.");
-    expect(byId(r, 'err-tile')).toHaveLength(1);
+    expect(byId(r, 'inline-notice')).toHaveLength(1);
   });
 });
 
@@ -540,12 +514,13 @@ describe('New shows plaza (discover.html plaza--screen, --list, --error)', () =>
     expect(words(r)).toEqual(expect.arrayContaining(['New shows plaza', 'Drag the wall in any direction. Tap a cover to open the show.']));
     expect(() => comp(r, 'Shuffle the plaza')).not.toThrow();
   });
-  it('List view is a Mosaic of 1 x 2 tiles (178 tall, radius 22), a cover of 72, "n episodes"; the circle becomes Wall view', async () => {
+  // 039 (Feed lane): was a Mosaic of 1 x 2 tiles in the 28 lane (radius 22); now two equal columns on the gutter, radius 24, the same 178 height.
+  it('List view is tiles in two columns (178 tall, radius 24), a cover of 72, "n episodes"; the circle becomes Wall view', async () => {
     const r = await render(createElement(PlazaScreen));
     await press(r, 'List view');
     const tiles = byId(r, 'plaza-tile');
     expect(tiles).toHaveLength(6);
-    expect(flat(tiles[0])).toMatchObject({ height: 178, borderRadius: 22 });
+    expect(flat(tiles[0])).toMatchObject({ height: 178, borderRadius: 24 });
     expect(words(r)).toEqual(expect.arrayContaining(['The newest shows, as a list.', 'Show 0', '2 episodes']));
     await press(r, 'Show 1, 3 episodes');
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/show/[feedUrl]', params: { feedUrl: 'f1' } });
@@ -556,31 +531,27 @@ describe('New shows plaza (discover.html plaza--screen, --list, --error)', () =>
     const r = await render(createElement(PlazaScreen));
     expect(byId(r, 'plaza-placeholder')).toHaveLength(1);
     expect(words(r)).toContain("Couldn't reach the server.");
-    expect(byId(r, 'err-tile')).toHaveLength(1);
+    // 039 (Feed lane): was the error tile; an InlineNotice with Retry now.
+    expect(byId(r, 'inline-notice')).toHaveLength(1);
     await press(r, 'Retry');
   });
 });
 
 describe('Play latest (discover.html play-latest--screen)', () => {
-  it('nothing to play: the flat curve, "Nothing new to play" at 34 and the line at 17; back leaves', async () => {
+  it('nothing to play: the flat curve, "Nothing new to play" and the line (039: the title and body steps, not 34 and 17); back leaves', async () => {
     mockLatest = undefined;
     const r = await render(createElement(PlayLatestScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Play latest', 'Nothing new to play', 'Follow a show or add to your queue.']));
-    expect(flat(textNode(r, 'Nothing new to play'))).toMatchObject({ fontSize: 34 });
-    expect(flat(textNode(r, 'Follow a show or add to your queue.'))).toMatchObject({ fontSize: 17, lineHeight: 24 });
     expect(byId(r, 'play-latest-nothing')).toHaveLength(1);
   });
 });
 
-describe('the topic page\'s glow (discover.html topic--screen glow #3B82F6 / #7A3CFF, -180, .3)', () => {
-  it('is blue then violet, 180 above the page at 30 %', async () => {
+describe('the topic page has no glow (039 Detail: was blue then violet, 180 above the page at 30 %)', () => {
+  it('draws no page glow behind the list', async () => {
     mockCollections = [{ id: 'l1', title: 'Rainy-day listening', items: [{ key: 'a', why: 'Rent.', episode: card('a', 'Rent', 'Money') }] }];
     const r = await render(createElement(TopicScreen));
-    const stops = r.root.findAll((n) => typeof n.props['stopColor'] === 'string').map((n) => n.props['stopColor']);
-    expect(stops).toEqual(expect.arrayContaining(['#3b82f6', '#7a3cff']));
-    expect(stops).not.toContain('#ff4d6d');
-    expect(PAGE_GLOW.blueTop).toBe(-180);
-    expect(PAGE_GLOW.blueStrength).toBe(0.3);
+    expect(r.root.findAll((n) => typeof n.props['stopColor'] === 'string')).toHaveLength(0);
+    expect(r.root.findAll((n) => n.props['testID'] === 'page-glow')).toHaveLength(0);
   });
 });
 

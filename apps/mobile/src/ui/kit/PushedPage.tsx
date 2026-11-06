@@ -20,6 +20,10 @@ import { Fade, topFade } from './Fade';
 import { liftedBottom, useKeyboardHeight } from './useKeyboardHeight';
 import { PageGlow, type GlowTone } from './PageGlow';
 import { goBack } from './PageHeader';
+import { Page } from './layout/Page';
+import { IconButton } from './PulseButton';
+import { Pressable } from '@/ui/lib/pressable';
+import { Type } from './Type';
 import type { IconName } from './Icon';
 import { TitleBar, type TitleAction } from './TitleBar';
 
@@ -68,7 +72,7 @@ export function usePushedLayout(extraAbove = 0, over?: { now?: boolean; safeBott
   return { ...padded, titleBottom, reserve: padded.reserve + (titleBottom - padded.titleBottom) };
 }
 
-export function PushedPage(props: {
+type PushedProps = {
   title: string;
   subtitle?: string;
   onSubtitle?: () => void;
@@ -101,7 +105,66 @@ export function PushedPage(props: {
   /** Height of the top fade; by default the content start plus a breath. */
   fade?: number;
   children: React.ReactNode | ((layout: PushedLayout) => React.ReactNode);
-}): React.ReactElement {
+};
+
+/**
+ * 039 T031 (D6). A page with PLAIN children is built on `Page` (`./layout/Page`): its scroll view, 20 gutter, 24 rhythm, title row (Back
+ * leading, actions or `right` trailing) and foot of `bottomInset`. The root layout pads the home strip once (guard G-T1), so the strip Page
+ * pads is `safeBottom` (0 unless a modal route pads itself). A page that gives a FUNCTION (80 of 87 call sites: each owns a FlatList or
+ * ScrollView, placed by `layout.top` and `layout.reserve`) has NO children (a placeholder: the frame alone) or is `bare` cannot sit inside Page's scroll view (a list inside a scroll view
+ * loses its window), so it keeps the owned-scroll frame below until it moves to `Page` itself.
+ */
+export function PushedPage(props: PushedProps): React.ReactElement {
+  const empty = props.children === null || props.children === undefined || props.children === false;
+  return typeof props.children === 'function' || empty || props.bare ? <OwnedScrollPage {...props} /> : <PageOnPage {...props} />;
+}
+
+function PageOnPage(props: PushedProps): React.ReactElement {
+  const insets = useContext(SafeAreaInsetsContext);
+  const placed = useToastPlacement();
+  const { width } = useWindowDimensions();
+  const lift = props.below ? (props.belowHeight ?? 0) + BELOW_GAP : 0;
+  const layout = usePushedLayout(props.extraAbove ?? 0, { lift, ...(props.now !== undefined ? { now: props.now } : {}), ...(props.safeBottom !== undefined ? { safeBottom: props.safeBottom } : {}) });
+  const onBack = props.onBack === undefined ? goBack : props.onBack ?? undefined;
+  const actions = (props.actions ?? []).slice(0, 2);
+  const trailing = props.right ?? (actions.length > 0 ? actions.map((a) => <IconButton key={a.label} icon={a.icon} label={a.label} onPress={a.onPress} fill />) : undefined);
+  // Page pads `safe.bottom`; the root already padded the strip, so Page sees only what this page pads itself.
+  const own = { top: insets?.top ?? 0, bottom: props.safeBottom ?? 0, left: insets?.left ?? 0, right: insets?.right ?? 0 };
+  return (
+    <Box className="flex-1 bg-void" testID="pushed-page">
+      {props.tone === 'none' ? null : <PageGlow tone={props.tone ?? 'hot'} />}
+      <SafeAreaInsetsContext.Provider value={own}>
+        <Page
+          title={props.title}
+          {...(props.titleLabel ? { titleLabel: props.titleLabel } : {})}
+          {...(props.onTitle ? { onTitle: props.onTitle } : {})}
+          transparent
+          now={props.now ?? placed.now}
+          footExtra={lift}
+          {...(onBack ? { leading: <IconButton icon={props.backIcon ?? 'chevron-back'} label={props.backLabel ?? 'Back'} onPress={onBack} fill size={22} /> } : {})}
+          {...(trailing ? { trailing } : {})}
+        >
+          {props.subtitle ? (
+            props.onSubtitle ? (
+              <Pressable onPress={props.onSubtitle} accessibilityRole="link" accessibilityLabel={props.subtitle} style={{ minHeight: bars.circle, justifyContent: 'center' }}>
+                <Type step="caption" className="text-hot-text" numberOfLines={props.subtitleLines ?? 2}>{props.subtitle}</Type>
+              </Pressable>
+            ) : (
+              <Type step="caption" className="text-text2" numberOfLines={props.subtitleLines ?? 2}>{props.subtitle}</Type>
+            )
+          ) : null}
+          {props.extra ?? null}
+          {props.children as React.ReactNode}
+        </Page>
+      </SafeAreaInsetsContext.Provider>
+      {props.below ? (
+        <Box testID="pushed-below" className="absolute left-0 right-0" style={{ bottom: layout.titleBottom, paddingHorizontal: gutter(width), gap: BELOW_GAP, zIndex: 20 }}>{props.below}</Box>
+      ) : null}
+    </Box>
+  );
+}
+
+function OwnedScrollPage(props: PushedProps): React.ReactElement {
   const lift = props.below ? (props.belowHeight ?? 0) + BELOW_GAP : 0;
   const layout = usePushedLayout(props.extraAbove ?? 0, { lift, ...(props.bare ? { bare: true } : {}), ...(props.now !== undefined ? { now: props.now } : {}), ...(props.safeBottom !== undefined ? { safeBottom: props.safeBottom } : {}) });
   const { width } = useWindowDimensions();

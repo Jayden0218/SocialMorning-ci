@@ -1,6 +1,6 @@
-// The Episode page's thumb zone: back, the show link, the title, then Play and Subscribe.
+// The Episode page's header: the cover, the show link, the title, then Play and Subscribe.
 /**
- * M31 W3-A (T040; design-pulse2 `epTitle`): low and reachable, 112 from the bottom (60 tray + 12 + 40). One row: the 44
+ * Spec 039 (Detail): the block now sits in the page's flow under the title row (Back moved there; `cover` is new). Before that, M31 W3-A (T040; design-pulse2 `epTitle`): low and reachable, 112 from the bottom (60 tray + 12 + 40). One row: the 44
  * Back circle (raise) beside the show link — "Morning Notes ›", Geist 600 13 in hot-text — and the title, Unbounded
  * 800 28/1.03, bottom-aligned with the circle, up to four lines. Under it one row, 10 apart: Play this episode (the
  * light pill, flexible, the play glyph before the words; "Pause" while it plays) and Subscribe (the ring pill, 18 of
@@ -29,7 +29,10 @@ export function EpisodeTitleBlock(props: {
   showTitle: string | undefined;
   playing: boolean;
   subscribed: boolean;
-  onBack: () => void;
+  /** The Back circle; the Episode page has Back in its title row (039), so it leaves this out. */
+  onBack?: () => void;
+  /** The cover, drawn before the show link and the title (039 Detail header). */
+  cover?: React.ReactNode;
   onShow: (() => void) | undefined;
   onPlay: () => void;
   onSubscribe: () => void;
@@ -50,7 +53,8 @@ export function EpisodeTitleBlock(props: {
         </Box>
       ) : null}
       <Box className="flex-row items-end gap-row">
-        <IconButton icon="chevron-back" label="Back" onPress={props.onBack} fill size={22} />
+        {props.onBack ? <IconButton icon="chevron-back" label="Back" onPress={props.onBack} fill size={22} /> : null}
+        {props.cover}
         <Box className="flex-1 min-w-0">
           {props.showTitle !== undefined && props.onShow !== undefined ? (
             <Pressable onPress={props.onShow} accessibilityRole="link" accessibilityLabel={`Show: ${props.showTitle}`} hitSlop={SHOW_SLOP} className="self-start max-w-full justify-center" style={SHOW_FRAME}>

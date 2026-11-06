@@ -843,7 +843,7 @@
    "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
    "name": "Play from ${mmss(c.offsetMs)}",
    "destination": "props.onSeek",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"Play from m:ss: Timestamp on the spine\" — the moment chip left the card for the spine node (SpineNode → TimestampChip, \"Play from m:ss\")",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"Play from m:ss: Timestamp on the spine\" — the moment chip left the card for the spine node (SpineNode → TimestampChip, \"Play from m:ss\"); 039: the spine is gone, the comments page passes the chip seek(momentMs) directly",
    "now": {
     "file": "apps/mobile/src/ui/kit/TimestampChip.tsx",
     "name": "props.accessibilityLabel ?? `Play from ${props.text}`",
@@ -852,8 +852,8 @@
    "via": [
     "apps/mobile/src/ui/kit/TimestampChip.tsx"
    ],
-   "passesFile": "apps/mobile/src/ui/comments/Spine.tsx",
-   "handlerHas": "props.onSeek"
+   "passesFile": "apps/mobile/app/comments/[episodeId].tsx",
+   "handlerHas": "seek("
   },
   {
    "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
@@ -2334,12 +2334,15 @@
    "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
    "name": "Close",
    "destination": "close",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html auth-email--screen action map \"Close (AuthShell): Bottom title bar, ✕ circle\" — the ✕ left the page's top for the title bar's back circle (same name \"Close\", same handler: leave the sign-in page)",
+   "reason": "039: the Close circle left AuthShell for the Form frame: app/auth/email.tsx hands `<FormPage backLabel=\"Close\" onBack={closeEmail}>` (same name, same handler: leave the sign-in page); earlier: approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html auth-email--screen action map \"Close (AuthShell): Bottom title bar, ✕ circle\" — the ✕ left the page's top for the title bar's back circle (same name \"Close\", same handler: leave the sign-in page)",
    "now": {
-    "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
+    "file": "apps/mobile/app/auth/email.tsx",
     "name": "Close",
-    "destination": "close"
-   }
+    "destination": "closeEmail"
+   },
+   "via": [
+    "apps/mobile/app/auth/email.tsx"
+   ]
   },
   {
    "file": "apps/mobile/src/ui/shell/LegalDoc.tsx",
@@ -2398,15 +2401,16 @@
    "file": "apps/mobile/app/chart.tsx",
    "name": "Retry",
    "destination": "load",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html chart--error action map \"Retry: Button in the tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile; its onRetry is the page's load)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html chart--error action map \"Retry: Button in the tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile; its onRetry is the page's load) | 039 (Detail template): now the InlineNotice's button (was the RetryTile's)",
    "now": {
-    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
-    "name": "Retry",
-    "destination": "props.onRetry"
+    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
+    "name": "props.actionLabel",
+    "destination": "props.onAction"
    },
    "via": [
-    "apps/mobile/src/ui/discover/Mosaic.tsx"
-   ]
+    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
+   ],
+   "passesFile": "apps/mobile/app/chart.tsx"
   },
   {
    "file": "apps/mobile/app/chart.tsx",
@@ -2448,15 +2452,16 @@
    "file": "apps/mobile/app/issue/[id].tsx",
    "name": "Retry",
    "destination": "load",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html issue--screen action map \"Retry: Error tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html issue--screen action map \"Retry: Error tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile) | 039 (Detail template): now the InlineNotice's button (was the RetryTile's)",
    "now": {
-    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
-    "name": "Retry",
-    "destination": "props.onRetry"
+    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
+    "name": "props.actionLabel",
+    "destination": "props.onAction"
    },
    "via": [
-    "apps/mobile/src/ui/discover/Mosaic.tsx"
-   ]
+    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
+   ],
+   "passesFile": "apps/mobile/app/issue/[id].tsx"
   },
   {
    "file": "apps/mobile/app/issues.tsx",
@@ -2540,15 +2545,16 @@
    "file": "apps/mobile/app/report/[month].tsx",
    "name": "Retry",
    "destination": "dynamic",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html report--error action map \"Retry: Tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html report--error action map \"Retry: Tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile) | 039 (Detail template): now the InlineNotice's button (was the RetryTile's)",
    "now": {
-    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
-    "name": "Retry",
-    "destination": "props.onRetry"
+    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
+    "name": "props.actionLabel",
+    "destination": "props.onAction"
    },
    "via": [
-    "apps/mobile/src/ui/discover/Mosaic.tsx"
-   ]
+    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
+   ],
+   "passesFile": "apps/mobile/app/report/[month].tsx"
   },
   {
    "file": "apps/mobile/app/report/[month].tsx",
@@ -3124,6 +3130,99 @@
     "apps/mobile/src/ui/discover/DiscoverLayout.tsx"
    ],
    "passesFile": "apps/mobile/src/ui/discover/RecFeedback.tsx"
+  },
+  {
+   "file": "apps/mobile/app/me/listening.tsx",
+   "name": "Retry",
+   "destination": "dynamic",
+   "reason": "039 (Detail template, D2: behaviour and destinations stay): Retry on a failed load is the InlineNotice's button (was the error tile's Retry)",
+   "now": {
+    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
+    "name": "props.actionLabel",
+    "destination": "props.onAction"
+   },
+   "via": [
+    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
+   ],
+   "passesFile": "apps/mobile/app/me/listening.tsx"
+  },
+  {
+   "file": "apps/mobile/app/chat/[id].tsx",
+   "name": "${name}, open profile",
+   "destination": "/profile/[id]",
+   "reason": "039: the thread's title row is `<FeedPage titleLabel=\"${name}, open profile\" onTitle={openProfile}>`; the same tap opens the same profile, now through the named handler openProfile (it was an inline router.push)",
+   "now": {
+    "file": "apps/mobile/app/chat/[id].tsx",
+    "name": "${name}, open profile",
+    "destination": "openProfile"
+   }
+  },
+  {
+   "file": "apps/mobile/app/creator.tsx",
+   "name": "Creator academy",
+   "destination": "/academy",
+   "reason": "039: the academy card is read out in full now (\"Creator academy: how claiming, numbers, comments, clips and the Studio work\"); the Link still goes to /academy",
+   "now": {
+    "file": "apps/mobile/app/creator.tsx",
+    "name": "",
+    "destination": "/academy"
+   }
+  },
+  {
+   "file": "apps/mobile/src/ui/settings/rows.tsx",
+   "name": "",
+   "destination": "props.href as never",
+   "reason": "039: src/ui/settings/rows.tsx was retired (no page imports it since the List lane); the link row is LinkRow in the SettingsPage family (src/ui/settings/panel.tsx)",
+   "now": {
+    "file": "apps/mobile/src/ui/settings/panel.tsx",
+    "name": "",
+    "destination": "props.href as never"
+   },
+   "via": [
+    "apps/mobile/src/ui/settings/panel.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/settings/rows.tsx",
+   "name": "spoken",
+   "destination": "dynamic",
+   "reason": "039: src/ui/settings/rows.tsx was retired (no page imports it since the List lane); the link row is LinkRow in the SettingsPage family (src/ui/settings/panel.tsx)",
+   "now": {
+    "file": "apps/mobile/src/ui/settings/panel.tsx",
+    "name": "spoken",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/settings/panel.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/settings/rows.tsx",
+   "name": "props.label",
+   "destination": "dynamic",
+   "reason": "039: src/ui/settings/rows.tsx was retired (no page imports it since the List lane); the switch row is SwitchRow in the SettingsPage family (src/ui/settings/panel.tsx)",
+   "now": {
+    "file": "apps/mobile/src/ui/settings/panel.tsx",
+    "name": "props.label",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/settings/panel.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/settings/rows.tsx",
+   "name": "spoken",
+   "destination": "props.onPress",
+   "reason": "039: src/ui/settings/rows.tsx was retired (no page imports it since the List lane); the pressable row is SetRow in the SettingsPage family (src/ui/settings/hub-parts.tsx)",
+   "now": {
+    "file": "apps/mobile/src/ui/settings/hub-parts.tsx",
+    "name": "label",
+    "destination": "dynamic"
+   },
+   "via": [
+    "apps/mobile/src/ui/settings/hub-parts.tsx"
+   ]
   }
  ]
 }

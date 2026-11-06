@@ -41,7 +41,7 @@
     "android": {
       "package": "app.socialmorning.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#060608",
+        "backgroundColor": "#111318",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -93,7 +93,7 @@
           "image": "./assets/splash-ring.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#060608"
+          "backgroundColor": "#111318"
         }
       ],
       [

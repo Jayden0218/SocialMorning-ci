@@ -9,14 +9,12 @@
  *        the three older copies (FollowList, UpdateEpisodeRow, moments-logic shortCount) keep their outputs.
  */
 import { createElement } from 'react';
-import { Animated, StyleSheet } from 'react-native';
+import { Animated } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 import { EpisodeTitleBlock } from '@/ui/episode/EpisodeTitleBlock';
-import { EpisodeStage } from '@/ui/episode/EpisodeStage';
 import { countsLine } from '@/ui/episode/stage';
-import { episodeLayout } from '@/ui/episode/measures';
 import { MenuTile } from '@/ui/me/parts';
 import { SearchZone } from '@/ui/search/SearchZone';
 import { liveLabel } from '@/social/live';
@@ -26,7 +24,6 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esM
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() }, usePathname: () => '/episode/e1' }));
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined, set: () => undefined } }), useToast: () => jest.fn() }));
 
-const flat = (n: ReactTestInstance | undefined): Record<string, unknown> => (StyleSheet.flatten(n?.props['style'] as never) ?? {}) as Record<string, unknown>;
 const said = (n: ReactTestInstance): string => [n.props['children']].flat(5).map((x) => (typeof x === 'string' || typeof x === 'number' ? String(x) : '')).join('');
 const mounted: ReactTestRenderer[] = [];
 beforeEach(() => { setReducedMotionForTest(true); });
@@ -54,31 +51,8 @@ describe('F10-E1 the Episode title block (F8)', () => {
   });
 });
 
-describe('F10-E2 the Episode top pills and counts (F8, W5, W1)', () => {
-  const stage = (): ReactTestRenderer => render(createElement(EpisodeStage, {
-    layout: episodeLayout({ top: 47 }), coverUrl: undefined, name: 'Morning Notes', date: 'TUE 27 OCT · 48:10', hottest: { atMs: 867_000, bucket: 30 } as never,
-    heat: Array.from({ length: 100 }, () => 0.2), counts: '120 listened', resume: 'resumes at 12:10', onHottest: jest.fn(),
-  } as never));
-  it('the pills are minHeight boxes (the drawn 32 is the least), not fixed heights', () => {
-    const r = stage();
-    const pills = r.root.find((n) => n.props['testID'] === 'episode-pills' && typeof n.type === 'string');
-    const boxes = pills.findAll((n) => typeof n.type === 'string' && Number(flat(n)['paddingHorizontal']) > 0 && (flat(n)['borderRadius'] !== undefined));
-    expect(boxes.length).toBeGreaterThanOrEqual(2);
-    for (const b of boxes) {
-      expect(flat(b)['height']).toBeUndefined();
-      expect(Number(flat(b)['minHeight'])).toBeGreaterThanOrEqual(32);
-    }
-  });
-  it('the date pill may shrink (flexShrink) so the "hottest at" pill is not pushed off the right edge', () => {
-    const r = stage();
-    const date = texts(r).find((x) => said(x).startsWith('TUE 27 OCT'))!;
-    let shrinks = false;
-    for (let n: ReactTestInstance | null = date; n && n.props['testID'] !== 'episode-pills'; n = n.parent) {
-      if (flat(n)['flexShrink'] !== undefined && Number(flat(n)['flexShrink']) > 0) shrinks = true;
-      if (/\bflex-shrink\b|\bmin-w-0\b/.test(String(n.props['className'] ?? ''))) shrinks = true;
-    }
-    expect(shrinks).toBe(true);
-  });
+describe('F10-E2 the Episode counts (F8, W5, W1)', () => {
+  // 039 I2: the two `EpisodeStage` guards (the top pills are minHeight boxes; the date pill may shrink) went with EpisodeStage, which no page draws (Episode is a DetailPage with EpisodeHeat).
   it('twelve million listened prints "12.3M listened · 12.3M comments · 2 clips"', () => {
     expect(countsLine({ listeners: 12_345_678, comments: 12_345_678, clips: 2 })).toBe('12.3M listened · 12.3M comments · 2 clips');
     expect(countsLine({ listeners: 120, comments: 14, clips: 2 })).toBe('120 listened · 14 comments · 2 clips');

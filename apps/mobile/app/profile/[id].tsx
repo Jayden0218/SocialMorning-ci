@@ -33,7 +33,6 @@
  * Reads stay in the `mine` memo and the `showOf` cache (034, C2); nothing here reads the local database in the render body.
  */
 import { useCallback, useMemo, useState } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
 import { MenuRow, MenuRule } from '@/ui/comments/MenuRows';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { useConfirm } from '@/ui/kit/confirm';
@@ -56,8 +55,10 @@ import { useStores, useToast } from '@/ui/shell/providers';
 import { listeningHistory } from '@/me/history';
 import { latestEarned } from '@/me/stickers';
 import { myStickers, myTotals } from '@/me/my-stickers';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { goBack } from '@/ui/kit/PageHeader';
+import { DetailPage } from '@/ui/detail/DetailPage';
+import { CardShelf } from '@/ui/detail/CardShelf';
+import { InlineNotice, Section } from '@/ui/kit/layout';
+import { bars, spacing } from '@/design';
 import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { RecentCard } from '@/ui/social/RecentCard';
@@ -78,16 +79,13 @@ import { theirStickers } from '@/me/my-stickers';
 import { OftenListened } from '@/ui/social/OftenListened';
 import { compactCount } from '@/ui/social/FollowList';
 import type { ProfileStickers } from '@/me/listening-api';
-import { Deck } from '@/ui/discover/Deck';
 import { EmptyState } from '@/ui/kit/EmptyState';
-import { ageLabel, LIST, ThreadNode } from '@/ui/me/lists';
-import { SpineLine, Tick } from '@/ui/comments/Spine';
+import { ageLabel } from '@/ui/me/lists';
 import { ME_MOSAIC } from '@/ui/me/mosaic';
 import { ME_TYPE } from '@/ui/me/measures';
-import { CenterBlock, IconBlock } from '@/ui/profile/parts';
 import { StickerDisc } from '@/ui/profile/StickerDisc';
 import { PROFILE_PAGE } from '@/ui/profile/measures';
-import { CollapsedName, LANE, ListeningNote, ListeningTile, ProfileFoot, ProfileGlow, ProfileSection, ProfileStage, ProfileTile, TileLabel } from '@/ui/profile/ProfilePage';
+import { ListeningNote, ListeningTile, ProfileStage, ProfileTile, TileLabel } from '@/ui/profile/ProfilePage';
 
 /** A hosted show or a played episode in a tile: a 92 cover with its name under it (the tile scrolls sideways when there are more than fit). */
 const POD_ITEM = { width: PROFILE_PAGE.podCover };
@@ -100,6 +98,7 @@ export default function ProfileScreen(): React.ReactElement {
   const stores = useStores();
   const [profile, setProfile] = useState<Profile | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [attempt, setAttempt] = useState(0);
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
   // M19 T031: up to five of this account's likes (empty while they keep likes private).
   const profileApi = useProfileApi();
@@ -114,14 +113,9 @@ export default function ProfileScreen(): React.ReactElement {
   const [muted, setMuted] = useState(false);
   // M21 US8: the ⋯ sheet, the collapsed bar, and others' subscriptions (count or private).
   const [more, setMore] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const [theirSubs, setTheirSubs] = useState<number | 'private' | undefined>();
   const us8 = useUs8Api();
   const [confirm, confirmDialog] = useConfirm();
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const past = e.nativeEvent.contentOffset.y > PROFILE_PAGE.collapsedAt;
-    if (past !== collapsed) setCollapsed(past);
-  };
   useFocusEffect(useCallback(() => {
     let live = true;
     if (listener) extras.mutes().then((items) => { if (live) setMuted(items.some((x) => x.id === String(id))); }).catch(() => undefined);
@@ -136,6 +130,7 @@ export default function ProfileScreen(): React.ReactElement {
     } catch { toast("Couldn't save that — try again."); }
   };
   useFocusEffect(useCallback(() => {
+    void attempt; // Retry (the load-failed notice) bumps it to read again
     let live = true;
     api.profile(String(id)).then((p) => { if (live) { setProfile(p); setError(undefined); } }).catch((e) => { if (live) setError(e instanceof ApiError ? (e.code === 'network' ? "Couldn't reach the server." : e.message) : String(e)); });
     profileApi.listenerLikes(String(id)).then((p) => { if (live) setLikes(p.items.slice(0, 5)); }).catch(() => undefined);
@@ -144,7 +139,7 @@ export default function ProfileScreen(): React.ReactElement {
       us8.listenerSubscriptions(String(id)).then((r) => { if (live) setTheirSubs(r.private ? 'private' : r.items.length); }).catch(() => undefined);
     }
     return () => { live = false; };
-  }, [api, profileApi, m19, us8, listener, id, version]));
+  }, [api, profileApi, m19, us8, listener, id, version, attempt]));
   const open = (item: Item) => {
     if (item.kind === 'clipped' && item.refId) router.push({ pathname: '/clip/[id]', params: { id: item.refId } });
     else router.push({ pathname: '/episode/[id]', params: { id: item.episode.id } });
@@ -171,46 +166,36 @@ export default function ProfileScreen(): React.ReactElement {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stores, profile, version]);
-  // Loading and a failed load: the title bar says "Profile" (design-pulse2 `profile--load-failed`: back and "Profile" in the bottom zone).
+  // Loading and a failed load: the title row says "Profile" (design-pulse2 `profile--load-failed`).
   if (error) {
     return (
-      <PushedPage title="Profile" tone="grey">
-        {(l) => <CenterBlock top={l.top} drawn={280}><IconBlock icon="wifi" failure line={error} /></CenterBlock>}
-      </PushedPage>
+      <DetailPage title="Profile">
+        <InlineNotice text={error} actionLabel="Retry" onAction={() => { setError(undefined); setAttempt((n) => n + 1); }} />
+      </DetailPage>
     );
   }
-  if (!profile) return <PushedPage title="Profile">{() => <Box className="items-center p-block"><Loader /></Box>}</PushedPage>;
+  if (!profile) return <DetailPage title="Profile"><Box className="items-center p-block"><Loader /></Box></DetailPage>;
   const own = listener?.listenerId === profile.id;
   const blocked = !own && safety.isBlocked(profile.id);
   const reported = !own && safety.isHidden('profile', profile.id);
   const name = profile.displayName;
   const hostOf = profile.hostOf ?? [];
   const isHost = hostOf.length > 0;
-  const back = <IconButton icon="chevron-back" label="Back" onPress={goBack} fill size={22} />;
-  // A suspended account, a blocked one and a reported one: the name and one line, back in the bottom zone (Unblock when blocked).
+  // A suspended account, a blocked one and a reported one: the name and one line (Unblock when blocked).
   if (profile.suspended || blocked || reported) {
     const look = profile.suspended ? 'suspended' : 'blocked';
     return (
-      <PushedPage title="Profile" bare tone="none">
-        {(l) => (
-          <Box className="flex-1">
-            <ProfileGlow look={look} />
-            <ProfileStage
-              top={l.top}
-              name={name}
-              avatarUrl={profile.avatarUrl}
-              look={look}
-              quiet={profile.suspended
-                ? <Type step="body" className="text-text2 text-center">This account is suspended.</Type>
-                : reported ? <Placeholder kind="reported" /> : <Type step="body" className="text-text2 text-center">You blocked this listener.</Type>}
-            />
-            <ProfileFoot bottom={l.titleBottom}>
-              {back}
-              {blocked && !profile.suspended ? <BlockButton listenerId={profile.id} displayName={name} look="bar" /> : null}
-            </ProfileFoot>
-          </Box>
-        )}
-      </PushedPage>
+      <DetailPage title="Profile">
+        <ProfileStage
+          name={name}
+          avatarUrl={profile.avatarUrl}
+          look={look}
+          quiet={profile.suspended
+            ? <Type step="body" className="text-text2 text-center">This account is suspended.</Type>
+            : reported ? <Placeholder kind="reported" /> : <Type step="body" className="text-text2 text-center">You blocked this listener.</Type>}
+        />
+        {blocked && !profile.suspended ? <BlockButton listenerId={profile.id} displayName={name} look="bar" /> : null}
+      </DetailPage>
     );
   }
   // M12 FR-006 (B6): your own totals are at least what this phone has recorded. M16a bug 3: the
@@ -267,38 +252,49 @@ export default function ProfileScreen(): React.ReactElement {
   // 035 B6: your own page hides Recent (it shows what you played), so the clips you made get their own section, each opening its clip.
   const myClips = own ? profile.recent.filter((i) => i.kind === 'clipped' && i.refId) : [];
   const emptyStats = profile.stats !== null && all !== undefined && all.listenedMs === 0 && all.finished === 0;
+  const age = (iso: string) => <Type step="tag" className="text-text3" style={ME_TYPE.mono11}>{ageLabel(Date.parse(iso), nowMs)}</Type>;
   return (
     <>
-    <PushedPage title="Profile" bare tone="none">
-      {(l) => (
-        <Box className="flex-1">
-          <ProfileGlow host={isHost} />
-          {collapsed ? <CollapsedName top={l.top} name={name} avatarUrl={profile.avatarUrl} /> : null}
-          <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: l.reserve }} onScroll={onScroll} scrollEventThrottle={32}>
-            {/* The Stage: the stickers float over it, the photo sits in a light ring, then the name and their lines. */}
-            <ProfileStage
-              top={l.top}
-              name={name}
-              avatarUrl={profile.avatarUrl}
-              stickers={<StickerLayer placements={deco.stickers} />}
-              /* M20 US6 (FR-022): the PLUS badge, public like the name. */
-              badge={profile.plus ? <PlusBadge /> : null}
-              lines={(
-                <>
-                  {own ? <Type step="mono" className="text-text3" style={ME_TYPE.node12}>This is you</Type> : null}
-                  {/* M21 US8: the host line — the first show they host, and how many more. */}
-                  {isHost ? <Type step="caption" className="text-hotText text-center" style={ME_TYPE.name13}>{`Host of 《${hostOf[0]!.title}》${hostOf.length > 1 ? ` and ${plural(hostOf.length - 1, 'more show')}` : ''}`}</Type> : null}
-                  {/* M10b US7: "IP location" — the country from the last sign-in, public (the privacy policy says so). */}
-                  {profile.country ? <Type step="tag" className="text-text3" style={ME_TYPE.mono11}>{`IP location: ${countryName(profile.country)}`}</Type> : null}
-                  {profile.bio ? <Type step="quote" className="text-text2 text-center">{profile.bio}</Type> : null}
-                </>
-              )}
-            />
-            <Box style={{ height: PROFILE_PAGE.gridGap }} />
+    <DetailPage title="Profile">
+      {/* The header: the stickers float over it, the photo sits in a light ring, then the name and their lines. */}
+      <Box style={{ gap: spacing.section }}>
+        <ProfileStage
+          name={name}
+          avatarUrl={profile.avatarUrl}
+          stickers={<StickerLayer placements={deco.stickers} />}
+          /* M20 US6 (FR-022): the PLUS badge, public like the name. */
+          badge={profile.plus ? <PlusBadge /> : null}
+          lines={(
+            <>
+              {own ? <Type step="mono" className="text-text3" style={ME_TYPE.node12}>This is you</Type> : null}
+              {/* M21 US8: the host line — the first show they host, and how many more. */}
+              {isHost ? <Type step="caption" className="text-hotText text-center" style={ME_TYPE.name13}>{`Host of 《${hostOf[0]!.title}》${hostOf.length > 1 ? ` and ${plural(hostOf.length - 1, 'more show')}` : ''}`}</Type> : null}
+              {/* M10b US7: "IP location" — the country from the last sign-in, public (the privacy policy says so). */}
+              {profile.country ? <Type step="tag" className="text-text3" style={ME_TYPE.mono11}>{`IP location: ${countryName(profile.country)}`}</Type> : null}
+              {profile.bio ? <Type step="quote" className="text-text2 text-center">{profile.bio}</Type> : null}
+            </>
+          )}
+        />
+        {/* The primary actions: Follow · Message · More (someone else) or Edit profile (you). */}
+        <Box testID="profile-actions" className="flex-row items-center" style={{ gap: spacing.row }}>
+          {own ? (
+            <Link href="/profile/edit" asChild>
+              <PulseButton label="Edit profile" kind="light" icon="create-outline" className="flex-1" onPress={() => undefined} />
+            </Link>
+          ) : (
+            <>
+              <FollowButton key={String(profile.isFollowing)} className="flex-1" listenerId={profile.id} following={profile.isFollowing} onChange={(f) => setProfile({ ...profile, isFollowing: f, followers: profile.followers + (f ? 1 : -1) })} />
+              {/* Chat (owner, 2026-10-04): the conversation says if you can send (you both follow each other). */}
+              <IconButton icon="chatbubble-outline" label={`Message ${profile.displayName}`} onPress={() => router.push({ pathname: '/chat/[id]', params: { id: profile.id, name: profile.displayName } })} fill size={22} diameter={PROFILE_PAGE.barCircle} />
+              <IconButton icon="ellipsis-horizontal" label={`More actions for ${profile.displayName}`} onPress={() => setMore(true)} fill size={22} diameter={PROFILE_PAGE.barCircle} />
+            </>
+          )}
+        </Box>
+      </Box>
 
-            {/* Numbers: the four tiles, Listening time, then covers. */}
-            <ProfileSection label="Numbers" edgeTop={20}>
-              <Box style={[LANE, { gap: ME_MOSAIC.gap }]}>
+      {/* Numbers: the four tiles, Listening time, then covers. */}
+      <Section title="Numbers">
+        <Box testID="numbers-section" style={{ gap: ME_MOSAIC.gap }}>
                 {/* M12 FR-064: the numbers in one row. */}
                 <ProfileStatRow cells={statCells} />
 
@@ -378,13 +374,13 @@ export default function ProfileScreen(): React.ReactElement {
                     )}
                   </ProfileTile>
                 ) : null}
-              </Box>
-            </ProfileSection>
+        </Box>
+      </Section>
 
-            {/* M21 US9: their sticker library (earned ones only), unless they hide it (US10). */}
-            {library.length > 0 ? (
-              <ProfileSection label="Stickers" testID="stickers-section">
-                <Box style={LANE}>
+      {/* M21 US9: their sticker library (earned ones only), unless they hide it (US10). */}
+      {library.length > 0 ? (
+        <Box testID="stickers-section">
+          <Section title="Stickers">
                   <ProfileTile testID="library-tile">
                     <Box className="flex-row flex-wrap" style={{ gap: ME_MOSAIC.gap }} accessible accessibilityLabel={`${profile.displayName}'s stickers: ${library.map((x) => x.title).join(', ')}`}>
                       {library.map((x) => (
@@ -395,92 +391,74 @@ export default function ProfileScreen(): React.ReactElement {
                       ))}
                     </Box>
                   </ProfileTile>
-                </Box>
-              </ProfileSection>
-            ) : null}
-
-            {/* Recent: a Thread of what they did. Your own page shows what you played, in the tile above. */}
-            {!own ? (
-              <ProfileSection label="Recent" testID="recent-section">
-                {recent.length === 0 ? (
-                  <Type step="caption" className="text-text2" style={LANE}>Nothing public yet.</Type>
-                ) : (
-                  <Box>
-                    <SpineLine />
-                    <Box style={{ paddingTop: LIST.top, paddingLeft: LIST.left, paddingRight: LIST.right, gap: LIST.nodeGap }}>
-                      {recent.map((item) => (
-                        <ThreadNode key={item.id} lead={<Tick text={ageLabel(Date.parse(item.createdAt), nowMs)} />}>
-                          <RecentCard item={item} onOpen={open} />
-                        </ThreadNode>
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-              </ProfileSection>
-            ) : null}
-
-            {myClips.length > 0 ? (
-              <ProfileSection label="Your clips" testID="my-clips-section">
-                <Box>
-                  <SpineLine />
-                  <Box style={{ paddingTop: LIST.top, paddingLeft: LIST.left, paddingRight: LIST.right, gap: LIST.nodeGap }}>
-                    {myClips.map((item) => (
-                      <ThreadNode key={item.id} lead={<Tick text={ageLabel(Date.parse(item.createdAt), nowMs)} />}>
-                        <RecentCard item={item} onOpen={open} />
-                      </ThreadNode>
-                    ))}
-                  </Box>
-                </Box>
-              </ProfileSection>
-            ) : null}
-
-            {likes.length > 0 ? (
-              <ProfileSection label={profile.likesCount !== undefined ? `Likes · ${profile.likesCount}` : 'Likes'} spoken="Likes" testID="likes-section">
-                <Box>
-                  <SpineLine />
-                  <Box style={{ paddingTop: LIST.top, paddingLeft: LIST.left, paddingRight: LIST.right, gap: LIST.nodeGap }}>
-                    {likes.slice(0, SHOWN_LIKES).map((l2) => (
-                      <ThreadNode key={`${l2.episode.id}|${l2.createdAt}`} lead={<Tick text={ageLabel(Date.parse(l2.createdAt), nowMs)} />}>
-                        <LikeCard item={{ ...l2, listener: undefined }} onOpen={(c2) => void cards.open(c2)} onPlay={(c2) => void cards.play(c2)} />
-                      </ThreadNode>
-                    ))}
-                  </Box>
-                </Box>
-                <Pressable onPress={() => router.push({ pathname: '/profile/[id]/likes', params: { id: profile.id, name: profile.displayName } })} accessibilityRole="link" accessibilityLabel={`View all of ${profile.displayName}'s likes`} hitSlop={{ top: 15, bottom: 15, left: 8, right: 8 }} className="self-start" style={{ marginTop: 10, marginLeft: ME_MOSAIC.lane }}>
-                  <Type step="caption" className="text-hotText font-semibold">View all ›</Type>
-                </Pressable>
-              </ProfileSection>
-            ) : null}
-
-            {playlists.length > 0 ? (
-              <ProfileSection label="Playlists" testID="playlists-section">
-                <Deck width={PROFILE_PAGE.playlistWidth} height={PROFILE_PAGE.playlistHeight}>
-                  {playlists.map((p) => <PlaylistCard key={p.id} playlist={p} />)}
-                </Deck>
-              </ProfileSection>
-            ) : null}
-            <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
-          </ScrollView>
-
-          {/* The bottom zone: back, then Follow · Message · More (someone else) or Edit profile (you). */}
-          <ProfileFoot bottom={l.titleBottom}>
-            {back}
-            {own ? (
-              <Link href="/profile/edit" asChild>
-                <PulseButton label="Edit profile" kind="light" icon="create-outline" className="flex-1" onPress={() => undefined} />
-              </Link>
-            ) : (
-              <>
-                <FollowButton key={String(profile.isFollowing)} className="flex-1" listenerId={profile.id} following={profile.isFollowing} onChange={(f) => setProfile({ ...profile, isFollowing: f, followers: profile.followers + (f ? 1 : -1) })} />
-                {/* Chat (owner, 2026-10-04): the conversation says if you can send (you both follow each other). */}
-                <IconButton icon="chatbubble-outline" label={`Message ${profile.displayName}`} onPress={() => router.push({ pathname: '/chat/[id]', params: { id: profile.id, name: profile.displayName } })} fill size={22} diameter={PROFILE_PAGE.barCircle} />
-                <IconButton icon="ellipsis-horizontal" label={`More actions for ${profile.displayName}`} onPress={() => setMore(true)} fill size={22} diameter={PROFILE_PAGE.barCircle} />
-              </>
-            )}
-          </ProfileFoot>
+          </Section>
         </Box>
-      )}
-    </PushedPage>
+      ) : null}
+
+      {/* Recent: cards of what they did. Your own page shows what you played, in the tile above. */}
+      {!own ? (
+        <Box testID="recent-section">
+          <Section title="Recent">
+            {recent.length === 0 ? (
+              <Type step="caption" className="text-text2">Nothing public yet.</Type>
+            ) : (
+              <Box style={{ gap: spacing.row }}>
+                {recent.map((item) => (
+                  <Box key={item.id} style={{ gap: spacing.hair }}>
+                    <RecentCard item={item} onOpen={open} />
+                    {age(item.createdAt)}
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Section>
+        </Box>
+      ) : null}
+
+      {myClips.length > 0 ? (
+        <Box testID="my-clips-section">
+          <Section title="Your clips">
+            <Box style={{ gap: spacing.row }}>
+              {myClips.map((item) => (
+                <Box key={item.id} style={{ gap: spacing.hair }}>
+                  <RecentCard item={item} onOpen={open} />
+                  {age(item.createdAt)}
+                </Box>
+              ))}
+            </Box>
+          </Section>
+        </Box>
+      ) : null}
+
+      {likes.length > 0 ? (
+        <Box testID="likes-section">
+          <Section title={profile.likesCount !== undefined ? `Likes · ${profile.likesCount}` : 'Likes'}>
+            <Box style={{ gap: spacing.row }}>
+              {likes.slice(0, SHOWN_LIKES).map((l2) => (
+                <Box key={`${l2.episode.id}|${l2.createdAt}`} style={{ gap: spacing.hair }}>
+                  <LikeCard item={{ ...l2, listener: undefined }} onOpen={(c2) => void cards.open(c2)} onPlay={(c2) => void cards.play(c2)} />
+                  {age(l2.createdAt)}
+                </Box>
+              ))}
+              <Pressable onPress={() => router.push({ pathname: '/profile/[id]/likes', params: { id: profile.id, name: profile.displayName } })} accessibilityRole="link" accessibilityLabel={`View all of ${profile.displayName}'s likes`} className="self-start justify-center" style={{ minHeight: bars.circle }}>
+                <Type step="caption" className="text-hotText font-semibold">View all ›</Type>
+              </Pressable>
+            </Box>
+          </Section>
+        </Box>
+      ) : null}
+
+      {playlists.length > 0 ? (
+        <Box testID="playlists-section">
+          <Section title="Playlists">
+            <CardShelf width={PROFILE_PAGE.playlistWidth} height={PROFILE_PAGE.playlistHeight}>
+              {playlists.map((p) => <PlaylistCard key={p.id} playlist={p} />)}
+            </CardShelf>
+          </Section>
+        </Box>
+      ) : null}
+      <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
+    </DetailPage>
     {/* M21 US8: the ⋯ sheet — Follow, Message, Mute, then Block and Report under a rule. */}
     {!own ? (
       <ActionSheet open={more} onClose={() => setMore(false)} label={`More for ${name}`}>

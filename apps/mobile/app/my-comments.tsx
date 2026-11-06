@@ -11,25 +11,27 @@
  * (a "+" while more pages wait). Signed out: an empty block with a light Sign in button; none yet: an empty spine and
  * "No comments yet". The whole card is still the one button, with the same name and destination; loading, paging unchanged.
  *
+ * Spec 039 (Feed lane, design B): a `FeedPage`; each comment is ONE card (its moment chip and "On {episode}" on the head row, the words, the age at the
+ * foot) and the whole card is still the one button. No spine. Signed out and none yet are empty blocks; a failed read is an `InlineNotice`.
+ *
  * Not as drawn: the heart and its count are not on the card (the server sends none for your own comments).
  */
 import { router } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
+import { spacing } from '@/design';
 import type { MyComment } from '@/social/api';
 import { useSocial } from '@/social/context';
 import { mmss } from '@/ui/kit/format';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type } from '@/ui/kit/Type';
-import { Tick, GhostRows } from '@/ui/comments/Spine';
+import { InlineNotice } from '@/ui/kit/layout';
 import { plural } from '@socialmorning/social-core';
-import { COMMENTS } from '@/ui/comments/measures';
 import { EndOfList } from '@/ui/kit/EndOfList';
-import { ME_TYPE } from '@/ui/me/measures';
-import { ageLabel, DRAWN, emptyTop, EmptySpine, LIST, PageEmpty, ThreadCard, ThreadNode, ThreadSpine, threadPad } from '@/ui/me/lists';
+import { ageLabel } from '@/ui/me/lists';
+import { FeedEmpty, FeedLoading, FeedPage } from '@/ui/feed/FeedPage';
+import { ItemCard } from '@/ui/notifications/cards';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
 export default function MyCommentsScreen(): React.ReactElement {
@@ -54,72 +56,51 @@ export default function MyCommentsScreen(): React.ReactElement {
   const count = rows !== undefined && rows.length > 0 ? `${plural(rows.length, 'comment')}${next ? '+' : ''}` : undefined;
   const now = clockMs();
   return (
-    <PushedPage title="My comments" {...(count ? { subtitle: count } : {})}>
-      {(layout) => {
-        const top = layout.top + (DRAWN.listTop - DRAWN.status);
-        if (rows === undefined) {
-          return (
-            <Box className="flex-1">
-              <EmptySpine top={layout.top + (LIST.emptySpineTop - DRAWN.status)} />
-              <Box style={{ marginTop: layout.top + 30, marginLeft: COMMENTS.spineX, marginRight: LIST.right - LIST.headGap }}><GhostRows rows={6} /></Box>
-            </Box>
-          );
-        }
-        const nothing = rows.length === 0;
+    <FeedPage
+      title="My comments"
+      {...(count ? { subtitle: count } : {})}
+      data={rows ?? []}
+      keyExtractor={(r) => r.id}
+      contentStyle={{ flexGrow: 1 }}
+      gap={spacing.row}
+      onEndReached={more}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={rows && rows.length > 0 && !next ? <EndOfList /> : undefined}
+      ListHeaderComponent={listener && failed ? <InlineNotice text="Couldn't load your comments" actionLabel="Retry" onAction={() => { setFailed(false); setRows(undefined); api.myComments().then((r) => { setRows(r.items); setNext(r.next); }, () => { setRows([]); setFailed(true); }); }} /> : null}
+      ListEmptyComponent={
+        rows === undefined ? <FeedLoading testID="my-comments-loading" rows={6} />
+        : !listener ? <FeedEmpty title="Sign in to comment" line="Your comments, at their moments, live here." action={{ label: 'Sign in', onPress: () => router.push('/auth/sign-in') }} />
+        : failed ? undefined
+        : <FeedEmpty title="No comments yet" line="Say something at a moment from the player." />
+      }
+      renderItem={({ item }) => {
+        const text = item.removed ? 'Removed by moderation' : item.deleted ? 'You deleted this comment' : item.hiddenByHost ? `${item.body ?? ''} — hidden by the host` : item.body ?? '';
+        const live = item.body && !item.removed && !item.deleted;
         return (
-          <Box className="flex-1" style={{ paddingTop: top }}>
-            {nothing ? <EmptySpine top={layout.top + (LIST.emptySpineTop - DRAWN.status)} /> : <ThreadSpine top={top} />}
-            <FlatList
-              className="flex-1"
-              data={rows}
-              // Owner, 2026-10-05: the bottom of a fetched list says so.
-              ListFooterComponent={rows.length > 0 && !next ? <EndOfList /> : undefined}
-              keyExtractor={(r) => r.id}
-              contentContainerStyle={{ ...threadPad(layout.reserve), flexGrow: 1 }}
-              onEndReached={more}
-              ItemSeparatorComponent={() => <Box style={{ height: LIST.nodeGap }} />}
-              ListEmptyComponent={
-                !listener ? (
-                  <PageEmpty top={emptyTop(260) - LIST.top} title="Sign in to comment" line="Your comments, at their moments, live here." action={{ label: 'Sign in', onPress: () => router.push('/auth/sign-in') }} />
-                ) : failed ? (
-                  <PageEmpty top={emptyTop(300) - LIST.top} title="Couldn't load your comments" />
-                ) : (
-                  <PageEmpty top={emptyTop(LIST.emptyBlockTop) - LIST.top} title="No comments yet" line="Say something at a moment from the player." />
-                )
-              }
-              renderItem={({ item }) => {
-                const text = item.removed ? 'Removed by moderation' : item.deleted ? 'You deleted this comment' : item.hiddenByHost ? `${item.body ?? ''} — hidden by the host` : item.body ?? '';
-                const live = item.body && !item.removed && !item.deleted;
-                return (
-                  <ThreadNode
-                    lead={item.offsetMs !== null ? <TimestampChip text={mmss(item.offsetMs)} solid /> : <Tick text="no moment" />}
-                    label={<Type step="caption" className="text-text2 flex-1" style={ME_TYPE.node12} numberOfLines={1}>{`On ${item.episode.title}`}</Type>}
-                  >
-                    <Pressable
-                      onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.episode.id, ...(item.offsetMs !== null ? { at: String(item.offsetMs) } : {}) } })}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${text}. On ${item.episode.title}`}
-                    >
-                      <ThreadCard>
-                        {live ? (
-                          <>
-                            <Type step="body" className="text-text" numberOfLines={5}>{text}</Type>
-                            <Box className="flex-row items-center justify-end">
-                              <Type step="mono" className="text-text3" style={ME_TYPE.mono11}>{ageLabel(Date.parse(item.createdAt), now)}</Type>
-                            </Box>
-                          </>
-                        ) : (
-                          <Type step="note" className={item.removed ? 'text-hotText italic' : 'text-text3 italic'} numberOfLines={5}>{text}</Type>
-                        )}
-                      </ThreadCard>
-                    </Pressable>
-                  </ThreadNode>
-                );
-              }}
-            />
-          </Box>
+          <Pressable
+            onPress={() => router.push({ pathname: '/episode/[id]', params: { id: item.episode.id, ...(item.offsetMs !== null ? { at: String(item.offsetMs) } : {}) } })}
+            accessibilityRole="button"
+            accessibilityLabel={`${text}. On ${item.episode.title}`}
+          >
+            <ItemCard testID="thread-card">
+              <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
+                {item.offsetMs !== null ? <TimestampChip text={mmss(item.offsetMs)} solid /> : <Type step="tag" className="text-text3">no moment</Type>}
+                <Type step="caption" className="text-text2 flex-1" numberOfLines={1}>{`On ${item.episode.title}`}</Type>
+              </Box>
+              {live ? (
+                <>
+                  <Type step="body" className="text-text" numberOfLines={5}>{text}</Type>
+                  <Box className="flex-row items-center justify-end">
+                    <Type step="mono" className="text-text3">{ageLabel(Date.parse(item.createdAt), now)}</Type>
+                  </Box>
+                </>
+              ) : (
+                <Type step="note" className={item.removed ? 'text-hotText italic' : 'text-text3 italic'} numberOfLines={5}>{text}</Type>
+              )}
+            </ItemCard>
+          </Pressable>
         );
       }}
-    </PushedPage>
+    />
   );
 }

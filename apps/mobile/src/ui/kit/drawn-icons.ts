@@ -157,7 +157,7 @@ export const DRAWN_ICONS: Readonly<Record<string, string>> = {
 
 /** The svg document for a drawn icon at `color`. */
 export function drawnIconXml(shape: string, color: string): string {
-  // `VOID` is the compass needle's cut-out (the page colour, #060608 in the drawing): the token, not a literal.
+  // `VOID` is the compass needle's cut-out (the page colour, `void`): the token, not a literal.
   const body = shape.replace(/currentColor/g, color).replace(/VOID/g, colour.void);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${DRAWN_ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }

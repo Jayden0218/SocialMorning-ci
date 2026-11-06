@@ -189,10 +189,10 @@ describe('Show info', () => {
     expect(labels(r)).toContain('Copy the feed address');
     expect(byId(r, 'info-ghost')).toBeTruthy();
     expect(hosts(r, (n) => n.props['testID'] === 'info-group')).toHaveLength(1);
-    // The title bar is low, with the show's name under the title; the content starts 28 in, 16 from the right.
+    // The title row, with the show's name under it; the tiles sit on the page's gutter (039).
     expect(text(r)).toContain('Show info');
     expect(text(r)).toContain('Morning Notes');
-    expect(style(byId(r, 'show-info-tiles'))).toMatchObject({ marginLeft: 28, marginRight: 16 });
+    expect(style(byId(r, 'show-info-tiles'))['marginLeft']).toBeUndefined();
   });
 
   it('with an answer: two tiles, rows 56 tall at least, a 1 px rule between rows; Copy copies and says so', async () => {
@@ -213,11 +213,11 @@ describe('Show info', () => {
     expect(mockToast).toHaveBeenCalledWith('Feed address copied.');
   });
 
-  it('a failed lookup is an inline error tile with a hot-tinted line; the feed address still works', async () => {
+  it('a failed lookup is an inline notice with Retry (039; was an error tile); the feed address still works', async () => {
     mockInfo = 'failed';
     const r = await mount(createElement(ShowInfoScreen));
-    const err = byId(r, 'info-error');
-    expect(style(err)).toMatchObject({ borderWidth: 1, borderColor: '#3a1f28' });
+    expect(byId(r, 'inline-notice')).toBeTruthy();
+    expect(labels(r)).toContain('Retry');
     expect(text(r)).toContain("Couldn't load who owns this show. Check your connection and try again.");
     expect(labels(r)).toContain('Copy the feed address');
   });
@@ -225,7 +225,8 @@ describe('Show info', () => {
   it('InfoGroup and InfoError on their own', async () => {
     const r = await mount(createElement('View', null, createElement(InfoGroup, { rows: [{ icon: 'person-outline', title: 'A', detail: 'one' }, { icon: 'time-outline', title: 'B', detail: 'two' }] }), createElement(InfoError, null, 'No.')));
     expect(hosts(r, (n) => n.props['testID'] === 'info-row')).toHaveLength(2);
-    expect(style(byId(r, 'info-group'))['borderRadius']).toBe(20);
-    expect(colour.raise).toBe('#111116');
+    expect(style(byId(r, 'info-group'))['borderRadius']).toBe(16); // 039 I2: was 20 (the drawing's tile); now radius.row
+    expect(style(hosts(r, (n) => n.props['testID'] === 'info-row')[0]!)['paddingHorizontal']).toBe(16); // was 14
+    expect(colour.raise).toBe('#1a1d23');
   });
 });

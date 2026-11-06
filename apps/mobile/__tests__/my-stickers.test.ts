@@ -17,6 +17,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { myStickers, myTotals } from '@/me/my-stickers';
 
 const H = 3_600_000;
@@ -65,7 +66,7 @@ describe('the Stickers page shows what the profile shows', () => {
     let answer!: (p: unknown) => void;
     mockApi.profile.mockReset().mockReturnValue(new Promise((res) => { answer = res; }));
     let r!: ReactTestRenderer;
-    await act(async () => { r = create(createElement(StickersScreen)); });
+    await act(async () => { r = create(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, createElement(StickersScreen))); });
 
     // Before the server answers: this phone's totals, not 0.
     const before = cards(r);

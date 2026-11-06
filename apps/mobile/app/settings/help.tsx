@@ -27,7 +27,6 @@ import { appealsMailto, APPEALS_KEY, refreshAppeals } from '@/social/links';
 import { useSocial } from '@/social/context';
 import { Icon } from '@/ui/kit/Icon';
 import { useStores } from '@/ui/shell/providers';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { Chip } from '@/ui/kit/Chip';
 import { Type } from '@/ui/kit/Type';
 import { PanelGroup } from '@/ui/me/Panel';
@@ -51,60 +50,56 @@ export default function HelpScreen(): React.ReactElement {
   const tags = useMemo(() => [ALL, ...Array.from(new Set(faq.map((f) => f.tag)))], [faq]);
   const shown = tag === ALL ? faq : faq.filter((f) => f.tag === tag);
   return (
-    <PushedPage title="Help and feedback">
-      {(layout) => (
-        <SetPage layout={layout}>
-          <BigGrid>
-            <Link href="/settings/feedback" asChild accessibilityLabel="Send feedback">
-              <BigTile light plain icon="create-outline" label="Send feedback" line="Tell us what went wrong or what you would like" accessibilityLabel="Send feedback, Tell us what went wrong or what you would like" accessibilityRole="link" />
-            </Link>
-            <BigTile plain icon="headset-outline" label={mail ? 'Contact support' : 'Contact support (offline)'} line="Report a problem by email" dim={!mail} onPress={() => { if (mail) void openSystem(mail).catch(() => undefined); }} disabled={!mail} accessibilityLabel="Report a problem to support" accessibilityState={{ disabled: !mail }} />
-          </BigGrid>
+    <SetPage title="Help and feedback">
+      <BigGrid>
+        <Link href="/settings/feedback" asChild accessibilityLabel="Send feedback">
+          <BigTile light plain icon="create-outline" label="Send feedback" line="Tell us what went wrong or what you would like" accessibilityLabel="Send feedback, Tell us what went wrong or what you would like" accessibilityRole="link" />
+        </Link>
+        <BigTile plain icon="headset-outline" label={mail ? 'Contact support' : 'Contact support (offline)'} line="Report a problem by email" dim={!mail} onPress={() => { if (mail) void openSystem(mail).catch(() => undefined); }} disabled={!mail} accessibilityLabel="Report a problem to support" accessibilityState={{ disabled: !mail }} />
+      </BigGrid>
 
-          <Sec label="Questions">
-            <Box style={{ gap: SET.tileGap }}>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerStyle={{ gap: 6 }}>
-                {tags.map((t) => (
-                  <Chip key={t} tone="dark" label={t} chosen={tag === t} onPress={() => setTag(t)} accessibilityLabel={`Show ${t === ALL ? 'all questions' : `${t} questions`}`} />
-                ))}
-              </ScrollView>
-              <PanelGroup>
-                {shown.map((f) => {
-                  const isOpen = open === f.q;
-                  return (
-                    <SetRow
-                      key={f.q}
-                      label={f.q}
-                      onPress={() => setOpen(isOpen ? undefined : f.q)}
-                      accessibilityState={{ expanded: isOpen }}
-                      accessibilityLabel={f.q}
-                      right={(
-                        <Box className="flex-row items-center" style={{ gap: 6 }}>
-                          <Box className="bg-raise2" style={{ borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
-                            <Type step="badge" className="text-text2" style={SET_TYPE.tag10}>{f.tag}</Type>
-                          </Box>
-                          <Icon name={isOpen ? 'chevron-down' : 'chevron-forward'} size={SET.chevron} color={colour.text3} />
-                        </Box>
-                      )}
-                      sub={isOpen ? <Box style={{ marginTop: 8 }}><MarkdownBlocks blocks={f.blocks} small /></Box> : null}
-                    />
-                  );
-                })}
-              </PanelGroup>
-            </Box>
-          </Sec>
+      <Sec label="Questions">
+        <Box style={{ gap: SET.tileGap }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="grow-0" contentContainerStyle={{ gap: 6 }}>
+            {tags.map((t) => (
+              <Chip key={t} tone="dark" label={t} chosen={tag === t} onPress={() => setTag(t)} accessibilityLabel={`Show ${t === ALL ? 'all questions' : `${t} questions`}`} />
+            ))}
+          </ScrollView>
+          <PanelGroup>
+            {shown.map((f) => {
+              const isOpen = open === f.q;
+              return (
+                <SetRow
+                  key={f.q}
+                  label={f.q}
+                  onPress={() => setOpen(isOpen ? undefined : f.q)}
+                  accessibilityState={{ expanded: isOpen }}
+                  accessibilityLabel={f.q}
+                  right={(
+                    <Box className="flex-row items-center" style={{ gap: 6 }}>
+                      <Box className="bg-raise2" style={{ borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3 }}>
+                        <Type step="badge" className="text-text2" style={SET_TYPE.tag10}>{f.tag}</Type>
+                      </Box>
+                      <Icon name={isOpen ? 'chevron-down' : 'chevron-forward'} size={SET.chevron} color={colour.text3} />
+                    </Box>
+                  )}
+                  sub={isOpen ? <Box style={{ marginTop: 8 }}><MarkdownBlocks blocks={f.blocks} small /></Box> : null}
+                />
+              );
+            })}
+          </PanelGroup>
+        </Box>
+      </Sec>
 
-          {/* M22 US17 (T077, T078): the network check, and the Android battery helper. */}
-          <Sec label="Not working?">
-            <PanelGroup>
-              <Link href="/settings/network" asChild accessibilityLabel="Check network"><SetRow icon="trending-up-outline" label="Check network" line="Test our server, a feed host and an audio host" /></Link>
-              {Platform.OS === 'android' ? (
-                <Link href="/settings/background" asChild accessibilityLabel="Playback stops when the screen is off?"><SetRow icon="moon-outline" label="Playback stops when the screen is off?" line="Android only · Let SocialNet keep playing in the background" /></Link>
-              ) : null}
-            </PanelGroup>
-          </Sec>
-        </SetPage>
-      )}
-    </PushedPage>
+      {/* M22 US17 (T077, T078): the network check, and the Android battery helper. */}
+      <Sec label="Not working?">
+        <PanelGroup>
+          <Link href="/settings/network" asChild accessibilityLabel="Check network"><SetRow icon="trending-up-outline" label="Check network" line="Test our server, a feed host and an audio host" /></Link>
+          {Platform.OS === 'android' ? (
+            <Link href="/settings/background" asChild accessibilityLabel="Playback stops when the screen is off?"><SetRow icon="moon-outline" label="Playback stops when the screen is off?" line="Android only · Let SocialNet keep playing in the background" /></Link>
+          ) : null}
+        </PanelGroup>
+      </Sec>
+    </SetPage>
   );
 }

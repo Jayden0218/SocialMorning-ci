@@ -9,7 +9,6 @@ import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act } from 'react-test-renderer';
 import { allText, episode, FEED, hash, mount, press, seededStores } from './support/screen-kit';
-import { contentTopReserve, titleBarTop } from '@/design';
 import { episodeId } from '@/storage/schema';
 import { createMemoryStores } from '@/storage/memory';
 
@@ -80,15 +79,15 @@ describe('Updates, as drawn', () => {
     expect((StyleSheet.flatten(deck.props['contentContainerStyle'] as never) as Record<string, number>)['gap']).toBe(10);
   });
 
-  // 037 D1: was "the page starts 8 under the status bar"; it starts 8 under the title block now (6 + the block's reserve + 8).
-  it('the page starts 8 under the title block; Voice (signed in) is 92 tall, Starred 70, only when there is something', async () => {
+  // 039 (Feed lane): was "the page starts 8 under the title block; Voice 92 tall, Starred 70" (turned edge labels, minHeights); now Voice and Starred are Section headings in the page's flow.
+  it('Voice (signed in) and Starred are Section headings, only when there is something', async () => {
     setup({ starred: true });
     mockSocial.listener = { listenerId: 'me', displayName: 'Me' };
     const r = await mountScreen();
-    const page = r.root.findAllByProps({ testID: 'updates-page' }).find((n) => typeof n.type === 'string')!;
-    expect((StyleSheet.flatten(page.props['contentContainerStyle'] as never) as Record<string, number>)['paddingTop']).toBe(titleBarTop(0) + contentTopReserve() + 8);
-    expect(style(r.root.findByProps({ testID: 'voice-block' }))['minHeight']).toBe(92); // F10: a minimum; the turned label can make it taller
-    expect(style(r.root.findByProps({ testID: 'starred-block' }))['minHeight']).toBe(70);
+    expect(allText(r)).toEqual(expect.stringContaining('Voice'));
+    expect(allText(r)).toEqual(expect.stringContaining('Starred'));
+    expect(style(r.root.findByProps({ testID: 'voice-block' }))['minHeight']).toBeUndefined();
+    expect(style(r.root.findByProps({ testID: 'starred-block' }))['minHeight']).toBeUndefined();
     expect(r.root.findByProps({ testID: 'voice-posts' }).props['variant']).toBe('updates');
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Open The Morning Show, starred').length).toBeGreaterThan(0);
     const covers = r.root.findAllByProps({ testID: 'lib-cover' }).filter((n) => typeof n.type === 'string');
@@ -167,6 +166,6 @@ describe('Updates, as drawn', () => {
     expect(cards(r)).toHaveLength(0);
     expect(allText(r)).toContain('No subscriptions yet.');
     expect(allText(r)).toContain('A pick');
-    expect(allText(r)).toContain('PICKS');
+    expect(allText(r)).toContain('Picks'); // 039 I2: was 'PICKS' (the upper-cased vertical edge label); now the section's heading
   });
 });

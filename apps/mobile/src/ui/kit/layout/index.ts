@@ -4,3 +4,4 @@ export { Section } from './Section';
 export { TileGrid } from './TileGrid';
 export { Shelf } from './Shelf';
 export { InlineNotice } from './InlineNotice';
+export { PageList } from './PageList';

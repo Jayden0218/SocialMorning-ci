@@ -64,13 +64,13 @@ it('signed out: asks to sign in and shows only the always-public line and Blocke
   expect(t).toContain('Privacy');
   expect(t).toContain('Sign in to choose who sees your listening.');
   expect(t).toContain('Blocked listeners');
-  expect(t).not.toContain('OTHERS SEE');
+  expect(t).not.toContain('Others see');
 });
 
 it('signed in: shows the sections, with the server\'s switch values', async () => {
   const r = await mount(createElement(PrivacySettings));
   const t = allText(r);
-  for (const s of ['Keep my listening private', 'OTHERS SEE', 'MUTED USERS', 'THREADS', 'Download my data', 'Noisy Nick']) expect(t).toContain(s);
+  for (const s of ['Keep my listening private', 'Others see', 'Muted users', 'Threads', 'Download my data', 'Noisy Nick']) expect(t).toContain(s);
   expect(switchState(r, 'Hide my listening badge').checked).toBe(true);
   expect(switchState(r, 'Hide my sticker library').checked).toBe(false);
 });

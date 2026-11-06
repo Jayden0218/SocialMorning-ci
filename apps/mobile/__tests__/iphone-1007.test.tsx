@@ -123,7 +123,8 @@ describe('2. tiles and History select rows are accessible buttons with a selecte
     expect(src).not.toMatch(/accessibilityRole="checkbox"/);
     expect(src).toMatch(/accessibilityRole="button" accessibilityState=\{\{ selected: chosen\.has/);
     // M31 W3-C: the tick circle on the spine is drawn inside the same Pressable, under `pointerEvents="none"` (rendered in m31-w3c-history.test.tsx).
-    expect(src).toMatch(/<Box pointerEvents="none">\s*\{card\}\s*<Box\s+testID="history-tick"/);
+    // Spec 039 (was: `<Box pointerEvents="none">{card}<Box testID="history-tick"` — the tick drawn after the card on the spine; now: a row with the tick circle BEFORE the card, no spine). Still one Pressable, and nothing inside takes the touch.
+    expect(src).toMatch(/<Box pointerEvents="none"[^>]*>\s*<Box\s+testID="history-tick"[\s\S]*?\{card\}/);
   });
 });
 
@@ -240,10 +241,9 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     expect(read('app/episode/[id].tsx')).not.toMatch(/solid=\{collapsed\}|TopBar/);
     // M31 W3-A2 (T040): the Show screen's thumb zone (Subscribe, Share, the title) is always on screen, so the slim bar is gone too.
     expect(read('app/show/[feedUrl].tsx')).not.toMatch(/solid=\{collapsed\}|TopBar|setCollapsed/);
-    expect(read('app/show/[feedUrl].tsx')).toMatch(/testID="show-thumb-zone"/);
-    // M31 D-C: the profile's collapsed name is the solid void strip (`CollapsedName`, rendered in m31-dc-profile.test.tsx), shown from the page's own scroll state.
-    expect(read('app/profile/[id].tsx')).toMatch(/collapsed \? <CollapsedName/);
-    expect(read('src/ui/profile/ProfilePage.tsx')).toMatch(/testID="collapsed-name" className="absolute left-0 right-0 top-0 bg-void/);
+    // 039 (Detail): the Show page is a `DetailList` with its title row in the list, so it has no thumb zone; the Profile page's collapsed name is gone too (its title row is "Profile").
+    expect(read('app/show/[feedUrl].tsx')).not.toMatch(/show-thumb-zone/);
+    expect(read('app/profile/[id].tsx')).not.toMatch(/CollapsedName|setCollapsed/);
     // Spec 039 D4 (was: the low title that fades with the scroll): Discover is a `Page` with its title row in the scroll, so there is no bar
     // of any kind to show through; the title does not fade.
     const discover = read('src/ui/discover/DiscoverPage.tsx');

@@ -8,7 +8,6 @@ import { createRef, createElement } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { SWITCH_HEIGHT, SWITCH_LIFT } from '@/ui/discover/HomeSwitch';
 import { bars } from '@/design';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { DiscoverPage } from '@/ui/discover/DiscoverPage';
 import type { DiscoverPageData } from '@/ui/discover/useDiscoverPage';
@@ -136,7 +135,7 @@ describe('Discover on the layout parts', () => {
     for (const s of sections) expect(s.findAll((n) => n.props['accessibilityRole'] === 'header').length).toBeGreaterThan(0);
     expect(byId(r, 'shelf').length).toBeGreaterThanOrEqual(8);
     expect(byId(r, 'deck')).toHaveLength(0);
-    expect(r.root.findAllByType(EdgeLabel)).toHaveLength(0);
+    expect(byId(r, 'edge-measure')).toHaveLength(0); // 039 I2: EdgeLabel is deleted; its measuring copy is its tell-tale
   });
 
   it('clears the Moments | Discover switch at the foot', async () => {

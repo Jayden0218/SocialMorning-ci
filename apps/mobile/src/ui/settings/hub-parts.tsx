@@ -2,10 +2,9 @@
 /**
  * M31 S-A (T060; design-pulse2 `settings.html` helpers `body`, `sec`, `row`, `big`, `tile`, `lede`, `fieldL`). One file so the
  * pages that follow the Panel / Mosaic pattern read the same numbers (`hub-measures.ts`):
- *   - `SetPage`   the scrolling body under a `PushedPage`: 14 under the status bar, a 28 lane on the left (16 when a page has no
- *                 edge lane), 16 on the right, 12 between parts, room at the foot for the title bar.
- *   - `Sec`       one section; its name is written vertically in the lane (`EdgeLabel`).
- *   - `SetRow`    a row of a group: icon 22, name Geist 600 15, an optional line (13, text2), a chevron / switch / words at the end.
+ *   - `SetPage`   (039) the whole page: a `Page` with Back + title, the 20 gutter, 24 between blocks, room at the foot for the bars.
+ *   - `Sec`       one section; its name is the kit Section's heading above it (039: no edge label).
+ *   - `SetRow`    a row of a group: a tinted 34 icon tile, name Geist 600 15, 56 tall, an optional line (13, text2), a chevron / switch / words at the end.
  *                 It is a `Pressable` when it has an `onPress` (a `<Link asChild>` hands it one), a plain box when it does not.
  *   - `SetCard`   a raise tile (radius 22, padding 16, 10 between its parts).
  *   - `BigTile`   a large tile (112 tall, radius 22): icon top left, a chevron or a switch top right, name and a mono state under.
@@ -16,41 +15,32 @@
  */
 import { Children, useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import { Animated } from 'react-native';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour, motion } from '@/design';
-import { settingsColour } from '@/design/tokens';
+import { colour, motion, spacing } from '@/design';
+import { player, settingsColour } from '@/design/tokens';
 import { drawnType } from '@/design/type-px';
-import type { PushedLayout } from '@/ui/kit/PushedPage';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
+import { Section } from '@/ui/kit/layout';
+import { SettingsPage } from './panel';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { useReducedMotion } from '@/ui/kit/useReducedMotion';
 import { SET, SET_TYPE } from './hub-measures';
 
-/** The page body: scrolls under the fade, leaves room for the title bar. */
-export function SetPage(props: { layout: PushedLayout; children: ReactNode; lane?: boolean; gap?: number; testID?: string; keyboard?: boolean }): React.ReactElement {
+/** The page (spec 039): a `Page` with Back + title, the 20 gutter and 24 between blocks; `lane`, `gap` and `keyboard` are kept so callers read the same. */
+export function SetPage(props: { title: string; subtitle?: string; extra?: ReactNode; onBack?: () => void; children: ReactNode; lane?: boolean; gap?: number; testID?: string; keyboard?: boolean }): React.ReactElement {
   return (
-    <ScrollView
-      className="flex-1"
-      testID={props.testID ?? 'set-page'}
-      keyboardShouldPersistTaps="handled"
-      contentContainerStyle={{ paddingTop: props.layout.top + SET.top, paddingBottom: props.layout.reserve, paddingLeft: props.lane === false ? SET.side : SET.lane, paddingRight: props.lane === false ? SET.side : SET.right, gap: props.gap ?? SET.gap }}
-    >
+    <SettingsPage title={props.title} testID={props.testID ?? 'set-page'} {...(props.subtitle ? { subtitle: props.subtitle } : {})} {...(props.extra ? { extra: props.extra } : {})} {...(props.onBack ? { onBack: props.onBack } : {})}>
       {props.children}
-    </ScrollView>
+    </SettingsPage>
   );
 }
 
-/** A section: the children, with the name written along the lane to their left. */
+/** A section: with a `label` the kit Section's heading above the children; without, the children. */
 export function Sec(props: { label?: string; spoken?: string; children: ReactNode; testID?: string }): React.ReactElement {
-  // M31 F8: the section is at least as tall as its turned label, or the next label starts inside it (Settings > More).
-  const [len, setLen] = useState(0);
   return (
-    <Box testID={props.testID ?? 'set-sec'} style={props.label && len > 0 ? { minHeight: len + SET.edgeTop } : undefined}>
-      {props.label ? <EdgeLabel label={props.label} {...(props.spoken ? { spoken: props.spoken } : {})} top={SET.edgeTop} left={6 - SET.lane} onLength={setLen} /> : null}
-      {props.children}
+    <Box testID={props.testID ?? 'set-sec'}>
+      {props.label ? <Section title={props.label}>{props.children}</Section> : props.children}
     </Box>
   );
 }
@@ -62,7 +52,11 @@ export function SetRow({ icon, label, line, right, hot, dim, mono, sub, ...rest 
   const tail = right === undefined || right === 'chevron' ? <Icon name="chevron-forward" size={SET.chevron} color={colour.text3} /> : right;
   const body = (
     <>
-      {icon ? <Icon name={icon} size={SET.rowIcon} color={hot ? colour.hotText : colour.text} /> : null}
+      {icon ? (
+        <Box className="items-center justify-center" style={{ width: player.panelIcon, height: player.panelIcon, borderRadius: player.panelIconRadius, backgroundColor: colour.accentTint }} accessible={false} importantForAccessibility="no-hide-descendants">
+          <Icon name={icon} size={player.panelIconGlyph} color={colour.hotText} />
+        </Box>
+      ) : null}
       <Box className="flex-1 min-w-0">
         {mono ? (
           <Type step="mono" className="text-text" style={SET_TYPE.mono14} numberOfLines={1}>{label}</Type>
@@ -75,7 +69,7 @@ export function SetRow({ icon, label, line, right, hot, dim, mono, sub, ...rest 
       {tail}
     </>
   );
-  const look = { minHeight: SET.rowMin, paddingHorizontal: SET.rowPadX, paddingVertical: SET.rowPadY, gap: SET.rowGap, opacity: dim ? 0.45 : 1 };
+  const look = { minHeight: player.panelRow, paddingHorizontal: spacing.section, paddingVertical: spacing.gap, gap: spacing.row, opacity: dim ? 0.45 : 1 };
   if (typeof rest.onPress === 'function') {
     return <Pressable accessibilityRole="button" accessibilityLabel={label} {...rest} className="flex-row items-center" style={look}>{body}</Pressable>;
   }

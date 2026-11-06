@@ -151,8 +151,8 @@ const styled = (r: ReactTestRenderer, label: string): Record<string, unknown> =>
   const all = hosts(r, (x) => x.props['accessibilityLabel'] === label && x.props['style'] !== undefined);
   return flat(all[all.length - 1]);
 };
-/** The edge labels: the headers laid along the lane (absolute); the title is a header too, but not one of these. */
-const edge = (r: ReactTestRenderer): string[] => hosts(r, (n) => n.props['accessibilityRole'] === 'header' && String(n.props['className'] ?? '').includes('absolute')).map((n) => String(n.props['accessibilityLabel']));
+/** 039 (List lane): was the edge labels (headers laid along the lane, `absolute`) -> now the section headings: the headers after the page title (the first), by their words. */
+const edge = (r: ReactTestRenderer): string[] => hosts(r, (n) => n.props['accessibilityRole'] === 'header').map((n) => say(n.props['children'])).slice(1);
 
 describe('the hub (account--screen)', () => {
   it('the hero is 88 tall with radius 22; seven tiles are 112 with radius 22 and padding 14, two to a row; four info rows are 60', async () => {
@@ -165,7 +165,7 @@ describe('the hub (account--screen)', () => {
     const grid = byId(r, 'big-grid')[0]!;
     const rows = grid.findAll((n) => typeof n.type === 'string' && n.props['className'] === 'flex-row');
     expect(rows.map((row) => row.findAll((n) => typeof n.type === 'string' && flat(n)['minHeight'] === 112).length)).toEqual([2, 2, 2, 1]);
-    for (const l of ['Third-party sharing list', 'Personal information we collect', 'Help and feedback', 'About SocialNet']) expect(styled(r, l)['minHeight']).toBe(60);
+    for (const l of ['Third-party sharing list', 'Personal information we collect', 'Help and feedback', 'About SocialNet']) expect(styled(r, l)['minHeight']).toBe(56); // was 60
     expect(edge(r)).toEqual(['Account', 'Everyday', 'Info']);
   });
 

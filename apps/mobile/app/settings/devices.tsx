@@ -22,7 +22,6 @@ import { deviceLine, useAccountApi, type Device } from '@/social/account-api';
 import { countryName } from '@/ui/me/country';
 import { PanelGroup } from '@/ui/me/Panel';
 import { Icon } from '@/ui/kit/Icon';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { GhostLines, Lede, Sec, SetButton, SetCard, SetPage, SetRow } from '@/ui/settings/hub-parts';
@@ -63,50 +62,46 @@ export default function DevicesScreen(): React.ReactElement {
   const now = clockMs();
   const others = state.kind === 'ok' ? state.items.filter((d) => !d.current).length : 0;
   return (
-    <PushedPage title="Signed-in devices">
-      {(layout) => (
-        <SetPage layout={layout}>
-          <Lede small>Every place your account is signed in. If you do not know one, sign it out — it will need your email code to come back.</Lede>
-          <Sec label="Signed in">
-            {!listener ? <SetCard><Type step="body" className="text-text font-medium">Sign in to see your devices.</Type></SetCard>
-              : state.kind === 'loading' ? (
-                <SetCard testID="devices-loading">
-                  <Type step="mono" className="text-text2" style={SET_TYPE.mono13}>Loading…</Type>
-                  <GhostLines rows={4} />
-                </SetCard>
-              ) : state.kind === 'error' ? (
-                <Pressable onPress={load} accessibilityRole="button" accessibilityLabel="Try loading your devices again" testID="devices-error" className="flex-row items-center bg-raise" style={{ gap: SET.tileGap, borderRadius: SET.radius, padding: SET.tilePad }}>
-                  <Icon name="alert-circle-outline" size={SET.rowIcon} color={colour.hotText} />
-                  <Type step="body" className="text-text flex-1 font-medium">Couldn't load your devices. Tap to try again.</Type>
-                  <Icon name="repeat-outline" size={20} color={colour.text} />
-                </Pressable>
-              ) : (
-                <Box style={{ gap: SET.gap }}>
-                  <PanelGroup>
-                    {state.items.map((d) => (
-                      <SetRow
-                        key={d.id}
-                        icon={ICON[d.kind]}
-                        label={d.label}
-                        line={deviceLine(d, now, countryName)}
-                        right={d.current ? (
-                          <Box className="bg-raise border border-line rounded-pill items-center justify-center" style={{ height: 30, paddingHorizontal: SET.pillPad }} accessible accessibilityLabel="This phone">
-                            <Type step="caption" className="text-hotText font-semibold">This phone</Type>
-                          </Box>
-                        ) : <SetButton label="Sign out" small onPress={() => signOut(d)} accessibilityLabel={`Sign out ${d.label}`} />}
-                      />
-                    ))}
-                  </PanelGroup>
-                  {others > 0 ? (
-                    <Box className="self-start">
-                      <PulseButton kind="ring" icon="send" label={confirmAll ? `Tap again to sign out ${others} ${others === 1 ? 'device' : 'devices'}` : 'Sign out all other devices'} accessibilityLabel={confirmAll ? 'Tap again to sign out every other device' : 'Sign out all other devices'} onPress={signOutOthers} />
-                    </Box>
-                  ) : null}
+    <SetPage title="Signed-in devices">
+      <Lede small>Every place your account is signed in. If you do not know one, sign it out — it will need your email code to come back.</Lede>
+      <Sec label="Signed in">
+        {!listener ? <SetCard><Type step="body" className="text-text font-medium">Sign in to see your devices.</Type></SetCard>
+          : state.kind === 'loading' ? (
+            <SetCard testID="devices-loading">
+              <Type step="mono" className="text-text2" style={SET_TYPE.mono13}>Loading…</Type>
+              <GhostLines rows={4} />
+            </SetCard>
+          ) : state.kind === 'error' ? (
+            <Pressable onPress={load} accessibilityRole="button" accessibilityLabel="Try loading your devices again" testID="devices-error" className="flex-row items-center bg-raise" style={{ gap: SET.tileGap, borderRadius: SET.radius, padding: SET.tilePad }}>
+              <Icon name="alert-circle-outline" size={SET.rowIcon} color={colour.hotText} />
+              <Type step="body" className="text-text flex-1 font-medium">Couldn't load your devices. Tap to try again.</Type>
+              <Icon name="repeat-outline" size={20} color={colour.text} />
+            </Pressable>
+          ) : (
+            <Box style={{ gap: SET.gap }}>
+              <PanelGroup>
+                {state.items.map((d) => (
+                  <SetRow
+                    key={d.id}
+                    icon={ICON[d.kind]}
+                    label={d.label}
+                    line={deviceLine(d, now, countryName)}
+                    right={d.current ? (
+                      <Box className="bg-raise border border-line rounded-pill items-center justify-center" style={{ height: 30, paddingHorizontal: SET.pillPad }} accessible accessibilityLabel="This phone">
+                        <Type step="caption" className="text-hotText font-semibold">This phone</Type>
+                      </Box>
+                    ) : <SetButton label="Sign out" small onPress={() => signOut(d)} accessibilityLabel={`Sign out ${d.label}`} />}
+                  />
+                ))}
+              </PanelGroup>
+              {others > 0 ? (
+                <Box className="self-start">
+                  <PulseButton kind="ring" icon="send" label={confirmAll ? `Tap again to sign out ${others} ${others === 1 ? 'device' : 'devices'}` : 'Sign out all other devices'} accessibilityLabel={confirmAll ? 'Tap again to sign out every other device' : 'Sign out all other devices'} onPress={signOutOthers} />
                 </Box>
-              )}
-          </Sec>
-        </SetPage>
-      )}
-    </PushedPage>
+              ) : null}
+            </Box>
+          )}
+      </Sec>
+    </SetPage>
   );
 }

@@ -10,6 +10,7 @@
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 const mockStores = { positions: { all: () => [] }, feeds: { getEpisode: () => undefined }, settings: { get: () => undefined, set: () => undefined }, auth: { get: () => undefined, set: () => undefined } };
@@ -43,7 +44,7 @@ const hostsOf = (n: ReactTestInstance): ReactTestInstance[] => { const out: Reac
 const isAbsolute = (n: ReactTestInstance): boolean => flat(n)['position'] === 'absolute' || /(^|\s)absolute(\s|$)/.test(String(n.props['className'] ?? ''));
 
 it('signed out: the caption and the Decorate button are in one column, in flow, 8 or more apart', async () => {
-  await act(async () => { r = create(createElement(StickersScreen)); for (let i = 0; i < 6; i++) await Promise.resolve(); });
+  await act(async () => { r = create(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, createElement(StickersScreen))); for (let i = 0; i < 6; i++) await Promise.resolve(); });
   const hero = r.root.findAll((n) => n.props['testID'] === 'stickers-hero' && typeof n.type === 'string')[0]!;
   const caption = r.root.findAll((n) => typeof n.type === 'string' && String(n.type) === 'Text' && say(n.props['children']) === 'Sign in to count your listening time.')[0]!;
   const button = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityLabel'] === 'Decorate my profile with stickers')[0]!;

@@ -26,8 +26,8 @@ it('the coloured circle names both letter classes in full, and each is a Pulse c
   for (const cls of Object.values(LETTER)) expect(token(cls)).toBeDefined();
 });
 
-it('the discs are the saturated set, not the pastels (a pastel fill is lighter than 0.6 luminance)', () => {
-  expect(AVATAR_TONES.map((t) => t.fill)).toEqual([colour.hot, colour.violet, colour.pinGreen, colour.pinAmber, colour.pinBlue]);
+it('039 row M: the disc is the one neutral (line), with the light letter', () => {
+  expect(AVATAR_TONES.map((t) => t.fill)).toEqual([colour.line]);
 });
 
 it.each(AVATAR_TONES.map((t) => [t.fill, t.ink] as const))('the letter reaches 4.5:1 on the disc %s (%s letter)', (fill, ink) => {

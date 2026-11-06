@@ -19,43 +19,36 @@ import { Box } from '@/ui/lib/box';
 import { HOW_FOR_YOU } from '@/settings/how-for-you';
 import { drawnType } from '@/design/type-px';
 import { settingsColour } from '@/design/tokens';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { SetPage } from '@/ui/settings/hub-parts';
 import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
 const two = (i: number): string => String(i + 1).padStart(2, '0');
-/** The eyebrow is one mono line (22 line + the title bar's 8) above the title. */
-const EYEBROW_ABOVE = 30;
 
 export default function HowForYou(): React.ReactElement {
   const [open, setOpen] = useState<number | undefined>(0);
   const eyebrow = <Type step="mono" className="text-hotText" style={drawnType.trackMono}>{'Discover › For You'.toUpperCase()}</Type>;
   return (
-    <PushedPage title="How For You works" subtitle="What it uses, and what it never uses" extra={eyebrow} extraAbove={EYEBROW_ABOVE}>
-      {(layout) => (
-        <SetPage layout={layout} lane={false}>
-          <Box className="flex-row flex-wrap justify-between" style={{ rowGap: SET.bigGap }}>
-            {HOW_FOR_YOU.map((item, i) => {
-              const shown = open === i;
-              return shown ? (
-                <Pressable key={item.q} onPress={() => setOpen(undefined)} accessibilityRole="button" accessibilityState={{ expanded: true }} accessibilityLabel={item.q}
-                  testID="how-open" style={{ width: '100%', borderRadius: SET.radius, padding: SET.tilePad, gap: SET.gap, backgroundColor: settingsColour.wash, borderWidth: 1, borderColor: settingsColour.ring }}>
-                  <Type step="figure" className="text-hotText" style={SET_TYPE.number34} maxFontSizeMultiplier={1.3}>{two(i)}</Type>
-                  <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>{item.q}</Type>
-                  <Type step="body" className="text-text2" style={SET_TYPE.note14}>{item.a}</Type>
-                </Pressable>
-              ) : (
-                <Pressable key={item.q} onPress={() => setOpen(i)} accessibilityRole="button" accessibilityState={{ expanded: false }} accessibilityLabel={item.q}
-                  testID="how-closed" className="bg-raise justify-between" style={{ width: '48.5%', minHeight: 104, borderRadius: SET.radius, padding: SET.bigPad }}>
-                  <Type step="mono" className="text-text3" style={SET_TYPE.mono20} maxFontSizeMultiplier={1.3}>{two(i)}</Type>
-                  <Type step="compact" className="text-text" style={{ marginTop: SET.rowGap }}>{item.q}</Type>
-                </Pressable>
-              );
-            })}
-          </Box>
-        </SetPage>
-      )}
-    </PushedPage>
+    <SetPage title="How For You works" subtitle="What it uses, and what it never uses" extra={eyebrow}>
+      <Box className="flex-row flex-wrap justify-between" style={{ rowGap: SET.bigGap }}>
+        {HOW_FOR_YOU.map((item, i) => {
+          const shown = open === i;
+          return shown ? (
+            <Pressable key={item.q} onPress={() => setOpen(undefined)} accessibilityRole="button" accessibilityState={{ expanded: true }} accessibilityLabel={item.q}
+              testID="how-open" style={{ width: '100%', borderRadius: SET.radius, padding: SET.tilePad, gap: SET.gap, backgroundColor: settingsColour.wash, borderWidth: 1, borderColor: settingsColour.ring }}>
+              <Type step="figure" className="text-hotText" style={SET_TYPE.number34} maxFontSizeMultiplier={1.3}>{two(i)}</Type>
+              <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>{item.q}</Type>
+              <Type step="body" className="text-text2" style={SET_TYPE.note14}>{item.a}</Type>
+            </Pressable>
+          ) : (
+            <Pressable key={item.q} onPress={() => setOpen(i)} accessibilityRole="button" accessibilityState={{ expanded: false }} accessibilityLabel={item.q}
+              testID="how-closed" className="bg-raise justify-between" style={{ width: '48.5%', minHeight: 104, borderRadius: SET.radius, padding: SET.bigPad }}>
+              <Type step="mono" className="text-text3" style={SET_TYPE.mono20} maxFontSizeMultiplier={1.3}>{two(i)}</Type>
+              <Type step="compact" className="text-text" style={{ marginTop: SET.rowGap }}>{item.q}</Type>
+            </Pressable>
+          );
+        })}
+      </Box>
+</SetPage>
   );
 }

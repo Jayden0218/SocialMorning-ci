@@ -57,9 +57,10 @@ it('shows the space used, the three sections and each row\'s state', async () =>
   expect(t).toContain('Downloads');
   expect(t).toContain('150 MB');
   expect(t).toContain('150 MB of 500 MB');
-  expect(t).toContain('IN PROGRESS');
-  expect(t).toContain('NEEDS ATTENTION');
-  expect(t).toContain('DOWNLOADED');
+  // 039 (Feed lane): was the edge label's capitals (IN PROGRESS); the Section heading is written as is.
+  expect(t).toContain('In progress');
+  expect(t).toContain('Needs attention');
+  expect(t).toContain('Downloaded');
   expect(t).toContain('Cooking with fire');
   expect(t).toContain('50 %');
   expect(t).toContain('Downloaded · 80 MB');

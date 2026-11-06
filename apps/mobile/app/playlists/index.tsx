@@ -13,6 +13,9 @@
  * Sign in button; none yet: "No playlists yet" with the field still there; a failed load: the grey glow, "Couldn't
  * load" and Retry.
  *
+ * Spec 039 (Feed lane, design B): a `FeedPage`; the field and Create sit under the title (the list's header), the first playlist is a full-width tile
+ * and the others tiles in two equal columns on the 20 gutter, 12 apart; a failed load is an `InlineNotice` with Retry.
+ *
  * Not as drawn: the 2 x 2 tile's total time ("8 h 10 min") is not in the list the server sends, so it shows the count only.
  */
 import { useCallback, useState } from 'react';
@@ -20,27 +23,26 @@ import { router, useFocusEffect } from 'expo-router';
 import { useWindowDimensions } from 'react-native';
 import { Input, InputField } from '@/ui/lib/input';
 import { Pressable } from '@/ui/lib/pressable';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
-import { colour, spacing } from '@/design';
+import { colour, gutter, spacing } from '@/design';
 import { useSocial } from '@/social/context';
 import { ApiError } from '@/social/api';
 import { PLAYLIST_TITLE_MAX, useM19Api, type Playlist } from '@/social/m19-api';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { Loader } from '@/ui/kit/Loader';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { InlineNotice } from '@/ui/kit/layout';
+import { FeedEmpty, FeedPage } from '@/ui/feed/FeedPage';
 import { Type } from '@/ui/kit/Type';
 import { useToast } from '@/ui/shell/providers';
 import { plural } from '@socialmorning/social-core';
 import { ME_MOSAIC } from '@/ui/me/mosaic';
 import { ME_TYPE } from '@/ui/me/measures';
-import { ArtTile, DRAWN, emptyTop, KeyboardPage, LIST, mosaicColumn, PageEmpty } from '@/ui/me/lists';
+import { ArtTile, KeyboardPage, LIST } from '@/ui/me/lists';
 
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: Playlist[] };
 
-/** The mosaic starts 70 from the top of the drawn phone (20 under its status bar). */
-const MOSAIC_TOP = 70;
+type Row = { key: string; tiles: Playlist[]; big: boolean };
 
 export default function PlaylistsScreen(): React.ReactElement {
   const { listener } = useSocial();
@@ -65,10 +67,11 @@ export default function PlaylistsScreen(): React.ReactElement {
       .finally(() => setBusy(false));
   };
   const empty = title.trim() === '';
-  const col = mosaicColumn(width);
-  const wide = col * 2 + ME_MOSAIC.gap;
+  const edge = gutter(width);
+  const wide = width - 2 * edge;
+  const col = Math.floor((wide - spacing.row) / 2);
 
-  // The field and Create, above the title bar (the thumb's reach). Not shown signed out or while loading.
+  // The field and Create, under the title. Not shown signed out or while loading.
   const field = (
     <Box testID="playlist-new" className="flex-row" style={{ gap: spacing.row - 2 }}>
       <Input className="flex-1 bg-raise2 border-0 h-auto" style={{ borderRadius: LIST.fieldRadius, paddingHorizontal: 0 }}>
@@ -94,44 +97,37 @@ export default function PlaylistsScreen(): React.ReactElement {
     </Pressable>
   );
 
+  const items = listener && state.kind === 'ok' ? state.items : [];
+  const lead = items.find((p) => p.isPublic) ?? items[0];
+  const rest = lead ? items.filter((p) => p.id !== lead.id) : [];
+  const rows: Row[] = lead ? [{ key: lead.id, tiles: [lead], big: true }] : [];
+  for (let i = 0; i < rest.length; i += 2) rows.push({ key: rest[i]!.id, tiles: rest.slice(i, i + 2), big: false });
+
   return (
     <KeyboardPage>
-      <PushedPage
+      <FeedPage<Row>
         title="Playlists"
         subtitle="Collect episodes by theme; make one public to show it on your profile"
-        tone={listener && state.kind === 'error' ? 'grey' : 'hot'}
-        {...(showField ? { extra: field, extraAbove: LIST.field } : {})}
-      >
-        {(layout) => {
-          const top = layout.top + (MOSAIC_TOP - DRAWN.status);
-          if (!listener) {
-            return <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}><PageEmpty top={emptyTop(260)} title="Playlists" line="Sign in to make playlists." action={{ label: 'Sign in', onPress: () => router.push('/auth/sign-in') }} /></Box>;
-          }
-          if (state.kind === 'loading') return <Box className="flex-1 items-center" style={{ paddingTop: top }}><Loader /></Box>;
-          if (state.kind === 'error') {
-            return <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}><PageEmpty top={emptyTop(200)} title="Couldn't load" line="Couldn't load your playlists right now." action={{ label: 'Retry', onPress: () => { setState({ kind: 'loading' }); load(); } }} /></Box>;
-          }
-          const items = state.items;
-          if (items.length === 0) {
-            return <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}><PageEmpty top={emptyTop(200)} title="No playlists yet" line="No playlists yet. Name one above, or use Add to playlist in any episode's menu." /></Box>;
-          }
-          const lead = items.find((p) => p.isPublic) ?? items[0]!;
-          const rest = items.filter((p) => p.id !== lead.id);
-          const rows: Playlist[][] = [];
-          for (let i = 0; i < rest.length; i += 2) rows.push(rest.slice(i, i + 2));
-          return (
-            <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: top, paddingBottom: layout.reserve }}>
-              <Box style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right, gap: ME_MOSAIC.gap }}>
-                {tile(lead, true)}
-                {rows.map((r) => (
-                  <Box key={r[0]!.id} className="flex-row" style={{ gap: ME_MOSAIC.gap }}>{r.map((p) => tile(p, false))}</Box>
-                ))}
-              </Box>
-              <EndOfList />
-            </ScrollView>
-          );
-        }}
-      </PushedPage>
+        data={rows}
+        keyExtractor={(r) => r.key}
+        keyboardShouldPersistTaps="handled"
+        contentStyle={{ flexGrow: 1 }}
+        gap={spacing.row}
+        header={<>
+          {showField ? field : null}
+          {listener && state.kind === 'error' ? <InlineNotice text="Couldn't load your playlists right now." actionLabel="Retry" onAction={() => { setState({ kind: 'loading' }); load(); }} /> : null}
+        </>}
+        ListEmptyComponent={
+          !listener ? <FeedEmpty title="Playlists" line="Sign in to make playlists." action={{ label: 'Sign in', onPress: () => router.push('/auth/sign-in') }} />
+          : state.kind === 'loading' ? <Box className="items-center"><Loader /></Box>
+          : state.kind === 'error' ? undefined
+          : <FeedEmpty title="No playlists yet" line="No playlists yet. Name one above, or use Add to playlist in any episode's menu." />
+        }
+        ListFooterComponent={rows.length > 0 ? <EndOfList /> : undefined}
+        renderItem={({ item }) => (
+          <Box className="flex-row" style={{ gap: spacing.row }}>{item.tiles.map((p) => tile(p, item.big))}</Box>
+        )}
+      />
     </KeyboardPage>
   );
 }

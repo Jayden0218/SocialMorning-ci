@@ -17,11 +17,14 @@
  * already shares the list). The starred shows are 1 x 2 cover tiles under the edge label "Starred", the rest 2 x 1 tiles under "All shows"
  * (cover 56, title, "Updated 2d ago", ···). The grid is 3 columns of covers with a warn star on the starred ones. The ··· (or a long press)
  * opens the show menu: the show's head, Star / Unstar, Unsubscribe, a quiet Cancel. Not drawn, so gone: the hosts' faces on a row.
+ *
+ * Spec 039 (Feed lane, design B): a `FeedPage` (Back + title + the two circles); the chips are one row under the title that runs to the screen's edges; the
+ * starred shows are tiles in two equal columns under the heading "Starred", the rest 56-cover rows under "All shows" (small caps headings are gone: they are
+ * `Section` headings); the grid is 3 covers a line on the gutter. No lane, no edge label.
  */
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Share, useWindowDimensions } from 'react-native';
-import { FlatList } from '@/ui/lib/flat-list';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
 import { refreshFeeds } from '@/feeds/refresh-service';
@@ -37,20 +40,19 @@ import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Chip } from '@/ui/kit/Chip';
 import { PanelRow } from '@/ui/kit/PanelRow';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { EdgeLabel } from '@/ui/kit/EdgeLabel';
+import { Section } from '@/ui/kit/layout';
+import { FeedPage } from '@/ui/feed/FeedPage';
 import { Type } from '@/ui/kit/Type';
 import { ago } from '@/ui/kit/format';
 import { PanelGroup } from '@/ui/me/Panel';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
-import { DRAWN, PageEmpty, SearchField, emptyTop, LIST } from '@/ui/me/lists';
+import { SearchField } from '@/ui/me/lists';
+import { FeedEmpty } from '@/ui/feed/FeedPage';
 import { Cover } from '@/ui/library/parts';
 import { GridTile, ShowTile, StarredTile } from '@/ui/library/ShowTiles';
 import { LIB_TYPE, SUBS } from '@/ui/library/measures';
 import { useStores, useSubscriptionSync, useToast } from '@/ui/shell/providers';
-import { bars, spacing } from '@/design';
+import { gutter, spacing } from '@/design';
 import { plural } from '@socialmorning/social-core';
-import { columnWidth } from '@/ui/discover/Mosaic';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
 /** M24: one-line words for the four sorts (each is a chip). */
@@ -74,8 +76,9 @@ export default function SubscriptionsScreen(): React.ReactElement {
   const [order, setOrder] = useState<string[]>(() => readOrder(stores.settings));
   const [grid, setGrid] = useState(() => stores.settings.get(VIEW_KEY) === 'grid');
   const { width } = useWindowDimensions();
-  const col = columnWidth(width);
-  const gridSize = Math.floor((width - ME_MOSAIC.lane - ME_MOSAIC.right - (SUBS.grid.cols - 1) * SUBS.grid.gap) / SUBS.grid.cols);
+  const edge = gutter(width);
+  const col = Math.floor((width - 2 * edge - spacing.row * (SUBS.starredCols - 1)) / SUBS.starredCols);
+  const gridSize = Math.floor((width - 2 * edge - (SUBS.grid.cols - 1) * SUBS.grid.gap) / SUBS.grid.cols);
   const [menu, setMenu] = useState<Row | undefined>();
   const [staleSet, setStaleSet] = useState<Set<string>>(new Set());
 
@@ -139,11 +142,11 @@ export default function SubscriptionsScreen(): React.ReactElement {
   };
   const open = (item: Row) => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(item.feedUrl) } });
 
-  // The chips above the title bar: sorts, search, Manage order, Share some shows. The field opens above them.
+  // The chips under the title: sorts, search, Manage order, Share some shows. The field opens above them.
   const chips = (
     <Box className="gap-gap">
       {searching ? <SearchField value={term} onChange={setTerm} placeholder="Search your shows" autoFocus /> : null}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: spacing.gap - 2 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" style={{ marginHorizontal: -edge }} contentContainerStyle={{ gap: spacing.gap - 2, paddingHorizontal: edge }}>
         {SUB_SORTS.map((s) => <Chip key={s.key} label={SHORT_SORT[s.key] ?? s.label} accessibilityLabel={`Sort: ${s.label}`} chosen={sort === s.key} onPress={() => setSort(s.key)} />)}
         <Chip label="" icon="search-outline" accessibilityLabel="Search your shows" chosen={searching || term !== ''} onPress={() => { if (searching) setTerm(''); setSearching(!searching); }} />
         <Chip label="Manage order" onPress={() => router.push('/subscriptions/manage')} />
@@ -152,73 +155,61 @@ export default function SubscriptionsScreen(): React.ReactElement {
       </ScrollView>
     </Box>
   );
-  const extraAbove = bars.chip + (searching ? spacing.gap + LIST.field : 0);
+
+  const actions = [
+    { icon: grid ? 'list-outline' as const : 'grid-outline' as const, label: grid ? 'Show as a list' : 'Show as a grid', onPress: toggleView },
+    { icon: 'share-outline' as const, label: 'Share my list', onPress: share },
+  ];
+  const empty = rows.length === 0
+    ? <EmptyState surface="library" page />
+    : all.length === 0 ? <FeedEmpty title="No shows match" /> : undefined;
+  const common = {
+    title: 'My subscriptions',
+    ...(rows.length > 0 ? { subtitle: plural(rows.length, 'show') } : {}),
+    actions,
+    ...(rows.length > 0 ? { header: chips } : {}),
+    keyboardShouldPersistTaps: 'handled' as const,
+    contentStyle: { flexGrow: 1 },
+    gap: spacing.row,
+    ListEmptyComponent: empty,
+    ListFooterComponent: all.length > 0 ? <EndOfList /> : undefined,
+  };
 
   return (
     <>
-      <PushedPage
-        title="My subscriptions"
-        {...(rows.length > 0 ? { subtitle: plural(rows.length, 'show') } : {})}
-        actions={[
-          { icon: grid ? 'list-outline' : 'grid-outline', label: grid ? 'Show as a list' : 'Show as a grid', onPress: toggleView },
-          { icon: 'share-outline', label: 'Share my list', onPress: share },
-        ]}
-        {...(rows.length > 0 ? { extra: chips, extraAbove } : {})}
-      >
-        {(layout) => {
-          const top = layout.top + (SUBS.top - DRAWN.status);
-          if (rows.length === 0) {
-            return <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}><Box style={{ marginTop: emptyTop(240) }}><EmptyState surface="library" page /></Box></Box>;
-          }
-          if (all.length === 0) {
-            return <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}><PageEmpty top={emptyTop(240)} title="No shows match" /></Box>;
-          }
-          const side = { marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right };
-          if (grid) {
-            return (
-              <FlatList<Row[]>
-                data={gridRows}
-                key="grid"
-                keyExtractor={(r) => r.map((x) => x.feedUrl).join('|')}
-                keyboardShouldPersistTaps="handled"
-                contentContainerStyle={{ paddingTop: top, paddingBottom: layout.reserve }}
-                ItemSeparatorComponent={() => <Box style={{ height: SUBS.grid.gap }} />}
-                ListFooterComponent={<EndOfList />}
-                renderItem={({ item: line }) => (
-                  <Box className="flex-row" style={{ ...side, gap: SUBS.grid.gap }}>
-                    {line.map((item) => <GridTile key={item.feedUrl} item={item} size={gridSize} label={`${item.title}${item.starred ? ', starred' : ''}. Long-press for more`} onOpen={() => open(item)} onMenu={() => setMenu(item)} />)}
-                  </Box>
-                )}
-              />
-            );
-          }
-          return (
-            <FlatList<Row>
-              data={rest}
-              key="list"
-              keyExtractor={(r) => r.feedUrl}
-              keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingTop: top, paddingBottom: layout.reserve }}
-              ItemSeparatorComponent={() => <Box style={{ height: ME_MOSAIC.gap }} />}
-              ListHeaderComponent={starred.length > 0 ? (
-                <Box testID="starred-tiles" style={{ ...side, marginBottom: ME_MOSAIC.gap }}>
-                  <EdgeLabel label="Starred" top={10} left={-(ME_MOSAIC.lane - 6)} />
-                  <Box className="flex-row flex-wrap" style={{ gap: ME_MOSAIC.gap }}>
+      {grid ? (
+        <FeedPage<Row[]>
+          {...common}
+          key="grid"
+          data={all.length > 0 ? gridRows : []}
+          keyExtractor={(r) => r.map((x) => x.feedUrl).join('|')}
+          renderItem={({ item: line }) => (
+            <Box className="flex-row" style={{ gap: SUBS.grid.gap }}>
+              {line.map((item) => <GridTile key={item.feedUrl} item={item} size={gridSize} label={`${item.title}${item.starred ? ', starred' : ''}. Long-press for more`} onOpen={() => open(item)} onMenu={() => setMenu(item)} />)}
+            </Box>
+          )}
+        />
+      ) : (
+        <FeedPage<Row>
+          {...common}
+          key="list"
+          data={rest}
+          keyExtractor={(r) => r.feedUrl}
+          ListHeaderComponent={all.length > 0 ? (
+            <>
+              {starred.length > 0 ? (
+                <Section title="Starred">
+                  <Box testID="starred-tiles" className="flex-row flex-wrap" style={{ gap: spacing.row }}>
                     {starred.map((item) => <StarredTile key={item.feedUrl} item={item} width={col} label={linesOf(item).label} onOpen={() => open(item)} onMenu={() => setMenu(item)} />)}
                   </Box>
-                </Box>
-              ) : undefined}
-              ListFooterComponent={<EndOfList />}
-              renderItem={({ item, index }) => (
-                <Box style={side}>
-                  {index === 0 ? <EdgeLabel label="All shows" top={0} left={-(ME_MOSAIC.lane - 6)} /> : null}
-                  <ShowTile item={item} line={linesOf(item).printed} label={linesOf(item).label} onOpen={() => open(item)} onMenu={() => setMenu(item)} />
-                </Box>
-              )}
-            />
-          );
-        }}
-      </PushedPage>
+                </Section>
+              ) : null}
+              {rest.length > 0 ? <Section title="All shows" /> : null}
+            </>
+          ) : null}
+          renderItem={({ item }) => <ShowTile item={item} line={linesOf(item).printed} label={linesOf(item).label} onOpen={() => open(item)} onMenu={() => setMenu(item)} />}
+        />
+      )}
       <ActionSheet open={menu !== undefined} onClose={() => setMenu(undefined)} label="Show menu">
         {menu ? (
           <>

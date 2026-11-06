@@ -18,6 +18,7 @@ import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { bars } from '@/design';
 
 const mockEpisodes = Array.from({ length: 4 }, (_, i) => ({
   id: `e${i}`, feedUrl: 'https://f/x', title: `Episode ${i}`, audioUrl: 'https://a/x.mp3', publishedAt: 1_700_000_000_000 - i * 86_400_000,
@@ -94,45 +95,31 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('where the parts sit (390 x 844, status bar 50, home strip 34)', () => {
-  it('the stage, the circles, the chip row, the tiles and the thumb zone are at the drawn numbers', async () => {
+describe('the page in design B\'s Detail frame (spec 039: was the 300 stage, the glass circles, the chip row at 156 and the thumb zone)', () => {
+  it('has the title row (Back, the show\'s name, search and More), the header, the chip row and the episodes as row cards', async () => {
     const r = await mount();
-    expect(flat(byId(r, 'show-stage'))['height']).toBe(310);
-    expect(flat(byId(r, 'show-veil'))['height']).toBe(310);
-    const art = byId(r, 'show-stage').children[0] as ReactTestInstance;
-    expect(flat(art)['height']).toBe(300);
-    expect(flat(art)['opacity']).toBe(0.85);
-    // The chip row: 156 from the top, the first chip 28 in.
-    const header = r.root.findAll((n) => host(n) && flat(n)['height'] === 206)[0];
-    expect(header).toBeDefined();
-    const chipRow = r.root.findAll((n) => host(n) && flat(n)['top'] === 156 && flat(n)['position'] === 'absolute')[0];
-    expect(chipRow).toBeDefined();
-    const scroller = r.root.findAll((n) => n.props['horizontal'] === true && n.props['contentContainerStyle'])[0]!;
-    expect((n => StyleSheet.flatten(n) as Record<string, unknown>)(scroller.props['contentContainerStyle'])).toMatchObject({ paddingLeft: 28, paddingRight: 16, gap: 5 });
-    // The tiles: the newest 2 x 2 (178), the others 2 x 1 (84), 28 in and 16 from the right.
-    const big = byId(r, 'show-big-tile');
-    expect(flat(big)).toMatchObject({ height: 178, marginLeft: 28, marginRight: 16, borderRadius: 22 });
+    expect(allById(r, 'page-title-row')).toHaveLength(1);
+    expect(allById(r, 'show-head')).toHaveLength(1);
+    // No stage, veil, big tile, thumb zone or absolutely placed circles any more.
+    for (const id of ['show-stage', 'show-veil', 'show-big-tile', 'show-thumb-zone']) expect(allById(r, id)).toHaveLength(0);
     const rows = allById(r, 'show-row-tile');
-    expect(rows).toHaveLength(3);
-    expect(flat(rows[0]!)).toMatchObject({ height: 84, marginLeft: 28, marginRight: 16, marginTop: 10, borderRadius: 22 });
-    // The thumb zone: 20 in each side, 6 above the home strip the root pads.
-    expect(flat(byId(r, 'show-thumb-zone'))).toMatchObject({ left: 20, right: 20, bottom: 6 });
+    expect(rows).toHaveLength(4);
+    expect(flat(rows[0]!)).toMatchObject({ minHeight: 84, borderRadius: 16 });
+    expect(flat(rows[0]!)['marginLeft']).toBeUndefined();
+    // The chip row is a Shelf: it runs off the right edge, the first chip on the 20 gutter.
+    expect(allById(r, 'shelf').length).toBeGreaterThan(0);
   });
-  it('a taller status bar moves the top parts down; the now bar lifts the thumb zone to 74', async () => {
+  it('the toast placement\'s now flag lifts the foot (the list pads the now bar)', async () => {
     mockNow = true;
     const r = await mount(59);
-    expect(r.root.findAll((n) => host(n) && flat(n)['top'] === 165 && flat(n)['position'] === 'absolute')).not.toHaveLength(0);
-    expect(r.root.findAll((n) => host(n) && flat(n)['height'] === 215)).not.toHaveLength(0);
-    expect(flat(byId(r, 'show-thumb-zone'))['bottom']).toBe(74);
+    const list = byId(r, 'show-page');
+    expect((StyleSheet.flatten(list.props['contentContainerStyle']) as Record<string, number>)['paddingBottom']).toBeGreaterThanOrEqual(bars.now);
   });
-  it('the glass circles are 44 round, 62 from the top and 8 apart', async () => {
+  it('search and More are 44 round circles in the title row', async () => {
     const r = await mount();
     const search = pressable(r, "Search this show's episodes");
-    const more = pressable(r, 'More: show info, report this show');
     expect(flat(search)).toMatchObject({ width: 44, height: 44 });
-    const row = r.root.findAll((n) => host(n) && flat(n)['top'] === 62 && flat(n)['gap'] === 8)[0]!;
-    expect(flat(row)).toMatchObject({ right: 20, gap: 8 });
-    expect(more).toBeDefined();
+    expect(pressable(r, 'More: show info, report this show')).toBeDefined();
   });
 });
 
@@ -149,26 +136,15 @@ describe('the chip row and the list', () => {
     expect(texts(r).has('Episode 0')).toBe(true);
     press(r, 'Newest first. Show oldest first');
     expect(pressable(r, 'Oldest first. Show newest first')).toBeDefined();
-    const big = byId(r, 'show-big-tile');
-    expect(JSON.stringify(big.findAll((n) => typeof n.props['children'] === 'string').map((n) => n.props['children']))).toContain('Episode 3');
-  });
-  // 038 (run 41961274572, r07-episode-player-xl): at the large text size the newest tile's title wraps over the middle of the tile, and a title that is a
-  // plain Text over a box-none overlay is a dead zone: the full-tile Pressable sits behind it, so a tap on the words opened nothing. The words let the touch through.
-  it('a tap on the newest tile\'s words reaches the tile: its title and meta line sit under pointerEvents none', async () => {
-    const r = await mount();
-    const big = byId(r, 'show-big-tile');
-    const title = big.findAll((n) => typeof n.type === 'string' && n.props['children'] === 'Episode 0')[0]!;
-    expect(title).toBeDefined();
-    const blocked: string[] = [];
-    for (let n: ReactTestInstance | null = title; n && n !== big; n = n.parent) if (n.props['pointerEvents'] === 'none') blocked.push(String(n.type));
-    expect(blocked).not.toEqual([]);
+    const first = allById(r, 'show-row-tile')[0]!;
+    expect(JSON.stringify(first.findAll((n) => typeof n.props['children'] === 'string').map((n) => n.props['children']))).toContain('Episode 3');
   });
   it('Hot moments swaps the list for the deck, and All swaps it back', async () => {
     mockMoments = { status: 'ready', cards: [{ episodeId: 'e0', showTitle: 'Morning Notes', episodeTitle: 'Episode 0', feedUrl: 'https://f/x', guid: 'g', startMs: 872_000, endMs: 890_000, reactions: 14, rank: 1, followed: false, comments: [] }], all: [], reload: () => undefined };
     const r = await mount();
-    expect(allById(r, 'show-big-tile')).toHaveLength(1);
+    expect(allById(r, 'show-row-tile').length).toBeGreaterThan(0);
     press(r, 'Hot moments, new');
-    expect(allById(r, 'show-big-tile')).toHaveLength(0);
+    expect(allById(r, 'show-row-tile')).toHaveLength(0);
     expect(allById(r, 'hot-moment-card')).toHaveLength(1);
     // The sort chips belong to the list: gone in the deck.
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Show unplayed only')).toHaveLength(0);
@@ -176,7 +152,7 @@ describe('the chip row and the list', () => {
     act(() => { (play.props['onPress'] as () => void)(); });
     expect(mockPlayFull).toHaveBeenCalledWith(expect.objectContaining({ episodeId: 'e0', startMs: 872_000 }));
     press(r, 'All');
-    expect(allById(r, 'show-big-tile')).toHaveLength(1);
+    expect(allById(r, 'show-row-tile').length).toBeGreaterThan(0);
   });
   it('the newest tile wears the time of its hottest moment and plays from it', async () => {
     mockMoments = { status: 'ready', cards: [{ episodeId: 'e0', showTitle: 'Morning Notes', episodeTitle: 'Episode 0', feedUrl: 'https://f/x', guid: 'g', startMs: 872_000, endMs: 890_000, reactions: 14, rank: 1, followed: false, comments: [] }], all: [], reload: () => undefined };
@@ -236,7 +212,7 @@ describe('the thumb zone and the actions', () => {
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Report this show' && typeof n.props['onPress'] === 'function')).not.toHaveLength(0);
     press(r, 'Episodes');
     expect(allById(r, 'show-about')).toHaveLength(0);
-    expect(allById(r, 'show-big-tile')).toHaveLength(1);
+    expect(allById(r, 'show-row-tile').length).toBeGreaterThan(0);
   });
   it('a tile opens its episode, its disc plays, a long-press opens the Details sheet; the chip row long-press queues the list', async () => {
     const r = await mount();

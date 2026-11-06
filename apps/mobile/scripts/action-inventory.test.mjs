@@ -68,3 +68,66 @@ test('removing the object from the array removes it from the inventory (the guar
   assert.ok(!e.some((x) => x.name === 'Delete playlist'));
   assert.ok(e.some((x) => x.name === 'Rename playlist'));
 });
+
+// 039 I1: design B's parts carry actions as props that the first scanner did not know.
+test('<InlineNotice actionLabel=… onAction=…> is an action named by its label, going where onAction goes', () => {
+  const e = run({
+    'app/picks/daily.tsx': [
+      'export default function D() {',
+      '  return <InlineNotice text="Could not load" actionLabel="Retry" onAction={load} />;',
+      '}',
+    ].join('\n'),
+  });
+  const r = e.find((x) => x.name === 'Retry');
+  assert.ok(r, `Retry not in the inventory: ${JSON.stringify(e)}`);
+  assert.equal(r.destination, 'load');
+  assert.equal(r.surface, '/picks/daily');
+});
+
+test('onTitle + titleLabel on Page, PageList, FeedPage and the wrappers is a title link action', () => {
+  const e = run({
+    'app/creator.tsx': [
+      'export default function C() {',
+      "  return <DetailPage title=\"Creator\" titleLabel=\"Creator academy\" onTitle={() => router.push('/academy')} />;",
+      '}',
+    ].join('\n'),
+    'app/y.tsx': [
+      'export default function Y() {',
+      '  return (',
+      '    <PageList<Row>',
+      '      title="Y"',
+      '      onTitle={openIt}',
+      '      data={[]}',
+      '    />',
+      '  );',
+      '}',
+    ].join('\n'),
+    'app/z.tsx': 'export default function Z() { return <FeedPage title="Plaza" onTitle={() => router.back()} />; }',
+  });
+  const a = e.find((x) => x.name === 'Creator academy');
+  assert.ok(a, JSON.stringify(e));
+  assert.equal(a.destination, '/academy');
+  assert.ok(e.some((x) => x.name === 'Y' && x.destination === 'openIt'), JSON.stringify(e));
+  assert.ok(e.some((x) => x.name === 'Plaza' && x.destination === 'back'), JSON.stringify(e));
+});
+
+test('a notice without onAction, and a Page without onTitle, add no action', () => {
+  const e = run({ 'app/q.tsx': 'export default function Q() { return <Page title="Q"><InlineNotice text="x" /></Page>; }' });
+  assert.deepEqual(e.map((x) => x.name), []);
+});
+
+test('an onAction with nested braces still counts, and an <AuthField> is an input named by its accessibilityLabel', () => {
+  const e = run({
+    'app/n.tsx': [
+      'export default function N() {',
+      "  return <><InlineNotice text=\"x\" actionLabel=\"Retry\" onAction={() => { setState({ kind: 'loading' }); load(); }} />",
+      '    <AuthField label="Name" value={n} onChangeText={(t) => setName(t.slice(0, 9))} accessibilityLabel="Display name" /></>;',
+      '}',
+    ].join('\n'),
+  });
+  assert.ok(e.some((x) => x.name === 'Retry'), JSON.stringify(e));
+  const f = e.find((x) => x.name === 'Display name');
+  assert.ok(f, JSON.stringify(e));
+  assert.equal(f.destination, 'setName');
+  assert.equal(f.role, 'input');
+});

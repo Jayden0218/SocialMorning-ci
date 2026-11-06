@@ -10,22 +10,21 @@
  * bar says "Likes" and "Episodes Rui Costa liked" (no name: "Episodes they liked"). Loading is the grey spine and breathing ghost
  * rows; none is the empty block "No public likes yet."; a failure is the centred 64 disc with "Couldn't load likes right now." and a
  * light Retry.
+ *
+ * Spec 039 (Feed lane, design B): a `FeedPage`; each like is one `LikeCard` in the list (no spine, no tick: the card says "liked this, 2d"); loading is grey rows;
+ * a failure is an `InlineNotice` with Retry; none is the empty block "No public likes yet.".
  */
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { FlatList } from '@/ui/lib/flat-list';
 import { Box } from '@/ui/lib/box';
+import { spacing } from '@/design';
 import { useProfileApi, type LikeItem } from '@/social/profile-api';
 import { useCardActions } from '@/discover/useDiscover';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { Loader } from '@/ui/kit/Loader';
-import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
-import { ageLabel, DRAWN, emptyTop, EmptySpine, LIST, PageEmpty, ThreadNode, ThreadSpine, threadPad } from '@/ui/me/lists';
-import { COMMENTS } from '@/ui/comments/measures';
-import { GhostRows, Tick } from '@/ui/comments/Spine';
+import { InlineNotice } from '@/ui/kit/layout';
+import { FeedEmpty, FeedLoading, FeedPage } from '@/ui/feed/FeedPage';
 import { LikeCard } from '@/ui/social/LikeCard';
-import { CenterBlock, IconBlock } from '@/ui/profile/parts';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
 type State = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: LikeItem[]; next?: string };
@@ -51,50 +50,22 @@ export default function ListenerLikesScreen(): React.ReactElement {
   };
   const named = typeof name === 'string' && name !== '';
   const nowMs = clockMs();
+  const items = state.kind === 'ok' ? state.items : [];
   return (
-    <PushedPage title="Likes" subtitle={named ? `Episodes ${name} liked` : 'Episodes they liked'} tone={state.kind === 'error' ? 'grey' : 'hot'}>
-      {(layout) => {
-        const top = layout.top + (DRAWN.listTop - DRAWN.status);
-        const emptyAt = layout.top + (LIST.emptySpineTop - DRAWN.status);
-        if (state.kind === 'loading') {
-          return (
-            <Box className="flex-1" testID="likes-loading">
-              <EmptySpine top={emptyAt} />
-              <Box style={{ marginTop: layout.top + 6, marginLeft: COMMENTS.spineX, marginRight: LIST.right - LIST.headGap }}><GhostRows rows={6} /></Box>
-            </Box>
-          );
-        }
-        if (state.kind === 'error') {
-          return (
-            <Box className="flex-1">
-              <CenterBlock top={layout.top} drawn={250}>
-                <IconBlock icon="wifi" failure line="Couldn't load likes right now."><PulseButton label="Retry" kind="light" onPress={() => { setState({ kind: 'loading' }); load(); }} full /></IconBlock>
-              </CenterBlock>
-            </Box>
-          );
-        }
-        const nothing = state.items.length === 0;
-        return (
-          <Box className="flex-1" style={{ paddingTop: top }}>
-            {nothing ? <EmptySpine top={emptyAt} /> : <ThreadSpine top={top} />}
-            <FlatList
-              className="flex-1"
-              data={state.items}
-              keyExtractor={(l) => `${l.episode.id}|${l.createdAt}`}
-              contentContainerStyle={{ ...threadPad(layout.reserve), flexGrow: 1 }}
-              ItemSeparatorComponent={() => <Box style={{ height: LIST.nodeGap }} />}
-              ListEmptyComponent={<PageEmpty top={emptyTop(240) - LIST.top} title="No public likes yet" line="No public likes yet." />}
-              ListFooterComponent={state.items.length > 0 ? (state.next ? <Box className="items-center py-row"><Loader /></Box> : <EndOfList />) : undefined}
-              onEndReached={more}
-              renderItem={({ item }) => (
-                <ThreadNode lead={<Tick text={ageLabel(Date.parse(item.createdAt), nowMs)} />}>
-                  <LikeCard item={{ ...item, listener: undefined }} now={new Date(nowMs).toISOString()} onOpen={(c) => void open(c)} onPlay={(c) => void play(c)} />
-                </ThreadNode>
-              )}
-            />
-          </Box>
-        );
-      }}
-    </PushedPage>
+    <FeedPage<LikeItem>
+      title="Likes"
+      subtitle={named ? `Episodes ${name} liked` : 'Episodes they liked'}
+      data={items}
+      keyExtractor={(l) => `${l.episode.id}|${l.createdAt}`}
+      contentStyle={{ flexGrow: 1 }}
+      gap={spacing.row}
+      onEndReached={more}
+      ListHeaderComponent={state.kind === 'error' ? <InlineNotice text="Couldn't load likes right now." actionLabel="Retry" onAction={() => { setState({ kind: 'loading' }); load(); }} /> : null}
+      ListEmptyComponent={state.kind === 'loading' ? <FeedLoading testID="likes-loading" rows={6} /> : state.kind === 'error' ? undefined : <FeedEmpty title="No public likes yet" line="No public likes yet." />}
+      ListFooterComponent={items.length > 0 ? (state.kind === 'ok' && state.next ? <Box className="items-center py-row"><Loader /></Box> : <EndOfList />) : undefined}
+      renderItem={({ item }) => (
+        <LikeCard item={{ ...item, listener: undefined }} now={new Date(nowMs).toISOString()} onOpen={(c) => void open(c)} onPlay={(c) => void play(c)} />
+      )}
+    />
   );
 }

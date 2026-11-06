@@ -3,7 +3,7 @@
  * M19 T031 (US3): a like as a card. On the Likes timeline it heads with the person (photo or letters, name, how long
  * ago) — tapping it opens their profile; on a profile the person is already known, so only the episode and the note show.
  *
- * M31 W4-A (T050; design-pulse2 social.html `likeCard`, `profile-likes--screen`): a raise card (radius 18, padding 12, 8 between parts):
+ * M31 W4-A (T050; design-pulse2 social.html `likeCard`, `profile-likes--screen`), restyled by spec 039 I2 on the 038 tokens: a raise card (`ThreadCard`: radius 16, padding 16, 8 between parts):
  * the episode as a row — cover 44, title Geist 600 14/18, the show in mono 11 text3, a light Play circle 36 — then the note in
  * quotes (14/20 text2) and, last, "liked this, 2d" in hot-text 12 with a filled heart 14. The row opens the episode, the circle
  * plays it. With a person (the timeline) their avatar 24 and name head the card in place of "liked this".
@@ -11,7 +11,7 @@
 import { Link } from '@/design/tailwind';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { colour, spacing } from '@/design';
 import type { EpisodeCard } from '@/social/api';
 import type { LikeItem } from '@/social/profile-api';
 import { Artwork } from '@/ui/kit/Artwork';
@@ -55,7 +55,7 @@ export function LikeCard(props: { item: LikeItem; onOpen: (card: EpisodeCard) =>
       </Box>
       {item.note ? <Type step="quote" className="text-text2">{`“${item.note}”`}</Type> : null}
       {who ? null : (
-        <Box className="flex-row items-center" style={{ gap: 6 }} accessible accessibilityLabel={`Liked this, ${when}`}>
+        <Box className="flex-row items-center" style={{ gap: spacing.gap }} accessible accessibilityLabel={`Liked this, ${when}`}>
           <Icon name="heart" size={HEART} color={colour.hotText} />
           <Type step="chip" className="text-hotText font-medium">{`liked this, ${when}`}</Type>
         </Box>

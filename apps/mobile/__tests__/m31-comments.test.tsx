@@ -13,7 +13,7 @@
  * the spine's stops back to two; swap `bg-hot` on the Post pill; drop the rule above Report; change `cardLeft`'s 56.
  */
 import { createElement } from 'react';
-import { StyleSheet, processColor } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
@@ -99,7 +99,6 @@ import { ComposerSheet } from '@/ui/comments/Composer';
 import { CommentsMap, liveDiscs } from '@/ui/comments/CommentsMap';
 import { Capsule, ComposerBar, SignInBar } from '@/ui/comments/CommentsBottom';
 import { IconButton } from '@/ui/kit/PulseButton';
-import { SpineLine, SpineNode } from '@/ui/comments/Spine';
 import { voiceWave } from '@/ui/comments/VoiceComment';
 import { DRAWN_ICONS } from '@/ui/kit/drawn-icons';
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
@@ -199,37 +198,34 @@ describe('the page puts each part where the drawing does (390 × 844, 50 pt stat
     ];
   };
 
-  it('the strip is at 56, the map at 102, the spine at 140, the zone 6 over the home strip', async () => {
+  // 039 (Feed lane): was "the strip is at 56, the map at 102, the thread at 140" (absolute tops under the status bar); the strip and the map are the list's header now, in flow under the
+  // title row, on the page's gutter. The zone (the capsule and the composer) is unchanged: 6 over the home strip.
+  it('the strip and the map are in the list header; the zone is 6 over the home strip', async () => {
     two();
     const r = mount(createElement(CommentsScreen));
     await act(async () => { await Promise.resolve(); });
-    near(styleOf(byId(r, 'comments-strip'))['top'], 56);
-    near(styleOf(byId(r, 'comments-map-row'))['top'], 102);
-    near(styleOf(byId(r, 'comments-thread'))['top'], 140);
+    expect(styleOf(byId(r, 'comments-strip'))['top']).toBeUndefined();
+    expect(styleOf(byId(r, 'comments-map-row'))['top']).toBeUndefined();
+    expect(byId(r, 'page-title-row')).toBeDefined();
     // 6 over the home strip: the root layout pads the strip once, so the page starts above it (the drawing's 40 = 34 + 6).
     near(styleOf(byId(r, 'comments-zone'))['bottom'], 6);
     near(styleOf(byId(r, 'comments-zone'))['left'], 12);
     near(styleOf(byId(r, 'comments-zone'))['gap'], 10);
   });
 
-  it('a taller status bar and home inset move the page by the difference', async () => {
+  it('a taller status bar moves the title row down by the difference; a taller home inset moves the zone nothing', async () => {
     two();
+    const content = (r: ReactTestRenderer) => StyleSheet.flatten(r.root.findAll((n) => n.props['testID'] === 'page-scroll' && n.props['contentContainerStyle'] !== undefined)[0]!.props['contentContainerStyle'] as never) as Style;
     const r = mount(createElement(CommentsScreen), { top: 59, bottom: 34 });
-    near(styleOf(byId(r, 'comments-strip'))['top'], 65);
-    near(styleOf(byId(r, 'comments-thread'))['top'], 149);
+    const r0 = mount(createElement(CommentsScreen), { top: 50, bottom: 34 });
+    near(content(r)['paddingTop'] as number, (content(r0)['paddingTop'] as number) + 9);
     // A taller home inset moves nothing: the root pads that strip, so the zone stays 6 above it on every phone.
     const r2 = mount(createElement(CommentsScreen), { top: 50, bottom: 40 });
     near(styleOf(byId(r2, 'comments-zone'))['bottom'], 6);
     expect([belowStatus(50, 102), aboveInset(34, 40), aboveInset(0, 40)]).toEqual([102, 40, 6]);
   });
 
-  it('the spine is 2 wide at x 40 and runs hot, violet at 60 %, line', () => {
-    const r = mount(createElement(SpineLine));
-    const line = byId(r, 'spine-line');
-    near(styleOf(line)['left'], 40); near(styleOf(line)['width'], 2);
-    expect(line.props['locations']).toEqual([0, 0.6, 1]);
-    expect(line.props['colors']).toEqual([colour.hot, colour.violet, colour.line].map((x) => processColor(x)));
-  });
+  // 039 I2: "the spine is 2 wide at x 40 and runs hot, violet at 60 %, line" went with `SpineLine`, which no page draws any more.
 
   it('the thumb zone: a 44 close circle, the title with its count, a 40 capsule with a 3 rim, a 56 composer with radius 22', async () => {
     two();
@@ -317,17 +313,7 @@ describe('the spine groups comments under moments', () => {
     expect(nearestNode(nodes, 900_000)).toBe(1);
     expect(nearestNode(buildNodes([c({ id: 'n', offsetMs: null })], true), 5)).toBe(-1);
   });
-  it('a node: the chip in a 46 column over the spine, "41 reacted" in mono beside it', () => {
-    const r = mount(<SpineNode momentMs={872_000} reacted={41} onSeek={mockSeek}>{createElement('Marker')}</SpineNode>);
-    const node = byId(r, 'spine-node');
-    near(styleOf(node)['gap'], 10);
-    expect(text(r)).toContain('14:32');
-    expect(text(r)).toContain('41 reacted');
-    act(() => { pressable(r, 'Play from 14:32').props['onPress'](); });
-    expect(mockSeek).toHaveBeenCalledWith(872_000);
-    const col = r.root.findAll((n) => typeof n.type === 'string' && styleOf(n)['width'] === 46)[0]!;
-    expect(styleOf(col)['zIndex']).toBe(2);
-  });
+  // 039 I2: "a node: the chip in a 46 column over the spine" went with `SpineNode`, which no page draws any more.
 });
 
 describe('a card', () => {
@@ -534,17 +520,16 @@ describe('the replies page (Stage + Thread)', () => {
     return r;
   };
 
-  it('the stage is at 60 (the comment, its solid chip, its heart), the spine from 250, replies as cards with an age tick', async () => {
+  // 039 (Feed lane): was "the stage is at 60, the spine from 250, replies as cards 56 in with an age tick" (absolute tops, a spine-node and a tick per reply); the stage is the list's
+  // header now, the replies are cards on the gutter with no indent, no spine and no tick (the card says its age).
+  it('the stage is the list header (the comment, its solid chip, its heart); the replies are flush cards', async () => {
     mockThread = { parent, replies };
     const r = await open();
-    near(styleOf(byId(r, 'thread-stage'))['top'], 60);
-    near(styleOf(byId(r, 'replies-thread'))['top'], 250);
+    expect(styleOf(byId(r, 'thread-stage'))['top']).toBeUndefined();
     expect(text(r)).toContain('This is the part I replay every morning.');
     expect(labels(r)).toEqual(expect.arrayContaining(['Play from 14:32', 'Like. 41 likes', 'More for this comment']));
-    expect(allById(r, 'spine-node')).toHaveLength(2);
-    expect(allById(r, 'comment-card').map((n) => styleOf(n)['marginLeft'])).toEqual([56, 56]);
-    expect(text(r)).toContain('"4h"');
-    expect(text(r)).toContain('"3h"');
+    expect(allById(r, 'spine-node')).toHaveLength(0);
+    expect(allById(r, 'comment-card').map((n) => styleOf(n)['marginLeft'])).toEqual([0, 0]);
     expect(text(r)).toContain('"That\'s all"');
   });
 

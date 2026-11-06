@@ -1,5 +1,7 @@
 // One message from SocialNet: title, text, time, and at most one button that opens a page in the app.
 /**
+ * Spec 039 (Feed lane, design B): the card is the Feed card (`ItemCard`: raise, radius 24, padding 16, 12 between parts).
+ *
  * M21 US10 (T108): a system card may carry one in-app button. Its route comes from the notice's
  * payload through `systemAction` (src/social/notifications-api.ts), which keeps only a path
  * inside the app — a web address never becomes a button.
@@ -15,7 +17,8 @@ import { colour } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
-import { NOTIF, NotifCard } from '@/ui/notifications/parts';
+import { NOTIF } from '@/ui/notifications/parts';
+import { ItemCard } from '@/ui/notifications/cards';
 import { systemAction, type SystemNotice } from '@/social/notifications-api';
 
 export function SystemNoticeCard(props: { notice: SystemNotice; onOpen?: (route: string) => void }): React.ReactElement {
@@ -24,7 +27,7 @@ export function SystemNoticeCard(props: { notice: SystemNotice; onOpen?: (route:
   const action = systemAction(n.action);
   const open = props.onOpen ?? ((route: string) => router.push(route as never));
   return (
-    <NotifCard testID="system-card" pad={NOTIF.systemPad} gap={NOTIF.systemGap}>
+    <ItemCard testID="system-card">
       <Box className="flex-row items-center" style={{ gap: 8 }}>
         <Box className="bg-raise2 items-center justify-center" style={{ width: NOTIF.square, height: NOTIF.square, borderRadius: NOTIF.squareRadius }} accessible={false} importantForAccessibility="no-hide-descendants">
           <Icon name="notifications-outline" size={16} color={colour.text} />
@@ -34,6 +37,6 @@ export function SystemNoticeCard(props: { notice: SystemNotice; onOpen?: (route:
       <Type step="tag" className="text-text3">{`${at.toLocaleDateString([], { day: 'numeric', month: 'short' })} · ${at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}</Type>
       <Type step="body" className="text-text">{n.body}</Type>
       {action ? <PulseButton label={action.label} onPress={() => open(action.route)} height={40} className="self-start" /> : null}
-    </NotifCard>
+    </ItemCard>
   );
 }

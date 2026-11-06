@@ -3,7 +3,7 @@
  * M31 lane L7 (owner, 2026-10-28, after the wave-1 captures: "the design I want completely the same").
  * Source of every number: specs/033-m31-redesign/design-pulse2/index.html `#discover--screen`,
  * `#home--moments`, `#launch--promotion` and kit.js / kit.css. Each test names the revert that turns it red:
- *  - edge label: measure the visible, turned Text again (it reads 14 back and shows "T") — red;
+ *  - (039 I2: the edge-label guard went with `EdgeLabel`.)
  *  - fade: `FADE_HEIGHT` back to 260, or `ZONE_BOTTOM` back to a 10 gap — red;
  *  - curve: `spread` back to the drawing helper's first-70-buckets `sample`, or the hot glow back to a
  *    bucket-sized radius — red;
@@ -18,7 +18,6 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { bars, colour, glow, typeScale } from '@/design';
-import { EdgeLabel, MEASURE_ROOM, SLACK } from '@/ui/kit/EdgeLabel';
 import { Fade } from '@/ui/kit/Fade';
 import { Curve, spread } from '@/ui/kit/Curve';
 import { DiscoverMosaic, GradientTime, HOT_HEIGHT, HotNowTile, type MosaicActions, type ShortcutTile } from '@/ui/discover/DiscoverMosaic';
@@ -81,27 +80,7 @@ const withStyle = (n: ReactTestInstance, key: string): Record<string, unknown> =
   throw new Error(`no ancestor with style ${key}`);
 };
 
-describe('4/6 edge label: the whole of "TODAY\'S PICK"', () => {
-  it('measures an unconstrained copy (wider than any label, off the left edge, unseen), then gives the turned label that width', () => {
-    const r = render(createElement(EdgeLabel, { label: "Today's pick", top: 30 }));
-    const copy = byId(r, 'edge-measure')[0]!;
-    expect(flat(copy)).toMatchObject({ width: MEASURE_ROOM, opacity: 0, left: -MEASURE_ROOM });
-    expect(copy.props['pointerEvents']).toBe('none');
-    expect(copy.props['importantForAccessibility']).toBe('no-hide-descendants');
-    const measured = copy.findAll((n) => String(n.type) === 'Text')[0]!;
-    expect(measured.props['numberOfLines']).toBeUndefined(); // never cut while it is measured
-    act(() => { measured.props['onLayout']({ nativeEvent: { layout: { width: 143.2, height: 14, x: 0, y: 0 } } }); });
-    const shown = texts(r).filter((t) => t.props['numberOfLines'] === 1)[0]!;
-    // Room for the quarter pixel the measure rounds off: on the web a line a hair too long is ellipsised ("TODAY'S PIC…"), so width AND maxWidth carry the slack.
-    expect(flat(shown)).toMatchObject({ width: 144 + SLACK, maxWidth: 144 + SLACK, opacity: 1 });
-    expect(JSON.stringify(flat(shown)['transform'])).toContain('-90deg');
-    // the box is the turned size: the lane wide, the label long; its centre is the box's centre
-    const box = r.root.findAll((n) => n.props['accessibilityRole'] === 'header')[0]!;
-    expect(flat(box)).toMatchObject({ width: typeScale.edge.lineSafe, height: 144, left: 6, top: 30 });
-    expect(flat(shown)['left']).toBe((typeScale.edge.lineSafe - 144) / 2);
-    expect(flat(shown)['top']).toBe((144 - typeScale.edge.lineSafe) / 2);
-  });
-});
+// 039 I2: "4/6 edge label: the whole of TODAY'S PICK" went with `EdgeLabel` (retired: sections are named by Section headings).
 
 describe('7 Discover bottom zone', () => {
   // Spec 039 D4 (was: `FADE_HEIGHT` imported from DiscoverPage): the page no longer draws the fade, so the drawn 360 is written here; the `Fade` part itself is unchanged.

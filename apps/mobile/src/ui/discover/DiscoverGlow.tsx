@@ -1,6 +1,6 @@
 // The soft hot and violet glow behind the top of Discover, as drawn.
 /**
- * M31 L7 (design-pulse2 `kit.js` `glow('#FF4D6D','#7A3CFF',-160,.4)`, used by `discover--screen`):
+ * M31 L7 (design-pulse2 `kit.js` `glow(hot, violet, -160, .4)`, used by `discover--screen`):
  * two radial glows, hot at 35 % across and 50 % down, violet at 70 % across and 40 % down, in a box
  * 520 tall that starts 160 above the screen and reaches 30 % past each side, 40 % strong. The drawing
  * blurs a CSS gradient; React Native has no blur filter, so each is a radial gradient (closest-side
@@ -18,7 +18,7 @@ export const GLOW = { top: -160, height: 520, spread: 0.3, strength: 0.4 } as co
 
 /**
  * Search draws the same glow with the two colours swapped, 260 above the screen and 25 % strong
- * (design-pulse2 `glow('#7A3CFF','#FF4D6D',-260,.25)`): `swap`, `top` and `strength` say so; the default is Discover's.
+ * (design-pulse2 `glow(violet, hot, -260, .25)`): `swap`, `top` and `strength` say so; the default is Discover's.
  */
 export function DiscoverGlow(props: { swap?: boolean; top?: number; strength?: number } = {}): React.ReactElement {
   const { width } = useWindowDimensions();

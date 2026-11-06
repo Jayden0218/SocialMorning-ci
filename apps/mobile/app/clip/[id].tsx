@@ -4,6 +4,10 @@
  * (expo-router: `socialmorning://clip/<id>` and the verified https link). Works signed
  * out: clips are public. Resolution order in `src/graph/resolve.ts`.
  *
+ * Spec 039 (Detail template): a `DetailPage` (Back + "Clip · 30 s" in the title row, the menu at its end); the art backdrop, the veil, the absolutely placed
+ * bar, strip, ring, text stack and foot are now one column on the page's gutter: the sign-in note (a raise card), the ring, the range chip and author, the
+ * episode title, the caption, the curve, then Play the episode and Share.
+ *
  * M17 (`Clip-B`): one centred card and an action bar. M31 W3-B (T041; design-pulse2 `clip--screen`, `-signed-out`,
  * `-share-sheet`, `-not-found`; "Layout: Stage"): the episode's art fills the screen under a veil that goes to void; the
  * clip plays at once in a 200 ring (src/ui/clips/ClipRing.tsx — the disc in it is "Play the clip") that fills as the 30 s
@@ -16,12 +20,10 @@
  * this page (`miniPlayerShows`): the ring is the player.
  */
 import { useEffect, useState } from 'react';
-import { StyleSheet, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Link, LinearGradient } from '@/design/tailwind';
+import { Link } from '@/design/tailwind';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { Image } from '@/ui/lib/image';
 import { useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
 import { selectIsPlaying, usePlayer, usePlayerSelector } from '@/playback/store';
@@ -32,19 +34,17 @@ import { ClipRing } from '@/ui/clips/ClipRing';
 import { CLIP_PAGE, clipsType } from '@/ui/clips/measures';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { MenuRow, MenuRule } from '@/ui/comments/MenuRows';
-import { useInsets } from '@/ui/comments/useInsets';
 import { EmptyBlock } from '@/ui/chat/EmptyBlock';
 import { useEpisodeHeat } from '@/ui/discover/useEpisodeHeat';
 import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Curve } from '@/ui/kit/Curve';
 import { Icon } from '@/ui/kit/Icon';
 import { IconButton } from '@/ui/kit/PulseButton';
-import { goBack } from '@/ui/kit/PageHeader';
-import { PushedPage } from '@/ui/kit/PushedPage';
+import { DetailPage } from '@/ui/detail/DetailPage';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type } from '@/ui/kit/Type';
 import { mmss } from '@/ui/kit/format';
-import { bars, colour, gutter, hit, spacing } from '@/design';
+import { colour, hit, radius, spacing } from '@/design';
 import { ApiError, type Clip } from '@/social/api';
 
 type Status = { kind: 'loading' } | { kind: 'error'; message: string; missing: boolean } | { kind: 'ready'; clip: Clip; resolved: Resolved };
@@ -64,8 +64,6 @@ export default function ClipScreen(): React.ReactElement {
   const { api, listener } = useSocial();
   const stores = useStores();
   const player = usePlayer();
-  const { width } = useWindowDimensions();
-  const insets = useInsets();
   // The lag audit (2026-10-04, branch perf): re-render on a change of kind, of the clip, or of a
   // paused position only, then read the full state fresh — usePlayerState re-rendered this page
   // on every position tick. (The ring follows the clock on its own.)
@@ -102,12 +100,12 @@ export default function ClipScreen(): React.ReactElement {
 
   const heat = useEpisodeHeat(status.kind === 'ready' ? status.resolved.episode.id : '', status.kind === 'ready');
 
-  if (status.kind === 'loading') return <PushedPage title="Clip">{(l) => <Box className="px-screen-x" style={{ paddingTop: l.top + CLIP_PAGE.ringTop }}><Type step="body" className="text-text2">Opening the clip…</Type></Box>}</PushedPage>;
+  if (status.kind === 'loading') return <DetailPage title="Clip"><Type step="body" className="text-text2">Opening the clip…</Type></DetailPage>;
   if (status.kind === 'error') {
     return (
-      <PushedPage title="Clip" tone="grey">
-        {(l) => <Box style={{ paddingTop: l.top + CLIP_PAGE.emptyTop }}><EmptyBlock title={status.message} line={status.missing ? 'The link may be wrong, or the clip was deleted.' : ''} /></Box>}
-      </PushedPage>
+      <DetailPage title="Clip">
+        <EmptyBlock title={status.message} line={status.missing ? 'The link may be wrong, or the clip was deleted.' : ''} />
+      </DetailPage>
     );
   }
   const { clip, resolved } = status;
@@ -116,29 +114,20 @@ export default function ClipScreen(): React.ReactElement {
   const seconds = Math.round((clip.endMs - clip.startMs) / 1000);
   const mine = listener?.listenerId === clip.author.id;
   const named = clip.author.displayName !== null;
-  const side = gutter(width);
   const showLine = resolved.via === 'server' && resolved.episode.showTitle ? `${resolved.episode.showTitle} · from the server's record (the feed no longer lists it)` : undefined;
   const shareThis = () => share(clipShare(clip, resolved.episode));
   const video = videoRows(clip, resolved.episode)[0];
   const playClip = () => player.playClip(resolved.episode, { startMs: clip.startMs, endMs: clip.endMs });
   const range = hotRangeOf(clip.startMs, clip.endMs, heat.durationMs ?? resolved.episode.durationMs, CLIP_PAGE.curveBars);
   const hasMenu = !clip.deleted;
-  const art = resolved.episode.artworkUrl;
   return (
-    <Box className="flex-1 bg-void" testID="clip-page">
-      {art ? <Image source={{ uri: art }} style={StyleSheet.absoluteFill} resizeMode="cover" accessibilityIgnoresInvertColors /> : null}
-      <LinearGradient colors={[colour.scrimTop, colour.scrimMid, colour.scrimFoot]} locations={[0, 0.35, 0.72]} pointerEvents="none" style={StyleSheet.absoluteFill} />
-      <Box className="flex-1">
-        {/* The top bar: back, the length, the menu. */}
-        <Box className="absolute flex-row items-center justify-between" style={{ left: side, right: side, top: insets.top + CLIP_PAGE.barTop, zIndex: 5 }}>
-          <IconButton icon="chevron-back" label="Back" onPress={goBack} size={22} className="bg-glassDark" />
-          <Box className="bg-glassDark justify-center" style={{ height: CLIP_PAGE.pill, borderRadius: CLIP_PAGE.pill / 2, paddingHorizontal: spacing.row }}>
-            <Type step="mono" className="text-text" numberOfLines={1}>{`CLIP · ${seconds} s`}</Type>
-          </Box>
-          {hasMenu ? <IconButton icon="ellipsis-horizontal" label="More for this clip" onPress={() => setMenu(true)} size={22} className="bg-glassDark" /> : <Box style={{ width: CLIP_PAGE.glass }} />}
-        </Box>
+    <>
+    <DetailPage
+      title={`Clip · ${seconds} s`}
+      trailing={hasMenu ? <IconButton icon="ellipsis-horizontal" label="More for this clip" onPress={() => setMenu(true)} size={22} fill /> : undefined}
+    >
         {!listener ? (
-          <Box className="absolute bg-glassDark" style={{ left: spacing.section, right: spacing.section, top: insets.top + CLIP_PAGE.stripTop, zIndex: 6, borderRadius: 16, paddingVertical: spacing.row, paddingHorizontal: 14 }}>
+          <Box className="bg-raise" style={{ borderRadius: radius.row, paddingVertical: spacing.row, paddingHorizontal: 14 }}>
             <Type step="caption" className="text-text">You are not signed in — clips play anyway. Sign in to follow people and make your own.{' '}
               <Type step="caption" className="text-hotText font-bold" accessibilityRole="link" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')}>Sign in</Type>
             </Type>
@@ -146,9 +135,9 @@ export default function ClipScreen(): React.ReactElement {
         ) : null}
         {/* The ring: plays the clip at once; at the clip's end it becomes two pills. */}
         {clip.deleted ? null : (
-          <Box className="absolute items-center" style={{ left: 0, right: 0, top: insets.top + CLIP_PAGE.ringTop, zIndex: 4 }}>
+          <Box className="items-center" testID="clip-ring-zone">
             {pausedAtEnd ? (
-              <Box testID="clip-end-pills" className="items-center" style={{ gap: spacing.row, paddingTop: CLIP_PAGE.endPillsTop }}>
+              <Box testID="clip-end-pills" className="items-center" style={{ gap: spacing.row }}>
                 <Pressable onPress={() => player.play()} accessibilityRole="button" accessibilityLabel="Keep listening" className="items-center justify-center bg-text rounded-pill px-block" style={{ height: hit.min }}>
                   <Type step="row" className="text-void">Keep listening</Type>
                 </Pressable>
@@ -163,7 +152,7 @@ export default function ClipScreen(): React.ReactElement {
           </Box>
         )}
         {/* Low on the page: the range, who made it, the episode, the caption, where it sits. */}
-        <Box className="absolute" style={{ left: side, right: side, bottom: CLIP_PAGE.stackBottom, zIndex: 5, gap: spacing.row - 2 }}>
+        <Box style={{ gap: spacing.row - 2 }}>
           <Box className="flex-row items-center" style={{ gap: spacing.gap }}>
             <TimestampChip text={`${mmss(clip.startMs)} – ${mmss(clip.endMs)}`} solid />
             {named ? (
@@ -181,7 +170,7 @@ export default function ClipScreen(): React.ReactElement {
           <Curve data={heat.buckets ?? NO_HEAT} count={CLIP_PAGE.curveBars} height={CLIP_PAGE.curveHeight} min={2} flat={heat.buckets === undefined} {...(range ? { hotRange: range } : {})} accessibilityLabel="Where this clip sits in the episode" />
         </Box>
         {/* The foot: play the episode from the clip, share. */}
-        <Box className="absolute flex-row items-center" style={{ left: side, right: side, bottom: bars.pushedGap, zIndex: 5, gap: spacing.row - 2 }}>
+        <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
           <Pressable
             className="flex-1 flex-row items-center justify-center bg-text rounded-pill px-block"
             style={{ height: hit.min, gap: spacing.hair + 2 }}
@@ -209,7 +198,7 @@ export default function ClipScreen(): React.ReactElement {
             </Pressable>
           )}
         </Box>
-      </Box>
+    </DetailPage>
       <ActionSheet open={menu} onClose={() => setMenu(false)} label="Clip menu">
         {video ? <MenuRow icon="videocam-outline" label={video.label} detail={video.detail ?? ''} onPress={() => { setMenu(false); video.onPress(); }} /> : null}
         {mine ? (
@@ -226,6 +215,6 @@ export default function ClipScreen(): React.ReactElement {
       </ActionSheet>
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
       {sharePanel}
-    </Box>
+    </>
   );
 }

@@ -6,22 +6,20 @@
  */
 import { useMemo, useState } from 'react';
 import { Share } from 'react-native';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
 import { Text } from '@/ui/kit/Text';
-import { Input, InputField } from '@/ui/lib/input';
-import { bars, hit, nowBarBottom, spacing } from '@/design';
-import { PageHeader } from '@/ui/kit/PageHeader';
+import { hit, spacing } from '@/design';
+import { FormPage } from '@/ui/form/FormPage';
+import { Section } from '@/ui/kit/layout';
+import { AuthField } from '@/ui/auth/AuthShell';
 import { Button } from '@/ui/kit/Button';
 import { Card, CardDivider } from '@/ui/kit/Card';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
-import { Eyebrow } from '@/ui/kit/Eyebrow';
 import { useColours } from '@/ui/kit/useColours';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
-import { useToastPlacement } from '@/ui/shell/toastPlacement';
 import { useM22DiscoverApi } from '@/social/api-m22-discover';
 
 const TAP = { minHeight: hit.min };
@@ -39,8 +37,7 @@ export default function NewSharedList(): React.ReactElement {
     const show = stores.feeds.getShow(feedUrl);
     return { feedUrl, title: show?.title || feedUrl, imageUrl: show?.imageUrl };
   }), [stores]);
-  // M31 F14 (wave-7 defect 3): the footer button is a fixed row at the page's foot; with the mini player showing it floats over that foot, so the row leaves its room.
-  const nowRoom = useToastPlacement().now ? nowBarBottom(0) + bars.now + spacing.gap : 0;
+  // M31 F14 (wave-7 defect 3), 039: the Share button is FormPage's `below` slot, which stands on the bars and clears the now bar.
   const [picked, setPicked] = useState<string[]>([]);
   const [title, setTitle] = useState('Shows I like');
   const [busy, setBusy] = useState(false);
@@ -60,24 +57,27 @@ export default function NewSharedList(): React.ReactElement {
   };
   if (!listener) {
     return (
-      <>
-        <PageHeader title="Share some shows" />
-        <Box className="flex-1 bg-background px-screen-x"><Text className="text-text text-body">Sign in to share a list of shows.</Text></Box>
-      </>
+      <FormPage title="Share some shows">
+        <Text className="text-text text-body">Sign in to share a list of shows.</Text>
+      </FormPage>
     );
   }
   return (
-    <>
-      <PageHeader title="Share some shows" subtitle={`Pick ${LIST_MIN} or more, then share one link.`} />
-      <ScrollView className="flex-1 bg-background" contentContainerClassName="px-screen-x pb-section gap-section">
-        <Eyebrow>Title</Eyebrow>
-        <Input className="bg-surface border border-border rounded-row h-auto" style={{ paddingHorizontal: 0 }}>
-          <InputField value={title} onChangeText={(t) => setTitle(t.slice(0, LIST_TITLE_MAX))} maxLength={LIST_TITLE_MAX} placeholder="Name your list" placeholderTextColor={c.muted} accessibilityLabel="List title" className="p-row text-text text-body" />
-        </Input>
-        <Text className="text-muted text-xs text-right">{title.length} / {LIST_TITLE_MAX}</Text>
-        <Eyebrow>{`Shows · ${picked.length} picked`}</Eyebrow>
+    <FormPage
+      title="Share some shows"
+      subtitle={`Pick ${LIST_MIN} or more, then share one link.`}
+      belowHeight={hit.min}
+      below={<Button label="Share link" onPress={() => void share()} disabled={!ready} busy={busy} accessibilityLabel="Share a link to the picked shows" />}
+    >
+      <Section title="Title">
+        <Box style={{ gap: spacing.gap }}>
+          <AuthField label="List title" value={title} onChangeText={(t) => setTitle(t.slice(0, LIST_TITLE_MAX))} maxLength={LIST_TITLE_MAX} placeholder="Name your list" accessibilityLabel="List title" />
+          <Text className="text-text2 text-xs text-right">{title.length} / {LIST_TITLE_MAX}</Text>
+        </Box>
+      </Section>
+      <Section title={`Shows · ${picked.length} picked`}>
         {shows.length === 0 ? (
-          <Text className="text-muted text-body">Subscribe to some shows first.</Text>
+          <Text className="text-text2 text-body">Subscribe to some shows first.</Text>
         ) : (
           <Card>
             {shows.map((s, i) => {
@@ -95,10 +95,7 @@ export default function NewSharedList(): React.ReactElement {
             })}
           </Card>
         )}
-      </ScrollView>
-      <Box className="bg-background px-screen-x py-row border-t-hairline border-separator" style={nowRoom > 0 ? { paddingBottom: nowRoom } : undefined}>
-        <Button label="Share link" onPress={() => void share()} disabled={!ready} busy={busy} accessibilityLabel="Share a link to the picked shows" />
-      </Box>
-    </>
+      </Section>
+    </FormPage>
   );
 }

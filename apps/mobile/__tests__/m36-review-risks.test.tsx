@@ -122,7 +122,7 @@ describe('T030 Icon key: no icon animates its colour', () => {
 const status = { id: 's1', mine: false, author: { id: 'u2', name: 'Ana', initials: 'A' }, durationMs: 41_000, url: 'https://x/a.m4a', text: 'Hi', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 3_600_000).toISOString(), items: [], reactions: [], myReaction: null, suggested: false };
 const replies = (inside: boolean) => {
   const el = createElement(StatusReplies, { status: status as never, colours: { accent: '#fff', muted: '#888', text: '#fff', onPrimary: '#000' }, pauseAll: () => undefined, onChanged: () => undefined });
-  return inside ? createElement(PushedPage as never, { title: 'Status', tone: 'none', below: createElement('View' as never, { testID: 'foot-slot' }), belowHeight: 44 } as never, el) : el;
+  return inside ? createElement(PushedPage as never, { title: 'Status', tone: 'none', below: createElement('View' as never, { testID: 'foot-slot' }), belowHeight: 44 } as never, (() => el) as never) : el; // 039 T031: a function child is the owned-scroll frame this file pins (its TitleBar at the top); plain children are now Page
 };
 // 037 D1: the page's own title bar is at the top now and never lifts; the page's foot slot (`below`) is what rides with the keyboard.
 const titleBarTop = () => r!.root.findAllByType(TitleBar)[0]!.props['top'] as number;

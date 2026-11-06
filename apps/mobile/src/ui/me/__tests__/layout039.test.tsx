@@ -60,7 +60,8 @@ const flat = (n: ReactTestInstance): Record<string, unknown> => (StyleSheet.flat
 
 it('Me draws no EdgeLabel and sits on Page', async () => {
   const r = await render();
-  expect(r.root.findAll((n) => n.type === require('@/ui/kit/EdgeLabel').EdgeLabel).length).toBe(0);
+  // 039 I2: EdgeLabel is deleted (retired-check refuses its import); its tell-tale, the invisible measuring copy, must not be drawn.
+  expect(byId(r, 'edge-measure')).toHaveLength(0);
   expect(r.root.findAll((n) => n.type === require('@/ui/kit/layout').Page).length).toBe(1);
   expect(byId(r, 'page-scroll').length).toBeGreaterThan(0);
 });

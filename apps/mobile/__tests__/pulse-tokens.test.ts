@@ -1,7 +1,7 @@
 // Checks the Pulse tokens: palette, type scale, spacing, bars maths, fonts, and the wave rules of the token check.
 /**
  * M31 T021 guards. Break each one to see it fail:
- *  - G-P1 palette: change `void` in src/design/tokens.ts (the drawings' #060608);
+ *  - G-P1 palette: change `void` in src/design/tokens.ts (the drawings' #111318);
  *  - G-P2 type scale: change a size in `fontSize['pulse-row']` without `typeScale.row.size`;
  *  - G-P3 bars: change `bars.nowGap` (the drawings' 8) — the 92 / 100 / 166 / 176 sums go red;
  *  - G-P4 wave rules: add `className="p-3 text-[15px]"` to a wave file and run `node scripts/token-check.mjs`
@@ -17,7 +17,7 @@ const MOBILE = join(__dirname, '..');
 
 it('G-P1: the palette is the drawings\' (kit.css :root)', () => {
   expect({ void: colour.void, raise: colour.raise, raise2: colour.raise2, line: colour.line, text: colour.text, text2: colour.text2, text3: colour.text3, idle: colour.idle, hot: colour.hot, hotText: colour.hotText, violet: colour.violet, ok: colour.ok, warn: colour.warn }).toEqual({
-    void: '#060608', raise: '#111116', raise2: '#1a1a21', line: '#24242c', text: '#f4f2ee', text2: '#a3a1ab', text3: '#8a8893', idle: '#77767e', hot: '#ff4d6d', hotText: '#ff8095', violet: '#7a3cff', ok: '#3ddc97', warn: '#ffb547',
+    void: '#111318', raise: '#1a1d23', raise2: '#22262e', line: '#2c313a', text: '#eceef2', text2: '#9aa1ad', text3: '#8a919e', idle: '#77767e', hot: '#f2867e', hotText: '#f2867e', violet: '#7a3cff', ok: '#3ddc97', warn: '#ffb547',
   });
 });
 
@@ -102,7 +102,7 @@ it('the generated CSS carries the Pulse steps with their line heights', () => {
   const css = readFileSync(join(MOBILE, 'global.css'), 'utf8');
   expect(css).toContain('--text-pulse-hero: 30px;');
   expect(css).toContain('--text-pulse-hero--line-height: 38px;');
-  expect(css).toContain('--color-hot: #ff4d6d;');
+  expect(css).toContain('--color-hot: #f2867e;');
   expect(css).toContain('--spacing-block: 24px;');
   expect(css).toContain('--radius-sheet: 32px;');
 });

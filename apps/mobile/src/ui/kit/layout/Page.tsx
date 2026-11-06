@@ -11,7 +11,8 @@ import { useScrollToTop } from 'expo-router';
 import { ScrollView, useWindowDimensions, type ScrollViewProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/ui/lib/box';
-import { bottomInset, gutter, spacing } from '@/design';
+import { Pressable } from '@/ui/lib/pressable';
+import { bars, bottomInset, gutter, spacing } from '@/design';
 import { Type } from '../Type';
 
 /** Pressing the tab again scrolls this page to the top. A component of its own so the hook is only called by pages in a tab. */
@@ -21,6 +22,25 @@ function ScrollToTop(props: { target: React.RefObject<Scroller | null> }): null 
 }
 
 type Scroller = ComponentRef<typeof ScrollView>;
+
+/** The title row of a page (Page and PageList): Back leading, the title in the `title` step, actions trailing. */
+export function PageTitleRow(props: { title: string; titleLabel?: string; nameTitle?: boolean; onTitle?: () => void; leading?: React.ReactNode; trailing?: React.ReactNode }): React.ReactElement {
+  return (
+      <Box testID="page-title-row" className="flex-row items-center justify-between" style={{ gap: spacing.row }}>
+        {props.leading}
+        {props.nameTitle ? (
+          <Type step="heading" accessibilityRole="header" accessibilityLabel={props.titleLabel ?? props.title} className="text-text flex-1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{props.title}</Type>
+        ) : props.onTitle ? (
+          <Pressable onPress={props.onTitle} accessibilityRole="link" accessibilityLabel={props.titleLabel ?? props.title} className="flex-1" style={{ minHeight: bars.circle, justifyContent: 'center' }}>
+            <Type step="title" className="text-text" numberOfLines={2}>{props.title}</Type>
+          </Pressable>
+        ) : (
+          <Type step="title" accessibilityRole="header" accessibilityLabel={props.titleLabel ?? props.title} className="text-text flex-1" numberOfLines={2}>{props.title}</Type>
+        )}
+        {props.trailing}
+      </Box>
+  );
+}
 
 export function Page(props: {
   title: string;
@@ -32,6 +52,10 @@ export function Page(props: {
   scrollRef?: React.RefObject<Scroller | null>;
   /** Pressing this page's tab again scrolls it to the top (a page in a tab). */
   scrollToTopOnTabPress?: boolean;
+  /** 039 D6: no page colour behind the scroll view, so a glow drawn under it (a pushed page's tone) shows. */
+  transparent?: boolean;
+  /** 039 D6: makes the title a link (a playlist's name opens its rename). */
+  onTitle?: () => void;
   /** Before the title (Back). */
   leading?: React.ReactNode;
   /** After the title (actions). */
@@ -43,7 +67,7 @@ export function Page(props: {
   /** The now bar is showing over its foot. */
   now?: boolean;
   /** Scroll behaviour the page keeps from before (pull to refresh, load more on scroll): passed to the ScrollView as is. */
-  scroll?: Pick<ScrollViewProps, 'refreshControl' | 'onScroll' | 'onMomentumScrollEnd' | 'scrollEventThrottle' | 'onScrollEndDrag'>;
+  scroll?: Pick<ScrollViewProps, 'refreshControl' | 'onScroll' | 'onMomentumScrollEnd' | 'scrollEventThrottle' | 'onScrollEndDrag' | 'keyboardShouldPersistTaps' | 'keyboardDismissMode' | 'scrollEnabled'>;
   children?: React.ReactNode;
 }): React.ReactElement {
   const safe = useSafeAreaInsets();
@@ -58,16 +82,8 @@ export function Page(props: {
     gap: spacing.block,
   };
   return (
-    <ScrollView ref={scroller} testID="page-scroll" className="flex-1 bg-void" contentContainerStyle={content} showsVerticalScrollIndicator={false} {...props.scroll}>
-      <Box testID="page-title-row" className="flex-row items-center justify-between" style={{ gap: spacing.row }}>
-        {props.leading}
-        {props.nameTitle ? (
-          <Type step="heading" accessibilityRole="header" accessibilityLabel={props.titleLabel ?? props.title} className="text-text flex-1" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{props.title}</Type>
-        ) : (
-          <Type step="title" accessibilityRole="header" accessibilityLabel={props.titleLabel ?? props.title} className="text-text flex-1" numberOfLines={2}>{props.title}</Type>
-        )}
-        {props.trailing}
-      </Box>
+    <ScrollView ref={scroller} testID="page-scroll" className={props.transparent === true ? 'flex-1' : 'flex-1 bg-void'} contentContainerStyle={content} showsVerticalScrollIndicator={false} {...props.scroll}>
+      <PageTitleRow title={props.title} {...(props.titleLabel ? { titleLabel: props.titleLabel } : {})} {...(props.nameTitle ? { nameTitle: true } : {})} {...(props.onTitle ? { onTitle: props.onTitle } : {})} leading={props.leading} trailing={props.trailing} />
       {props.scrollToTopOnTabPress === true ? <ScrollToTop target={scroller} /> : null}
       {props.children}
     </ScrollView>

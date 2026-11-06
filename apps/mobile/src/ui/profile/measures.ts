@@ -9,9 +9,6 @@
 const t = (fontSize: number, lineHeight: number): { fontSize: number; lineHeight: number } => ({ fontSize, lineHeight });
 
 export const PROFILE = {
-  /** The mosaic starts 58 from the top of the drawn phone (8 under its 50 status bar); its first edge label sits 12 in. */
-  mosaicTop: 58,
-  labelTop: 12,
   /** A person's tile: avatar 40, 10 beside it. */
   avatar: 40,
   avatarGap: 10,
@@ -20,16 +17,10 @@ export const PROFILE = {
   followSlop: 8,
   /** A show's tile is 1 x 2: two rows and the gap between. */
   showTileRows: 2,
-  /** The centred blocks (sign in / could not load) hold a 64 disc, 12 below it the line; 24 from each side. */
+  /** The centred blocks (sign in / could not load) hold a 64 disc, the line under it (`spacing.row`). */
   disc: 64,
   discIcon: 28,
-  blockSide: 24,
-  blockGap: 12,
   blockButton: 200,
-  /** The inline error tile at the top of the mosaic: padding 16, radius 22, 10 between. */
-  errorPad: 16,
-  errorGap: 10,
-  retryHeight: 40,
   /** Edit profile: photo 88 inside a 3 light ring; 10 between the photo and its chips; the form starts 206 from the top. */
   photo: 88,
   photoRing: 3,

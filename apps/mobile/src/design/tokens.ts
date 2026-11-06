@@ -25,25 +25,25 @@
 export const colour = {
   // ---- Pulse (kit.css :root) ---------------------------------------------------------------
   /** The page. Near-black with a cold tint. */
-  void: '#060608',
+  void: '#111318',
   /** Cards, the field behind rows on press. */
-  raise: '#111116',
+  raise: '#1a1d23',
   /** Sheets, inputs, the now bar, dialogs. */
-  raise2: '#1a1a21',
+  raise2: '#22262e',
   /** Hairlines, 1 px. Decorative (1.31 on the page — no words sit on it). */
-  line: '#24242c',
+  line: '#2c313a',
   /** Titles, body, active icons. 18.11 on void. */
-  text: '#f4f2ee',
+  text: '#eceef2',
   /** Secondary words. 7.95 on void, 6.79 on raise2. */
-  text2: '#a3a1ab',
+  text2: '#9aa1ad',
   /** Captions, timestamps in lists. 5.81 on void, 4.96 on raise2. */
-  text3: '#8a8893',
+  text3: '#8a919e',
   /** Idle tab icons — graphic only, never words (4.51, floor 3). */
   idle: '#77767e',
   /** The pulse: played bars, hot tags, badges, the active-tab dot. Words on it are `void` (6.30). */
-  hot: '#ff4d6d',
+  hot: '#f2867e',
   /** Hot words on dark: links, timestamps. 8.46 on void, 7.23 on raise2. */
-  hotText: '#ff8095',
+  hotText: '#f2867e',
   /** The second glow colour, the end of the gradients. Never for words (3.78 on void as a graphic). */
   violet: '#7a3cff',
   /** Success. 11.46 on void. */
@@ -59,9 +59,9 @@ export const colour = {
    */
   barIdle: 'rgba(255,255,255,0.40)',
   /** The now bar's glass (raise2 at 86 %, behind a blur). Text on it over void: 15.95. */
-  glass: 'rgba(26,26,33,0.86)',
+  glass: 'rgba(34,38,46,0.86)',
   /** Glass over a picture: the Moments sound pill, the Skip pill, the switch capsule. */
-  glassDark: 'rgba(6,6,8,0.55)',
+  glassDark: 'rgba(17,19,24,0.55)',
   /** The 1 px line round a glass bar (8 % white). Decorative. */
   glassLine: 'rgba(255,255,255,0.08)',
   /** The 1 px line on top of the tab bar (6 % white). Decorative. */
@@ -69,19 +69,19 @@ export const colour = {
   /** The grabber on a sheet (20 % white). Decorative. */
   grab: 'rgba(255,255,255,0.20)',
   /** A ring button's outline (text at 50 %): 4.86 on void. */
-  outline: 'rgba(244,242,238,0.50)',
+  outline: 'rgba(236,238,242,0.50)',
   /** A timestamp chip's fill (hot at 16 %); hotText on it over void 7.25. */
-  hotSoft: 'rgba(255,77,109,0.16)',
+  hotSoft: 'rgba(242,134,126,0.14)',
   /** The hot glow behind a hot bar. */
-  hotGlow: 'rgba(255,77,109,0.55)',
+  hotGlow: 'rgba(242,134,126,0.55)',
   /** The now bar's progress track and a thin rule on glass (10 % white). Decorative. */
   trackSoft: 'rgba(255,255,255,0.10)',
   /** A switch's track when off, and its thumb. The thumb carries the state; the track is decorative (1.50). */
-  switchOff: '#2e2e36',
+  switchOff: '#353b46',
   /** The toast's action word, on the light toast (5.92). */
   toastAction: '#b0243f',
   /** The fade from the page to nothing — where a fade into the page starts. */
-  clear: 'rgba(6,6,8,0)',
+  clear: 'rgba(17,19,24,0)',
   /** Behind a sheet or a dialog (60 % black). Decorative. */
   scrim: 'rgba(0,0,0,0.60)',
   /**
@@ -94,17 +94,17 @@ export const colour = {
   /** The pick's quoted note, lighter than text2 (11.0 on void). */
   quote: '#c9c7cf',
   premiumTint: '#2a1530',
-  /** M31 W4-B (drawing `statusBase`: `linear-gradient(170deg,#2A1A4A,#060608 62%)`): the Stage's violet top, which the status viewer fades to the page. A fill; the words on it are `text` (15.1 on this tint). */
+  /** M31 W4-B (drawing `statusBase`: `linear-gradient(170deg,#2A1A4A,#111318 62%)`): the Stage's violet top, which the status viewer fades to the page. A fill; the words on it are `text` (15.1 on this tint). */
   stageTint: '#2a1a4a',
   /** M31 T033 (drawing `me--plus`): the PLUS banner's 1 px border and its crown — fill and border only, never words. */
   plusLine: '#3a2a55',
   plusMark: '#c9b5ff',
-  pickFoot: 'rgba(6,6,8,0.92)',
-  scrimTop: 'rgba(6,6,8,0.10)',
-  scrimMid: 'rgba(6,6,8,0.25)',
-  scrimFoot: 'rgba(6,6,8,0.94)',
+  pickFoot: 'rgba(17,19,24,0.92)',
+  scrimTop: 'rgba(17,19,24,0.10)',
+  scrimMid: 'rgba(17,19,24,0.25)',
+  scrimFoot: 'rgba(17,19,24,0.94)',
   /** The number badge on a cover (Manage order): void at 75 %, words in text (design-pulse2 `subscriptions-manage--screen`). */
-  badgeScrim: 'rgba(6,6,8,0.75)',
+  badgeScrim: 'rgba(17,19,24,0.75)',
   glassEdge: 'rgba(255,255,255,0.15)',
   /** Ring pins and avatar discs — the drawings' green, violet, blue. Decorative marks (words on them are void or none). */
   pinGreen: '#22c55e',
@@ -119,44 +119,44 @@ export const colour = {
 
   // ---- Older role names, now Pulse values (aliases until the last wave) ----------------------
   /** = void. */
-  background: '#060608',
+  background: '#111318',
   /** = raise. */
-  surface: '#111116',
+  surface: '#1a1d23',
   /** = line. Decorative. */
-  border: '#24242c',
+  border: '#2c313a',
   /** = text2. */
-  muted: '#a3a1ab',
+  muted: '#9aa1ad',
   /** = hot: a fill. Words on it are `onPrimary`. */
-  primary: '#ff4d6d',
+  primary: '#f2867e',
   /** = void: words on a `primary` fill (6.30). */
-  onPrimary: '#060608',
+  onPrimary: '#111318',
   /** = hotText: links, text actions, the listener's own marks. */
-  accent: '#ff8095',
+  accent: '#f2867e',
   /** Decorative: the scrubber's unfilled track (= barIdle). */
   track: 'rgba(255,255,255,0.40)',
   /** Carries information (the heat curve), so it must clear 3:1 — 3.73 on void (= barIdle). */
   bar: 'rgba(255,255,255,0.40)',
   /** Decorative: the hairline between rows (= line). */
-  separator: '#24242c',
+  separator: '#2c313a',
   /**
    * Facebook's brand blue, only for its own mark on "Continue with Facebook" (owner,
    * 2026-09-27). #1877F2 per the brand-colour references; never used as a UI colour.
    */
   facebook: '#1877f2',
   /** = hotSoft: the disc behind a list row's play glyph (glyph on it over void 7.25). */
-  accentTint: 'rgba(255,77,109,0.16)',
+  accentTint: 'rgba(242,134,126,0.14)',
   /** The disc behind a podcast play glyph on a row: the light circle of the drawings. */
-  playDisc: '#f4f2ee',
-  playGlyph: '#060608',
+  playDisc: '#eceef2',
+  playGlyph: '#111318',
   /** The veil over the player's blurred artwork — the page at 88 %. */
-  veil: 'rgba(6,6,8,0.88)',
+  veil: 'rgba(17,19,24,0.88)',
   /** The track behind a `Segmented` choice (= raise2). Text2 words on it 6.79. */
-  segment: '#1a1a21',
+  segment: '#22262e',
   /** Decorative: the 40 × 5 handle on top of a sheet (= grab). */
   handle: 'rgba(255,255,255,0.20)',
   /** The main Play buttons: the light circle of the drawings, a void glyph on it (18.11). */
-  play: '#f4f2ee',
-  onPlay: '#060608',
+  play: '#eceef2',
+  onPlay: '#111318',
 } as const;
 
 export type Palette = { readonly [K in keyof typeof colour]: string };
@@ -173,12 +173,12 @@ export type Palette = { readonly [K in keyof typeof colour]: string };
 export type AccentKeys = { primary: string; onPrimary: string; accent: string; accentTint: string };
 export const ACCENTS = {
   sunrise: { label: 'Sunrise', light: { primary: colour.primary, onPrimary: colour.onPrimary, accent: colour.accent, accentTint: colour.accentTint } },
-  teal: { label: 'Teal', light: { primary: '#2dd4bf', onPrimary: '#060608', accent: '#2dd4bf', accentTint: 'rgba(45,212,191,0.16)' } },
-  coral: { label: 'Coral', light: { primary: '#fb7185', onPrimary: '#060608', accent: '#fb7185', accentTint: 'rgba(251,113,133,0.16)' } },
-  violet: { label: 'Violet', light: { primary: '#a78bfa', onPrimary: '#060608', accent: '#a78bfa', accentTint: 'rgba(167,139,250,0.16)' } },
-  forest: { label: 'Forest', light: { primary: '#4ade80', onPrimary: '#060608', accent: '#4ade80', accentTint: 'rgba(74,222,128,0.16)' } },
-  ocean: { label: 'Ocean', light: { primary: '#60a5fa', onPrimary: '#060608', accent: '#60a5fa', accentTint: 'rgba(96,165,250,0.16)' } },
-  plum: { label: 'Plum', light: { primary: '#e879f9', onPrimary: '#060608', accent: '#e879f9', accentTint: 'rgba(232,121,249,0.16)' } },
+  teal: { label: 'Teal', light: { primary: '#5fcfc0', onPrimary: '#111318', accent: '#5fcfc0', accentTint: 'rgba(95,207,192,0.14)' } },
+  coral: { label: 'Coral', light: { primary: '#f27d8e', onPrimary: '#111318', accent: '#f27d8e', accentTint: 'rgba(242,125,142,0.14)' } },
+  violet: { label: 'Violet', light: { primary: '#a99bea', onPrimary: '#111318', accent: '#a99bea', accentTint: 'rgba(169,155,234,0.14)' } },
+  forest: { label: 'Forest', light: { primary: '#6fcb8e', onPrimary: '#111318', accent: '#6fcb8e', accentTint: 'rgba(111,203,142,0.14)' } },
+  ocean: { label: 'Ocean', light: { primary: '#7faee8', onPrimary: '#111318', accent: '#7faee8', accentTint: 'rgba(127,174,232,0.14)' } },
+  plum: { label: 'Plum', light: { primary: '#d88ae6', onPrimary: '#111318', accent: '#d88ae6', accentTint: 'rgba(216,138,230,0.14)' } },
 } as const satisfies Record<string, { label: string; light: AccentKeys }>;
 export type AccentName = keyof typeof ACCENTS;
 
@@ -411,7 +411,7 @@ export function toastBottom(safe: number, opts: { tabs?: boolean; now?: boolean;
 export const glow = {
   hot: { color: colour.hot, opacity: 0.35, radius: 12 },
   dot: { color: colour.hot, opacity: 1, radius: 5 },
-  /** A lit heat bar on a Moments card: drawn `0 0 8px rgba(255,77,109,.7)` → radius 4 (M31 L7). */
+  /** A lit heat bar on a Moments card: drawn `0 0 8px rgba(242,134,126,.7)` → radius 4 (M31 L7). */
   bar: { color: colour.hot, opacity: 0.7, radius: 4 },
   cover: { color: colour.hot, opacity: 0.35, radius: 30 },
 } as const;
@@ -633,17 +633,17 @@ export const player = {
   glowPink: '#ff6b8b',
   glowIndigo: '#5b3df5',
   /** The top pill's glass: raise2 at 70 % (the Moments pill is 45 %, the now bar 86 %). */
-  pillFill: 'rgba(26,26,33,0.70)',
+  pillFill: 'rgba(34,38,46,0.70)',
   /** The time bubble's fill: void at 60 %. */
-  bubbleFill: 'rgba(6,6,8,0.60)',
+  bubbleFill: 'rgba(17,19,24,0.60)',
   /** The tray's icons and count: the text colour at 85 %. 15.2 on raise. */
-  trayInk: 'rgba(244,242,238,0.85)',
+  trayInk: 'rgba(236,238,242,0.85)',
   /** The cover's glow (the drawing's `box-shadow: 0 0 60px rgba(255,107,139,.35)`). */
   coverGlow: '#ff6b8b',
   /** The detail line of a light (on) tile: #3A3A44 on the light fill. */
   tileOnDetail: '#3a3a44',
   /** The 1 px rule between the rows of a Panel tile. Decorative. */
-  rowRule: '#1e1e25',
+  rowRule: '#23272f',
   /** The empty player's headphones (the drawing's #3A3A44): decorative, no words. */
   emptyInk: '#3a3a44',
 } as const;
@@ -660,8 +660,8 @@ export const player = {
  */
 /** F3 (design-pulse2 `like--screen`): the Like page's stage. The veil is void at 10 % to the page; the episode strip is raise at 80 %. */
 export const likeStage = {
-  veilTop: 'rgba(6,6,8,0.10)',
-  stripFill: 'rgba(17,17,22,0.80)',
+  veilTop: 'rgba(17,19,24,0.10)',
+  stripFill: 'rgba(26,29,35,0.80)',
 } as const;
 
 /**
@@ -671,15 +671,15 @@ export const likeStage = {
  * glow is `colour.hotGlow`. Kept out of `colour` so the three CSS blocks in `global.css` need no new variable.
  */
 export const settingsColour = {
-  wash: '#1d1218',
-  ring: 'rgba(255,77,109,0.35)',
+  wash: '#231a1d',
+  ring: 'rgba(242,134,126,0.35)',
 } as const;
 
 /** M31 W6-A (design-pulse2 `giftPhone`: `glow('#F472B6','#7A3CFF',-60,.6)`, the cover's pink glow): the gift page's pink. A glow and a fill; no word sits on it alone. */
 export const giftColour = { pink: '#f472b6' } as const;
 
 /** The Show screen (W3-A2, design-pulse2 `showBody`): the glass of its search and ⋯ circles, raise at 70 %. */
-export const showGlass = 'rgba(17,17,22,0.7)';
+export const showGlass = 'rgba(26,29,35,0.7)';
 
 export const episode = {
   statusBar: 50,
@@ -688,15 +688,15 @@ export const episode = {
   coverHeight: 470,
   veilHeight: 480,
   /** The veil over the cover: void at 15 % at the top, 40 % half way, then the page. */
-  veilTop: 'rgba(6,6,8,0.15)',
-  veilMid: 'rgba(6,6,8,0.40)',
+  veilTop: 'rgba(17,19,24,0.15)',
+  veilMid: 'rgba(17,19,24,0.40)',
   pillsBelowStatus: 14,
   pillHeight: 32,
   pillRadius: 16,
   pillPadX: 12,
   pillGap: 6,
   /** The pills' glass: void at 45 % (the drawing's `.blur` pill). */
-  pillFill: 'rgba(6,6,8,0.45)',
+  pillFill: 'rgba(17,19,24,0.45)',
   curveTop: 330,
   curveBars: 70,
   curveHeight: 40,
@@ -759,9 +759,9 @@ export const authColour = {
   /** The outline of an unticked box (`border:1.5px solid #4A4A54`) — graphic only; the tick and the words carry the state. */
   boxRim: '#4a4a54',
   /** A chosen reason on "Not liking these?" (`background:#1D1218`): raise warmed toward hot. text on it 17.2. */
-  reasonOn: '#1d1218',
-  /** The ring round a refusal tile (`inset 0 0 0 1px rgba(255,77,109,.35)`). */
-  refusalRing: 'rgba(255,77,109,0.35)',
+  reasonOn: '#231a1d',
+  /** The ring round a refusal tile (`inset 0 0 0 1px rgba(242,134,126,.35)`). */
+  refusalRing: 'rgba(242,134,126,0.35)',
 } as const;
 
 /** One art tile: a two-stop gradient and up to two discs, positions and sizes as shares of the tile's width. */

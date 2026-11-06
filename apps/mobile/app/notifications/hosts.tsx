@@ -12,13 +12,14 @@
  * 18, padding 12, 10 between parts): the show's cover (36, radius 10), "Show title ›" in Geist 600 14 with the date and time in mono 11,
  * the words in Geist 15 / 22, and the pictures as 120 x 90 thumbnails in a row. The title bar is low: "From hosts", "Shows you follow".
  *
+ * Spec 039 (Feed lane, `design/B-Notifications.dc.html`): a `FeedPage`; "This week" and "Earlier" are small caps headings over the cards (no spine, no tick, no
+ * edge label); a failed load is an `InlineNotice` with Retry; load more is the list's `onEndReached`.
+ *
  * Not as drawn: the drawing says a picture opens full size; here a tap anywhere on the card opens the show, as before (the page has
  * never had a picture viewer, and the card is one button).
  */
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
-import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
 import { Text } from '@/ui/kit/Text';
 import { Pressable } from '@/ui/lib/pressable';
@@ -27,21 +28,19 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { Loader } from '@/ui/kit/Loader';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
-import { CenterAt, ErrBlock, SignInBlock } from '@/ui/chat/blocks';
-import { GhostRows, Tick } from '@/ui/comments/Spine';
+import { InlineNotice } from '@/ui/kit/layout';
+import { SignInBlock } from '@/ui/chat/blocks';
 import { COMMENTS } from '@/ui/comments/measures';
-import { typeStyle } from '@/design';
-import { PageEmpty, ThreadNode } from '@/ui/me/lists';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
-import { DayBlock, NOTIF, NotifCard, SpineColumn } from '@/ui/notifications/parts';
+import { spacing, typeStyle } from '@/design';
+import { Day, EmptyBlock, ItemCard } from '@/ui/notifications/cards';
+import { NOTIF } from '@/ui/notifications/parts';
+import { FeedLoading, FeedPage } from '@/ui/feed/FeedPage';
 import { useSocial } from '@/social/context';
 import { useM19Api, type HostNotice } from '@/social/m19-api';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
 const WEEK = 7 * 24 * 60 * 60 * 1000;
-const NEAR_END = 400;
 const NO_NOTICES: HostNotice[] = [];
 
 const dateOf = (n: HostNotice): string => new Date(n.releaseAt).toLocaleDateString([], { day: 'numeric', month: 'short' });
@@ -56,8 +55,8 @@ function HostNoticeCard(props: { notice: HostNotice }): React.ReactElement {
       accessibilityRole="link"
       accessibilityLabel={`${n.showTitle}: ${n.body}${n.images.length > 0 ? `. ${n.images.length} ${n.images.length === 1 ? 'picture' : 'pictures'}` : ''}. Open the show`}
     >
-      <NotifCard testID="host-card" gap={10}>
-        <Box className="flex-row items-center" style={{ gap: 10 }}>
+      <ItemCard testID="host-card">
+        <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
           <Artwork url={n.imageUrl} size={NOTIF.hostCover} name={n.showTitle} />
           <Box className="flex-1 min-w-0">
             <Box className="flex-row">
@@ -73,21 +72,22 @@ function HostNoticeCard(props: { notice: HostNotice }): React.ReactElement {
             {n.images.slice(0, 9).map((u) => <Image key={u} source={{ uri: u }} className="bg-raise2" style={{ width: NOTIF.pictureW, height: NOTIF.pictureH, borderRadius: COMMENTS.picture.radius }} accessible={false} />)}
           </Box>
         ) : null}
-      </NotifCard>
+      </ItemCard>
     </Pressable>
   );
 }
 
 type HostsState = { kind: 'loading' } | { kind: 'error' } | { kind: 'ok'; items: HostNotice[]; next?: string };
 
-/** M19 T100: the From hosts list, paged by `before`. */
-function HostNotices(props: { reserve: number; top: number }): React.ReactElement {
+export default function HostNoticesScreen(): React.ReactElement {
+  const { listener } = useSocial();
   const m19 = useM19Api();
   const [state, setState] = useState<HostsState>({ kind: 'loading' });
   const [paging, setPaging] = useState(false);
   const load = useCallback(() => {
+    if (!listener) return;
     m19.hostNotices().then((p) => setState({ kind: 'ok', items: p.items, ...(p.next ? { next: p.next } : {}) })).catch(() => setState((s) => (s.kind === 'ok' ? s : { kind: 'error' })));
-  }, [m19]);
+  }, [m19, listener]);
   useEffect(load, [load]);
   const more = () => {
     if (state.kind !== 'ok' || !state.next || paging) return;
@@ -98,7 +98,7 @@ function HostNotices(props: { reserve: number; top: number }): React.ReactElemen
       .finally(() => setPaging(false));
   };
   const items = state.kind === 'ok' ? state.items : NO_NOTICES;
-  // This week, then earlier: the edge label names the run, the tick the date.
+  // This week, then earlier: a small caps heading over each run.
   const groups = useMemo(() => {
     const now = clockMs();
     const out: { label: string; items: HostNotice[] }[] = [];
@@ -109,55 +109,35 @@ function HostNotices(props: { reserve: number; top: number }): React.ReactElemen
     }
     return out;
   }, [items]);
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const m = e.nativeEvent;
-    if (m.contentOffset.y + m.layoutMeasurement.height > m.contentSize.height - NEAR_END) more();
-  };
-  if (state.kind === 'error') {
-    return (
-      <CenterAt top={250}>
-        <ErrBlock line="Couldn't load announcements right now.">
-          <PulseButton label="Retry" accessibilityLabel="Retry" onPress={() => { setState({ kind: 'loading' }); load(); }} />
-        </ErrBlock>
-      </CenterAt>
-    );
-  }
-  return (
-    <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1, paddingTop: props.top, paddingBottom: props.reserve }} scrollEventThrottle={100} onScroll={onScroll}>
-      {state.kind === 'loading' ? (
-        <Box testID="hosts-loading" style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right }}><GhostRows rows={5} /></Box>
-      ) : items.length === 0 ? (
-        <PageEmpty top={ME_MOSAIC.row * 2} title="No announcements yet" line="No announcements yet. When a show you follow posts one, it appears here." />
-      ) : (
-        <SpineColumn>
-          {groups.map((g) => (
-            <DayBlock key={g.label} label={g.label}>
-              {g.items.map((n) => (
-                <ThreadNode key={n.id} lead={<Tick text={dateOf(n)} />}>
-                  <HostNoticeCard notice={n} />
-                </ThreadNode>
-              ))}
-            </DayBlock>
-          ))}
-          {/* Owner, 2026-10-05: the bottom of a fetched list says so. */}
-          {state.next ? <Box className="items-center py-row"><Loader /></Box> : <EndOfList />}
-        </SpineColumn>
-      )}
-    </ScrollView>
+  const empty = !listener ? (
+    <SignInBlock line="Sign in to see announcements from the shows you follow.">
+      <PulseButton label="Sign in" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')} full />
+    </SignInBlock>
+  ) : state.kind === 'loading' ? (
+    <FeedLoading testID="hosts-loading" rows={5} />
+  ) : state.kind === 'error' ? undefined : (
+    <EmptyBlock title="No announcements yet" line="No announcements yet. When a show you follow posts one, it appears here." />
   );
-}
-
-export default function HostNoticesScreen(): React.ReactElement {
-  const { listener } = useSocial();
   return (
-    <PushedPage title="From hosts" subtitle="Shows you follow">
-      {(layout) => listener ? <HostNotices reserve={layout.reserve} top={layout.top} /> : (
-        <CenterAt top={240}>
-          <SignInBlock line="Sign in to see announcements from the shows you follow.">
-            <PulseButton label="Sign in" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')} full />
-          </SignInBlock>
-        </CenterAt>
+    <FeedPage
+      title="From hosts"
+      subtitle="Shows you follow"
+      data={listener && state.kind === 'ok' ? groups : []}
+      keyExtractor={(g) => g.label}
+      onEndReached={more}
+      onEndReachedThreshold={0.5}
+      contentStyle={{ flexGrow: 1 }}
+      ListHeaderComponent={listener && state.kind === 'error' ? (
+        <InlineNotice text="Couldn't load announcements right now." actionLabel="Retry" onAction={() => { setState({ kind: 'loading' }); load(); }} />
+      ) : null}
+      ListEmptyComponent={empty}
+      // Owner, 2026-10-05: the bottom of a fetched list says so.
+      ListFooterComponent={state.kind === 'ok' && items.length > 0 ? (state.next ? <Box className="items-center py-row"><Loader /></Box> : <EndOfList />) : undefined}
+      renderItem={({ item: g }) => (
+        <Day label={g.label}>
+          {g.items.map((n) => <HostNoticeCard key={n.id} notice={n} />)}
+        </Day>
       )}
-    </PushedPage>
+    />
   );
 }

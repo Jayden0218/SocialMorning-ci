@@ -37,10 +37,10 @@ it('100 spokes start outside the cover and the hotter the bucket the longer the 
 });
 
 it('the played colour runs hot to violet across what is played', () => {
-  expect(playedColour(0, 10)).toBe('rgb(255, 77, 109)'); // hot
+  expect(playedColour(0, 10)).toBe('rgb(242, 134, 126)'); // hot
   expect(playedColour(10, 10)).toBe('rgb(122, 60, 255)'); // violet
   expect(playedColour(5, 10)).toBe(mixColour(colour.hot, colour.violet, 0.5));
-  expect(playedColour(0, 10, '#2dd4bf')).toBe('rgb(45, 212, 191)'); // an accent replaces hot
+  expect(playedColour(0, 10, '#5fcfc0')).toBe('rgb(95, 207, 192)'); // an accent replaces hot
 });
 
 it('sample takes every nth bucket (kit.js pick), plays a fraction of n, and badges say 99+', () => {
