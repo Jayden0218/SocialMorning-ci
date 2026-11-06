@@ -7,20 +7,31 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
-import { mkdtempSync, openSync, readFileSync } from 'node:fs';
+import { mkdtempSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
 const freePort = (): Promise<number> => new Promise((res, rej) => { const s = createServer(); s.listen(0, '127.0.0.1', () => { const p = (s.address() as { port: number }).port; s.close(() => res(p)); }); s.on('error', rej); });
 
-test('039 Q4: GET /v1/discover/moments for listener-05 returns a moment of "Episode 1" after the journey seed', { skip: process.env['DDB_ENDPOINT'] ? false : 'DDB_ENDPOINT not set' }, async () => {
+/**
+ * `drainMs` slows the e2e server's outbox drain (200 ms in the file): the heat curve is written by the outbox, so on a slow CI runner
+ * (studio-e2e run 42195254278, step 16 "got 0") the seed's read-back used to run before the curve was complete and the moments
+ * route cached the empty answer. With a 3 s drain the seed must still pass: it waits for the curve.
+ */
+const cases: { name: string; drainMs: number | null }[] = [
+  { name: 'the e2e server as ci/workflows/ios-journey.yml runs it', drainMs: null },
+  { name: 'a slow outbox drain (studio-e2e: the curve lags the reactions)', drainMs: 3000 },
+];
+for (const { name, drainMs } of cases) test(`039 Q4: GET /v1/discover/moments for listener-05 returns a moment of "Episode 1" after the journey seed (${name})`, { skip: process.env['DDB_ENDPOINT'] ? false : 'DDB_ENDPOINT not set' }, async () => {
   const port = await freePort();
   const base = `http://127.0.0.1:${port}`;
   const out = join(mkdtempSync(join(tmpdir(), 'journey-')), 'journey.json');
   const env = { ...process.env, PORT: String(port), E2E_HOST: '127.0.0.1', E2E_API: base, E2E_STORE_BASE: `${base}/__e2e/store/`, JOURNEY_OUT: out };
   const log = join(dirname(out), 'server.log');
   const fd = openSync(log, 'w');
-  const server: ChildProcess = spawn(process.execPath, ['--import', 'tsx', 'scripts/e2e-server.ts'], { env, stdio: ['ignore', fd, fd] });
+  const slow = join(dirname(out), 'slow-drain.mjs');
+  writeFileSync(slow, `const si = globalThis.setInterval;\nglobalThis.setInterval = (f, ms, ...a) => si(f, ms === 200 ? ${drainMs ?? 200} : ms, ...a);\n`);
+  const server: ChildProcess = spawn(process.execPath, ['--import', 'tsx', ...(drainMs ? ['--import', slow] : []), 'scripts/e2e-server.ts'], { env, stdio: ['ignore', fd, fd] });
   try {
     for (let i = 0; i < 120 && !readFileSync(log, 'utf8').includes('e2e api on'); i++) await new Promise((r) => setTimeout(r, 500));
     assert.ok(readFileSync(log, 'utf8').includes('e2e api on'), `the e2e server did not start:\n${readFileSync(log, 'utf8')}`);

@@ -66,6 +66,23 @@ async function call<T = unknown>(method: string, path: string, body?: unknown, t
 }
 const studio = { 'x-studio': '1' };
 
+/** Polls the episode's Social answer until `bucket` has heat and the whole curve is unchanged for `stable` polls in a row (or `timeoutMs` passes). */
+async function settledHeat(episodeId: string, bucket: number, timeoutMs = 30_000, stable = 6, everyMs = 250): Promise<{ settled: boolean; polls: number; ms: number }> {
+  const t0 = Date.now();
+  let last = '', same = 0, polls = 0;
+  while (Date.now() - t0 < timeoutMs) {
+    const r = await call<{ heat?: { available: boolean; buckets?: number[] } }>('GET', `/v1/episodes/${episodeId}/social`);
+    polls++;
+    const b = r.json?.heat?.available ? r.json.heat.buckets ?? [] : [];
+    const key = JSON.stringify(b);
+    same = key === last ? same + 1 : 1;
+    last = key;
+    if ((b[bucket] ?? 0) > 0 && same >= stable) return { settled: true, polls, ms: Date.now() - t0 };
+    await new Promise((res) => setTimeout(res, everyMs));
+  }
+  return { settled: false, polls, ms: Date.now() - t0 };
+}
+
 async function signUp(email: string, name: string): Promise<{ token: string; id: string }> {
   // M25 S3: /v1/auth/sign-up is gone; the e2e server's own route makes a password account.
   const r = await call<{ token: string; listener: { id: string } }>('POST', '/__e2e/account', { email, password: PASSWORD, displayName: name });
@@ -205,6 +222,11 @@ async function seed(): Promise<void> {
   ok(social.status === 200 && social.json.comments.length === 30, `episode 1 shows 30 comments (got ${social.json?.comments?.length})`);
   const overview = await call<Record<string, unknown>>('GET', `/v1/studio/shows/${key}/subscribers/stats`, undefined, hostStudio);
   ok(overview.status === 200, 'the Studio reads the subscriber numbers');
+  // The heat curve is written by the outbox (heat.bump, drained every ~200 ms by the worker / e2e server), so a read right after the reactions can
+  // still see a short curve. The moments route caches each episode's answer for 5 minutes, so one early read would pin the empty answer: wait here,
+  // on the curve the Social poll shows, until it has bucket 72 and has stopped changing. Bounded, with a clear error (studio-e2e run 42195254278).
+  const settle = await settledHeat(ep1.episodeId, 72);
+  ok(settle.settled, `episode 1's heat curve settled with a mark at bucket 72 (${settle.polls} polls, ${settle.ms} ms)`);
   const feed05 = await call<{ items: { episodeId: string; reactions: number }[] }>('GET', '/v1/discover/moments?limit=50', undefined, listeners[4]!.token);
   ok(feed05.status === 200 && feed05.json.items.some((m) => m.episodeId === ep1.episodeId && m.reactions >= 5), `listener-05's Moments feed has a moment in episode 1 (got ${feed05.json?.items?.length})`);
   const subs = await call<{ total: number }>('GET', `/v1/studio/shows/${key}/subscribers`, undefined, hostStudio);
