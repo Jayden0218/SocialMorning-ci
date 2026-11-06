@@ -31,9 +31,10 @@ appId: app.socialmorning.mobile
 - scroll
 - scroll
 - takeScreenshot: r04-02-discover-bottom${SUFFIX || ''}
-- scrollUntilVisible:
+- scrollUntilVisible:                   # centred: scrolling up stops as soon as the tile shows at the top edge, under the pinned title row (run 42224810732, r04-xl at y 25-101)
     element: "Categories"
     direction: UP
+    centerElement: true
     timeout: 30000
 - waitForAnimationToEnd:
     timeout: 5000
@@ -51,6 +52,16 @@ appId: app.socialmorning.mobile
 # Chart and its rules
 # 039 (run 42210796897): after Back from Categories the page is at its top, where the shortcut tiles ("Talked about" at y 667-731 of 844) sit
 # under the Moments/Discover switch band; Maestro counts them visible and the tap lands on the band. Swipe the tiles up above the band first.
+# 039 (run 42224810732): Back does not always leave the page at its top (it kept Categories at y 366), so the swipe pushed "Talked about" to y 5-69,
+# under the status bar, and the tap scrolled the page to the top. Pull the page to its top first (as _open-page.yaml does), then swipe.
+- repeat:
+    times: 2
+    commands:
+      - swipe:
+          start: 50%, 30%
+          end: 50%, 80%
+- waitForAnimationToEnd:
+    timeout: 5000
 - swipe:
     start: 50%, 70%
     end: 50%, 30%
