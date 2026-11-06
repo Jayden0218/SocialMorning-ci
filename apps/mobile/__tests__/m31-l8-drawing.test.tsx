@@ -266,7 +266,9 @@ describe('the controls and the tray, as drawn', () => {
     playing(h, 12_000);
     const r = mount(h.runtime);
     const follow = host(r, 'Subscribe to this show');
-    expect(styleOf(follow)).toMatchObject({ height: 34, paddingHorizontal: 14 });
+    // 039: the Pressable is a 44 frame (-5 above and below); the 34 pill that is drawn is its child — the drawn size is unchanged
+    const pill = follow.findAll((n) => typeof n.props['className'] === 'string' && (n.props['className'] as string).includes('rounded-pill'))[0]!;
+    expect(styleOf(pill)).toMatchObject({ height: 34, paddingHorizontal: 14 });
     expect(styleOf(follow).marginBottom).toBeUndefined();
     const show = host(r, 'Show: Morning Notes');
     expect(styleOf(show).minHeight).toBe(44); // 036 D7: the link is a 44 frame, marginVertical -13 keeps the 18 row as drawn

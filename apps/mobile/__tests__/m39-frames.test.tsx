@@ -27,6 +27,11 @@ jest.mock('@/social/context', () => ({
     useEpisodeSocial: () => ({ cached: undefined, stale: false }),
   }),
 }));
+jest.mock('@/playback/store', () => ({
+  ...jest.requireActual('@/playback/store'),
+  usePlayer: () => ({ clip: () => undefined }),
+  usePlayerSelector: (sel: (s: unknown) => unknown) => sel({ kind: 'idle' }),
+}));
 jest.mock('@/social/comment-extras-api', () => ({
   ...jest.requireActual('@/social/comment-extras-api'),
   useCommentExtrasApi: () => ({ imagesOn: () => Promise.resolve(false) }),
@@ -35,6 +40,8 @@ jest.mock('@/social/comment-extras-api', () => ({
 import { ComposerSheet } from '@/ui/comments/Composer';
 import { UpdateEpisodeRow } from '@/ui/episode/UpdateEpisodeRow';
 import type { UpdateRow } from '@/me/updates';
+import { PlayerTitleBlock } from '@/ui/player/PlayerTitleBlock';
+import { PLAYER } from '@/ui/player/measures';
 
 const MIN = bars.circle;
 const flat = (n: ReactTestInstance): Record<string, unknown> => (StyleSheet.flatten(n.props['style'] as never) ?? {}) as Record<string, unknown>;
@@ -70,5 +77,16 @@ describe('039: two controls the device measured under 44', () => {
     const s = flat(line);
     expect(s['minHeight']).toBe(MIN);
     expect(s['marginVertical']).toBe(-11);
+  });
+  it('the player\'s "Subscribe to this show" Follow pill is a 44 frame, -5 above and below, around the 34 pill that is drawn (a11y-frames: it was 74 x 34)', async () => {
+    const episode = { id: 'e1', feedUrl: 'https://f/x.xml', title: 'Ep', durationMs: 60_000 };
+    const r = await mount(createElement(PlayerTitleBlock, { episodeId: 'e1', episode: episode as never, show: { feedUrl: 'https://f/x.xml', title: 'Journey Morning' } as never }));
+    const btn = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Subscribe to this show' && typeof n.props['onPress'] === 'function')[0]!;
+    const s = flat(btn);
+    expect(s['minHeight']).toBe(MIN);
+    expect(s['marginVertical']).toBe(-(MIN - PLAYER.follow) / 2);
+    const pill = btn.findAll((n) => typeof n.props['className'] === 'string' && (n.props['className'] as string).includes('rounded-pill'));
+    expect(pill.length).toBeGreaterThan(0);
+    expect(flat(pill[0]!)['height']).toBe(PLAYER.follow);
   });
 });

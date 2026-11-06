@@ -33,6 +33,8 @@ import { PLAYER } from './measures';
 /** 036 D7: the 18 line is a 44 frame (the guard measured 114 x 18); -13 above and below keeps the row as drawn. */
 const SHOW_FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - PLAYER.showLine) / 2 };
 const SHOW_SLOP = { top: 15, bottom: 15, left: 4, right: 12 };
+/** 039 (a11y-frames: 74 x 34): the 34 pill is drawn inside a 44 frame; -5 above and below keeps the row as drawn. */
+const FOLLOW_FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - PLAYER.follow) / 2 };
 const FOLLOW_SLOP = { top: 7, bottom: 7, left: 7, right: 7 };
 
 /** The status words for what the player is doing, or undefined (pure — tested). */
@@ -95,10 +97,12 @@ export function PlayerTitleBlock(props: { episodeId: string; episode: CachedEpis
           accessibilityRole="button"
           accessibilityLabel="Subscribe to this show"
           hitSlop={FOLLOW_SLOP}
-          className="rounded-pill items-center justify-center border-outline"
-          style={{ height: PLAYER.follow, paddingHorizontal: PLAYER.followPad, borderWidth: PLAYER.outline }}
+          className="justify-center"
+          style={FOLLOW_FRAME}
         >
-          <Type step="row" className="text-text" style={{ fontSize: PLAYER.followText }} numberOfLines={1}>Follow</Type>
+          <Box className="rounded-pill items-center justify-center border-outline" style={{ height: PLAYER.follow, paddingHorizontal: PLAYER.followPad, borderWidth: PLAYER.outline }}>
+            <Type step="row" className="text-text" style={{ fontSize: PLAYER.followText }} numberOfLines={1}>Follow</Type>
+          </Box>
         </Pressable>
       )}
     </Box>
