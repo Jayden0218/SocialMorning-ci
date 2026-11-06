@@ -10,6 +10,7 @@
  *  - skip a node whose resource-id ends in `-bleed` (a full-bleed element, e.g. a hero image caption: the only way to start left of the gutter);
  *  - round each left edge to the nearest point (pixels are divided by 3 when the screen is wider than 700: iPhones are 375-440 pt, 1125+ px at 3x);
  *  - group the texts into visual ROWS (vertical centres within 8 pt, or frames overlapping by more than half the shorter height); a row starts at its left-most text.
+ *    A row whose texts are horizontally centred on the screen (|left gap - right gap| <= 4 pt, left gap >= the gutter: an empty state) is not a row start.
  *    FAIL (a) any row start < 20 pt (the gutter), (b) more than 4 distinct row-start edges (starts within 2 pt are one). Controls side by side in a row are one start.
  *
  * Usage: node edges-check.mjs <check output dir | hierarchy .json file> [--flows r04,r13] [--max-edges 4] [--gutter 20]
@@ -52,7 +53,9 @@ const labelOf = (n) => {
   return [a.text, a.accessibilityText, a.value].map((s) => String(s ?? '').trim()).find((s) => s !== '') ?? '';
 };
 const hasLabelBelow = (n) => (n.children ?? []).some((c) => labelOf(c) !== '' || hasLabelBelow(c));
-const skipId = (id) => id.startsWith('tab-') || id.startsWith('now-') || id.startsWith('UIKeyboard');
+// The iOS keyboard has no resource-id on its keys: its containers do (UIKeyboardLayoutStar..., the prediction bar SystemInputAssistantView / CenterPageView).
+const skipId = (id) => id.startsWith('tab-') || id.startsWith('now-') || id.startsWith('UIKeyboard') || id === 'SystemInputAssistantView' || id === 'CenterPageView';
+const KEYBOARD_LABEL = /^Typing Predictions$/u;
 
 export function analyse(tree, { gutter = GUTTER, maxEdges = MAX_EDGES } = {}) {
   // The real tree's own root is [0,0][0,0]: the screen is the first frame with an area.
@@ -65,15 +68,15 @@ export function analyse(tree, { gutter = GUTTER, maxEdges = MAX_EDGES } = {}) {
   let dock = false;
   (function visit(n, skipped) {
     const id = String(n.attributes?.['resource-id'] ?? '');
-    const skip = skipped || skipId(id);
     const label = labelOf(n);
+    const skip = skipped || skipId(id) || KEYBOARD_LABEL.test(label);
     if (label === 'Dock') dock = true;
     const b = bbox(n.attributes?.bounds);
     if (!skip && label !== '' && !hasLabelBelow(n) && b && !CHROME.test(label)) {
       const [x1, y1, x2, y2] = b.map((v) => v / k);
       const onScreen = x2 > 0 && x1 < W && y2 > 0 && y1 < H && x2 > x1 && y2 > y1;
       const chromeBand = y1 < 50 || y1 >= H - 100; // status bar; tab bar / now bar / home indicator
-      if (onScreen && !chromeBand) texts.push({ label, x: Math.round(x1), y: Math.round(y1), y2: Math.round(y2), bleed: id.endsWith('-bleed') });
+      if (onScreen && !chromeBand) texts.push({ label, x: Math.round(x1), x2: Math.round(x2), y: Math.round(y1), y2: Math.round(y2), bleed: id.endsWith('-bleed') });
     }
     for (const c of n.children ?? []) visit(c, skip);
   })(tree, false);
@@ -90,7 +93,10 @@ export function analyse(tree, { gutter = GUTTER, maxEdges = MAX_EDGES } = {}) {
     const row = rows.find((r) => r.some((m) => sameRow(m, t)));
     if (row) row.push(t); else rows.push([t]);
   }
-  const starts = rows.map((r) => r.reduce((m, t) => (t.x < m.x ? t : m)));
+  // A row whose texts are centred on the screen (an empty state: a line and a button in the middle) has no left edge to be on a grid; it is not a row start.
+  // A row that starts left of the gutter is still a finding, centred or not.
+  const centred = (r) => { const l = Math.min(...r.map((t) => t.x)), rt = Math.max(...r.map((t) => t.x2)); return l >= gutter && Math.abs(l - (W - rt)) <= 4; };
+  const starts = rows.filter((r) => !centred(r)).map((r) => r.reduce((m, t) => (t.x < m.x ? t : m)));
   const left = starts.filter((t) => t.x < gutter);
   const xs = [...new Set(starts.map((t) => t.x))].sort((a, b) => a - b);
   const edges = [];

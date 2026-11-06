@@ -1,3 +1,4 @@
+# 039 (run 42195300126): the hub keeps its scroll position and its title row (Back, the gear, Scan) scrolls with it, so scroll up before looking for HUB or tapping Back.
 # Subflow: on a hub page, scroll to ENTRY (an accessible name, regex), tap it, wait for PROOF on the page it
 # opens, take screenshot SHOT, tap Back, and wait for HUB (a string only the hub shows) again.
 appId: app.socialmorning.mobile
@@ -27,7 +28,15 @@ appId: app.socialmorning.mobile
     visible: ${PROOF}
     timeout: 30000
 - takeScreenshot: ${SHOT}
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
+- scrollUntilVisible:                    # 039: the hub's own title row scrolled away with the page
+    element: ${HUB}
+    direction: UP
+    timeout: 30000
 - extendedWaitUntil:
     visible: ${HUB}
     timeout: 30000

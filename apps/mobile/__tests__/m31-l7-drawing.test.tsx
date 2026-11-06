@@ -164,21 +164,20 @@ describe('the Moments card as drawn', () => {
     expect(wrap['bottom']).toBe(76);
     expect(wrap).toMatchObject({ left: 20, right: 20 });
   });
-  it('the sound pill is 10 under the status bar, 14 in; the Play circle and the action column are 16 from the right; the title block ends 84 from it', () => {
+  it('the sound pill is 10 under the status bar (its 44 frame 6 higher), on the 20 gutter; the Play circle and the action column are 16 from the right; the title block ends 84 from it', () => {
     const r = card();
-    expect(flat(labelled(r, 'Sound off. Turn sound on'))).toMatchObject({ left: 14, top: 60, height: 32 });
+    expect(flat(labelled(r, 'Sound off. Turn sound on'))).toMatchObject({ left: 20, top: 54, minHeight: 44 }); // 039: was left 14 / height 32; the frame is 44 tall (the 32 pill sits in it) and the pill starts on the gutter
     expect(classOf(textWith(r, 'Sound off'))).toContain('text-pulse-strong'); // 038 D3: was text-pulse-chip (12); chip is an alias of strong (15)
     expect(flat(labelled(r, 'Play from 14:32'))).toMatchObject({ right: 16, bottom: 104, width: 56, height: 56 });
     expect(withStyle(labelled(r, 'Share a clip of 14:32'), 'right')).toMatchObject({ right: 16, bottom: 208 });
     expect(withStyle(textWith(r, 'Why mornings matter'), 'right')).toMatchObject({ left: 20, right: 84, bottom: 114 });
   });
-  it('the action words are mono 11, and each action is 48+ to touch without taking the room (hitSlop, no minimum height)', () => {
+  it('the action words are mono 11, and each action is a 44 x 44 frame (039: the accessibility frame, not a hitSlop, is what counts)', () => {
     const r = card();
     expect(classOf(textWith(r, 'Share'))).toContain('text-pulse-tag');
     const share = labelled(r, 'Share a clip of 14:32');
-    expect(flat(share)['minHeight']).toBeUndefined();
-    const s = share.props['hitSlop'] as { top: number; bottom: number; left: number; right: number };
-    expect(28 + 4 + typeScale.tag.lineSafe + s.top + s.bottom).toBeGreaterThanOrEqual(48);
+    expect(flat(share)['minHeight']).toBe(44);
+    expect(flat(share)['minWidth']).toBe(44);
   });
   it('round 3: each action is the drawn 43 tall (28 + 4 + an 11 count), so the column is 165 and sits where drawn — the safe 15 line is trimmed 2 above and below the count', () => {
     // Red if COUNT_LINE is dropped from a count (the column grew to 189 and sat 24 too high) or its margins change.

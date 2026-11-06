@@ -35,7 +35,7 @@ export function DiscoverSections(props: { body: Discover; stale: boolean; fetche
   const line = { marginLeft: DECK.lane, marginRight: gutter(width) };
   return (
     <Box>
-      {props.stale ? <Type step="caption" className="text-hotText" style={{ paddingHorizontal: gutter(width) }}>Couldn't refresh — showing what was fetched {props.fetchedAt ? new Date(props.fetchedAt).toLocaleTimeString() : 'earlier'}.</Type> : null}
+      {props.stale ? <Type step="caption" className="text-hotText" style={{ marginHorizontal: gutter(width), marginBottom: spacing.gap }}>Couldn't refresh — showing what was fetched {props.fetchedAt ? new Date(props.fetchedAt).toLocaleTimeString() : 'earlier'}.</Type> : null}
       <DeckSection label="Picks" spoken={body.date ? `Picks for ${body.date}` : "Today's picks"}>
         {picks.length === 0 ? <Type step="body" className="text-text2" style={line}>No picks yet.</Type> : (
           <Deck width={PICK.width} height={PICK.height}>

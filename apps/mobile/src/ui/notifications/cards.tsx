@@ -24,7 +24,8 @@ import { clockLabel } from '@/ui/chat/nodes';
 import { NOTIF, UnreadDot } from '@/ui/notifications/parts';
 
 const HIT = { top: 5, bottom: 5 };
-const NAME_SLOP = { top: 12, bottom: 12, left: 4, right: 4 };
+/** The name is a 20 line; its frame is 44 tall and the -12 margins keep the card as drawn (a `hitSlop` is not in the accessibility frame). */
+const NAME_FRAME = { minHeight: bars.circle, marginVertical: -12 } as const;
 const KIND_VERB: Record<Item['kind'], string> = { listened: 'listened', clipped: 'clipped', commented: 'commented' };
 
 /** Back, in the page's title row. Its 44 frame is pulled left so the 22 glyph starts on the 20 gutter; the frame itself starts at 9, so it carries the `-bleed` id the edges check exempts (the glyph, not the frame, is what the grid is about). */
@@ -129,7 +130,7 @@ export function FeedCard(props: { item: Item; onOpen: (item: Item) => void }): R
           <Avatar size={NOTIF.noticeAvatar} name={name} />
           <Box className="flex-1 flex-row flex-wrap items-center">
             <Link href={{ pathname: '/profile/[id]', params: { id: item.actor.id } }} asChild>
-              <Pressable accessibilityRole="link" accessibilityLabel={`${name}, open profile`} hitSlop={NAME_SLOP} className="flex-shrink min-w-0">
+              <Pressable accessibilityRole="link" accessibilityLabel={`${name}, open profile`} className="flex-shrink min-w-0 justify-center" style={NAME_FRAME}>
                 {/* A name is not an action (owner's K1 note, 2026-09-25): weight tells it apart. */}
                 <Type step="strong" className="text-text font-bold" numberOfLines={1}>{name}</Type>
               </Pressable>

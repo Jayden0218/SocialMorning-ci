@@ -83,7 +83,7 @@ export function BrowseTile(props: { tile: ShortcutTile }): React.ReactElement {
       accessibilityRole="button"
       accessibilityLabel={t.label}
       {...(t.count !== undefined ? { accessibilityValue: { text: `${t.count} queued` } } : {})}
-      className={`flex-row items-center ${t.tinted ? 'bg-premiumTint' : 'bg-raise'}`}
+      className={`flex-row items-center ${t.tinted ? 'bg-hotSoft' : 'bg-raise'}`}
       style={{ minHeight: spacing.region + spacing.section, paddingHorizontal: spacing.section, paddingVertical: spacing.row, gap: spacing.row, borderRadius: radius.row }}
     >
       <Icon name={t.icon} size={22} color={colour.text} />

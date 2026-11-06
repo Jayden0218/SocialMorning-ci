@@ -307,7 +307,7 @@ describe('Shows, Premium, Video (home--fold-b)', () => {
     expect(r.root.findAll((n) => typeof n.type === 'string' && flat(n)['width'] === 72 && flat(n)['height'] === 72).length).toBeGreaterThan(0);
     act(() => { one(r, 'Show p, Author p. Premium pick').props['onPress'](); });
     expect(onShow).toHaveBeenCalledWith('https://f/p.xml');
-    expect(String(host(r, 'deck-card')[0]!.props['className'])).toMatch(/bg-premiumTint/);
+    expect(String(host(r, 'deck-card')[0]!.props['className'])).toMatch(/bg-hotSoft/);
   });
   it('Video: cards 260 x 150 with a video mark, the title and the show; a card opens the episode', () => {
     const onOpen = jest.fn();

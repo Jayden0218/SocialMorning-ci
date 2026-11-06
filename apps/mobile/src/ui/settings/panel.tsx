@@ -210,7 +210,7 @@ export function QuietPill(props: { label: string; onPress: (() => void) | undefi
       accessibilityState={{ disabled: props.disabled === true, busy: props.busy === true }}
       hitSlop={{ top: slop, bottom: slop }}
       className={`rounded-pill items-center justify-center ${props.disabled === true ? 'opacity-40' : 'active:opacity-85'}`}
-      style={[{ height: h, paddingHorizontal: SET.pillPad, backgroundColor: colour.raise2 }, props.alignSelf ? { alignSelf: props.alignSelf } : null]}
+      style={[{ height: h, minHeight: hit.min, paddingHorizontal: SET.pillPad, backgroundColor: colour.raise2 }, props.alignSelf ? { alignSelf: props.alignSelf } : null]}
     >
       <Type step="caption" className="text-text font-semibold" numberOfLines={1}>{props.label}</Type>
     </Pressable>

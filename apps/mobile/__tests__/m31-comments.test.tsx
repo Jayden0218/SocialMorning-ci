@@ -228,7 +228,8 @@ describe('the page puts each part where the drawing does (390 × 844, 50 pt stat
 
   it('a taller status bar moves the title row down by the difference; a taller home inset moves the zone nothing', async () => {
     two();
-    const content = (r: ReactTestRenderer) => StyleSheet.flatten(r.root.findAll((n) => n.props['testID'] === 'page-scroll' && n.props['contentContainerStyle'] !== undefined)[0]!.props['contentContainerStyle'] as never) as Style;
+    // 039 D2 (list was -> now): the title row is pinned, so the status bar's difference lands on the pin's top padding, not the scroll content's.
+    const content = (r: ReactTestRenderer) => StyleSheet.flatten(r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'page-title-pin')[0]!.props['style'] as never) as Style;
     const r = mount(createElement(CommentsScreen), { top: 59, bottom: 34 });
     const r0 = mount(createElement(CommentsScreen), { top: 50, bottom: 34 });
     near(content(r)['paddingTop'] as number, (content(r0)['paddingTop'] as number) + 9);

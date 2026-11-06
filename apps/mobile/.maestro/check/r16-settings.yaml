@@ -1,3 +1,4 @@
+# 039 (run 42195303610): "Back" is in each page's scrolling title row (design B), so a scrolled page needs a scroll up before Back is tapped.
 # R16 Settings: open all 26 settings pages one by one; each opens and goes back; toggles change and stay
 # changed. Me → "Account and settings" (app/(tabs)/me.tsx:210) → /account, title "Settings" (app/account.tsx:82).
 # Entry labels are the hub/sub-page rows (app/account.tsx:86-108, app/settings/*.tsx); a LinkRow's name is
@@ -41,6 +42,10 @@ appId: app.socialmorning.mobile
     visible: "Email me a code"
     timeout: 30000
 - takeScreenshot: r16-02-change-email
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Signed-in devices"
@@ -59,6 +64,10 @@ appId: app.socialmorning.mobile
       PROOF: "Signed-in devices"
       SHOT: r16-04-devices
       HUB: "More account options"
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -77,6 +86,10 @@ appId: app.socialmorning.mobile
 - takeScreenshot: r16-05-appearance
 - tapOn: "Vibration"
 - takeScreenshot: r16-05b-appearance-toggled
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -87,6 +100,10 @@ appId: app.socialmorning.mobile
     timeout: 30000
 - takeScreenshot: r16-05c-appearance-after-return
 - tapOn: "Vibration"                     # back as it was
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -109,6 +126,10 @@ appId: app.socialmorning.mobile
       text: "Download queued episodes"
       checked: true
     timeout: 10000
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -126,6 +147,10 @@ appId: app.socialmorning.mobile
       text: "Download queued episodes"
       checked: false
     timeout: 10000
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -156,6 +181,10 @@ appId: app.socialmorning.mobile
       PROOF: "You have not blocked anyone.*"
       SHOT: r16-09-blocked
       HUB: "Blocked listeners, .*"         # the Privacy page stays scrolled to its last row (run 41274515878)
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -204,6 +233,10 @@ appId: app.socialmorning.mobile
       HUB: "Personalised recommendations"
 - takeScreenshot: r16-11c-more-toggle-after-subpages
 - tapOn: "Personalised recommendations"  # back as it was
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -236,6 +269,10 @@ appId: app.socialmorning.mobile
     timeout: 5000
 - takeScreenshot: r16-15b-playback-toggle-after-return
 - tapOn: "Skip silence"                  # back as it was
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -280,6 +317,10 @@ appId: app.socialmorning.mobile
       PROOF: "Start the check"
       SHOT: r16-21-network
       HUB: "Help and feedback"
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -310,6 +351,10 @@ appId: app.socialmorning.mobile
       PROOF: "Open-source licences"
       SHOT: r16-26-licences
       HUB: "About SocialNet"
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)
@@ -323,6 +368,10 @@ appId: app.socialmorning.mobile
     visible: "Playing with the screen off"
     timeout: 30000
 - takeScreenshot: r16-22-background
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - runFlow:
     file: _open-link.yaml
@@ -332,6 +381,10 @@ appId: app.socialmorning.mobile
     visible: "On iPhone, the App Store keeps SocialNet up to date\\."
     timeout: 30000
 - takeScreenshot: r16-24-updates
+- scrollUntilVisible:                  # 039: Back is in the page's scrolling title row; on a scrolled page it is above the screen
+    element: "Back"
+    direction: UP
+    timeout: 20000
 - tapOn: "Back"
 - extendedWaitUntil:
     visible: "Account and security|Sign out|About SocialNet|Minor mode"   # the hub, at any scroll (run 41289865753)

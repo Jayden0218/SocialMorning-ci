@@ -22,7 +22,7 @@ import { PLACEMENT_MAX, STICKER_RULES } from '@socialmorning/social-core';
 import { StickerDisc } from '@/ui/profile/StickerDisc';
 import { PROFILE, PROFILE_TYPE } from '@/ui/profile/measures';
 
-const INTRO_FILL = [colour.premiumTint, colour.raise] as const;
+const INTRO_FILL = [colour.hotSoft, colour.raise] as const;
 const INTRO_AT = [0, 0.7] as const;
 
 export default function StickerHelpScreen(): React.ReactElement {

@@ -65,7 +65,7 @@ export function ProfileTile(props: { rows?: number; children: ReactNode; testID?
   const style = { minHeight: rows * ME_MOSAIC.row + (rows - 1) * ME_MOSAIC.gap, padding: ME_MOSAIC.pad, borderRadius: ME_MOSAIC.radius, overflow: 'hidden' as const };
   if (props.tone === 'hot') {
     return (
-      <LinearGradient testID={props.testID ?? 'profile-tile'} colors={[colour.premiumTint, colour.raise]} start={{ x: 0, y: 0.25 }} end={{ x: 1, y: 0.75 }} style={style}>
+      <LinearGradient testID={props.testID ?? 'profile-tile'} colors={[colour.hotSoft, colour.raise]} start={{ x: 0, y: 0.25 }} end={{ x: 1, y: 0.75 }} style={style}>
         {props.children}
       </LinearGradient>
     );
@@ -85,7 +85,7 @@ export function ListeningTile(props: { total: string; finished: number; week?: s
       <Box accessible accessibilityLabel={props.spoken}>
         <TileLabel text="LISTENING TIME" hot />
         <Box className="flex-row items-end justify-between" style={{ marginTop: spacing.gap, gap: spacing.row }}>
-          <Type step="figure" className="text-text flex-1" style={PAGE_TYPE.count28} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.7}>{props.total}</Type>
+          <Type step="figure" className="text-text flex-1" style={PAGE_TYPE.count28} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{props.total}</Type>
           <Box className="items-end">
             <Type step="tag" className="text-text2" style={ME_TYPE.mono11}>{`${props.finished} finished`}</Type>
             {props.week ? <Type step="tag" className="text-text2" style={ME_TYPE.mono11}>{`This week: ${props.week}`}</Type> : null}

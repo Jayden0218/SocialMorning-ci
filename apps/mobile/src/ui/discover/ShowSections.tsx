@@ -8,7 +8,7 @@
  *  - Video: cards 260 x 150 — the cover fills the card, a video mark at the top left, the title and the show
  *    at the foot on a dark gradient; a card opens the episode.
  *
- * Not as drawn (gate log): the Premium card's fill and tag are the palette's violet-brown (`premiumTint`)
+ * Not as drawn (gate log): the Premium card's fill and tag are the accent wash (`hotSoft`)
  * and violet at 25 %, not the drawing's one-off #16121F / #2E2346 (no new colour for one card).
  */
 import { Pressable } from '@/ui/lib/pressable';

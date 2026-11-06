@@ -86,20 +86,11 @@ export const colour = {
   /** Behind a sheet or a dialog (60 % black). Decorative. */
   scrim: 'rgba(0,0,0,0.60)',
   /**
-   * M31 L7 (drawing: `.glowtext`, `#2A1530`, the pick and Moments scrims, the launch pill's line): the end of
-   * the hot gradient (words "14:32" on Hot now: 6.2 on raise2, a 34 pt number), Premium's solid tile (the label
-   * on it, text 14.6), the pick tile's foot (void at 92 %), the Moments scrim's three stops (10, 25, 94 %)
-   * and the Skip pill's 15 % line. Fills and decoration; no word depends on a scrim alone.
+   * Spec 039 Q8 (one accent): the violet-family tokens (`hotEnd`, `premiumTint`, `stageTint`, `plusLine`, `plusMark`) are gone. A wash that was
+   * violet is `hotSoft` over the page or a card, or a neutral. The pick tile's foot and the Moments scrim's three stops are below.
    */
-  hotEnd: '#a57bff',
   /** The pick's quoted note, lighter than text2 (11.0 on void). */
   quote: '#c9c7cf',
-  premiumTint: '#2a1530',
-  /** M31 W4-B (drawing `statusBase`: `linear-gradient(170deg,#2A1A4A,#111318 62%)`): the Stage's violet top, which the status viewer fades to the page. A fill; the words on it are `text` (15.1 on this tint). */
-  stageTint: '#2a1a4a',
-  /** M31 T033 (drawing `me--plus`): the PLUS banner's 1 px border and its crown — fill and border only, never words. */
-  plusLine: '#3a2a55',
-  plusMark: '#c9b5ff',
   pickFoot: 'rgba(17,19,24,0.92)',
   scrimTop: 'rgba(17,19,24,0.10)',
   scrimMid: 'rgba(17,19,24,0.25)',
@@ -443,7 +434,7 @@ export type Colour = keyof typeof colour;
  * measured from the top (`*Top`) or the bottom (`*Bottom`) edge of that frame. A device whose inset is
  * larger moves the page by the difference (`playerLayout` in `src/ui/player/measures.ts`).
  *
- * The page's own glow colours (`glowPink` #FF6B8B, `glowIndigo` #5B3DF5) are not the brand pair: the
+ * The page's own glow colours (`glowPink` #FF6B8B, `glowEnd` #3A3A44) are not the brand pair: the
  * drawing's player glow uses them (`glow('#FF6B8B','#5B3DF5',-60,.6)`).
  */
 /**
@@ -632,7 +623,8 @@ export const player = {
   chapterBarsMin: 3,
   // ---- colours that belong to this page only -------------------------------------------------------------
   glowPink: '#ff6b8b',
-  glowIndigo: '#5b3df5',
+  /** The glow's second colour: a neutral (spec 039 Q8; it was indigo). */
+  glowEnd: '#3a3a44',
   /** The top pill's glass: raise2 at 70 % (the Moments pill is 45 %, the now bar 86 %). */
   pillFill: 'rgba(34,38,46,0.70)',
   /** The time bubble's fill: void at 60 %. */

@@ -52,7 +52,7 @@ const dayOnly = (line: string): string => (line === 'Earned' ? line : line.repla
 /** The two stickers beside the hero's words. */
 const FLOAT = [PROFILE.heroFloatA, PROFILE.heroFloatB] as const;
 /** The hero's fill: the premium tint, fading to raise by 70 % at 140 degrees. */
-const HERO_FILL = [colour.premiumTint, colour.raise] as const;
+const HERO_FILL = [colour.hotSoft, colour.raise] as const;
 const HERO_AT = [0, 0.7] as const;
 const CARD = { borderRadius: radius.card, padding: spacing.section } as const;
 

@@ -12,6 +12,7 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { bottomInset, spacing } from '@/design';
 import { PageList } from '@/ui/kit/layout';
+import { PIN_GAP } from '@/ui/kit/layout/Page';
 
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn(() => ({ width: 390, height: 844, scale: 3, fontScale: 1 })) }));
 jest.mock('expo-router', () => ({ useScrollToTop: jest.fn() }));
@@ -37,10 +38,10 @@ describe('PageList', () => {
     expect(content(render({ tabs, now, footExtra: 56 }))['paddingBottom']).toBe(bottomInset(SAFE, { tabs, now }) + 56);
   });
 
-  it('the content sits on the 20 gutter and starts under the status bar', () => {
+  it('the content sits on the 20 gutter and starts under the pinned title row (039 D2: was safe top + 16 in the content, now the pin holds the safe top)', () => {
     const c = content(render({}));
     expect(c['paddingHorizontal']).toBe(spacing.screenX);
-    expect(c['paddingTop']).toBe(47 + spacing.section);
+    expect(c['paddingTop']).toBe(PIN_GAP);
   });
 
   it('draws the title as the page header, Back leading and actions trailing, then the subtitle', () => {
@@ -84,5 +85,27 @@ describe('PageList', () => {
     const r = render({ below: createElement(RNText, null, 'FOOT'), belowHeight: 44 });
     expect(words(r)).toContain('FOOT');
     expect(content(r)['paddingBottom']).toBe(bottomInset(SAFE, {}) + 44 + 12);
+  });
+
+  // 039 D2 (coordinator): the title row is pinned above the list.
+  it('the title row is pinned: outside the list, once, Back once, a hairline once the list has scrolled', () => {
+    const r = render({ leading: createElement(RNText, null, 'BACK'), trailing: createElement(RNText, null, 'ACT') });
+    const hosts = (id: string): ReactTestInstance[] => r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === id);
+    expect(hosts('page-title-row')).toHaveLength(1);
+    expect(list(r).findAll((n) => n.props['testID'] === 'page-title-row')).toHaveLength(0);
+    expect(words(r).filter((w) => w === 'BACK')).toHaveLength(1);
+    const pin = hosts('page-title-pin')[0]!;
+    expect(flat(pin.props['style'])['paddingTop']).toBe(47 + spacing.section);
+    expect(String(pin.props['className'])).toContain('bg-void');
+    expect(hosts('page-title-hairline')).toHaveLength(0);
+    act(() => { list(r).props['onScroll']({ nativeEvent: { contentOffset: { y: 40 } } }); });
+    expect(hosts('page-title-hairline')).toHaveLength(1);
+  });
+
+  it('the page\'s own onScroll still runs', () => {
+    const onScroll = jest.fn();
+    const r = render({ onScroll });
+    act(() => { list(r).props['onScroll']({ nativeEvent: { contentOffset: { y: 10 } } }); });
+    expect(onScroll).toHaveBeenCalledTimes(1);
   });
 });

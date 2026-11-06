@@ -5,7 +5,7 @@
  * (44). Under it "N following · N followers", then "View profile" and Stickers. Four equal tiles in a `TileGrid`: Saved moments (hot,
  * with its count), Downloads (count), History, Favourites. "Continue listening" shows the player's episode and is absent when there is
  * none. Every other place the page opens is a pill that wraps. The destinations are the 038 set (src/ui/me/__tests__/destinations.test.tsx).
- * Signed out: the title reads "Sign in" with "Keep your listening across phones" under it (as the old title bar did), and the "Sign in" button takes the place of View profile. Pressing the tab again scrolls to the top (`Page`'s `scrollToTopOnTabPress`). Where PLUS is on sale (`storeReady`) a PLUS pill opens
+ * Signed out: the title reads "Sign in ›" (spoken "Sign in") and opens sign-in, as the old title bar's did, with "Keep your listening across phones" under it (as the old title bar did), and the "Sign in" button takes the place of View profile. Pressing the tab again scrolls to the top (`Page`'s `scrollToTopOnTabPress`). Where PLUS is on sale (`storeReady`) a PLUS pill opens
  * Wallet; while purchases are off, Wallet says so first (M17 FR-015).
  */
 import { router, useFocusEffect } from 'expo-router';
@@ -86,7 +86,8 @@ export default function MeScreen(): React.ReactElement {
     <SafeAreaInsetsContext.Provider value={insets}>
     <Box className="flex-1 bg-void">
       <Page
-        title={listener ? listener.displayName : 'Sign in'}
+        title={listener ? listener.displayName : 'Sign in ›'}
+        {...(listener ? {} : { titleLabel: 'Sign in', onTitle: () => router.push('/auth/sign-in') })}
         scrollToTopOnTabPress
         nameTitle
         tabs

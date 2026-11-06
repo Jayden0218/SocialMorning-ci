@@ -132,3 +132,28 @@ test('the keyboard prediction bar ("Typing Predictions") is not page text', () =
   writeFileSync(f, JSON.stringify({ attributes: { bounds: '[0,0][390,844]' }, children: [n('Body', 20, 200), n('Typing Predictions', 0, 500)] }));
   assert.equal(spawnSync(process.execPath, [SCRIPT, f], { encoding: 'utf8' }).status, 0);
 });
+
+// Device run dc-42195296273 (r08): the prediction bar's key "I" (x 0) sits under SystemInputAssistantView / "Typing Predictions"; keys have no resource-id of their own.
+test('a key inside the iOS keyboard prediction bar (ancestor SystemInputAssistantView, "Typing Predictions") is not page text', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'edges-'));
+  const f = path.join(dir, 't.json');
+  const key = { attributes: { accessibilityText: 'I', bounds: '[0,509][130,553]' }, children: [] };
+  const bar = { attributes: { 'resource-id': 'SystemInputAssistantView', bounds: '[0,509][390,553]' }, children: [{ attributes: { 'resource-id': 'CenterPageView', bounds: '[0,509][390,553]' }, children: [{ attributes: { accessibilityText: 'Typing Predictions', bounds: '[0,509][390,553]' }, children: [key] }] }] };
+  writeFileSync(f, JSON.stringify({ attributes: { bounds: '[0,0][390,844]' }, children: [{ attributes: { text: 'Body', bounds: '[20,200][120,220]' }, children: [] }, bar] }));
+  const r = spawnSync(process.execPath, [SCRIPT, f], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
+// r15 empty state: "No subscriptions yet." / its line / a Discover button, centred, read as row starts at 60 / 100 / 138.
+test('rows of text centred on the screen are not row starts (an empty state); a row that starts left of the gutter still fails', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'edges-'));
+  const n = (l, x, w, y) => ({ attributes: { text: l, bounds: `[${x},${y}][${x + w},${y + 24}]` }, children: [] });
+  const f = path.join(dir, 't.json');
+  writeFileSync(f, JSON.stringify({ attributes: { bounds: '[0,0][390,844]' }, children: [n('Updates', 20, 100, 100), n('No subscriptions yet.', 100, 190, 400), n('Follow shows to see them here', 60, 270, 440), n('Discover', 138, 114, 500), n('Body', 36, 100, 200), n('Row', 70, 100, 300)] }));
+  const r = spawnSync(process.execPath, [SCRIPT, f], { encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /20:1 36:1 70:1/);
+  const g = path.join(dir, 'g.json');
+  writeFileSync(g, JSON.stringify({ attributes: { bounds: '[0,0][390,844]' }, children: [n('Wide', 12, 366, 300)] }));
+  assert.equal(spawnSync(process.execPath, [SCRIPT, g], { encoding: 'utf8' }).status, 1);
+});

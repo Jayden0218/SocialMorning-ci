@@ -43,7 +43,7 @@ describe('G-M31-T098: every text colour token in use has a measured pair', () =>
   const used = textTokensUsed();
 
   it('the scan finds the tokens the app is known to use', () => {
-    for (const t of ['text', 'text2', 'text3', 'hotText', 'quote', 'hotEnd', 'background', 'void']) expect([...used.keys()]).toContain(t);
+    for (const t of ['text', 'text2', 'text3', 'hotText', 'quote', 'background', 'void']) expect([...used.keys()]).toContain(t);
   });
 
   it('each used text-<token> has a PAIRS (or ACCENT_PAIRS) row whose foreground is that colour', () => {
@@ -56,10 +56,9 @@ describe('G-M31-T098: every text colour token in use has a measured pair', () =>
     const ratio = (fgv: string, bg: string) => contrastRatio(fgv, bg);
     for (const bg of [colour.void, colour.raise, colour.raise2]) {
       expect(ratio(colour.quote, bg)).toBeGreaterThanOrEqual(4.5);
-      expect(ratio(colour.hotEnd, bg)).toBeGreaterThanOrEqual(4.5);
     }
     expect(ratio(colour.background, colour.accent)).toBeGreaterThanOrEqual(4.5);
-    for (const [fgv, bgv] of [[colour.quote, colour.void], [colour.quote, colour.raise], [colour.quote, colour.raise2], [colour.hotEnd, colour.void], [colour.hotEnd, colour.raise], [colour.background, colour.accent]] as const) {
+    for (const [fgv, bgv] of [[colour.quote, colour.void], [colour.quote, colour.raise], [colour.quote, colour.raise2], [colour.background, colour.accent]] as const) {
       expect(PAIRS.some((p) => p.fg === fgv && p.bg === bgv)).toBe(true);
     }
   });

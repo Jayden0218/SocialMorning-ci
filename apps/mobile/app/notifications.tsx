@@ -188,9 +188,13 @@ export default function NotificationsScreen(): React.ReactElement {
   // first, then the fetched page. It was counted once from the cache alone, so a cold cache printed no badge on People for ever.
   const [since] = useState(() => feed.lastOpened());
   const [refreshing, setRefreshing] = useState(false);
-  const refresh = useCallback(async () => {
+  // Only a pull opens the platform refresh gap (iOS moves the page down while `refreshing` is true): the refresh that opening the page
+  // starts must not, or the title sits ~120 pt low until it ends (simulator run 42195300126).
+  const [pulling, setPulling] = useState(false);
+  const refresh = useCallback(async (pulled = false) => {
     setRefreshing(true);
-    try { setView(await feed.refresh()); } finally { setRefreshing(false); }
+    if (pulled) setPulling(true);
+    try { setView(await feed.refresh()); } finally { setRefreshing(false); setPulling(false); }
   }, [feed]);
   useFocusEffect(useCallback(() => { feed.markOpened(); void refresh(); }, [feed, refresh]));
   useEffect(() => { feed.markOpened(); }, [feed, view]);
@@ -216,7 +220,7 @@ export default function NotificationsScreen(): React.ReactElement {
   }, [notices, listener]);
   const choose = (s: NoticeSection) => { if (s === 'interactions') opened.current = true; setSection(s); };
   const moreRef = useRef<(() => void) | undefined>(undefined);
-  const pull = usePullRefresh(refreshing, () => void refresh());
+  const pull = usePullRefresh(pulling, () => void refresh(true));
   const days = useMemo(() => groupByDay(safetyFilter.feed(view?.items ?? []), (i) => i.createdAt, new Date(clockMs())), [safetyFilter, view]);
   const signInLine = section === 'people' ? 'Sign in to follow people and see what they listen to.' : 'Sign in to see replies, likes, mentions and new followers.';
   const chips = (

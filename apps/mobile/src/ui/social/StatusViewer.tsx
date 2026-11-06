@@ -11,7 +11,7 @@
  *    the replies and reactions (StatusReplies).
  *  - M24 US1/US17: someone else's status has a "More" button (Report; on a suggested one, "Stop
  *    suggesting"); the page owns the sheet, the viewer only asks for it.
- * M31 W4-B (T051; design-pulse2 `statusBase`, `status--screen`; "Layout: Stage"): the page is the Stage. A violet-to-void wash (170 degrees, `stageTint`
+ * M31 W4-B (T051; design-pulse2 `statusBase`, `status--screen`; "Layout: Stage"): the page is the Stage. An accent-to-void wash (170 degrees, `hotSoft`
  * to the page at 62 %) with the violet-first glow; the segments 4 under the status bar (3 tall, 4 apart; earlier ones light, the one playing
  * fills as it plays, later ones `barIdle`); the head row (avatar 36, name, "18 h left", the hot "Suggested" tag, More in a glass circle); then the
  * body — a voice status is a 56 light Play/Pause circle beside a 56 tall wave, its clock and "voice status", then its words in Unbounded 21; a
@@ -49,7 +49,7 @@ import { nowMs as clockMs } from '@/ui/kit/clock';
 
 /** A downward drag longer than this closes the viewer. */
 const CLOSE_DY = 80;
-const WASH = [colour.stageTint, colour.void, colour.void] as const;
+const WASH = [colour.hotSoft, colour.void, colour.void] as const;
 const WASH_AT = [0, STAGE.gradientEnd, 1] as const;
 const WASH_FROM = { x: 0.4, y: 0 } as const;
 const WASH_TO = { x: 0.6, y: 1 } as const;

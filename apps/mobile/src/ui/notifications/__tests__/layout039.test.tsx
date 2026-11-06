@@ -17,6 +17,7 @@ const mockList = jest.fn();
 const mockPullScroll = jest.fn();
 const mockPull = { type: 'View', props: {}, key: null, ref: null, $$typeof: Symbol.for('react.transitional.element'), _owner: null, _store: {} };
 let mockView: unknown;
+let mockHold: Promise<unknown> | undefined;
 let mockListener: { listenerId: string } | undefined = { listenerId: 'me' };
 const mockStores = { settings: { get: () => undefined, set: () => undefined }, feedCache: {}, auth: { get: () => undefined } };
 jest.mock('expo-router', () => ({
@@ -34,14 +35,15 @@ jest.mock('@/safety/context', () => ({ useSafety: () => ({ feed: (x: unknown) =>
 jest.mock('@/graph/feed', () => ({
   createFeed: () => ({
     cached: () => mockView, lastOpened: () => undefined, unreadSince: (items: unknown[]) => items.length, markOpened: () => undefined,
-    refresh: () => { mockRefresh(); return Promise.resolve(mockView); }, more: (n: string) => { mockMore(n); return Promise.resolve({ items: [] }); },
+    refresh: () => { mockRefresh(); return mockHold ?? Promise.resolve(mockView); }, more: (n: string) => { mockMore(n); return Promise.resolve({ items: [] }); },
   }),
 }));
 const mockNotif = { list: (c?: string) => { mockList(c); return Promise.resolve({ items: [{ id: 'n1', kind: 'reply', actor: { id: 'B', name: 'Bea', avatarUrl: null }, ref: { commentId: 'c', parentId: 'p', excerpt: 'Agree', episodeTitle: 'Seven' }, createdAt: new Date().toISOString(), unread: true }], next: c ? null : 'n2' }); }, markSeen: () => Promise.resolve() };
 jest.mock('@/social/notifications-api', () => ({ ...jest.requireActual('@/social/notifications-api'), useNotificationsApi: () => mockNotif }));
 jest.mock('@/social/api-m22-social', () => ({ ...jest.requireActual('@/social/api-m22-social'), useM22SocialApi: () => ({ muteThread: () => Promise.resolve() }) }));
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn(() => ({ width: 390, height: 844, scale: 3, fontScale: 1 })) }));
-jest.mock('@/ui/kit/PullRefresh', () => ({ usePullRefresh: () => ({ backdrop: null, inline: null, refreshControl: mockPull, onScroll: mockPullScroll, scrollEventThrottle: 16 }) }));
+const mockPullCalls: { refreshing: boolean; onRefresh: () => void }[] = [];
+jest.mock('@/ui/kit/PullRefresh', () => ({ usePullRefresh: (refreshing: boolean, onRefresh: () => void) => { mockPullCalls.push({ refreshing, onRefresh }); return { backdrop: null, inline: null, refreshControl: mockPull, onScroll: mockPullScroll, scrollEventThrottle: 16 }; } }));
 
 import NotificationsScreen from '../../../../app/notifications';
 
@@ -71,6 +73,23 @@ const words = (r: ReactTestRenderer): string[] => r.root.findAll((x) => String(x
 const flat = (n: ReactTestInstance | undefined): Record<string, unknown> => (StyleSheet.flatten(n?.props['style'] as never) ?? {}) as Record<string, unknown>;
 
 describe('Notifications on Page (spec 039 B-Notifications)', () => {
+  it('the refresh that opening the page starts does not open the pull gap; only a pull does (run 42195300126: the title sat 120 pt low and a tap on Back missed)', async () => {
+    mockPullCalls.length = 0;
+    const r = await render();
+    expect(mockRefresh).toHaveBeenCalled();
+    expect(mockPullCalls.every((c) => c.refreshing === false)).toBe(true);
+    const last = mockPullCalls[mockPullCalls.length - 1]!;
+    let release!: () => void;
+    mockHold = new Promise((res) => { release = () => res(mockView); });
+    await act(async () => { last.onRefresh(); await Promise.resolve(); });
+    expect(mockPullCalls[mockPullCalls.length - 1]!.refreshing).toBe(true);
+    mockHold = undefined;
+    release();
+    await act(async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); });
+    expect(mockPullCalls[mockPullCalls.length - 1]!.refreshing).toBe(false);
+    expect(r).toBeDefined();
+  });
+
   it('is a Page with the title and a Back', async () => {
     const r = await render();
     expect(byId(r, 'page-scroll').length).toBe(1);

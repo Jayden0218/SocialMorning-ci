@@ -29,7 +29,7 @@ export function PlusCard(props: { play: PlayStore; hasPlus: boolean }): React.Re
   return (
     <LinearGradient
       testID="plus-card"
-      colors={[colour.premiumTint, colour.raise, colour.raise]}
+      colors={[colour.hotSoft, colour.raise, colour.raise]}
       locations={[0, 0.7, 1]}
       start={{ x: 0.3, y: 0 }}
       end={{ x: 0.7, y: 1 }}

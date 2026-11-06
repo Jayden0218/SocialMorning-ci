@@ -131,3 +131,22 @@ it('the Downloads tile keeps its old spoken name "Downloads" (D2; the flow match
   expect(names).toContain('Downloads');
   expect(names).not.toContain('Downloads, 2');
 });
+
+// r03-sign-in (device run dc-42195296273): signed out, the flow taps "Sign in" and hit a title that opened nothing. The pre-039 page's title "Sign in ›" was the link.
+it('signed out, the title is the link to sign-in, spoken "Sign in"; signed in, the name is a header and opens nothing', async () => {
+  const listener = mockSocial.listener;
+  (mockSocial as { listener: unknown }).listener = undefined;
+  try {
+    const r = await render();
+    const link = r.root.findAll((n) => typeof n.props['onPress'] === 'function' && n.props['accessibilityRole'] === 'link' && n.props['accessibilityLabel'] === 'Sign in' && n.props['testID'] === undefined)
+      .filter((n) => n.findAll((c) => c.type === RNText && [c.props['children']].flat(5).join('').startsWith('Sign in')).length > 0 && n.findAll((c) => c.props['className'] !== undefined && String(c.props['className']).includes('text-pulse-heading')).length > 0);
+    expect(link.length).toBeGreaterThan(0);
+    mockPush.mockClear();
+    act(() => link[0]!.props['onPress']());
+    expect(mockPush).toHaveBeenCalledWith('/auth/sign-in');
+  } finally {
+    (mockSocial as { listener: unknown }).listener = listener;
+  }
+  const signedIn = await render();
+  expect(signedIn.root.findAll((n) => n.type === RNText && n.props['accessibilityRole'] === 'header' && n.props['accessibilityLabel'] === 'Mei Lin')).toHaveLength(1);
+});

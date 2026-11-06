@@ -454,8 +454,8 @@ describe('nothing playing, as drawn', () => {
 
 describe('the backdrop is the drawing\'s glow', () => {
   it('uses the drawing\'s pink and indigo, and its closest-side reach', () => {
-    expect(glowPair(undefined, colour.hot)).toEqual(['#ff6b8b', '#5b3df5']);
-    expect(glowPair('#336699', colour.hot)).toEqual(['#336699', '#5b3df5']);
+    expect(glowPair(undefined, colour.hot)).toEqual(['#ff6b8b', colour.glowGrey]);
+    expect(glowPair('#336699', colour.hot)).toEqual(['#336699', colour.glowGrey]);
     expect(glowPair(undefined, '#2dd4bf')[0]).toBe('#2dd4bf');
     expect(glowShape(GLOW_A)).toEqual({ cx: 0.35, cy: 0.5, rx: 0.35, ry: 0.5 });
     expect(glowShape(GLOW_B)).toEqual({ cx: 0.7, cy: 0.4, rx: expect.closeTo(0.3, 5), ry: 0.4 });

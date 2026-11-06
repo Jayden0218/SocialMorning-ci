@@ -10,6 +10,7 @@ import { act } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { bottomInset, spacing } from '@/design';
 import { TitleBar } from '@/ui/kit/TitleBar';
+import { PIN_GAP } from '@/ui/kit/layout/Page';
 import { seededStores, mount } from './support/screen-kit';
 
 // One object each, as the real hooks give: a new one per render re-runs the tab's focus effect for ever.
@@ -58,7 +59,10 @@ describe('039 the Updates tab title is the page\'s first row', () => {
     const Screen = require('../app/(tabs)/library').default;
     const r = await mount(withInsets(47, createElement(Screen)));
     expect(r.root.findAllByType(TitleBar)).toHaveLength(0);
-    expect(content(r)['paddingTop']).toBe(47 + spacing.section);
+    // 039 D2 (list was -> now): the pinned title row holds the safe top + 16; the scroll content starts 12 under it.
+    const pin = r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'page-title-pin')[0]!;
+    expect((StyleSheet.flatten(pin.props['style']) as Record<string, number>)['paddingTop']).toBe(47 + spacing.section);
+    expect(content(r)['paddingTop']).toBe(PIN_GAP);
     expect(r.root.findAll((n) => n.props['testID'] === 'page-title-row').length).toBeGreaterThan(0);
     act(() => r.unmount());
   });

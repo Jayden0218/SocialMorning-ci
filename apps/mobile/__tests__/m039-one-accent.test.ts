@@ -14,6 +14,7 @@ import { join, relative } from 'node:path';
 
 const ROOT = join(__dirname, '..');
 const ALLOWED = new Set(['src/design/tokens.ts', 'src/ui/player/PlayerRing.tsx', 'src/ui/comments/CommentsMap.tsx']);
+const GONE = ['hotEnd', 'premiumTint', 'stageTint', 'plusLine', 'plusMark', 'glowIndigo'];
 const CODE_FORMS = [/colour\.violet\b/, /\b(?:bg|text|border|fill|stroke|ring|from|to|via|shadow|outline|decoration)-violet\b/, /['"]#7a3cff['"]/i];
 
 function walk(dir: string, out: string[] = []): string[] {
@@ -33,4 +34,13 @@ it('uses violet in code only in the allowed files', () => {
     if (CODE_FORMS.some((re) => re.test(text))) found.push(relative(ROOT, file));
   }
   expect(found.sort()).toEqual([...ALLOWED].sort());
+});
+
+it('the violet-family tokens are gone from the tokens, the CSS and every file (Q8, run 42195300126)', () => {
+  const hits: string[] = [];
+  for (const file of [...walk(join(ROOT, 'src')), ...walk(join(ROOT, 'app')), join(ROOT, 'global.css')]) {
+    const text = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    for (const name of GONE) if (new RegExp(`\\b${name}\\b`).test(text)) hits.push(`${relative(ROOT, file)}: ${name}`);
+  }
+  expect(hits).toEqual([]);
 });

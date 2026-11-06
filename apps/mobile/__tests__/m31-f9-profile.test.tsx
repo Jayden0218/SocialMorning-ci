@@ -130,7 +130,7 @@ describe('F9-8 Profile numbers (profile--screen, profile--host)', () => {
     const r = await render(createElement(ProfileScreen));
     const total = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === '128 h 14 min')[0];
     expect(total).toBeDefined();
-    expect(total!.props['numberOfLines']).toBe(2); // wave 5b: web does not shrink text, so it may wrap rather than end in an ellipsis
+    expect(total!.props['numberOfLines']).toBe(1); // 039 (run 42195300126): one line that shrinks — "0 h 0 min" wrapped to "0 h 0 / min" at 2
     expect(total!.props['adjustsFontSizeToFit']).toBe(true);
     expect(total!.props['minimumFontScale']).toBe(0.7);
   });

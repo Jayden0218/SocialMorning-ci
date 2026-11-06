@@ -74,6 +74,46 @@ describe('Page', () => {
   });
 });
 
+// 039 D2 (coordinator): the title row is PINNED, as the old title bar was: Back, the Me gear and every page's actions stay reachable on a scrolled page.
+describe('Page: pinned title row', () => {
+  const hosts = (r: ReactTestRenderer, id: string): ReactTestInstance[] => r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === id);
+  it('the title row is outside the scrolling content, drawn once, with Back once', () => {
+    const r = render(createElement(Page, { title: 'Me', leading: createElement(RNText, null, 'BACK'), trailing: createElement(RNText, null, 'ACT') }, createElement(RNText, null, 'x')));
+    expect(hosts(r, 'page-title-row')).toHaveLength(1);
+    expect(byId(r, 'page-scroll').findAll((n) => n.props['testID'] === 'page-title-row')).toHaveLength(0);
+    expect(words(r).filter((w) => w === 'BACK')).toHaveLength(1);
+    expect(words(r).filter((w) => w === 'ACT')).toHaveLength(1);
+  });
+
+  it('it has an opaque void ground, the safe-area top, the 20 gutter, and a hairline only once content has scrolled under it', () => {
+    const r = render(createElement(Page, { title: 'Me' }, createElement(RNText, null, 'x')));
+    const pin = hosts(r, 'page-title-pin')[0]!;
+    const s = flat(pin);
+    expect(s['paddingTop']).toBe(47 + spacing.section);
+    expect(s['paddingHorizontal']).toBe(spacing.screenX);
+    expect(String(pin.props['className'])).toContain('bg-void');
+    expect(hosts(r, 'page-title-hairline')).toHaveLength(0);
+    act(() => { byId(r, 'page-scroll').props['onScroll']({ nativeEvent: { contentOffset: { y: 40 } } }); });
+    expect(hosts(r, 'page-title-hairline')).toHaveLength(1);
+    act(() => { byId(r, 'page-scroll').props['onScroll']({ nativeEvent: { contentOffset: { y: 0 } } }); });
+    expect(hosts(r, 'page-title-hairline')).toHaveLength(0);
+  });
+
+  it('the page\'s own onScroll still runs', () => {
+    const onScroll = jest.fn();
+    const r = render(createElement(Page, { title: 'Me', scroll: { onScroll } }, createElement(RNText, null, 'x')));
+    act(() => { byId(r, 'page-scroll').props['onScroll']({ nativeEvent: { contentOffset: { y: 10 } } }); });
+    expect(onScroll).toHaveBeenCalledTimes(1);
+  });
+
+  it('the title is one line that shrinks to fit', () => {
+    const r = render(createElement(Page, { title: 'A very long page name' }));
+    const head = r.root.findAll((n) => n.type === RNText && n.props['accessibilityRole'] === 'header')[0]!;
+    expect(head.props['numberOfLines']).toBe(1);
+    expect(head.props['adjustsFontSizeToFit']).toBe(true);
+  });
+});
+
 describe('Section', () => {
   it('draws its heading and, when asked, a See all link that fires', () => {
     const onSeeAll = jest.fn();

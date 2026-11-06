@@ -9,6 +9,7 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { bars, barsReserve, bottomInset, spacing } from '@/design';
+import { PIN_GAP } from '@/ui/kit/layout/Page';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 const mockPush = jest.fn();
@@ -105,13 +106,19 @@ describe('037 tab title below the status bar', () => {
   it('Me: with a 47 pt status bar the page content starts below it', async () => {
     const r = await render(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, createElement(MeScreen)));
     const page = r.root.findAll((n) => n.props['testID'] === 'page-scroll')[0]!;
-    expect(flat({ props: { style: page.props['contentContainerStyle'] } } as never)['paddingTop']).toBe(47 + spacing.section);
+    // 039 D2 (list was -> now): the pinned title row holds the safe top + 16; the scroll content starts PIN_GAP under it.
+    const pin = r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'page-title-pin')[0]!;
+    expect(flat({ props: { style: pin.props['style'] } } as never)['paddingTop']).toBe(47 + spacing.section);
+    expect(flat({ props: { style: page.props['contentContainerStyle'] } } as never)['paddingTop']).toBe(PIN_GAP);
   });
 
   // 039 (Feed lane): was "the title bar sits at 47 + 6, not 6"; the content starts below the status bar (inset + spacing.section), as Me's.
   it('Chat: with a 47 pt status bar the page content starts below it', async () => {
     const r = await render(createElement(SafeAreaInsetsContext.Provider, { value: { top: 47, bottom: 34, left: 0, right: 0 } }, createElement(ChatTab)));
     const page = r.root.findAll((n) => n.props['testID'] === 'page-scroll' && n.props['contentContainerStyle'] !== undefined)[0]!;
-    expect(flat({ props: { style: page.props['contentContainerStyle'] } } as never)['paddingTop']).toBe(47 + spacing.section);
+    // 039 D2 (list was -> now): the pinned title row holds the safe top + 16; the scroll content starts PIN_GAP under it.
+    const pin = r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'page-title-pin')[0]!;
+    expect(flat({ props: { style: pin.props['style'] } } as never)['paddingTop']).toBe(47 + spacing.section);
+    expect(flat({ props: { style: page.props['contentContainerStyle'] } } as never)['paddingTop']).toBe(PIN_GAP);
   });
 });

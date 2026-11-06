@@ -90,7 +90,7 @@ export function Deck(props: { width: number; height: number; children: ReactNode
 /** The card: raise, a line, radius 24. `premium` is the violet Premium card; `dashed` the hidden For You card. */
 export function DeckCard(props: { children: ReactNode; tone?: 'plain' | 'premium' | 'dashed'; className?: string }): React.ReactElement {
   const tone = props.tone ?? 'plain';
-  const cls = tone === 'premium' ? 'bg-premiumTint border-line' : tone === 'dashed' ? 'bg-void border-dashed border-switchOff' : 'bg-raise border-line';
+  const cls = tone === 'premium' ? 'bg-hotSoft border-line' : tone === 'dashed' ? 'bg-void border-dashed border-switchOff' : 'bg-raise border-line';
   return (
     <Box testID="deck-card" className={`flex-1 border overflow-hidden ${cls} ${props.className ?? ''}`} style={{ borderRadius: radius.card }}>
       {props.children}
