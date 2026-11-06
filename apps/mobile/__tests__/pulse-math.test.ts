@@ -36,11 +36,13 @@ it('100 spokes start outside the cover and the hotter the bucket the longer the 
   expect(Math.hypot(s[0]!.x1 - 165, s[0]!.y1 - 165)).toBeCloseTo(r0, 5);
 });
 
-it('the played colour runs hot to violet across what is played', () => {
-  expect(playedColour(0, 10)).toBe('rgb(242, 134, 126)'); // hot
-  expect(playedColour(10, 10)).toBe('rgb(122, 60, 255)'); // violet
-  expect(playedColour(5, 10)).toBe(mixColour(colour.hot, colour.violet, 0.5));
-  expect(playedColour(0, 10, '#5fcfc0')).toBe('rgb(95, 207, 192)'); // an accent replaces hot
+// Spec 039 Q8 (one accent): was a grade from hot to violet; now every played step is hot (or the listener's accent).
+it('the played colour is the one accent at every step of what is played', () => {
+  expect(playedColour(0, 10)).toBe(colour.hot);
+  expect(playedColour(10, 10)).toBe(colour.hot);
+  expect(playedColour(5, 10)).toBe(colour.hot);
+  expect(playedColour(0, 10, '#5fcfc0')).toBe('#5fcfc0'); // an accent replaces hot
+  expect(playedColour(10, 10, '#5fcfc0')).toBe('#5fcfc0');
 });
 
 it('sample takes every nth bucket (kit.js pick), plays a fraction of n, and badges say 99+', () => {

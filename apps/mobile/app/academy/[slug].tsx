@@ -5,7 +5,7 @@
  * Spec 039 (Detail template): a `DetailPage` (Back + the article's title, "Creator academy · n" under it); each section is a raise card on the gutter with its heading in
  * the `heading` step. The numbered rings and the spine are gone (a numbered thread is a sideways device).
  *
- * M31 W5-D (T064; design-pulse2 `discover.html` `academy--article`, `academy--article-missing`, layout pattern Thread): a pushed page,
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W5-D (T064; design-pulse2 `discover.html` `academy--article`, `academy--article-missing`, layout pattern Thread): a pushed page,
  * the title bar low (the article's title at 24, "Creator academy · 1"). The summary opens the body in Unbounded 600 16/23, then the
  * sections are a Thread: each heading numbered in a 36 ring on a 2 wide spine, its text in a raise card (radius 18, 14 of padding) —
  * the heading in Unbounded 700 16, the body 15/22. A section with no heading hangs on the spine with no ring. An article that

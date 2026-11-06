@@ -78,7 +78,7 @@ function ForYouCard(props: Act & { row: Row; position: number; onOpenAt: (card: 
   );
 }
 
-/** For You — a deck of cards; the owner's rename of the section is the edge label. */
+/** For You — a deck of cards; the owner's rename of the section is the section heading. */
 export function ForYouSection(props: Act & { rows: Row[]; onOpenAt: (card: EpisodeCard, index: number) => void; /** M19 T021: the card's "···" (Not interested). */ onMore?: (card: EpisodeCard) => void; /** A card just hidden: its slot, drawn as the dashed Hidden card with Undo. */ hidden?: HiddenSlot; /** Drawn under the deck (the "Not liking these?" line). */ footer?: React.ReactNode }): React.ReactElement | null {
   const edge = useEdge('For You', 'For you');
   if (props.rows.length === 0 && !props.hidden) return null;

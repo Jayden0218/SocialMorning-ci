@@ -7,7 +7,7 @@
  * edge label and the 28 lane are gone).
  *
  * M31 W5-D (T064; design-pulse2 `discover.html` `topic--screen`, layout pattern Deck): a pushed page with the list's title (26) and
- * subtitle low, a blue-to-violet glow behind, and the episodes as a Deck under the edge label EPISODES: cards 290 x 430, numbered in
+ * subtitle low, a blue-to-violet glow behind, and the episodes as a Deck under the heading EPISODES: cards 290 x 430, numbered in
  * the editors' order — the cover (200) with the number in Unbounded 800 28 over its corner, then the editors' note in quotes (Unbounded 600 15),
  * the show, the title (Unbounded 700, one line), the heat curve and the Play disc (42). A card opens the episode; Play plays it.
  * Without the list on the phone: "This list is not on the phone yet — open Discover first" and the title "Topic list".

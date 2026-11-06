@@ -21,7 +21,7 @@
  *
  * M31 W3-A2 (T040; design-pulse2 `show--screen`, layout Mosaic + Stage; the owner's rule: "completely the same, or explain why it is
  * different"). The show's art fills the top 300 and fades to void; search and ⋯ are two glass circles top right. The list sits under an
- * "Episodes" edge label: the newest episode is a 2 x 2 art tile with its hot chip (the time of its hottest moment, when the show's
+ * "Episodes" section heading: the newest episode is a 2 x 2 art tile with its hot chip (the time of its hottest moment, when the show's
  * Hot moments are in), the others 2 x 1 tiles — cover 56, title, the played curve, length · date, a 36 play disc. Over the tiles one row of
  * chips: All · Host picks · Most popular · Hot moments (NEW), then Newest/Oldest and Unplayed, to scroll to. Hot moments is a Deck of 290 x
  * 340 cards (src/ui/show/HotMoments.tsx), fed by `GET /v1/discover/moments?feedUrl=`. The thumb zone holds the hosts line, back, the

@@ -15,6 +15,8 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 import { EpisodeTitleBlock } from '@/ui/episode/EpisodeTitleBlock';
 import { countsLine } from '@/ui/episode/stage';
+import { EpisodeHeat } from '@/ui/episode/EpisodeHeat';
+import { StyleSheet } from 'react-native';
 import { MenuTile } from '@/ui/me/parts';
 import { SearchZone } from '@/ui/search/SearchZone';
 import { liveLabel } from '@/social/live';
@@ -52,7 +54,18 @@ describe('F10-E1 the Episode title block (F8)', () => {
 });
 
 describe('F10-E2 the Episode counts (F8, W5, W1)', () => {
-  // 039 I2: the two `EpisodeStage` guards (the top pills are minHeight boxes; the date pill may shrink) went with EpisodeStage, which no page draws (Episode is a DetailPage with EpisodeHeat).
+  // 039 verifier fix: the date-pill guard restored on its new home, EpisodeHeat (EpisodeStage is gone; the pills row is `episode-pills`).
+  it('the date may shrink (flexShrink) so the "hottest at" pill is not pushed off the right edge', () => {
+    const r = render(createElement(EpisodeHeat, { date: 'TUE 27 OCT · 48:10', hottest: { atMs: 872_000, range: [0.3, 0.4] } as never, heat: Array.from({ length: 100 }, () => 0.2), onHottest: jest.fn() }));
+    const date = texts(r).find((x) => said(x).startsWith('TUE 27 OCT'))!;
+    let shrinks = false;
+    for (let n: ReactTestInstance | null = date; n && n.props['testID'] !== 'episode-pills'; n = n.parent) {
+      const st = (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
+      if (st['flexShrink'] !== undefined && Number(st['flexShrink']) > 0) shrinks = true;
+      if (/\bflex-shrink\b|\bmin-w-0\b/.test(String(n.props['className'] ?? ''))) shrinks = true;
+    }
+    expect(shrinks).toBe(true);
+  });
   it('twelve million listened prints "12.3M listened · 12.3M comments · 2 clips"', () => {
     expect(countsLine({ listeners: 12_345_678, comments: 12_345_678, clips: 2 })).toBe('12.3M listened · 12.3M comments · 2 clips');
     expect(countsLine({ listeners: 120, comments: 14, clips: 2 })).toBe('120 listened · 14 comments · 2 clips');

@@ -7,7 +7,7 @@
  * Spec 039 (Detail template): a `DetailPage` (Back + the issue's title, "Issue No. n" under it, Share at its end); the intro, then the picks as one `Section` of raise cards,
  * each labelled "PICK n". The ring-and-spine thread is gone; a failed load is an `InlineNotice` with Retry.
  *
- * M31 W5-D (T064; design-pulse2 `discover.html` `issue--screen`, `issue--share`, layout pattern Thread): a pushed page, the title bar low (the
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W5-D (T064; design-pulse2 `discover.html` `issue--screen`, `issue--share`, layout pattern Thread): a pushed page, the title bar low (the
  * issue's title at 24, "Issue No. 12", a share circle = "Share this issue" once it has loaded). Above the thread the issue's "NO. 12 ·
  * TUESDAY, 27 OCTOBER" in hot-text mono and the intro (Geist 500 15/22, as paragraphs). The picks are a numbered Thread (36 rings on a 2 wide
  * spine at x 36): each card is raise, radius 20, with the episode (cover 64, the show, the title in Unbounded 700 15, Play 38), the editors' note

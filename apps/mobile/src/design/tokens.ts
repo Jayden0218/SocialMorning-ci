@@ -5,8 +5,9 @@
  * build if a colour literal appears anywhere else.
  *
  * **Pulse, dark only (M31 T021, constitution v4.0.0, owner 2026-10-27).** The phone app follows
- * the Pulse drawings (`specs/033-m31-redesign/design-pulse2/`, `kit.css` + `index.html`): a
- * near-black page (`void`), two raised surfaces, the hot (#FF4D6D) to violet pulse. There is one
+ * the Pulse drawings (`specs/033-m31-redesign/design-pulse2/`, `kit.css` + `index.html`), in the
+ * colours of spec 039's row M (`design/M-Palette.dc.html`): a grey page (`void`, #111318), two raised
+ * surfaces (#1A1D23, #22262E), one muted accent (`hot`, #F2867E) and the violet for the pulse. There is one
  * theme. Every pair was measured with `contrast.ts` before adoption and `PAIRS` re-checks them on
  * every run. Words on `hot` are `void` — white on hot fails (3.21, the drawing says "3.0").
  *
@@ -216,7 +217,7 @@ function step<F extends keyof typeof FACE_LEADING>(face: F, cls: string, size: n
 /**
  * The Pulse type scale by meaning (design-pulse §System; sizes in `kit.css`). `face` is the class
  * that picks the font file (`src/design/fonts.ts` `familyFor`), `tracking` is letter spacing in px
- * (hero −1 % of 30 = −0.3; the edge label 0.24 em of 11 = 2.64). Use `typeStyle(name)` for the
+ * (hero −1 % of 30 = −0.3; the section heading 0.24 em of 11 = 2.64). Use `typeStyle(name)` for the
  * line height and tracking, and the `className` for size, face and colour. The sizes/lines below
  * are the DRAWN ones; `lineSafe` is what is set (the drawn line, or the font's own height if taller —
  * Unbounded steps; see `FACE_LEADING`).
@@ -656,7 +657,7 @@ export const player = {
  * larger inset moves the page by the difference (`episodeLayout` in `src/ui/episode/measures.ts`).
  *
  *   cover 470 (veil to 480) · pills 64 · curve 330 (70 bars, 40) · counts 384 · title block bottom 112 · tray bottom 40 (60)
- *   scrolled: the cover leaves, the glow stays; sections are named by an edge label, content starts 28 from the left
+ *   scrolled: the cover leaves, the glow stays; sections are named by an section heading, content starts 28 from the left
  */
 /** F3 (design-pulse2 `like--screen`): the Like page's stage. The veil is void at 10 % to the page; the episode strip is raise at 80 %. */
 export const likeStage = {
@@ -718,7 +719,7 @@ export const episode = {
   showLine: 13,
   ringPadX: 18,
   // ---- the scrolled sections ----------------------------------------------------------------------------------
-  /** Content leaves a 28 lane for the edge label and ends 16 from the right. */
+  /** Content leaves a 28 lane for the section heading and ends 16 from the right. */
   lane: 28,
   right: 16,
   sectionGap: 22,

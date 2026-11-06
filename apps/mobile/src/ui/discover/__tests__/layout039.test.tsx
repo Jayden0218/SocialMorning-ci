@@ -7,7 +7,7 @@
 import { createRef, createElement } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { SWITCH_HEIGHT, SWITCH_LIFT } from '@/ui/discover/HomeSwitch';
-import { bars } from '@/design';
+import { bottomInset, colour } from '@/design';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { DiscoverPage } from '@/ui/discover/DiscoverPage';
 import type { DiscoverPageData } from '@/ui/discover/useDiscoverPage';
@@ -138,18 +138,49 @@ describe('Discover on the layout parts', () => {
     expect(byId(r, 'edge-measure')).toHaveLength(0); // 039 I2: EdgeLabel is deleted; its measuring copy is its tell-tale
   });
 
-  it('clears the Moments | Discover switch at the foot', async () => {
-    const r = await render(moments);
-    const scroll = byId(r, 'page-scroll')[0]!;
-    const kids = scroll.findAll((n) => typeof n.type === 'string' && (StyleSheet.flatten(n.props['style']) as { height?: number } | undefined)?.height === SWITCH_LIFT + SWITCH_HEIGHT);
-    expect(kids.length).toBeGreaterThan(0);
+  // Q2 (owner, 2026-11-06): the switch has its own band at the foot, so nothing sits under it at rest.
+  it('gives the Moments | Discover switch its own opaque band at the foot, with the page ending above it', async () => {
+    const mark = createElement(Text, null, 'THE-SWITCH');
+    let r!: ReactTestRenderer;
+    await act(async () => { r = create(createElement(DiscoverPage, { page: page(), moments, switcher: mark } as never)); await Promise.resolve(); });
+    mounted.push(r);
+    await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+    const band = byId(r, 'home-band');
+    expect(band).toHaveLength(1);
+    const st = StyleSheet.flatten(band[0]!.props['style']) as { position?: string; backgroundColor?: string; borderTopWidth?: number; borderTopColor?: string; height?: number };
+    expect(st.position).not.toBe('absolute'); // in the column, below the page: the page's area ends at the band's top
+    expect(st.backgroundColor).toBe(colour.void); // opaque: nothing shows through
+    expect(st.borderTopWidth).toBe(StyleSheet.hairlineWidth);
+    expect(st.borderTopColor).toBe(colour.line);
+    expect(st.height).toBe(SWITCH_HEIGHT + 2 * SWITCH_LIFT);
+    expect(words({ root: band[0]! } as unknown as ReactTestRenderer)).toContain('THE-SWITCH');
+    // The band comes after the scroll view in one column: climb to the first ancestor that holds both and compare which child holds which.
+    const holds = (n: ReactTestInstance, f: (x: ReactTestInstance) => boolean): boolean => n === band[0] || n.findAll(f).length > 0;
+    let up: ReactTestInstance | null = band[0]!.parent;
+    while (up && up.findAll((n) => n.props['testID'] === 'page-scroll').length === 0) up = up.parent;
+    expect(up).not.toBeNull();
+    const kids = up!.children.filter((c) => typeof c !== 'string') as ReactTestInstance[];
+    const idxPage = kids.findIndex((k) => k.props['testID'] === 'page-scroll' || k.findAll((n) => n.props['testID'] === 'page-scroll').length > 0);
+    const idxBand = kids.findIndex((k) => holds(k, (n) => n === band[0]));
+    expect(idxPage).toBeGreaterThanOrEqual(0);
+    expect(idxBand).toBeGreaterThan(idxPage);
   });
 
-  it("the page's foot padding itself includes the switch's height and lift on top of the tab bar (the For You card titles were covered, run 42025749074)", async () => {
+  it('still draws the band while the page is loading, so the switch is always reachable', async () => {
+    const mark = createElement(Text, null, 'THE-SWITCH');
+    let r!: ReactTestRenderer;
+    await act(async () => { r = create(createElement(DiscoverPage, { page: { ...page(), shown: false }, moments, switcher: mark } as never)); await Promise.resolve(); });
+    mounted.push(r);
+    expect(byId(r, 'home-band')).toHaveLength(1);
+  });
+
+  it("the page's foot padding is the tab bar's only: no spacer for the switch any more (it has a band)", async () => {
     const r = await render(moments);
     const scroll = byId(r, 'page-scroll')[0]!;
     const pad = Number((StyleSheet.flatten(scroll.props['contentContainerStyle']) as { paddingBottom?: number }).paddingBottom);
-    expect(pad).toBeGreaterThanOrEqual(bars.tab + SWITCH_LIFT + SWITCH_HEIGHT);
+    expect(pad).toBe(bottomInset(34, { tabs: true }));
+    const spacers = scroll.findAll((n) => typeof n.type === 'string' && (StyleSheet.flatten(n.props['style']) as { height?: number } | undefined)?.height === SWITCH_LIFT + SWITCH_HEIGHT);
+    expect(spacers).toHaveLength(0);
   });
 
   it('keeps the shortcut tiles in a 2-column grid', async () => {

@@ -72,3 +72,15 @@ test('039: EdgeLabel is retired — an import of it fails, its file coming back 
   writeFileSync(path.join(root, edge.file), '');
   assert.ok(revived(root, [edge]).length === 1);
 });
+
+test('039: PushedPage is retired; an import of it (or a file that brings it back) is refused with the reason', () => {
+  const r = findRetired([f('app/a.tsx', "import { PushedPage } from '@/ui/kit/PushedPage';")]);
+  assert.equal(r.length, 1);
+  assert.match(r[0], /^app\/a\.tsx:1 imports retired PushedPage \(039: pages use Page\/PageList\)/);
+  const root = mkdtempSync(path.join(tmpdir(), 'retired-'));
+  const p = RETIRED_PARTS.find((x) => x.name === 'PushedPage');
+  assert.ok(p, 'PushedPage is in RETIRED_PARTS');
+  mkdirSync(path.dirname(path.join(root, p.file)), { recursive: true });
+  writeFileSync(path.join(root, p.file), '');
+  assert.ok(revived(root).some((x) => x.includes('PushedPage')));
+});

@@ -1,7 +1,7 @@
 // The Deck: a section's row of cards that snaps card by card, under the section's heading.
 /**
  * M31 T030 (design-pulse2 `discover.html#home--fold-a`, `#home--fold-b`; layout pattern Deck), restyled by spec 039 I2 (design B): each section below
- * the Discover page is a `DeckSection` (a heading at the `heading` step on the 20 gutter, then its content; the vertical edge label and its 28 lane are
+ * the Discover page is a `DeckSection` (a heading at the `heading` step on the 20 gutter, then its content; the vertical section heading and its 28 lane are
  * gone) holding a `Deck`: cards of one width, `DECK.gap` apart, the first starting at the gutter, the next one peeking in at the right; a flick moves one
  * card (`snapToInterval`). `DeckCard` is the card (radius 24, raise, a 1 line border); `DeckLink` the hot-text "Full chart ›" line under a deck.
  *
@@ -90,7 +90,7 @@ export function Deck(props: { width: number; height: number; children: ReactNode
 /** The card: raise, a line, radius 24. `premium` is the violet Premium card; `dashed` the hidden For You card. */
 export function DeckCard(props: { children: ReactNode; tone?: 'plain' | 'premium' | 'dashed'; className?: string }): React.ReactElement {
   const tone = props.tone ?? 'plain';
-  const cls = tone === 'premium' ? 'bg-premiumTint border-violet/40' : tone === 'dashed' ? 'bg-void border-dashed border-switchOff' : 'bg-raise border-line';
+  const cls = tone === 'premium' ? 'bg-premiumTint border-line' : tone === 'dashed' ? 'bg-void border-dashed border-switchOff' : 'bg-raise border-line';
   return (
     <Box testID="deck-card" className={`flex-1 border overflow-hidden ${cls} ${props.className ?? ''}`} style={{ borderRadius: radius.card }}>
       {props.children}

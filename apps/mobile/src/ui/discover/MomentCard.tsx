@@ -16,7 +16,7 @@
  * Reduce Motion and the web build show a Play button and no movement.
  *
  * Deviations from the drawing (reported in the gate log): the cover is not tinted per cover (research
- * T020 §2: the glow is the fixed hot-to-violet pair until a colour library is compiled green); the
+ * T020 §2: the glow is the fixed hot pair until a colour library is compiled green); the
  * flame's number is the moment's reactions, the comment number the episode's comments once known.
  */
 import { memo, useEffect, useMemo, useState } from 'react';
@@ -60,7 +60,7 @@ const TICK_MS = 250;
 const NO_HEAT: readonly number[] = Array.from<number>({ length: 100 }).fill(0);
 const SCRIM = [colour.scrimTop, colour.scrimMid, colour.scrimFoot, colour.scrimFoot] as const;
 const SCRIM_AT = [0, 0.38, 0.76, 1] as const;
-const GLOW = [colour.hot, colour.violet] as const;
+const GLOW = [colour.hot, colour.line] as const;
 const FILL = StyleSheet.absoluteFill;
 
 export type CardActions = {

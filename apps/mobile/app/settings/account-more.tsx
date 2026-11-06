@@ -22,7 +22,7 @@
  * account", enabled at 6 digits). Same handlers, same names, same order of steps as before.
  *
  * M31 S-A (T060; design-pulse2 `settings-account-more--screen`, `--signed-out`, `--delete-steps`, `--code-sent`; Panel): the page is one group tile
- * with one row — a trash icon and "Delete my account…" in hot-text, a chevron — under the edge label ACCOUNT; the rest stays empty on purpose so the
+ * with one row — a trash icon and "Delete my account…" in hot-text, a chevron — under the heading ACCOUNT; the rest stays empty on purpose so the
  * one destructive way out is not brushed by mistake (signed out: a tile "Sign in to manage your account." and the row dimmed, it does nothing without
  * an account). Tapping it turns the page into the three-step delete — no page is pushed — titled "Delete my account": a tile of what goes with
  * "Deleted for good on {date}." in Unbounded 17 hot-text, the steps as a small thread in one tile (dots 32: active = light, done = hot with a tick,

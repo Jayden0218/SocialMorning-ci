@@ -1,7 +1,7 @@
 // The voice status ring: 270 round, it is the 60-second limit; the record button and the clock sit inside it.
 /**
  * M31 W3-B (T041; design-pulse2 `social.html` `recRing`, `voice-new--screen`, `-recording`; "Layout: Ring"): a 270 ring, stroke 10, the
- * track white at 10 % (`trackSoft`), the arc hot to violet with round caps filling as you record. Inside: the clock in
+ * track white at 10 % (`trackSoft`), the arc hot with round caps filling as you record. Inside: the clock in
  * Unbounded 800 40 with "/ 1:00" (Unbounded 600 16, text3), the 84 record button, and a line under it (Geist 500 13, text2).
  *   idle      — a light disc, a void microphone       "Tap to record"
  *   recording — a hot disc, a void stop square, the glow round the button brightens    "Recording — tap to stop"
@@ -47,7 +47,7 @@ export function VoiceRing(props: {
         <Defs>
           <LinearGradient id={id} x1="0" y1="0" x2="1" y2="0">
             <Stop offset="0" stopColor={colour.hot} />
-            <Stop offset="1" stopColor={colour.violet} />
+            <Stop offset="1" stopColor={colour.hot} />
           </LinearGradient>
         </Defs>
         <Circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={colour.trackSoft} strokeWidth={stroke} />

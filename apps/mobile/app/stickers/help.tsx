@@ -7,7 +7,7 @@
  * Spec 039 (Detail template): a `DetailPage` (Back + "How stickers work"); the intro tile, then "How each one is earned" and "Good to know" as `Section`s on the gutter.
  *
  * M31 W4-A (T050; design-pulse2 social.html `stickers-help--screen`; layout pattern Panel): an intro tile (the premium tint fading to raise,
- * radius 22, padding 16, Geist 500 15/22), then under the edge label "How each one is earned" one grouped tile of rows (a 34 disc in the
+ * radius 22, padding 16, Geist 500 15/22), then under the heading "How each one is earned" one grouped tile of rows (a 34 disc in the
  * premium tint with the mark in hot-text, the title 13/600, how it is earned 12/16 in text2, a hairline between rows), then under "Good to
  * know" three tiles of 13/19 text2. The title bar is back and "How stickers work" (26). Read-only: back is the page's only action.
  */

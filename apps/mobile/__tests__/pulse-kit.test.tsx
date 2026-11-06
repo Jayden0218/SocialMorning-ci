@@ -233,7 +233,7 @@ describe('curve (the heat bars)', () => {
     expect(b[10]!['backgroundColor']).toBe(colour.barIdle);
     expect(b[0]!['backgroundColor']).toBe(playedColour(0, 10));
     expect(b[9]!['backgroundColor']).toBe(playedColour(9, 10));
-    expect(b[0]!['backgroundColor']).not.toBe(b[9]!['backgroundColor']);
+    expect(b[0]!['backgroundColor']).toBe(b[9]!['backgroundColor']); // Q8: one accent, no grade to violet (was: not.toBe)
   });
   it('hotRange lights a run of bars hot with a glow; glow adds it to played bars', () => {
     const r = render(createElement(Curve, { data, hotRange: [20, 24] }));
@@ -269,7 +269,7 @@ describe('ring', () => {
     const stroke = (i: number) => l[i]!.props['stroke'];
     expect(stroke(60)).toBeDefined();
     expect(JSON.stringify(l[0]!.props)).not.toContain('NaN');
-    expect(new Set(l.map((x) => JSON.stringify(x.props['stroke']))).size).toBeGreaterThan(5); // a gradient, not one colour
+    expect(new Set(l.map((x) => JSON.stringify(x.props['stroke']))).size).toBe(2); // Q8: played = hot, the rest barIdle (was: > 5, a gradient)
   });
   it('the knob sits where the progress is; a quarter in is at 3 o\'clock', () => {
     const r = render(createElement(Ring, { heat, progress: 0.25, size: 330 }));

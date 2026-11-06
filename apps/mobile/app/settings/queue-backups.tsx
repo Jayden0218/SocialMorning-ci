@@ -8,7 +8,7 @@
  *
  * Spec 039 (List lane): a `Page` (Back + title); the spine and its dots are gone (design B: nothing sideways) — the versions are tiles one under the other, newest first.
  *
- * M31 S-B (T060; design-pulse2 `settings-queue-backups--screen`, `--empty`, `--restore-dialog`, `toast--settings-queue-backups`; layout Thread): the
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 S-B (T060; design-pulse2 `settings-queue-backups--screen`, `--empty`, `--restore-dialog`, `toast--settings-queue-backups`; layout Thread): the
  * versions hang from a 2-wide spine (hot, violet at 60 %, then the line colour), newest first, a dot on it for each — the newest one hot —
  * and each is a tile: the date and time in mono 13, "device · n episodes", "Starts with …" in Geist 600 14, and at the foot the reason (12,
  * text-3) beside a quiet Restore pill (36; "Restoring" while busy, the others disabled meanwhile). The lede sits above; Restore asks first

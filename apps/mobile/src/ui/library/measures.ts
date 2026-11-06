@@ -4,9 +4,9 @@
  * number is read off those drawings. The drawn phone has a 50 high status bar; a block "drawn at N from the top" sits `N - 50`
  * under the safe top (`DRAWN.status`).
  *
- *  - Voice: an edge label and a row of 56 circles 12 apart from 28 in, each with a 2 void gap and a 2 ring round it (the
+ *  - Voice: an section heading and a row of 56 circles 12 apart from 28 in, each with a 2 void gap and a 2 ring round it (the
  *    drawing's two box-shadows), the name under at 6; the block is drawn at 58 and the Starred block at 150 (92 pitch).
- *  - Starred: an edge label and 52 covers (radius 14) 10 apart from 28 in; the Deck is drawn at 220 (70 pitch).
+ *  - Starred: an section heading and 52 covers (radius 14) 10 apart from 28 in; the Deck is drawn at 220 (70 pitch).
  *  - Deck: cards 290 x 350 (radius 26, a 1 line), 10 apart, the first at 20; cover 150; body padding 14, 8 between; actions 40, Play 46.
  *  - Subscriptions: tiles in the Me lane (28 left, 16 right); a starred tile 1 x 2 (178), a show 2 x 1 (84, padding 12, cover 56);
  *    the grid is 3 columns of squares (radius 18, 8 apart).
@@ -18,7 +18,6 @@ export const UPDATES = {
   voiceTop: 58,
   starredTop: 150,
   deckTop: 220,
-  lane: 28,
   voice: { avatar: 56, gap: 12, ring: 2, name: 6 },
   starred: { cover: 52, gap: 10, radius: 14 },
   card: { width: 290, height: 350, radius: 26, cover: 150, pad: 14, gap: 8, lead: 20, chipLeft: 12, chipTop: 12, chipPadX: 7, chipPadY: 5, chipRadius: 6, action: 40, play: 46, actionGap: 6 },

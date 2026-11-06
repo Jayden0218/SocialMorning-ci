@@ -7,7 +7,7 @@
  * then the photo, then says so and goes back.
  *
  * M31 W4-A (T050; design-pulse2 social.html `profile-edit--screen`, `--signed-out`, `--load-failed`, `--toast`; layout pattern Panel): your photo
- * (88, a 3 light ring) over the chips "Change photo" (or "Add photo") and "Remove photo"; under the edge labels "About you" and "Private" the
+ * (88, a 3 light ring) over the chips "Change photo" (or "Add photo") and "Remove photo"; under the heading "About you" and "Private" the
  * fields are tiles (radius 20, padding 12 / 14): Name (count, hot "A name is needed"), Bio (count), Age range and Gender as small chips, then
  * Birthday and Industry; "Likes are public" is a tile with its switch after Gender. The title bar is back, "Edit profile" (26) and a hot
  * Save on the right, dimmed until something changed and while the name is empty or the birthday malformed. Signed out: a lock disc and

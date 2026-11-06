@@ -9,7 +9,7 @@
  * (none today) are white cards. Loading, the error line and the data are unchanged.
  *
  * M31 W6-A (T070 part 1; design-pulse2 `shell.html` `tips--screen`; layout Stage): the glow behind (hot first, 50 %); a faint wall of 60 bars; a 160 heart tile
- * (hot to violet, tilted 6 degrees left, glowing) 100 under the status bar; "No tips yet" in Unbounded 800 40 and, while the store is not set up, the
+ * (hot, tilted 6 degrees left, glowing) 100 under the status bar; "No tips yet" in Unbounded 800 40 and, while the store is not set up, the
  * not-available sentence (15, text-2) low on the page, 110 over the title bar; the title bar is low with "Tips I gave" at 20 (the headline already says what the
  * page is) and back only. Tips, when there are any, are 64 tiles (show, date, amount in mono) ending with the end-of-list mark, with the not-available caption
  * above them while the store is not set up; loading is ghost rows; a load error is the line "Couldn't load your tips right now.". Same call, names and words.

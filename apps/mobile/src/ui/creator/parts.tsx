@@ -3,7 +3,7 @@
  * M31 W6-A (T070 part 1; design-pulse2 `shell.html` `claimCard`, `creator--host-proven`, `creator--code-pending`, `creator--code-not-found`), restyled by spec 039 I2 on the
  * 038 tokens: a raise card (radius 24, 1 px line, 16 of padding, 12 between parts).
  *  - Pending: the cover (72, radius 16) with "PENDING · NOT PROVEN YET" in hot-text mono caps over the show's name (`heading` step), the three steps (`body`, text-2),
- *    the code at the `number` step spaced 0.04 em in the hot-to-violet gradient (selectable; its spoken name "Your code: …"), and the answer to Verify in hot-text (announced).
+ *    the code at the `number` step spaced 0.04 em in the hot gradient (selectable; its spoken name "Your code: …"), and the answer to Verify in hot-text (announced).
  *  - Proven: the cover (88, radius 16) with "PROVEN — YOU ARE THE HOST" over the name; the numbers at the `strong` step ("120 listened · 14 comments · 32 episodes";
  *    "Proven — loading your numbers…" until they arrive); "Where people talk most" and up to three moments, each a timestamp chip, the episode and the comment count.
  * Not as drawn: the drawing's 46-tall curve of the whole show is left out — the app has no per-show curve to draw it from, and a made-up one would pass for data.

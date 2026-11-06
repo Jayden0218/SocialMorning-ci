@@ -9,7 +9,6 @@
 export const CREATOR = {
   top: 66 - 50,
   side: 20,
-  lane: 28,
   gap: 12,
   curveBars: 48,
   curveHeight: 54,

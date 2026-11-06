@@ -9,11 +9,9 @@ import { createElement } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { HotNowTile } from '@/ui/discover/DiscoverMosaic';
 import { SearchZone } from '@/ui/search/SearchZone';
 import { CommentRow } from '@/ui/comments/CommentRow';
 import { LinearGradient } from '@/design/tailwind';
-import type { Moment } from '@/discover/moments-api';
 import type { Comment } from '@/social/api';
 
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn(() => ({ width: 320, height: 568, scale: 2, fontScale: 1.3 })) }));
@@ -38,34 +36,7 @@ const render = (el: React.ReactElement): ReactTestRenderer => {
 };
 const texts = (r: ReactTestRenderer): ReactTestInstance[] => r.root.findAll((n) => String(n.type) === 'Text');
 
-describe('R2-F7 Hot now at the 1.3 cap', () => {
-  const HOT: Moment = { episodeId: 'h1', showTitle: 'S', episodeTitle: 'Hot ep', startMs: 872_000, endMs: 910_000, reactions: 41, rank: 1, followed: false, comments: [{ id: 'c', author: 'Rui', text: 'the part I replay', likes: 1 }] };
-  const tile = (): ReactTestRenderer => render(createElement(HotNowTile, { moment: HOT, onPress: jest.fn() }));
-
-  it('the time is one line that shrinks to fit', () => {
-    const t = tile().root.findAll((n) => n.props['testID'] === 'hot-now-time' && String(n.type) === 'Text')[0]!;
-    expect(t.props['numberOfLines']).toBe(1);
-    expect(t.props['adjustsFontSizeToFit']).toBe(true);
-  });
-
-  it('"41 reacting" is a normal-flow sibling AFTER the quote, not absolutely positioned', () => {
-    const r = tile();
-    const reacting = texts(r).find((t) => say(t.props['children']) === '41 reacting')!;
-    const quote = texts(r).find((t) => say(t.props['children']).startsWith('“'))!;
-    expect(reacting).toBeDefined();
-    expect(quote).toBeDefined();
-    // nothing from the reacting Text up to the tile root is absolutely positioned
-    for (let n: ReactTestInstance | null = reacting; n !== null; n = n.parent) {
-      expect(flat(n)['position']).not.toBe('absolute');
-      expect(String(n.props['className'] ?? '')).not.toMatch(/(^|\s)absolute(\s|$)/);
-    }
-    // and it comes after the quote in the tile's reading order
-    const order = r.root.findAll((n) => n === quote || n === reacting);
-    expect(order.indexOf(quote)).toBeLessThan(order.indexOf(reacting));
-    // the quote is capped at 3 lines or fewer (the tile may grow, the lines may not run on)
-    expect(Number(quote.props['numberOfLines'])).toBeLessThanOrEqual(3);
-  });
-});
+// 039 verifier fix: R2-F7 (Hot now at the 1.3 cap) went with the DiscoverMosaic component, which no page draws.
 
 describe('R2-F11 the Search tab row shows that it scrolls', () => {
   const zone = (): ReactTestRenderer => render(createElement(SearchZone, {

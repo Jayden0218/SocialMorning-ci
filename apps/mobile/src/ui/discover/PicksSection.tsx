@@ -1,7 +1,7 @@
 // Editor's picks on Discover: a deck of cards, each with its note, counts, add-to-queue and Play.
 /**
  * M31 T030 (design-pulse2 `home--fold-a`, "Picks"). The mosaic at the top of the page shows the first
- * pick as its tile; this deck lists every pick under the edge label "Picks": cards 270 x 220, a cover
+ * pick as its tile; this deck lists every pick under the heading "Picks": cards 270 x 220, a cover
  * (64) with the show and the title (Unbounded) in the first row, the owner's note in italics, and at the
  * foot the counts in mono 11 with "+" and Play (38). "Today's picks, with every note ›" under the deck
  * opens /picks/daily; "Past picks →" is in the pick tile (drawn there, not repeated here).

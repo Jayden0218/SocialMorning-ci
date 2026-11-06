@@ -1,17 +1,13 @@
-// Listening history by day on a spine, with where you stopped; filter to finished only, search, select and delete.
+// Listening history by day, with where you stopped; filter to finished only, search, select and delete.
 /**
  * Listening history (收听历史, M10): what this phone played, most recent first, with where you stopped; search and "Only finished" as in the reference.
  *
- * M31 W3-C (T041; design-pulse2 `listen.html` `history--screen`, `history--empty`, `history--select-mode`,
- * `history--clear-dialog`, `history--episode-sheet`, `toast--history`; layout pattern Thread): the rows hang from the
- * spine at x 40 under light day tags (TODAY, YESTERDAY, EARLIER THIS WEEK, EARLIER). A row is a raise card (radius 18):
- * cover 44, title, show, and a 34 play dot — or "Finished" in green when it is done; an unfinished one shows its played
- * curve (40 bars) and "Stopped at m:ss". The title bar is low (rule 1) and 26 wide: "Listening history", "All · 42
- * episodes", a search circle and a select (check) circle; the chips "All" and "Only finished" sit above it. Tap a card =
- * play from where you stopped (a tablet opens it in the right pane); long-press = the shared episode sheet ("More for
- * …", also the card's `longpress` accessibility action) whose Details tile opens the episode page. Select mode turns
- * the title bar into "n selected" with Clear all, Delete (n) and Done, and a tick circle on the spine beside each card.
- * Same rows, same spoken names, same toasts.
+ * Spec 039 (design B): a `PageList` (Back, "Listening history", "All · 42 episodes", a search circle and a select (check) circle; the chips "All" and "Only
+ * finished" under the title). The rows sit under light day tags (TODAY, YESTERDAY, EARLIER THIS WEEK, EARLIER), each a raise card (`ThreadCard`): cover 44, title,
+ * show, and a 34 play dot — or "Finished" in green when it is done; an unfinished one shows its played curve (40 bars) and "Stopped at m:ss". Tap a card = play
+ * from where you stopped (a tablet opens it in the right pane); long-press = the shared episode sheet ("More for …", also the card's `longpress` accessibility
+ * action) whose Details tile opens the episode page. Select mode turns the title into "n selected" with Clear all, Delete (n) and Done, and a tick circle beside
+ * each card. Same rows, same spoken names, same toasts.
  *
  * M21 US4 (FR-035): a long-press on a row opens the shared episode sheet (`EpisodeRowSheet`).
  * M21 US10 (T110) / M24 US20: ▶ Play, Share and "View comments (N)" are in that sheet (ONE comment-counts call for the first 100 rows).
@@ -20,8 +16,7 @@
  * phone (`src/me/history.ts`). Opening the page also hides rows another phone deleted.
  * M22 US16: on a tablet (`useOpensInPane`) a row opens its episode in the right pane (src/ui/shell/ListDetail.tsx).
  *
- * Not as drawn: the rows show no per-episode heat (History keeps none), so the curve is an even meter; the spine is fixed
- * over the page, not part of the scrolling list (a long list is virtualised).
+ * Not as drawn: the rows show no per-episode heat (History keeps none), so the curve is an even meter.
  */
 import { router, useFocusEffect } from 'expo-router';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';

@@ -95,7 +95,6 @@ export const PAIRS: Pair[] = [
   { fg: colour.void, bg: colour.text, min: BODY_MIN, role: 'void words on the chosen tab' },
   // Graphics that carry information or identify a control (floor 3).
   { fg: colour.idle, bg: colour.void, min: LARGE_MIN, role: 'idle tab icon (graphic)' }, // 4.51
-  { fg: colour.violet, bg: colour.void, min: LARGE_MIN, role: 'violet end of the gradient bars (graphic)' }, // 3.78
   { fg: colour.hot, bg: colour.void, min: LARGE_MIN, role: 'hot bars and the active dot (graphic)' }, // 6.30
   { fg: colour.hot, bg: colour.raise, min: LARGE_MIN, role: 'hot bars on a card (graphic)' }, // 5.85
   { fg: colour.barIdle, bg: colour.void, min: LARGE_MIN, role: 'unplayed heat bars and ring spokes (information)' }, // 3.73

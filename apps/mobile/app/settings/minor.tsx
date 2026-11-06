@@ -16,7 +16,7 @@
  * passcode, so it turns off as before.
  *
  * M31 S-A (T060; design-pulse2 `settings-minor--screen`, `--set-passcode`, `--confirm-passcode`, `--turn-off-prompt`, `--forgot-passcode`, `toast--settings-minor`; Stage + Panel): a 112 disc
- * (hot-text to hot to violet, a moon 48 in void, a hot glow) centred at the top with the line under it in 14 / 20; **Hide explicit episodes** as one large switch tile (Unbounded 17, its state
+ * (hot-text to hot, a moon 48 in void, a hot glow) centred at the top with the line under it in 14 / 20; **Hide explicit episodes** as one large switch tile (Unbounded 17, its state
  * "On / Off" in mono 12; on = the tinted wash with a hot ring and "· Locked with a passcode"); the note "This relies on each publisher…" (12, centred) closes the page. Turning it on asks for a
  * passcode (set, then confirm), turning it off asks for it (with **Forgot passcode?** by email code); the switch is disabled while a passcode is being typed. Then the disc shrinks to 72 and a
  * tile ringed in hot asks the question: four 18 dots fill as digits arrive (or six cells for the emailed code); a wrong try says how many are left; locked says until when, in place of the dots.
@@ -125,7 +125,7 @@ export default function MinorMode(): React.ReactElement {
       <SetPage title="Minor mode">
         <Box className="items-center" style={{ gap: SET.gap, paddingTop: typing ? 0 : 20, paddingHorizontal: 10 }}>
           <Box testID="minor-disc" className="overflow-hidden items-center justify-center" style={{ width: disc, height: disc, borderRadius: disc / 2, shadowColor: glow.cover.color, shadowOpacity: glow.cover.opacity, shadowRadius: glow.cover.radius, shadowOffset: { width: 0, height: 0 } }}>
-            <LinearGradient colors={[colour.hotText, colour.hot, colour.violet]} locations={[0, 0.55, 1]} start={{ x: 0.3, y: 0.25 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+            <LinearGradient colors={[colour.hotText, colour.hot, colour.hot]} locations={[0, 0.55, 1]} start={{ x: 0.3, y: 0.25 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
             <Icon name="moon-outline" size={typing ? DISC.moonSmall : DISC.moonBig} color={colour.void} />
           </Box>
           <Type step="note" className="text-text2 text-center">Episodes their publisher marks explicit are not listed in Updates, show pages or the inbox.</Type>

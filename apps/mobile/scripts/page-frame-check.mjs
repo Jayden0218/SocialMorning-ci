@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The page-frame ratchet: how many pages are not built on `Page` or `PushedPage` can only go down.
+// The page-frame ratchet: how many pages are not built on `Page` or `PageList` can only go down.
 /**
  * 039 T030 (D8). A PAGE is a file under `app/` that
  *   - is a `.tsx` file,

@@ -7,7 +7,7 @@
  *
  * M31 W6-B (T071; design-pulse2 shell.html `appeal--screen`, `--nothing-to-appeal`, `--signed-out`, `toast--appeal`): Panel with a
  * paused-curve stage. The curve with a gap (46 bars, 64 tall) 20 under the status bar; the decision cards from 106, 28 in from the
- * left (the edge label "Decisions" in that lane); each card raise, radius 22, padding 16: a mono caps caption, what happened (15), and —
+ * left (the section heading "Decisions" in that lane); each card raise, radius 22, padding 16: a mono caps caption, what happened (15), and —
  * not appealed yet — the box (min 110, radius 16, hot border on focus) with a mono counter "74 / 1000". ONE "Send appeal" pill (light, 48) sits
  * in the bottom zone under the title and sends the card whose box has focus (the first open card until one is focused); it is dimmed while
  * the box is empty or a send runs. An appealed card shows its state line with a clock in hot-text. Nothing to appeal: a 96 glowing check

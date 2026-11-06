@@ -23,8 +23,8 @@ export const GLOW = { top: -160, height: 520, spread: 0.3, strength: 0.4 } as co
 export function DiscoverGlow(props: { swap?: boolean; top?: number; strength?: number } = {}): React.ReactElement {
   const { width } = useWindowDimensions();
   const c = useColours();
-  const first = props.swap ? colour.violet : c.hot;
-  const second = props.swap ? c.hot : colour.violet;
+  const first = props.swap ? colour.line : c.hot;
+  const second = props.swap ? c.hot : colour.line;
   // Search draws this over Discover; two gradients with one id would paint both with the first's colours (web).
   const id = useId().replace(/[^a-zA-Z0-9]/g, '');
   const w = Math.round(width * (1 + 2 * GLOW.spread));

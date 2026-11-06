@@ -318,14 +318,14 @@
    "file": "apps/mobile/src/ui/discover/sections.tsx",
    "name": "c.label",
    "destination": "c.onPress",
-   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — 039 verifier fix: the Discover mosaic is gone, the shortcut is a Browse tile (BrowseTile in a TileGrid)",
    "now": {
-    "file": "apps/mobile/src/ui/discover/DiscoverMosaic.tsx",
-    "name": "c.label",
-    "destination": "c.onPress"
+    "file": "apps/mobile/src/ui/discover/DiscoverPage.tsx",
+    "name": "t.label",
+    "destination": "t.onPress"
    },
    "via": [
-    "apps/mobile/src/ui/discover/DiscoverMosaic.tsx"
+    "apps/mobile/src/ui/discover/DiscoverPage.tsx"
    ]
   },
   {
@@ -347,14 +347,14 @@
    "file": "apps/mobile/src/ui/discover/sections.tsx",
    "name": "Past picks",
    "destination": "props.onPast",
-   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now DiscoverMosaic.tsx \"Past picks\"",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now DiscoverMosaic.tsx \"Past picks\"; 039 verifier fix: the mosaic is gone, \"Past picks\" is the picks section's SectionLink",
    "now": {
-    "file": "apps/mobile/src/ui/discover/DiscoverMosaic.tsx",
-    "name": "Past picks",
-    "destination": "actions.onPast"
+    "file": "apps/mobile/src/ui/discover/DiscoverLayout.tsx",
+    "name": "props.accessibilityLabel ?? props.label",
+    "destination": "props.onPress"
    },
    "via": [
-    "apps/mobile/src/ui/discover/DiscoverMosaic.tsx"
+    "apps/mobile/src/ui/discover/DiscoverLayout.tsx"
    ],
    "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
   },
@@ -3223,6 +3223,50 @@
    "via": [
     "apps/mobile/src/ui/settings/hub-parts.tsx"
    ]
+  },
+  {
+   "file": "apps/mobile/src/ui/social/NoticeCards.tsx",
+   "name": "${props.title}. ${props.line}",
+   "destination": "props.onPress",
+   "reason": "039 verifier fix (NoticeEntries deleted: no page drew its two 1 x 1 tiles; Notifications has them as the System and Hosts chips of NoticeChips): the same link, now a chip",
+   "now": {
+    "file": "apps/mobile/src/ui/notifications/cards.tsx",
+    "name": "props.label",
+    "destination": "props.onPress"
+   },
+   "via": [
+    "apps/mobile/src/ui/notifications/cards.tsx"
+   ]
+  },
+  {
+   "file": "apps/mobile/src/ui/social/NoticeCards.tsx",
+   "name": "System",
+   "destination": "props.onOpen",
+   "reason": "039 verifier fix (NoticeEntries deleted): System opens /notifications/system from the System chip of NoticeChips",
+   "now": {
+    "file": "apps/mobile/src/ui/notifications/cards.tsx",
+    "name": "System. Messages from SocialNet",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/notifications/cards.tsx"
+   ],
+   "passesFile": "apps/mobile/app/notifications.tsx"
+  },
+  {
+   "file": "apps/mobile/src/ui/social/NoticeCards.tsx",
+   "name": "From hosts",
+   "destination": "props.onOpen",
+   "reason": "039 verifier fix (NoticeEntries deleted): From hosts opens /notifications/hosts from the Hosts chip of NoticeChips",
+   "now": {
+    "file": "apps/mobile/src/ui/notifications/cards.tsx",
+    "name": "From hosts. Shows you follow",
+    "destination": "props.onOpen"
+   },
+   "via": [
+    "apps/mobile/src/ui/notifications/cards.tsx"
+   ],
+   "passesFile": "apps/mobile/app/notifications.tsx"
   }
  ]
 }

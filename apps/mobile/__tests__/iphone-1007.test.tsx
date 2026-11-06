@@ -36,11 +36,12 @@ import { updatesSnapshot } from '@/me/updates';
 import { GenreTiles } from '@/ui/discover/RecFeedback';
 import { GENRES } from '@/discover/genres';
 import { CategoryStrip, gridRows } from '@/ui/discover/sections';
-import { DiscoverMosaic, MOSAIC } from '@/ui/discover/DiscoverMosaic';
+import { BrowseTile } from '@/ui/discover/DiscoverPage';
+import { TileGrid } from '@/ui/kit/layout';
 import { shortcutTiles } from '@/ui/discover/DiscoverShortcuts';
 import { KEY_PICKED } from '@/discover/interests';
 import { getAppConfig } from '@/config/store';
-import { colour } from '@/design';
+import { colour, spacing } from '@/design';
 import { TopBar } from '@/ui/kit/TopBar';
 import { CommentRow } from '@/ui/comments/CommentRow';
 import { FeedItem } from '@/ui/social/FeedItem';
@@ -269,14 +270,14 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
     const noop = () => undefined;
     let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(DiscoverMosaic, { pick: undefined, hot: undefined, offline: false, tiles: labels.map((label) => ({ label, icon: shortcutTiles([])[0]!.icon, onPress: noop })), actions: { onOpen: noop, onPlay: noop, onQueue: noop, onHot: noop } })); });
+    act(() => { r = create(createElement(TileGrid, null, ...labels.map((label) => createElement(BrowseTile, { key: label, tile: { label, icon: shortcutTiles([])[0]!.icon, onPress: noop } })))); });
     const tiles = hosts(r).filter((n) => labels.includes(n.props['accessibilityLabel'] as string));
     expect(tiles).toHaveLength(7);
     const sizes = tiles.map((t) => { const s = styleOf(t); return [s['flex'], s['minHeight'], s['width']]; });
     // No grow on a tile: a stretched tile is what ran away on the iPhone.
     for (const t of tiles) expect(styleOf(t)['flexGrow']).toBeUndefined();
     for (const s of sizes) expect(s).toEqual(sizes[0]);
-    expect(styleOf(tiles[0]!)['minHeight']).toBe(MOSAIC.row); // F10: a minimum, so the words can grow the tile at 200 %
+    expect(styleOf(tiles[0]!)['minHeight']).toBe(spacing.region + spacing.section); // F10: a minimum, so the words can grow the tile at 200 % (039: BrowseTile in a TileGrid, was MOSAIC.row in DiscoverMosaic)
     // The last tile's row has 2 cells: G and an empty one sharing the width.
     let rowHost: ReactTestInstance | null = tiles[6]!.parent;
     while (rowHost !== null && !(typeof rowHost.type === 'string' && rowHost.children.length > 1)) rowHost = rowHost.parent;

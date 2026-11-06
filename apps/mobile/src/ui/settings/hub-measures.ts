@@ -1,7 +1,7 @@
 // The numbers the Settings hub and its pages are drawn with (design-pulse2 settings.html).
 /**
  * M31 S-A (T060). `settings.html` builds every Settings page from the same few parts: `page()` (the body starts 58 from the
- * top of the drawn phone, 6 of padding, a 28 lane on the left for the edge label and 16 on the right, 12 between parts),
+ * top of the drawn phone, 6 of padding, a 28 lane on the left for the section heading and 16 on the right, 12 between parts),
  * `group()` / `row()` (a raise tile, radius 22, rows at least 60 tall, 13 / 16 of padding, 12 between the icon, the words
  * and the chevron, a 1 px rule between rows), `tile()` (raise, radius 22, padding 16, 10 between parts) and `big()` (a large
  * 2 x 2 tile: radius 22, padding 14, 112 tall, a switch tile that is ON is tinted with a hot ring). Measured from the drawing,
@@ -13,7 +13,6 @@ import { radius, spacing } from '@/design';
 export const SET = {
   /** The drawn body starts at 58 + 6 = 64 from the top of the phone, 14 under its 50 status bar. */
   top: 14,
-  lane: 28,
   right: 16,
   /** A page with no edge lane (licences, a package, how-for-you) keeps 16 on both sides. */
   side: spacing.section,
@@ -32,7 +31,7 @@ export const SET = {
   bigPad: 14,
   bigGap: 10,
   bigIcon: 24,
-  /** The edge label sits 2 below its section's top. */
+  /** The section heading sits 2 below its section's top. */
   edgeTop: 2,
   /** The hub's hero tile ("Account and security") is at least 88 tall: avatar 52, 14 between. */
   heroMin: 88,

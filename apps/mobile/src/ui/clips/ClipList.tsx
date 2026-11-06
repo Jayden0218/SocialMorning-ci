@@ -1,7 +1,7 @@
 // The episode's clips, sending ones first, then newest first.
 /**
  * The episode's clips (M4 FR-006): pending ones first as "sending", then newest first.
- * M31 W4-D (T053; design-pulse2 `episode--screen` "Clips", `episode--clips-empty`): a Deck — the edge label "Clips" names it, the cards
+ * M31 W4-D (T053; design-pulse2 `episode--screen` "Clips", `episode--clips-empty`): a Deck — the section heading "Clips" names it, the cards
  * (200 × 120, `ClipCard`) scroll sideways 10 apart under the right edge; with no clips the deck is the dashed empty card ("No clips yet" and
  * today's sentence, `EmptyDeck`), not a heading and a button: the player's scissors make clips, and "Open player" is the title bar's own way there.
  */

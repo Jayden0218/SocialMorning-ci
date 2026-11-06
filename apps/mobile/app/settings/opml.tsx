@@ -9,8 +9,8 @@
  * under them, the paste box, then Subscribe. Same handlers, names and share panel as before.
  *
  * M31 S-B (T060; design-pulse2 `settings-opml--screen`, `--from-app`, `--found`, `--export-sheet`, `--share-sheet`, `toast--settings-opml`; layout Panel with
- * a Stage-size value): under the edge label EXPORT a tile holds the subscription count in Unbounded 800 56 (hot-text — React Native cannot fill
- * text with the drawn hot-to-violet gradient), the line beside it and "Export subscriptions" (light); under IMPORT three numbered steps (a light
+ * a Stage-size value): under the heading EXPORT a tile holds the subscription count in Unbounded 800 56 (hot-text — React Native cannot fill
+ * text with the drawn hot gradient), the line beside it and "Export subscriptions" (light); under IMPORT three numbered steps (a light
  * dot 28, the step's title in Unbounded 16): the apps as chips and the chosen one's steps in a raise-2 tile, the paste box (radius 18, mono 12), the
  * found line in mono hot-text, and "Subscribe to n" / "Nothing new to import". The share panel and the system share sheet are the kit's.
  * Same handlers, names, toasts and share panel as before.

@@ -3,7 +3,7 @@
  * M31 W6-B (design-pulse2 shell.html `gapCurve(n, h, from, to, cols)`): the maintenance page (40 bars, 150 tall, bars 17-22 empty), the
  * crashed-screen page (40 bars, 120 tall, 15-24 empty, drawn idle) and the appeal page (46 bars, 64 tall, 20-26 empty). It is the kit's
  * `Curve` over a fixed heat shape, so it reads no data, no store and no provider — the error screen sits outside all of them. `idle`
- * draws the bars in the idle colour (`barIdle`, the drawing's white at 20 %, lifted to the 3:1 floor); otherwise they run hot to violet with a glow.
+ * draws the bars in the idle colour (`barIdle`, the drawing's white at 20 %, lifted to the 3:1 floor); otherwise they run hot with a glow.
  */
 import { Curve } from './Curve';
 

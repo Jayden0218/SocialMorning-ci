@@ -8,6 +8,7 @@
 import { useMemo } from 'react';
 import { ApiError, requester, type ApiDeps, type EpisodeCard, type Listener } from './api';
 import { apiBaseUrl } from './base-url';
+import { forgetProfiles } from './profile-cache';
 import { secureToken } from './token';
 
 /** The age ranges the server accepts (PATCH /v1/me `ageRange`). */
@@ -61,14 +62,15 @@ export function createProfileApi(deps: ApiDeps) {
   const before = (b?: string) => (b ? `?before=${enc(b)}` : '');
   return {
     me: async () => (await call<{ listener: Listener }>('GET', '/v1/me')).json.listener,
-    update: async (patch: ProfilePatch & PrivacySwitches) => (await call<{ listener: Listener }>('PATCH', '/v1/me', patch)).json.listener,
+    update: async (patch: ProfilePatch & PrivacySwitches) => { const l = (await call<{ listener: Listener }>('PATCH', '/v1/me', patch)).json.listener; forgetProfiles(); return l; },
     /** PUT /v1/me/avatar — the JPEG's raw bytes, not JSON (M23 US9: through the shared helper's `raw`). */
     uploadAvatar: async (file: Blob): Promise<string> => {
       const r = await call.raw<{ avatarUrl?: string }>('PUT', '/v1/me/avatar', file, { 'content-type': 'image/jpeg' });
       if (!r.json?.avatarUrl) throw new ApiError('internal', `Server answered ${r.status}.`, r.status);
+      forgetProfiles();
       return r.json.avatarUrl;
     },
-    removeAvatar: async () => { await call('DELETE', '/v1/me/avatar'); },
+    removeAvatar: async () => { await call('DELETE', '/v1/me/avatar'); forgetProfiles(); },
 
     dismissals: async () => (await call<{ items: Dismissal[] }>('GET', '/v1/me/dismissals')).json.items,
     dismiss: async (kind: DismissalKind, itemKey: string) => { await call('PUT', '/v1/me/dismissals', { kind, itemKey }); },

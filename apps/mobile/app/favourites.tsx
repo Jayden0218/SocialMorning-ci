@@ -7,7 +7,7 @@
  * M31 W3-C (T041; design-pulse2 `shell.html` `favourites--screen`, `favourites--empty`, `favourites--comments-empty` and
  * `listen.html` `favourites--comments-tab`): the foot of the page is the thumb zone — back and "Favourites" (28), then the
  * search field (48, only when there is something to search) and the switch "Episodes · 6 | Comments · 3" (44 track, the
- * chosen choice light). Episodes are a mosaic under the edge label "Starred": two columns, rows of 92, the newest tile 1 x 2,
+ * chosen choice light). Episodes are a mosaic under the heading "Starred": two columns, rows of 92, the newest tile 1 x 2,
  * the cover filling each tile, a hot star at its top right, the title and show on a fade at its foot. Comments hang from
  * the spine at their moment chips with the episode beside each; "This comment was deleted" when gone. Nothing yet: the
  * Stage's glowing star tile and "No favourite comments yet" beside an empty spine. Same rows, links and spoken names.

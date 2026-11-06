@@ -3,14 +3,14 @@
  * M12 guard G-B2 (B2, found on the iPhone 2026-09-29): Notifications' cards were plain boxes —
  * tapping them did nothing. Each tab now selects what the page lists, and says so to a screen
  * reader. M21 US10: the tabs are Interactions and People; System and From hosts are cards that
- * open their own pages (`NoticeEntries`).
+ * open their own pages.
  *
- * The break that turns it red: drop `onPress` from the Pressable in `Tab` (or `Entry`) in
+ * The break that turns it red: drop `onPress` from the Pressable in `Tab` in
  * src/ui/social/NoticeCards.tsx.
  */
 import { createElement } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { NoticeCards, NoticeEntries } from '@/ui/social/NoticeCards';
+import { NoticeCards } from '@/ui/social/NoticeCards';
 
 const byRole = (r: ReactTestRenderer, role: string) => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === role);
 /** The pressable that owns the card's onPress (the host view underneath does not carry it). */
@@ -36,14 +36,4 @@ it('each tab selects its list, and the selected one is announced as selected', (
   expect(onSelect).toHaveBeenLastCalledWith('people');
 });
 
-it('System and From hosts are links that open their own pages', () => {
-  const onOpen = jest.fn();
-  let r!: ReactTestRenderer;
-  act(() => { r = create(createElement(NoticeEntries, { iconColour: '#111114', onOpen })); });
-  const links = byRole(r, 'link');
-  expect([...new Set(links.map((l) => String(l.props['accessibilityLabel']).split('.')[0]))]).toEqual(['System', 'From hosts']);
-  press(r, 'System');
-  expect(onOpen).toHaveBeenCalledWith('system');
-  press(r, 'From hosts');
-  expect(onOpen).toHaveBeenLastCalledWith('hosts');
-});
+// 039 verifier fix: "System and From hosts are links that open their own pages" tested NoticeEntries, deleted (no page draws it; destinations are pinned in src/ui/notifications/__tests__).

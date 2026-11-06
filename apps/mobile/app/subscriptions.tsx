@@ -14,7 +14,7 @@
  * Mosaic): a pushed page with the title bar low — "My subscriptions", "38 shows", the grid / list circle and the share circle (Share my list).
  * Above it, a row of chips: the four sorts (Default · Updated · A–Z · Added; each keeps its spoken "Sort: Recently updated"), the search
  * chip (opens the field), Manage order, and Share some shows (a fourth chip: the drawing's action map puts it on the share circle, which
- * already shares the list). The starred shows are 1 x 2 cover tiles under the edge label "Starred", the rest 2 x 1 tiles under "All shows"
+ * already shares the list). The starred shows are 1 x 2 cover tiles under the heading "Starred", the rest 2 x 1 tiles under "All shows"
  * (cover 56, title, "Updated 2d ago", ···). The grid is 3 columns of covers with a warn star on the starred ones. The ··· (or a long press)
  * opens the show menu: the show's head, Star / Unstar, Unsubscribe, a quiet Cancel. Not drawn, so gone: the hosts' faces on a row.
  *

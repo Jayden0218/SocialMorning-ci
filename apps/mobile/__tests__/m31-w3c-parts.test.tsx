@@ -10,7 +10,7 @@
  *  - switch pill track, chosen light with void words, spoken as tabs: `bg-text` removed from the chosen choice — red;
  *  - search field 48, radius 16, raise2: `LIST.field` to 44 — red;
  *  - bars 8 + 110 × share, a quiet day a 3 tick, the tapped bar hot, a tap picks the column: `BARS.span` to 100 — red;
- *  - the title bar takes a drawn size (26), the foot zone lifts it (`below`), `bare` hides it: the props removed from PushedPage — red.
+ *  - the title takes the one title size (30): `TitleBar`'s size changed — red. (039: the foot zone / `bare` guards went with PushedPage; PageList pins `below` and `onTitle`.)
  */
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
@@ -18,7 +18,6 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 import { ageLabel, ArtTile, DayTag, PageEmpty, PlayDot, SearchField, SegmentSwitch, ThreadCard, GlowTile } from '@/ui/me/lists';
 import { barHeight, BARS, columnAt, ListeningBars } from '@/ui/me/ListeningBars';
-import { PushedPage } from '@/ui/kit/PushedPage';
 import { TitleBar } from '@/ui/kit/TitleBar';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true }, usePathname: () => '/history' }));
@@ -201,7 +200,7 @@ describe('Listening bars (discover.html lBars)', () => {
   });
 });
 
-describe('PushedPage additions (size, below, bare, onTitle)', () => {
+describe('the title size (was: PushedPage additions)', () => {
   // 038 D3: was "the title takes the drawn size: 26 and its own line (33), tracking −1 % (−0.26)" via a `size` prop; there is one title size now: 30, line 38, tracking −0.3.
   it('a long title is still the one title size: 30, line 38, tracking −0.3', () => {
     const r = render(createElement(TitleBar, { title: 'Listening history', top: 53 }));
@@ -211,28 +210,5 @@ describe('PushedPage additions (size, below, bare, onTitle)', () => {
     expect(val(s['lineHeight'])).toBe(38);
     expect(s['letterSpacing']).toBeCloseTo(-0.3);
   });
-
-  // 037 D1: was "…and lifts the title row by its height and 12" (a bottom title stood on the zone). The title is at the top now and stays put; the zone sits lowest and the content leaves room for it and 12.
-  it('a foot zone sits lowest; the title bar stays at the top and does not lift', () => {
-    const r = render(createElement(PushedPage, { title: 'Favourites', below: createElement(SegmentSwitch, { items: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }], value: 'a', onChange: jest.fn() }), belowHeight: 44 } as React.ComponentProps<typeof PushedPage>, null));
-    const zone = byId(r, 'pushed-below')[0]!;
-    expect(flat(zone)).toMatchObject({ bottom: 6, paddingHorizontal: 20, gap: 12 });
-    expect(flat(r.root.findAllByType(TitleBar)[0]!.findAll((n) => n.props['testID'] === 'title-bar' && typeof n.type === 'string')[0]!)).toMatchObject({ zIndex: 20 });
-    expect(r.root.findAllByType(TitleBar)[0]!.props['top']).toBe(6);
-    expect(r.root.findAllByType(TitleBar)[0]!.props['bottom']).toBeUndefined();
-  });
-
-  it('bare draws no title bar; a title link is a link with its spoken name', () => {
-    const bare = render(createElement(PushedPage, { title: 'Slow mornings', bare: true } as React.ComponentProps<typeof PushedPage>, null));
-    expect(bare.root.findAll((n) => n.props['accessibilityRole'] === 'header')).toHaveLength(0);
-    // F3 defect 4: a bare page draws its own foot (and its own fade) — the page's fade must not be laid over it (zIndex 15 over the wrapper hid the rename form).
-    const fades = (t: ReturnType<typeof render>) => t.root.findAll((n) => typeof n.type === 'string' && flat(n)['zIndex'] === 15);
-    expect(fades(bare)).toHaveLength(0);
-    expect(fades(render(createElement(PushedPage, { title: 'Slow mornings' } as React.ComponentProps<typeof PushedPage>, null)))).toHaveLength(1);
-    const onTitle = jest.fn();
-    const link = render(<PushedPage title="Slow mornings" onTitle={onTitle} titleLabel="Slow mornings, rename">{null}</PushedPage>);
-    const l = link.root.findAll((n) => n.props['accessibilityLabel'] === 'Slow mornings, rename' && typeof n.props['onPress'] === 'function')[0]!;
-    act(() => { l.props['onPress'](); });
-    expect(onTitle).toHaveBeenCalledTimes(1);
-  });
+  // 039 verifier fix: the foot zone (`below`) and the title link (`onTitle`) guards moved to PageList (src/ui/kit/layout/__tests__/PageList.test.tsx: "the below slot is drawn over the foot", "onTitle makes the title a link"); `bare` went with PushedPage.
 });

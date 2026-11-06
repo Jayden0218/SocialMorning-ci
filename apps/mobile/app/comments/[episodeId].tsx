@@ -24,7 +24,7 @@
  * same menu as the long-press, which adds Share (the episode link at the comment's moment, with
  * its words) and Mute (others' comments — hidden for me only, the writer is never told).
  *
- * M31 W2-B (T032; `design-pulse2/social.html#comments--screen` and `index.html#comments--screen`): the Pulse Thread. The episode
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W2-B (T032; `design-pulse2/social.html#comments--screen` and `index.html#comments--screen`): the Pulse Thread. The episode
  * strip (cover, title, "12:32 / 48:10", Pause) and the 26-tall map of the whole episode sit at the top; under them the time
  * spine — in By moment every moment is a solid chip with "n reacted" and its comments hang to the right; in the other orders
  * each comment carries its own chip. The thumb zone holds the close circle with "Comments 14", the order capsule (Newest · Most

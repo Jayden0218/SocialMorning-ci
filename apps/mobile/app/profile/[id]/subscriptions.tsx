@@ -5,7 +5,7 @@
  * Each show opens its page. Order: their own "Default" order, then newest first (the server's).
  *
  * M31 W4-A (T050; design-pulse2 social.html `profile-subscriptions--screen`, `--private`, `--empty`; layout pattern Mosaic): each show is a
- * 1 x 2 cover tile (178 tall, in the Me tab's lane), its title in Unbounded 700 14 on the fade at its foot; the edge label is "Shows".
+ * 1 x 2 cover tile (178 tall, in the Me tab's lane), its title in Unbounded 700 14 on the fade at its foot; the section heading is "Shows".
  * The title bar says "Subscriptions" and "Shows Rui Costa follows" ("Shows they follow" with no name). Private: a 64 disc with a lock and
  * "<name> keeps their subscriptions private."; none: the empty block "No shows yet."; a failure: the disc with a wifi mark, the line
  * "Couldn't load the shows right now." and a light Retry.

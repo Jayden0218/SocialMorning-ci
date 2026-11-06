@@ -11,7 +11,7 @@
  * numbered rows. Same items, same counts, same sheet behaviour.
  *
  * M31 S-A (T060; design-pulse2 `settings-collected--screen`, `--detail-sheet`, `--signed-out`; Panel): the lede in 15 / 600 text, the counts note in 12 text-2; three groups
- * under the edge labels ACCOUNT · IN THE APP · DEVICE, each with its line (12) and a group tile of rows — the title 15 / 600, the count in mono 14 on the right (Comments, clips and
+ * under the heading ACCOUNT · IN THE APP · DEVICE, each with its line (12) and a group tile of rows — the title 15 / 600, the count in mono 14 on the right (Comments, clips and
  * reactions has none), a chevron. A row opens the detail sheet (the kit `ActionSheet`, title "What SocialNet keeps" with its close circle): the item in Unbounded 26, its count big,
  * then Purpose · When it is collected · What exactly as three numbered steps (a 26 disc with the number in mono hot-text, the label in mono caps, the words in 15 / 21).
  */
@@ -33,7 +33,7 @@ import { Caps, Lede, Note, Sec, SetPage, SetRow } from '@/ui/settings/hub-parts'
 import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
 const STEP_DISC = 26;
-/** The edge label is the short form of the group's name (`COLLECTED` in the drawing); the long one is what a screen reader says. */
+/** The section heading is the short form of the group's name (`COLLECTED` in the drawing); the long one is what a screen reader says. */
 const EDGE = ['Account', 'In the app', 'Device'] as const;
 
 export default function CollectedScreen(): React.ReactElement {

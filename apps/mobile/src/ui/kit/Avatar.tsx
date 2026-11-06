@@ -26,10 +26,9 @@ import { initialOf } from './Artwork';
 /**
  * 039 T025 (row M, `design/M-Palette.dc.html`): every disc is one neutral (`line`, #2C313A) with the `text` letter (14:1 and up); the per-name pick
  * stays as a one-entry list so `avatarTone(name)` keeps its shape for its callers.
- * Before: M31 F2a (design-pulse2 `av('R','#FF4D6D')`, `av('A','#7A3CFF')`, `av('J','#22C55E')`, `av('K','#F59E0B')`): a person's disc is one of
- * the drawings' saturated colours, picked from the name so a person keeps theirs. The drawing sets every letter white; on hot, green,
- * amber and blue that reads 3.2–3.6:1, so those four take the void letter (6.3–8.4) and only violet keeps the light one (5.3) — AA either
- * way (avatar-contrast.test.ts). The two class names are written out in full so the colour check reads them.
+ * Before 039 (M31 F2a): a person's disc was one of five saturated colours picked from the name, with a void or a light letter by contrast. Row M
+ * dropped them: one neutral disc, so the colour says nothing about who a person is and the letter always reads (avatar-contrast.test.ts). The
+ * class names are written out in full so the colour check reads them.
  */
 export const AVATAR_TONES = [{ fill: colour.line, ink: 'text' }] as const;
 

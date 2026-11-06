@@ -1,4 +1,4 @@
-// The heat bars: where people reacted along an episode, as a row of bars; played ones turn hot to violet.
+// The heat bars: where people reacted along an episode, as a row of bars; played ones turn hot.
 /**
  * M31 T022 (design-pulse2 `kit.js` `PK.bars`): `count` bars drawn from the 100 heat buckets
  * (every `round(100 / count)`-th), each `min + (height - min) * v` tall. The played bars run hot to

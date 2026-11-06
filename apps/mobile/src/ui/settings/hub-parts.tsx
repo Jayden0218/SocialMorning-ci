@@ -1,4 +1,4 @@
-// The Settings pages' shared parts in the Pulse shape: the page body, a section with its edge label, a row, a large tile.
+// The Settings pages' shared parts in the Pulse shape: the page body, a section with its section heading, a row, a large tile.
 /**
  * M31 S-A (T060; design-pulse2 `settings.html` helpers `body`, `sec`, `row`, `big`, `tile`, `lede`, `fieldL`). One file so the
  * pages that follow the Panel / Mosaic pattern read the same numbers (`hub-measures.ts`):

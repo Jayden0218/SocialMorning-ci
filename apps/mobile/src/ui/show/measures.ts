@@ -25,7 +25,6 @@ export const SHOW = {
   chipsTop: 106,
   chipsGap: 5,
   mosaicTop: 156,
-  lane: 28,
   right: 16,
   tileRadius: 22,
   rowHeight: 84,

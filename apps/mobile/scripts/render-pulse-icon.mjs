@@ -10,7 +10,7 @@
 //                                     corners (iOS rounds it)
 //   android-icon-foreground.png       1024, RGBA, ring + play on transparent, scaled to sit inside the central
 //                                     66 % (676 px) safe zone
-//   android-icon-background.png       1024, RGB, solid #060608 (app.json adaptiveIcon.backgroundColor matches)
+//   android-icon-background.png       1024, RGB, solid #111318 (app.json adaptiveIcon.backgroundColor matches)
 //   android-icon-monochrome.png       1024, RGBA, one-colour shape (ring + disc, play cut out), same safe zone
 //   splash-ring.png                   600, RGBA, ring + play on transparent (the native splash, imageWidth 200)
 //   favicon.png                       48, RGB
@@ -27,7 +27,7 @@ const assets = join(here, '..', 'assets');
 const require = createRequire(import.meta.url);
 const { initWasm, Resvg } = require('@resvg/resvg-wasm');
 
-const VOID = '#060608';
+const VOID = '#111318';
 const src = readFileSync(join(assets, 'brand', 'app-icon.svg'), 'utf8');
 const lines = src.match(/<line [^>]*\/>/g).join('');
 const defs = src.match(/<defs>[\s\S]*?<\/defs>/)[0];

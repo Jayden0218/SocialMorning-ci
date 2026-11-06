@@ -4,7 +4,7 @@
  * (`GET /v1/listeners/:id/likes`): public likes only, unless it is you; nothing across a block.
  * An empty answer reads as "no public likes", which also covers likes kept private.
  *
- * M31 W4-A (T050; design-pulse2 social.html `profile-likes--screen`, `--empty`, `--load-failed`; layout pattern Thread): liked episodes
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W4-A (T050; design-pulse2 social.html `profile-likes--screen`, `--empty`, `--load-failed`; layout pattern Thread): liked episodes
  * hang on the spine (x 40), each under a quiet tick with how long ago ("2d", then the date), over the like card — cover 44, title,
  * show, a Play circle 36, the note in quotes, "liked this, 2d" in hot-text. The card opens the episode, the circle plays it. The title
  * bar says "Likes" and "Episodes Rui Costa liked" (no name: "Episodes they liked"). Loading is the grey spine and breathing ghost

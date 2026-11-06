@@ -4,7 +4,8 @@
  * (scripts/e2e-server.ts). NEVER point it at production: it refuses any https address.
  *
  *   npx tsx scripts/journey.ts seed       → 50 listeners, a host with a show of 5 episodes, a
- *                                           moderator's queue with 3 reports; writes journey.json
+ *                                           moderator's queue with 3 reports,
+ *                                           10 reactions at 0:43 of episode 1 (the Discover hero); writes journey.json
  *   npx tsx scripts/journey.ts listener   → listener-01 does what the phone does (the "B" layer):
  *                                           sign in, subscribe, listen, resume, comment at a moment,
  *                                           like, star — then the host replies from the Studio and
@@ -180,6 +181,17 @@ async function seed(): Promise<void> {
   }
   ok(counts.likes > 20, `${counts.likes} likes`);
 
+  // 039 Q4: the Discover hero needs a moment (a top-10 % bucket with >= 5 reactions, src/db/repos/discover/ddb/moments.ts). Ten of the
+  // listeners who listened to episode 1 react at ~43 s (bucket 72 of 100 on a 60 s episode), through the route the phone uses. No count above
+  // (comments, likes, follows, subscriptions, listened) changes; listener-05 stays unsubscribed, so the moment reaches it through the chart.
+  let reacted = 0;
+  for (let i = 5; i < 15; i++) {
+    const r = await call('PUT', `/v1/episodes/${ep1.episodeId}/reactions`, { offsetMs: 43_300 + (i - 5) * 40, durationMs: EP_MS }, listeners[i]!.token);
+    if (r.status !== 200) throw new Error(`reaction: ${r.status} ${r.text}`);
+    reacted++;
+  }
+  ok(reacted === 10, `${reacted} reactions at 0:43 of episode 1 (the Discover hero's moment)`);
+
   // 3 reports for the moderator's queue.
   const reported = commentIds.slice(20, 23);
   for (const [n, id] of reported.entries()) {
@@ -193,6 +205,8 @@ async function seed(): Promise<void> {
   ok(social.status === 200 && social.json.comments.length === 30, `episode 1 shows 30 comments (got ${social.json?.comments?.length})`);
   const overview = await call<Record<string, unknown>>('GET', `/v1/studio/shows/${key}/subscribers/stats`, undefined, hostStudio);
   ok(overview.status === 200, 'the Studio reads the subscriber numbers');
+  const feed05 = await call<{ items: { episodeId: string; reactions: number }[] }>('GET', '/v1/discover/moments?limit=50', undefined, listeners[4]!.token);
+  ok(feed05.status === 200 && feed05.json.items.some((m) => m.episodeId === ep1.episodeId && m.reactions >= 5), `listener-05's Moments feed has a moment in episode 1 (got ${feed05.json?.items?.length})`);
   const subs = await call<{ total: number }>('GET', `/v1/studio/shows/${key}/subscribers`, undefined, hostStudio);
   ok(subs.json.total === LISTENERS - 5, `the Studio counts ${LISTENERS - 5} subscribers (got ${subs.json.total})`);
 

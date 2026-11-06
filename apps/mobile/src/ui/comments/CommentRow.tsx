@@ -1,12 +1,12 @@
 // One comment card on the thread: avatar, name, age, words, voice or picture, like, reply, replies link, more.
 /**
  * M31 W2-B (T032; `design-pulse2/social.html` `cmt`, `index.html#comments--screen`). A comment is a raise card (radius
- * 18, padding 12, 7 between its parts) 56 from the node's left edge on the spine; a reply steps in 30 more and is a card
+ * 18, padding 12, 7 between its parts) on the page's gutter (`flush`; the older node layout put it 56 in, and a reply 30 further); a reply is a card
  * of its own. Top row: a 24 avatar, the name (Geist 600 14; "You" on your own), the light HOST tag, the age in mono 11
  * (text3) — "5h", with the commenter's country after it when the server sent one. Then the words (Body 15/22), the voice
  * block or the picture, and the action row: heart (+ count in mono), "Reply", "n replies ›" in hot text, the ⋯ at the
  * right. A pinned comment starts with a mono 11 hot-text line; a folded one is a dashed card; a held one carries "Only
- * you". The moment is not in the card any more: it is the chip on the spine above it (CommentThread).
+ * you". The moment is not in the card any more: it is the solid chip above its node (By moment) or on the head row.
  *
  * What stayed (the action replay): a tap or long-press on the words opens the menu, the same menu as ⋯; the heart likes
  * (not on your own); "Reply" opens the composer for the comment; "n replies ›" opens the reply page; the name opens the
@@ -125,11 +125,11 @@ export function CommentRow(props: {
   playVoice?: PlayVoice;
   /** M20 US9: teen mode ("hide explicit") — comment pictures start hidden behind "Tap to show". */
   teenMode?: boolean;
-  /** How far in the card sits: 0 on the spine, 1 for a reply (30 more). The replies page draws every card at 0. */
+  /** How far in the card sits when it is not `flush`: 0 for a comment, 1 for a reply (30 more). The replies page draws every card at 0. */
   level?: number;
   /** The card is the one being answered (the reply sheet is open): a 1.5 hot ring. */
   ringed?: boolean;
-  /** No spine: the card starts at the page's edge (the episode page's two newest comments). */
+  /** The card starts at the page's gutter (the episode page's two newest comments). */
   flush?: boolean;
 }): React.ReactElement {
   const { c } = props;

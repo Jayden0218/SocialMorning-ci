@@ -1,7 +1,7 @@
 // The frame every email sign-in step shares, and the fields and buttons the sign-in pages draw.
 /**
  * M31 S-C (T061; design-pulse2 `settings.html` `emailPage`, entries `auth-email--screen`, `--code-step`, `--name-step`):
- * the Panel frame of the three email steps — the hot-to-violet glow (top −300, 25 %), the form under a spacer (120, 100 or
+ * the Panel frame of the three email steps — the hot glow (top −300, 25 %), the form under a spacer (120, 100 or
  * 40 for the step), a fade, and the title low by the thumb with a close (✕) circle for its back, a subtitle or an eyebrow over
  * it, and the step's button in a 52 row at the foot (title at 70, foot at 6). The keyboard lifts the whole bottom zone.
  *

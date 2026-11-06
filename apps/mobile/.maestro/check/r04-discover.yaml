@@ -11,6 +11,12 @@ appId: app.socialmorning.mobile
 ---
 - runFlow: _ensure-signed-in.yaml
 - runFlow: _discover-view.yaml
+# 039 Q4: the seed puts 10 reactions at 0:43 of "Episode 1" (apps/api/scripts/journey.ts), so listener-05's Moments feed has a moment and the
+# Discover hero (src/ui/discover/MomentHero.tsx, testID "discover-hero") is drawn; its play button is named "Play from <mm:ss>".
+- extendedWaitUntil:
+    visible: "Play from 0:43"
+    timeout: 60000
+- takeScreenshot: r04-00-hero${SUFFIX || ''}
 - takeScreenshot: r04-01-discover${SUFFIX || ''}
 # 036 (T021, L7): the Discover title floats over the cards and takes a tap without opening anything (DiscoverPage.tsx:241-246, named
 # "Discover, today's picks"). After the tap the page is still Discover: its own "Scan a QR code" is there and no pushed page's Back is.

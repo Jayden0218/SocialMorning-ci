@@ -13,7 +13,7 @@ import { Type } from './Type';
 import { useReducedMotion } from './useReducedMotion';
 import { LOADER_BARS, LOADER_CYCLE_MS, barDelay, barRest } from './loader-timing';
 
-/** The page loader's 12 bars (design-pulse2 `loaderBars`: 64 wide, 22 tall, min 4, gap 3, the played hot-to-violet run). */
+/** The page loader's 12 bars (design-pulse2 `loaderBars`: 64 wide, 22 tall, min 4, gap 3, the played hot run). */
 const CURVE = [0.35, 0.6, 0.45, 0.8, 0.55, 1, 0.7, 0.9, 0.5, 0.75, 0.4, 0.6];
 const CURVE_WIDTH = 64;
 

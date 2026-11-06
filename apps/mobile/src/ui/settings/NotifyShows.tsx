@@ -7,7 +7,7 @@
  * M17 T094 (`SettingsPush-B`): a serif section title, then a 2-column grid of cards — the
  * show's artwork (its initial while there is none) beside the toggle, the name under them.
  *
- * M31 S-B (T060; design-pulse2 `settings-push--screen`): under the edge label SHOWS, "New episodes, show by show" (Geist 600 14), then the shows as
+ * M31 S-B (T060; design-pulse2 `settings-push--screen`): under the heading SHOWS, "New episodes, show by show" (Geist 600 14), then the shows as
  * 2-column tiles (raise, radius 22, 12 of padding, 10 between): the cover 48 (radius 12) and the switch on top, the name in Geist 600 13 under
  * them; all off (dimmed) while New episodes is off. The section is part of this component, so a listener who follows nothing sees no label.
  */

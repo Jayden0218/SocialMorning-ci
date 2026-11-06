@@ -13,7 +13,6 @@ const caps = (fontSize: number, lineHeight: number, letterSpacing: number): { fo
 export const SET = {
   /** Under the status bar. */
   top: 14,
-  lane: 28,
   noLane: 16,
   right: 16,
   gap: 12,

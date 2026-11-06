@@ -24,8 +24,8 @@ export function PageGlow(props: { tone?: GlowTone; top?: number; strength?: numb
   const grey = props.tone === 'grey';
   const blue = props.tone === 'blue';
   const ember = props.tone === 'ember';
-  const first = grey ? colour.glowGrey : blue ? colour.pinBlue : props.flip === true ? colour.violet : colour.hot;
-  const second = grey || ember ? colour.line : blue ? colour.violet : props.flip === true ? colour.hot : colour.violet;
+  const first = grey ? colour.glowGrey : blue ? colour.pinBlue : props.flip === true ? colour.line : colour.hot;
+  const second = grey || ember || blue ? colour.line : props.flip === true ? colour.hot : colour.line;
   const top = props.top ?? (grey ? PAGE_GLOW.greyTop : blue ? PAGE_GLOW.blueTop : PAGE_GLOW.hotTop);
   const strength = props.strength ?? (grey ? PAGE_GLOW.greyStrength : blue ? PAGE_GLOW.blueStrength : PAGE_GLOW.hotStrength);
   const id = useId().replace(/[^a-zA-Z0-9]/g, '');

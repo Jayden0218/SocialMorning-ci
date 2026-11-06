@@ -3,7 +3,7 @@
 /**
  * 039 T020 (US2 acceptance 3, US5). Reads what was DRAWN, like a11y-frames.mjs (same `maestro hierarchy` JSON, same `bounds` form "[x1,y1][x2,y2]").
  *
- * Per screen (`hierarchy/<id>-<slug>-end.json`, e.g. r13-me-end.json, and r13-xl-me-end.json for the large-text run; default flows r04, r13, r15 and their `-xl` variants):
+ * Per screen (`hierarchy/<id>-<slug>-end.json`, e.g. r13-me-end.json, and r13-xl-me-end.json for the large-text run; default flows: every route flow file r*.yaml in this folder, and their `-xl` variants):
  *  - collect visible text nodes: a LEAF node (no labelled descendant) with a non-empty `text`, `accessibilityText` or `value`, whose frame is on the screen;
  *  - skip system chrome (status bar region at the top, clock/battery/signal labels), the tab bar and the now bar (resource-id starting `tab-`, `now-`, or an
  *    ancestor with one; and the bottom 100 pt strip, as the tab bar has no root id), the iOS keyboard (`UIKeyboard*`) and the Dock screen;
@@ -12,19 +12,23 @@
  *  - group the texts into visual ROWS (vertical centres within 8 pt, or frames overlapping by more than half the shorter height); a row starts at its left-most text.
  *    FAIL (a) any row start < 20 pt (the gutter), (b) more than 4 distinct row-start edges (starts within 2 pt are one). Controls side by side in a row are one start.
  *
- * Usage: node edges-check.mjs <check output dir | hierarchy .json file> [--flows r04,r13,r15] [--max-edges 4] [--gutter 20]
+ * Usage: node edges-check.mjs <check output dir | hierarchy .json file> [--flows r04,r13] [--max-edges 4] [--gutter 20]
  * Prints a per-screen table (a flow with no file is `skipped`: a narrowed run); exits 1 on a finding or when NONE of the listed flows has a hierarchy file, 2 on bad usage.
  */
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const args = process.argv.slice(2);
 const opt = (name, dflt) => { const i = args.indexOf(name); if (i < 0) return dflt; const [v] = args.splice(i, 2).slice(1); return v; };
-const FLOWS = opt('--flows', 'r04,r13,r15').split(',').filter(Boolean);
+// Default: every route flow file in this folder (r01-first-launch.yaml -> r01; the -xl re-runs ride on their id). A flow with no hierarchy file is `skipped`.
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const ALL_FLOWS = [...new Set(readdirSync(HERE).filter((n) => /^r\d+-.*\.yaml$/.test(n)).map((n) => n.split('-')[0]))].sort();
+const FLOWS = opt('--flows', ALL_FLOWS.join(',')).split(',').filter(Boolean);
 const MAX_EDGES = Number(opt('--max-edges', '4'));
 const GUTTER = Number(opt('--gutter', '20'));
 const target = args[0];
-if (!target || !existsSync(target)) { console.error('usage: edges-check.mjs <check output dir | hierarchy.json> [--flows r04,r13,r15] [--max-edges 4] [--gutter 20]'); process.exit(2); }
+if (!target || !existsSync(target)) { console.error('usage: edges-check.mjs <check output dir | hierarchy.json> [--flows r04,r13] [--max-edges 4] [--gutter 20]'); process.exit(2); }
 
 // A flow's file is `hierarchy/<id>-<slug>-end.json` (r13-me-end.json; the large-text run r13-xl-me-end.json) or, for a bare id, `<id>-end.json`.
 const dirFiles = statSync(target).isDirectory() && existsSync(path.join(target, 'hierarchy')) ? readdirSync(path.join(target, 'hierarchy')) : [];

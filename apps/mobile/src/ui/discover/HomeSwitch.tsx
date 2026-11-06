@@ -36,6 +36,8 @@ export function HomeSwitch(props: {
   onChange: (view: HomeView) => void;
   /** The search circle (Moments view). `fromY` is where the circle sits in the window, for Search to start from. */
   search?: { label: string; onOpen: (fromY: number) => void };
+  /** Spec 039 Q2: drawn in flow inside the page's own band (`DiscoverPage`), not floating over the page. */
+  inBand?: boolean;
 }): React.ReactElement {
   const circle = useRef<ComponentRef<typeof View>>(null);
   const openSearch = (): void => {
@@ -45,7 +47,11 @@ export function HomeSwitch(props: {
     circle.current.measureInWindow((_x, y) => open(Math.round(y)));
   };
   return (
-    <Box pointerEvents="box-none" className="absolute left-0 right-0 flex-row justify-center" style={{ bottom: SWITCH_LIFT, gap: spacing.gap, zIndex: 30 }}>
+    <Box
+      pointerEvents="box-none"
+      className={props.inBand === true ? 'flex-row justify-center' : 'absolute left-0 right-0 flex-row justify-center'}
+      style={props.inBand === true ? { gap: spacing.gap } : { bottom: SWITCH_LIFT, gap: spacing.gap, zIndex: 30 }}
+    >
       <Box accessibilityRole="tablist" className="overflow-hidden border border-glassLine flex-row items-center" style={{ height: SWITCH_HEIGHT, borderRadius: SWITCH_HEIGHT / 2, padding: PAD }}>
         <BlurView intensity={30} tint="dark" style={[FILL, { backgroundColor: colour.glass }]} />
         {SEGMENTS.map((s) => {

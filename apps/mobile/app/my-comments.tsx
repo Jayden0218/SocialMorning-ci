@@ -1,18 +1,16 @@
-// Every comment you wrote, hung on a spine at its moment; tap to open the episode there.
+// Every comment you wrote, one card each at its moment; tap to open the episode there.
 /**
  * My comments (我的评论, M10; text M10b US2, FR-006): each of your comments with what you
  * wrote, its episode and moment, from `GET /v1/me/comments`. A deleted or removed comment
  * says so instead of its text. Tapping one opens the episode at that moment.
  *
- * M31 W3-C (T041; design-pulse2 `listen.html` `my-comments--screen`, `--signed-out`, `--empty`; layout pattern
- * Thread): your comments hang from the spine at their moment chips (the solid hot "14:32"), "On {episode}" beside
- * each chip, the words in a raise card (radius 18) with their age at the foot. A removed comment reads "Removed by
- * moderation" in hot text, a deleted one "You deleted this comment". The title bar is low: "My comments" and the count
- * (a "+" while more pages wait). Signed out: an empty block with a light Sign in button; none yet: an empty spine and
- * "No comments yet". The whole card is still the one button, with the same name and destination; loading, paging unchanged.
+ * Words as drawn (design-pulse2 `listen.html` `my-comments--screen`, `--signed-out`, `--empty`): the moment chip is the solid hot "14:32", "On {episode}" beside it, the
+ * words in a raise card with their age at the foot. A removed comment reads "Removed by moderation" in hot text, a deleted one "You deleted this comment". The title
+ * is "My comments" with the count (a "+" while more pages wait). Signed out: an empty block with a light Sign in button; none yet: "No comments yet". The whole
+ * card is still the one button, with the same name and destination; loading, paging unchanged.
  *
  * Spec 039 (Feed lane, design B): a `FeedPage`; each comment is ONE card (its moment chip and "On {episode}" on the head row, the words, the age at the
- * foot) and the whole card is still the one button. No spine. Signed out and none yet are empty blocks; a failed read is an `InlineNotice`.
+ * foot) and the whole card is still the one button. Signed out and none yet are empty blocks; a failed read is an `InlineNotice`.
  *
  * Not as drawn: the heart and its count are not on the card (the server sends none for your own comments).
  */

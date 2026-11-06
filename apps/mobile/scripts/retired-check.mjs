@@ -24,6 +24,7 @@ export const RETIRED_PARTS = [
   { name: 'SheetRow', file: 'src/ui/kit/SheetRow.tsx', why: 'the Editorial sheet row; sheets use the kit ActionSheet tiles (PulseTile) and EpisodeRowSheet' },
   { name: 'TintedPage', file: 'src/ui/kit/TintedPage.tsx', why: 'the Editorial tinted episode page; Pulse pages draw PageGlow' },
   { name: 'EdgeLabel', file: 'src/ui/kit/EdgeLabel.tsx', why: '039: sections are named by Section headings' },
+  { name: 'PushedPage', file: 'src/ui/kit/PushedPage.tsx', why: '039: pages use Page/PageList' },
 ];
 
 /** Whole modules no screen may import any more. */

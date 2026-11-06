@@ -14,7 +14,7 @@
  * buttons ran under the home bar (owner, 2026-09-27).
  *
  * M31 S-C (T061; design-pulse2 `settings.html` `termsPage`, entries `terms--first-launch`, `terms--refused`, layout Panel): the
- * hot-to-violet glow behind the top; the app icon (56, radius 16), the intro (Geist 14 on 20, text-2), then one rounded tile
+ * hot glow behind the top; the app icon (56, radius 16), the intro (Geist 14 on 20, text-2), then one rounded tile
  * (radius 22) per document — its icon in hot-text, name 15/600, "n points" in mono 12 and a chevron; the first is open on arrival,
  * its points numbered 01–04 in hot-text mono, and "Read the full agreement ›" opens the whole document. The title "Service
  * Agreement and Privacy Policy" (Unbounded 800 22) sits low with Disagree (quiet, 120 wide) and Agree (light, 52) in the row under

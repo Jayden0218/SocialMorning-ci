@@ -1,11 +1,11 @@
-// Chat tab: your conversations on a spine, newest first, with unread counts; start a new chat.
+// Chat tab: your conversations as cards, newest first, with unread counts; start a new chat.
 /**
  * Chat (owner, 2026-10-04) — the third tab, at `/chat`. One row per person you have messaged:
  * their picture, their name, the last message (or "Shared an episode: …"), when, and how many
  * you have not read. "New chat" lists the people you can message — those who follow you back.
  *
- * M31 T033 (design-pulse2 `chat--screen`, `chat--signed-out`, `chat--empty`, `chat--error`; layout
- * pattern Thread): the conversations hang from a hot-violet-line spine (`ChatRow.tsx`), newest first;
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 T033 (design-pulse2 `chat--screen`, `chat--signed-out`, `chat--empty`, `chat--error`; layout
+ * pattern Thread): the conversations hang from a hot-line spine (`ChatRow.tsx`), newest first;
  * the title bar is low (rule 1): "Chat", "People who follow you back" and a + (44) for New chat. Signed
  * out the page is an empty block with a light Sign in button and no +. With no chats yet the block
  * says so and the spine is not drawn; if they cannot be read, an error tile (radius 22) with Retry,

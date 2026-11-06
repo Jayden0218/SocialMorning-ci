@@ -8,7 +8,7 @@
  *
  * M31 S-C (T061; design-pulse2 `settings.html` `genreTiles`, `interestsPage`, `onboarding-not-liking--screen`): the tiles are the
  * Mosaic of the interests page — two columns, 56 tall, radius 18, 8 apart: the icon (20, hot-text) and the name (Geist 600 13);
- * a chosen tile is the light fill with void words and a tick. "Not liking these?" is the Panel: under the edge labels WHAT'S WRONG,
+ * a chosen tile is the light fill with void words and a tick. "Not liking these?" is the Panel: under the heading WHAT'S WRONG,
  * MORE and CATEGORIES, the four reasons as a 2 × 2 of tiles (76, radius 22; the chosen one tinted and ringed in hot 1.5), the
  * "Tell us more…" box (radius 22, up to 300 characters, drawn for every reason — the note is sent with whichever is chosen),
  * "Tap to add or remove." over the categories as chips, and Send (light, 52) in the row under the title (disabled until a reason

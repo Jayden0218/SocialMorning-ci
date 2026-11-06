@@ -4,7 +4,7 @@
  * left, then the name (Geist 600 15, flex 1) and the time (Geist Mono 11, text3), then the last message (14, text2) and, when there are unread, the count in a hot
  * pill (min 20 x 20, Geist Mono 11 / 600, void words). Unread: the name 700, the message in text colour at 600, and a 3 wide hot bar down the card's left edge.
  *
- * M31 T033 (design-pulse2 `chat--screen`; layout pattern Thread) drew them on a hot-violet-line spine at x 40; that spine and the avatar's void ring are retired.
+ * M31 T033 (design-pulse2 `chat--screen`; layout pattern Thread) drew them on a hot-line spine at x 40; that spine and the avatar's void ring are retired.
  *
  * The row's Pressable lives in `app/(tabs)/chat.tsx` (its name and destination are the action
  * inventory's); these are the parts it is made of. `NameText` is a Text so the inventory reads the

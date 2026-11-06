@@ -13,7 +13,7 @@
  * Not kept by design: the trending hint in the search field (Search is an icon now) and Today's pick as a tile (the Picks section lists it).
  */
 import { Fragment, useRef } from 'react';
-import type { LayoutChangeEvent } from 'react-native';
+import { StyleSheet, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
@@ -45,8 +45,25 @@ import type { MomentsList } from './useMoments';
 import type { PickWithFaces } from '@/discover/explore-api';
 import { nowMs } from '@/ui/kit/clock';
 
-/** The Moments | Discover switch floats over the foot of the page; the last section clears it. */
-export const SWITCH_CLEAR = SWITCH_LIFT + SWITCH_HEIGHT;
+/**
+ * Spec 039 Q2 (owner, 2026-11-06): the Moments | Discover switch has its own band at the foot, below the page and above the tab bar: a
+ * solid void strip with a hairline on top, the switch centred with `SWITCH_LIFT` above and below it. The page ends where the band begins,
+ * so nothing sits under the switch at rest and the page needs no spacer for it.
+ */
+export const BAND_HEIGHT = SWITCH_HEIGHT + 2 * SWITCH_LIFT;
+
+/** The band that holds the switch (`switcher`, drawn by Home). Opaque, in the column under the page. */
+function SwitchBand(props: { children?: React.ReactNode }): React.ReactElement {
+  return (
+    <Box
+      testID="home-band"
+      className="items-center justify-center"
+      style={{ height: BAND_HEIGHT, backgroundColor: colour.void, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colour.line }}
+    >
+      {props.children}
+    </Box>
+  );
+}
 
 /** A 44 icon button at the right of the title. */
 function IconButton(props: { icon: 'search-outline' | 'scan-outline'; label: string; onPress: () => void }): React.ReactElement {
@@ -58,7 +75,7 @@ function IconButton(props: { icon: 'search-outline' | 'scan-outline'; label: str
 }
 
 /** A shortcut as a tile of the Browse grid: its name (and the queue's count), on a raise card. */
-function BrowseTile(props: { tile: ShortcutTile }): React.ReactElement {
+export function BrowseTile(props: { tile: ShortcutTile }): React.ReactElement {
   const t = props.tile;
   return (
     <Pressable
@@ -78,7 +95,7 @@ function BrowseTile(props: { tile: ShortcutTile }): React.ReactElement {
   );
 }
 
-export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsList }): React.ReactElement {
+export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsList; switcher?: React.ReactNode }): React.ReactElement {
   const { page, moments } = props;
   const { model, act, view, refreshing, allCategories, hiddenCats, showCat, openSearch, moreFor, notInterested, shown, listener, undo } = page;
   const insets = useSafeAreaInsets();
@@ -166,8 +183,11 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
   // both had their first answer (or FIRST_PAINT_CAP_MS), then everything at once.
   if (!shown) {
     return (
-      <Box className="flex-1 bg-void items-center justify-center">
-        <Loader />
+      <Box className="flex-1 bg-void">
+        <Box className="flex-1 items-center justify-center">
+          <Loader />
+        </Box>
+        <SwitchBand>{props.switcher}</SwitchBand>
       </Box>
     );
   }
@@ -176,11 +196,11 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
     <Box className="flex-1 bg-void">
       {/* The pull-to-refresh mark sits under the status bar, not behind it. */}
       <Box pointerEvents="none" className="absolute left-0 right-0" style={{ top: insets.top, height: 0, zIndex: 1 }}>{pull.backdrop}</Box>
+      <Box className="flex-1">
       <Page
         title="Discover"
         titleLabel="Discover, today's picks"
         tabs
-        footExtra={SWITCH_CLEAR}
         scrollToTopOnTabPress
         scrollRef={page.scroller}
         scroll={{ refreshControl: pull.refreshControl, onScroll: pull.onScroll, scrollEventThrottle: pull.scrollEventThrottle }}
@@ -220,8 +240,9 @@ export function DiscoverPage(props: { page: DiscoverPageData; moments: MomentsLi
           <Fragment key={id}>{section(id)}</Fragment>
         ))}
         {view ? <MoreCategories onPress={allCategories} hidden={hiddenCats} onShow={showCat} /> : null}
-        <Box style={{ height: SWITCH_CLEAR }} />
       </Page>
+      </Box>
+      <SwitchBand>{props.switcher}</SwitchBand>
       <NotInterestedSheet card={moreFor} onChoose={notInterested} onClose={() => page.setMoreFor(undefined)} />
     </Box>
   );

@@ -2,7 +2,7 @@
 /**
  * M31 W3-B (T041; design-pulse2 `queue--screen`, `queue--empty`, `queue--item-sheet`; "Layout: Deck"). The queue page
  * is a row of full-size cards, 290 x 330 and 10 apart, snapping one at a time with the next one peeking, the first
- * starting at the 28 lane under the "Up next" edge label (the same cards as Updates):
+ * starting at the page's gutter under the "Up next" section heading (the same cards as Updates):
  *   - the cover (46 % of the card) with a mono tag `n` or `n · DOWNLOADED` over its top left corner;
  *   - the show (12, text2), the title (Unbounded 700 18, two lines);
  *   - the first card's foot: a light "Play now" pill (40 tall) and a ··· circle; the other cards' foot: the episode's

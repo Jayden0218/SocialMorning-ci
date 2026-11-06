@@ -76,7 +76,7 @@ export function ThreadCard(props: { children: ReactNode; testID?: string }): Rea
   );
 }
 
-/** The light day tag on the spine (History): TODAY, YESTERDAY, EARLIER THIS WEEK, EARLIER. */
+/** The light day tag over a day's cards (History): TODAY, YESTERDAY, EARLIER THIS WEEK, EARLIER. */
 export function DayTag(props: { text: string }): React.ReactElement {
   return (
     <Box testID="day-tag" className="bg-text" style={{ height: LIST.tagHeight, paddingHorizontal: LIST.tagPad, borderRadius: LIST.tagRadius, justifyContent: 'center' }}>
@@ -95,7 +95,7 @@ export function PlayDot(props: { size: number }): React.ReactElement {
 }
 
 /**
- * The played curve of a history row: 40 bars, 12 tall, `played` of 40 lit hot to violet. History keeps no per-episode heat,
+ * The played curve of a history row: 40 bars, 12 tall, `played` of 40 lit hot. History keeps no per-episode heat,
  * so the bars are an even curve (a progress meter); the drawing's bars are the episode's heat.
  */
 const EVEN = Array.from({ length: 100 }, () => 0.5);
@@ -212,7 +212,7 @@ export function GlowTile(props: { icon: React.ComponentProps<typeof Icon>['name'
   return (
     <LinearGradient
       testID="glow-tile"
-      colors={[colour.hot, colour.violet]}
+      colors={[colour.hot, colour.hot]}
       start={{ x: 0.2, y: 0 }}
       end={{ x: 0.8, y: 1 }}
       accessible={false}

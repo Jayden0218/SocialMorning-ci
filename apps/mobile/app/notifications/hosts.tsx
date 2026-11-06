@@ -7,13 +7,13 @@
  * M21 US10 (T108): moved out of the Notifications page's third tab into its own page, opened
  * from the "From hosts" card at the top of Notifications. Same cards, same paging.
  *
- * M31 W4-C (T052; design-pulse2 `social.html#notifications-hosts--screen`, `--signed-out`, `--empty`, `--load-failed`; layout pattern Thread):
- * the announcements hang on the spine, each ticked by its date, under an edge label ("This week", then "Earlier"). A card is raise (radius
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W4-C (T052; design-pulse2 `social.html#notifications-hosts--screen`, `--signed-out`, `--empty`, `--load-failed`; layout pattern Thread):
+ * the announcements hang on the spine, each ticked by its date, under a section heading ("This week", then "Earlier"). A card is raise (radius
  * 18, padding 12, 10 between parts): the show's cover (36, radius 10), "Show title ›" in Geist 600 14 with the date and time in mono 11,
  * the words in Geist 15 / 22, and the pictures as 120 x 90 thumbnails in a row. The title bar is low: "From hosts", "Shows you follow".
  *
  * Spec 039 (Feed lane, `design/B-Notifications.dc.html`): a `FeedPage`; "This week" and "Earlier" are small caps headings over the cards (no spine, no tick, no
- * edge label); a failed load is an `InlineNotice` with Retry; load more is the list's `onEndReached`.
+ * section heading); a failed load is an `InlineNotice` with Retry; load more is the list's `onEndReached`.
  *
  * Not as drawn: the drawing says a picture opens full size; here a tap anywhere on the card opens the show, as before (the page has
  * never had a picture viewer, and the card is one button).

@@ -4,7 +4,7 @@
  * opens a second page the sheet swaps its tiles for it, under the episode head (cover 48).
  *
  * Save this moment: the time as a solid chip ("12:32") beside the title (Unbounded 16), the episode's mini curve (60 bars,
- * 30 tall; the played part graded hot → violet, a light bar at the moment), the note box (110 tall, radius 18, raise;
+ * 30 tall; the played part graded hot, a light bar at the moment), the note box (110 tall, radius 18, raise;
  * "Add a note (optional)"), then Cancel (quiet) and Save (light) side by side → "Saved the moment at 12:32."
  *
  * Add to playlist: "Add to playlist" (Unbounded 16) with Cancel in hot-text on its right ("Close the playlist picker"), the

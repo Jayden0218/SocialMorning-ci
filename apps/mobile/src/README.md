@@ -132,6 +132,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `moments.ts` | Keeps saved moments in episodes, each with an optional note. |
 | `listening-api.ts` | Server calls for listening data, sticker placements and the monthly recap picture. |
 | `listening-chart.ts` | The Listening data chart's maths and words: the axis top, the bar boxes, and day, month and minute labels. |
+| `last-played.ts` | The last episode played, kept on the device so Me can offer "Continue listening" when nothing is loaded. |
+| `__tests__/last-played.test.ts` | Spec 039 Q3: the last played episode is kept on the device as the player saves its position, and when an episode ends. |
 | `my-avatar.ts` | My own profile photo for Me and Updates: the saved copy at once, refreshed from the server. |
 | `money.ts` | Formats prices for display and links to store subscription pages. |
 | `my-stickers.ts` | Gives the profile card and Stickers page the same listening totals, earned dates and others' stickers. |
@@ -248,6 +250,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `lists-api.ts` | Server call for one shared show list (GET /v1/lists/:id), and checking what came back. |
 | `poll.ts` | Checks for new comments every 10 seconds, only when useful. |
 | `profile-api.ts` | Server calls for your profile, photo, hidden recommendations and episode likes. |
+| `profile-cache.ts` | One profile request shared by everything that reads a profile (Me's counts, the profile page, stickers, chat). |
 | `us8-api.ts` | Server calls for text statuses, my subscription order, and others' public subscriptions. |
 | `api-m22-social.ts` | Server calls for M22's social layer: push switches, muted threads, status replies, reactions, items and photos. |
 | `react.ts` | Toggles a reaction at once, then confirms with the server. |
@@ -302,7 +305,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 |---|---|
 | `ActionSheet.tsx` | The one bottom sheet: a grabber, an optional title and close, then the caller's content. |
 | `Breathe.tsx` | Fades what is inside it between full and half strength, slowly, while something loads. |
-| `Curve.tsx` | The heat bars: where people reacted along an episode, as a row of bars; played ones turn hot to violet. |
+| `Curve.tsx` | The heat bars: where people reacted along an episode, as a row of bars; played ones turn hot. |
 | `GapCurve.tsx` | The reaction curve stopped: a run of bars left out in the middle, for a page where the app is paused. |
 | `PulseTile.tsx` | A sheet's tile: an icon on top, a name and a mono detail under it; light when on, ringed hot when outlined. |
 | `PageGlow.tsx` | The soft two-colour glow behind the top of a page, as the pushed pages' drawings paint it. |
@@ -311,7 +314,6 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `Fade.tsx` | The fade behind a title bar, so content scrolling under it stays readable. |
 | `NowBar.tsx` | The now bar: what is playing, floating above the tab bar — cover, title, a live ticker, play, playlist. |
 | `OverlayPage.tsx` | A page drawn outside the router's pages — Terms, a legal document, the sign-in steps: glow, content, fade, title bar at the top, optional foot row. |
-| `PushedPage.tsx` | A pushed page in the Pulse shape: the glow, the content, a fade, and the title bar at the top (037, option B). |
 | `PulseButton.tsx` | The Pulse buttons: light, hot, ring and quiet pills, and the round icon button; kind quiet / ring is the kit's TextAction (no separate part). |
 | `RingScrubber.tsx` | The ring scrubber: the reaction curve wrapped round a circle — 100 spokes, a knob, avatar pins; drag to seek. |
 | `TimestampChip.tsx` | The timestamp chip: a time like 14:32 in mono on a hot-tinted pill; tapping it plays from there. |
@@ -438,7 +440,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `SpeedDial.tsx` | The speed dial: 26 ticks on a 270° arc from 0.5× to 3.0×; drag the knob round in 0.1 steps. |
 | `TranscriptSheet.tsx` | The transcript sheet: the lines hang from a time spine and follow the audio; tap a time to seek. |
 | `TransportRow.tsx` | The player's controls: speed, skip back 15, play or pause, skip forward 30, and the sleep moon. |
-| `arc.tsx` | A ring that fills round a circle in the hot-to-violet pulse: the sleep timer's rings and clock track. |
+| `arc.tsx` | A ring that fills round a circle in the hot pulse: the sleep timer's rings and clock track. |
 | `dial-math.ts` | The sums behind the speed dial and the sleep clock: angles, ticks, and a touch turned into a value. |
 | `hot.ts` | Finds the hot moments of an episode from its heat curve: the peaks that stand out from the rest. |
 | `measures.ts` | The player page's measurements from the drawing, and the sums behind them. |
@@ -483,7 +485,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `VoiceRecord.tsx` | The mic beside a comment box: tap to record a voice comment up to 60 s, then post it. |
 | `VoiceTextReview.tsx` | After a voice recording: the text the phone heard, editable, with Post and Cancel. |
 | `measures.ts` | The numbers the Pulse comments pages are drawn with, copied from the drawings. |
-| `nodes.ts` | Groups an ordered list of comments into the nodes of the spine, and finds the node nearest a moment. |
+| `nodes.ts` | Groups an ordered list of comments into nodes (one moment chip and its comments), and finds the node nearest a moment. |
 | `useInsets.ts` | The status bar's height, or 0 when no provider is above (the comment pages are drawn in tests without one). |
 | `usePlayhead.ts` | The episode's playhead in whole seconds, for the few parts of the comments page that follow it. |
 
@@ -504,7 +506,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | File | What it does |
 |---|---|
 | `measures.ts` | The Downloads page's measurements from the drawings, named once. |
-| `DownloadRing.tsx` | A download's progress ring: hot to violet while it runs, white at 40 % when paused, a green check when done. |
+| `DownloadRing.tsx` | A download's progress ring: hot while it runs, white at 40 % when paused, a green check when done. |
 | `DownloadTile.tsx` | One download as a 1 x 2 mosaic tile: the cover, a progress ring or alert, the title, the state in mono. |
 
 ### `ui/voice/` — The voice status page's parts
@@ -551,7 +553,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `blocks.tsx` | The centred state blocks of the social pages: signed out (lock), could not load (wifi), and the error tile. |
 | `chat-time.ts` | The Chat list's time stamp: "now", "2m", "1h", "Yesterday", "Mon", "12 Oct". |
 | `measures.ts` | The numbers the chat thread, New chat and the shared state blocks are drawn with, copied from the drawings. |
-| `nodes.ts` | Groups a conversation's messages into the nodes of the spine: a new node after a gap of more than 10 minutes. |
+| `nodes.ts` | Groups a conversation's messages into nodes under a heading: a new node after a gap of more than 10 minutes. |
 
 ### `ui/notifications/` — Notifications pages and Friends listening
 
@@ -573,7 +575,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `FollowList.tsx` | Page-by-page list of a person's followers or who they follow. |
 | `LikeCard.tsx` | One liked episode: who liked it, their note as a quote, and the episode row to open or play. |
 | `LikeSheet.tsx` | After you like an episode: add a short note (up to 140 characters), or skip. |
-| `NoticeCards.tsx` | Top of Notifications: System and From hosts open their pages; a switch between Interactions and People. |
+| `NoticeCards.tsx` | The switch between Interactions and People at the top of Notifications. |
 | `SystemNoticeCard.tsx` | One message from SocialNet: title, text, time, and at most one button that opens a page in the app. |
 | `ProfileStatRow.tsx` | A profile's numbers in one row: following, followers, shows, listening time. |
 | `RecentCard.tsx` | One of a person's recent public actions on their profile: a raise card with the show's cover. |
@@ -678,7 +680,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `CategoryParts.tsx` | The parts of a category page: the genre strip, the light lead card, the 1 x 2 show tile, the All categories sheet. |
 | `CategorySections.tsx` | The genre chips on Discover, the way to hide one, and the Hidden row that brings hidden ones back. |
 | `ChartSection.tsx` | The charts on Discover: one card per chart in a deck, three ranked rows a page, "1 / 2 →" for the next three. |
-| `DiscoverMosaic.tsx` | The top of Discover as a mosaic: today's pick, the hottest moment now, and the shortcuts as tiles. |
+| `DiscoverMosaic.tsx` | The 84-high tile measures Search still draws (`MOSAIC`) and the shape of a Discover shortcut tile. |
 | `ChartTiles.tsx` | The Charts page's ranked Mosaic: the first tile 2 x 3 with a glowing 64, the next two 1 x 2, the rest 2 x 1. |
 | `Mosaic.tsx` | The small parts the Discover inner pages share: the tile a page hands the Report, a genre's corner square, and the failed-load notice. |
 | `measures.ts` | The type sizes and numbers the Discover group's inner pages are drawn with, where the scale has no step for them. |
@@ -788,7 +790,8 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `PlusCard.tsx` | The PLUS card in Wallet: what PLUS gives, its price, Subscribe, and Restore purchases. |
 | `StickerCanvas.tsx` | The sticker canvas: drag, pinch and turn your stickers on a copy of your profile header (our own design). |
 | `StickerLayer.tsx` | Draws a listener's placed stickers over the top of their profile header, for every viewer; touches pass through. |
-| `ContinueCard.tsx` | "Continue listening": the episode the player holds, with how far you got. |
+| `ContinueCard.tsx` | "Continue listening": the episode the player holds, else the last one played on this phone, with how far you got. |
+| `__tests__/ContinueCard.test.tsx` | Spec 039 Q3 (owner, 2026-11-06): Me's "Continue listening" shows the loaded episode, else the last one played (kept on the device), else nothing. |
 | `MePill.tsx` | A place Me opens, as a pill: the child of a `<Link asChild>` on the screen, or (Wallet while purchases are off) a button that opens Coming soon first. |
 | `MeTile.tsx` | One of the four equal tiles on Me: a glyph over the name and a count. |
 | `useMeStats.ts` | The counts the Me page shows: following and followers, and how many downloads are on the phone. |
@@ -803,7 +806,7 @@ Keep this file up to date: when you add, move or delete a file, change its line 
 | `measures.ts` | The numbers the Settings pages are drawn with (design-pulse2 settings.html helpers), named once. |
 | `panel.tsx` | The Settings pages' Panel parts: the page, a labelled section, a tile, group rows and the large switch tile. |
 | `hub-measures.ts` | The numbers the Settings hub and its pages are drawn with (design-pulse2 settings.html). |
-| `hub-parts.tsx` | The Settings pages' shared parts in the Pulse shape: the page body, a section with its edge label, a row, a large tile. |
+| `hub-parts.tsx` | The Settings pages' shared parts in the Pulse shape: the page body, a section with its section heading, a row, a large tile. |
 | `NotifyShows.tsx` | One "new episodes" alert switch for each show you follow. |
 | `OftenListenedSwitch.tsx` | Privacy switch: hide the "Often listened" row on your profile from other people. |
 

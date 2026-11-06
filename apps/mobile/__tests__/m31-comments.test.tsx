@@ -20,6 +20,7 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockSeek = jest.fn();
+const seeks: number[] = [];
 let mockListener: { listenerId: string; displayName: string } | undefined = { listenerId: 'me', displayName: 'Me' };
 let mockParams: Record<string, string> = { episodeId: 'e1' };
 let mockLive: number | undefined;
@@ -153,6 +154,8 @@ function harness() {
   let listener: ((e: AdapterEvent) => void) | undefined;
   const adapter: AudioAdapter = { execute: async () => undefined, subscribe: (l) => { listener = l; return () => undefined; }, configure: async () => undefined, release: () => undefined };
   const runtime = createPlayerRuntime({ adapter, stores: createMemoryStores(hash), now: () => 1, notify: () => undefined });
+  const seek = runtime.seek;
+  runtime.seek = (toMs: number) => { seeks.push(toMs); seek(toMs); };
   return { runtime, push: (e: AdapterEvent) => listener?.(e) };
 }
 function mount(el: React.ReactElement, insets = { top: 50, bottom: 34 }): ReactTestRenderer {
@@ -171,7 +174,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date(SERVER));
   setReducedMotionForTest(true);
-  mockPush.mockClear(); mockBack.mockClear(); mockSeek.mockClear();
+  mockPush.mockClear(); mockBack.mockClear(); mockSeek.mockClear(); seeks.length = 0;
   mockListener = { listenerId: 'me', displayName: 'Me' };
   mockParams = { episodeId: 'e1' };
   mockLive = undefined;
@@ -197,6 +200,16 @@ describe('the page puts each part where the drawing does (390 × 844, 50 pt stat
       c({ id: 'c2', offsetMs: 872_000, likeCount: 41, replies: [c({ id: 'r1', displayName: 'Jo', parentId: 'c2', likeCount: 6 })] }),
     ];
   };
+
+  // 039 verifier fix: the deleted SpineNode seek assertion, restored on the page (the node's chip is the page's "Play from 14:32").
+  it('pressing the moment chip "Play from 14:32" seeks the player to 872 000 ms', async () => {
+    two();
+    const r = mount(createElement(CommentsScreen));
+    await act(async () => { await Promise.resolve(); });
+    act(() => { pressable(r, 'Play from 14:32').props['onPress'](); });
+    await act(async () => { await Promise.resolve(); });
+    expect(seeks).toEqual([872_000]);
+  });
 
   // 039 (Feed lane): was "the strip is at 56, the map at 102, the thread at 140" (absolute tops under the status bar); the strip and the map are the list's header now, in flow under the
   // title row, on the page's gutter. The zone (the capsule and the composer) is unchanged: 6 over the home strip.
@@ -519,6 +532,15 @@ describe('the replies page (Stage + Thread)', () => {
     await act(async () => { await Promise.resolve(); });
     return r;
   };
+
+  // 039 verifier fix: the stage's solid chip seeks to the comment's moment.
+  it('pressing the stage chip "Play from 14:32" seeks the player to 872 000 ms', async () => {
+    mockThread = { parent, replies };
+    const r = await open();
+    act(() => { pressable(r, 'Play from 14:32').props['onPress'](); });
+    await act(async () => { await Promise.resolve(); });
+    expect(seeks).toEqual([872_000]);
+  });
 
   // 039 (Feed lane): was "the stage is at 60, the spine from 250, replies as cards 56 in with an age tick" (absolute tops, a spine-node and a tick per reply); the stage is the list's
   // header now, the replies are cards on the gutter with no indent, no spine and no tick (the card says its age).

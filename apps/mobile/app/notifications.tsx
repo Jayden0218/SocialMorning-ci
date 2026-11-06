@@ -28,10 +28,10 @@
  * lists them. Rows also read and open the new kinds: comments and reactions on your like,
  * replies and reactions on your status, and a status reaching 100 reactions.
  *
- * M31 W4-C (T052; design-pulse2 `social.html#notifications--people`, `--signed-out`, `--people-empty`, `--feed-offline`, `--interactions`,
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W4-C (T052; design-pulse2 `social.html#notifications--people`, `--signed-out`, `--people-empty`, `--feed-offline`, `--interactions`,
  * `--interactions-signed-out`, `--interactions-empty`, `--interactions-error`, `--mute-sheet`, `--toast`; layout pattern Thread): the title
  * bar is low with the People | Interactions switch above its row and the line that says what the view holds; System and From hosts are
- * two 1 x 1 tiles at the top; the activity hangs on the spine, newest first, under an edge label naming the day. A People card is
+ * two 1 x 1 tiles at the top; the activity hangs on the spine, newest first, under a section heading naming the day. A People card is
  * the person, what they did, the kind's mark and the episode (`FeedItem`); an Interaction hangs from a hot dot when unread (the
  * newest glows) with a 3 wide hot edge on its card, from a time tick when read. Loading is ghost rows on the spine; a failed
  * Interactions load is an error card on the spine with Retry; signed out, a lock block with a light Sign in; the mute sheet is the

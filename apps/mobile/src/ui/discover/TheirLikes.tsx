@@ -5,7 +5,7 @@
  * episode. A card opens the like post (`/like/[owner]/[episode]`, OUR OWN DESIGN, owner
  * 2026-10-06). Signed out, or nothing liked → no section.
  *
- * M31 D-C (design-pulse2 `home--fold-a`, "Their likes"): a Deck under the edge label "Their likes" (the owner's rename of the section
+ * M31 D-C (design-pulse2 `home--fold-a`, "Their likes"): a Deck under the heading "Their likes" (the owner's rename of the section
  * is the label), cards 230 x 150 — a face 26 and "Rui liked" (Geist 600 13), the note in Unbounded 15 / 21 (the `UNBOUNDED[15]` step,
  * quoted), and at the foot the cover 34 (radius 8) with the episode in text2 13 / 500. "All likes" was the section title's link; it is
  * the deck's last card as drawn ("Card · last card of the deck 'All likes'"). Not as drawn: a like with no note shows the episode only

@@ -17,7 +17,7 @@
  * follow, each marked "Suggested" under its circle. If that call fails, the old list (`load`) is used.
  *
  * M31 W4-D (T053; design-pulse2 `voice-posts--chooser-sheet`, `voice-posts--delete-dialog`, the rail of `updatesCtx`): the rail is 58 circles
- * 14 apart from 16 in, the name under each in Geist 600 11; a status has the hot → violet ring (2) round its avatar (54, a 2 void border),
+ * 14 apart from 16 in, the name under each in Geist 600 11; a status has the hot ring (2) round its avatar (54, a 2 void border),
  * "New" is a line-coloured ring round a raise disc with a hot-text plus (22), its name in hot-text; "Suggested" is hot-text under the name.
  * The drawing has no "Statuses · last 24 h" eyebrow, so it is gone from the rail (the circles say who they are). The chooser is the kit sheet:
  * "New status · gone after 24 h" as its title, the Panel rows Voice · up to 60 seconds / Text · up to 140 characters, and the quiet Cancel.
@@ -55,7 +55,7 @@ const RAIL_DRAWN = { circle: 58, inner: 54, gap: 14, ring: 2, plus: 22 } as cons
 const RAIL_UPDATES = { circle: 64, inner: 60, gap: 4, ring: 2, plus: 22 } as const;
 const ITEM_MIN = { minHeight: hit.min };
 const fill = (r: { circle: number }) => ({ position: 'absolute' as const, left: 0, right: 0, top: 0, bottom: 0, borderRadius: r.circle / 2 });
-const RING_COLOURS = [colour.hot, colour.violet] as const;
+const RING_COLOURS = [colour.hot, colour.hot] as const;
 const CORNERS = { start: { x: 0, y: 0 }, end: { x: 1, y: 1 } } as const;
 
 export function voiceLabel(p: VoicePost, now: number, playing: boolean): string {

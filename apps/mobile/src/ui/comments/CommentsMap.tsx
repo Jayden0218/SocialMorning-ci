@@ -2,7 +2,7 @@
 /**
  * M31 W2-B (`social.html` `commentsBase`: `bars(80, 26, { played, min: 2, gap: 1 })` with a 2 px position line;
  * `index.html#comments--screen`: "tap to jump the thread", "the avatars of people listening now sit at the right end of the
- * map row"). 80 bars 26 tall, hot to violet where played; the line is the played share of the width. A touch or drag along
+ * map row"). 80 bars 26 tall, hot where played; the line is the played share of the width. A touch or drag along
  * it asks the page for that fraction of the episode (the page scrolls the thread to the nearest moment). Listening now:
  * when the server counts 2 or more, up to three overlapping 20 discs and the count at the end of the row (the server sends a
  * count, not names, so the discs are anonymous and the count is the number).

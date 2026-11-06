@@ -12,7 +12,7 @@
  * pages (`src/storage/clear-cache.ts`). Downloads are kept: they are not in the cache folder.
  *
  * M31 S-A (T060; design-pulse2 `settings-downloads--screen`, `--clear-cache-dialog`, `--clear-downloads-dialog`, `toast--settings-downloads`; Panel with a Stage-size value): "On this
- * phone" — the space used in Unbounded 56 with its unit at 22, the episode count in mono, an 8 tall bar (hot to violet) against the limit, "of a 2.0 GB storage limit", then **Clear
+ * phone" — the space used in Unbounded 56 with its unit at 22, the episode count in mono, an 8 tall bar (hot) against the limit, "of a 2.0 GB storage limit", then **Clear
  * downloaded episodes** (quiet pill 40) and the hot-text link **Manage downloads ›** to /downloads. "Cache": the size in Unbounded 40 ("Measuring" while counting), "Pictures and saved
  * pages", the reassurance line and **Clear cache**. "When": the two most-used switches as large tiles (Download queued episodes; Allow mobile data for downloads — "Off · waits for Wi-Fi").
  * "Tidy up": Delete after playing and When storage is full, remove the oldest, as rows with switches in one group tile. Both clears ask first in the kit dialog (Clear is hot).
@@ -101,7 +101,7 @@ export default function DownloadSettings(): React.ReactElement {
             <Type step="mono" className="text-text2" style={[SET_TYPE.mono13, { paddingBottom: SET.rowGap }]}>{plural(episodes, 'episode')}</Type>
           </Box>
           <Box testID="storage-bar" className="bg-raise2 overflow-hidden" style={{ height: BAR, borderRadius: BAR / 2 }} accessible={false}>
-            <LinearGradient colors={[colour.hot, colour.violet]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: BAR, width: `${share}%` }} />
+            <LinearGradient colors={[colour.hot, colour.hot]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: BAR, width: `${share}%` }} />
           </Box>
           <Type step="mono" className="text-text2" style={SET_TYPE.mono12}>{`of a ${mb(budget)} storage limit`}</Type>
           <Box className="flex-row items-center" style={{ gap: SET.tileGap, flexWrap: 'wrap' }}>

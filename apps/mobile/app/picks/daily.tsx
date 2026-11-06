@@ -8,7 +8,7 @@
  * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
  *
  * M31 W5-D (T064; design-pulse2 `discover.html` `picks-daily--screen`, `picks-daily--error`, layout pattern Deck): a pushed page, the title bar low
- * ("Daily picks", the date, a clock circle = Past picks) over the hot glow, and under the edge label TODAY a Deck of cards 290 x 470: the
+ * ("Daily picks", the date, a clock circle = Past picks) over the hot glow, and under the heading TODAY a Deck of cards 290 x 470: the
  * cover (240) with "Show · Open the show ›" in hot-text at its foot, the editor's whole note in Unbounded 600 17/24, the title (Unbounded 700,
  * one line) and at the foot the length in mono, + (ring, 42) and Play (42). The deck ends in a dashed "Past picks ›" card. A pick with no episode
  * yet keeps its note and opens the show. A failed load is the error tile with Retry (Past picks stays in the title bar); empty says "No picks today yet".

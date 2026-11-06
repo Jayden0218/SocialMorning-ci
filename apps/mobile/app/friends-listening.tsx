@@ -11,9 +11,9 @@
  * the cards; each opens its like post, and Follow / Following sits on each. ⓘ in the header
  * opens a help sheet saying what this page shows and what it never shows.
  *
- * M31 W4-C (T052; design-pulse2 `discover.html#friends-listening--screen`, `--signed-out`, `--empty`, `--help-sheet`, `--error`; layout
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W4-C (T052; design-pulse2 `discover.html#friends-listening--screen`, `--signed-out`, `--empty`, `--help-sheet`, `--error`; layout
  * pattern Thread): "Their likes" is a Deck of 250 x 160 cards (who with Follow / Following at 30, the note in Unbounded 15, the
- * episode at the foot), under its edge label. What people played in the last 7 days hangs on the spine: the player's avatar (40, with a
+ * episode at the foot), under its section heading. What people played in the last 7 days hangs on the spine: the player's avatar (40, with a
  * 3 void ring) on the line, and a raise card (radius 18, padding 12) — "Jo played" with the age in mono, the episode (cover 48, title,
  * show) and a light Play (36). The title bar is low: "Friends listening", "This week", and an info circle ("What is this page?")
  * that opens the sheet: the line, the privacy rule in a lock tile, Close. Signed out: an empty block with a light Sign in (the info

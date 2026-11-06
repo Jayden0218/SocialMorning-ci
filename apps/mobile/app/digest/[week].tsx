@@ -8,7 +8,7 @@
  *
  * M31 W5-D (T064; design-pulse2 `discover.html` `digest--screen`, `digest--none`, `toast--digest`, layout pattern Deck): a pushed page, the title bar low
  * ("Weekly catch-up", "New last week · 4 unplayed") with **Queue all** (hot, 48, full width) in the zone above it — the main action under
- * the thumb. Under the edge label UNPLAYED a Deck of cards 290 x 230: the cover (72), "Show · Mon" and the title (Unbounded 700 16), the
+ * the thumb. Under the section heading UNPLAYED a Deck of cards 290 x 230: the cover (72), "Show · Mon" and the title (Unbounded 700 16), the
  * heat curve (40 bars, 26), the length in mono and Play (42). Under SHOWS the covers (56) of the shows they came from. None: the empty block
  * "No catch-up here." with PLUS's line, no Queue all. Error: "Couldn't load your catch-up. Try again later.".
  *
@@ -37,7 +37,7 @@ import { toPlayable } from '@/storage/playable';
 import { queueEpisode } from '@/settings/queue';
 import { useSocial } from '@/social/context';
 import { useM22Api, type Digest, type DigestEpisode } from '@/social/api-m22-server';
-import { ErrTile } from '@/ui/chat/blocks';
+import { RetryTile } from '@/ui/discover/Mosaic';
 import { DECK, Deck, DeckCard, DiscPlay } from '@/ui/discover/Deck';
 import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
 import { useEpisodeHeat } from '@/ui/discover/useEpisodeHeat';
@@ -77,6 +77,7 @@ export default function DigestScreen(): React.ReactElement {
   const player = usePlayer();
   const { listener } = useSocial();
   const [digest, setDigest] = useState<Digest | 'none' | 'error' | undefined>();
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (!listener) { setDigest('none'); return undefined; }
@@ -86,7 +87,7 @@ export default function DigestScreen(): React.ReactElement {
       () => { if (live) setDigest('error'); },
     );
     return () => { live = false; };
-  }, [api, listener, week]);
+  }, [api, listener, week, attempt]);
 
   const play = (e: DigestEpisode): void => {
     const local = toPlayable(stores, e.id);
@@ -115,7 +116,7 @@ export default function DigestScreen(): React.ReactElement {
       {queueButton ?? null}
       {digest === undefined ? <Box className="items-center"><Loader /></Box> : null}
       {digest === 'none' ? <FeedEmpty title="No catch-up here." line="PLUS members get one on Mondays when their shows had new episodes." /> : null}
-      {digest === 'error' ? <ErrTile line="Couldn't load your catch-up. Try again later." /> : null}
+      {digest === 'error' ? <RetryTile line="Couldn't load your catch-up. Try again later." onRetry={() => { setDigest(undefined); setAttempt((a) => a + 1); }} /> : null}
       {ready && episodes.length > 0 ? (
         <>
           <Section title="Unplayed">

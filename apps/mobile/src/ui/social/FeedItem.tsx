@@ -7,8 +7,8 @@
  * M31 W4-C (T052; design-pulse2 `social.html#notifications--people` `feedCard`): a card on the thread — raise, radius 18, padding 12,
  * 8 between its rows. Row 1: the person's avatar (28), "**Ana** commented at 14:32 on" in Geist 14 / 19 (the name is its own link to
  * the profile and stays bold), and the kind's mark (comment, clip, listen) in text3 at 16. Row 2: the episode's cover (28, radius 8),
- * its title in Geist 500 13 in text2, and the moment as a chip when there is one. `ThreadNode` (the page) hangs it on the spine with
- * the time as a tick. Not as drawn: the card carries no show name (the drawing has none either; the spoken name does).
+ * its title in Geist 500 13 in text2, and the moment as a chip when there is one. The page lists it as a card in its flow, on the gutter
+ * (spec 039: no spine, no time tick). Not as drawn: the card carries no show name (the drawing has none either; the spoken name does).
  */
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';

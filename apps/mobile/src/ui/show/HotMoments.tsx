@@ -80,9 +80,7 @@ export function HotMoments(props: HotMomentsProps): React.ReactElement {
   }
   if (props.cards.length === 0) {
     return (
-      <Box style={{ marginLeft: SHOW.lane, marginRight: SHOW.right }}>
-        <EmptyDeck title="No hot moments yet" sentence="When listeners react at the same moment of an episode, it lights up here." />
-      </Box>
+      <EmptyDeck title="No hot moments yet" sentence="When listeners react at the same moment of an episode, it lights up here." />
     );
   }
   return (

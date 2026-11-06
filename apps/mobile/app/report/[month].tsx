@@ -12,11 +12,11 @@
  * and handed to the share sheet as a file. Offline, the text alone is shared. It names no other listener.
  *
  * Spec 039 (Detail template): a `DetailPage` (Back + "Your September 2026", "Your month in listening" under it, Share at its end); the minutes figure, the four counts in a
- * `TileGrid`, and TOP SHOWS / TOP EPISODES as `Section`s of three row cards (they were decks of 250 x 84 cards under edge labels). A failed load is an `InlineNotice`.
+ * `TileGrid`, and TOP SHOWS / TOP EPISODES as `Section`s of three row cards (they were decks of 250 x 84 cards under section headings). A failed load is an `InlineNotice`.
  *
  * M31 W5-D (T064; design-pulse2 `discover.html` `report--screen`, `--signed-out`, `--empty`, `--error`, `report--share`, `toast--report`, layout pattern Stage):
  * a pushed page, the title bar low ("Your September 2026", "Your month in listening", and the share circle = "Share your September 2026" when
- * there is a report). The Stage: LISTENING TIME in hot-text mono, the minutes as an 88 figure in the hot-to-violet gradient (each digit a step
+ * there is a report). The Stage: LISTENING TIME in hot-text mono, the minutes as an 88 figure in the hot gradient (each digit a step
  * of it) and "minutes · 21 h 24 min" under it; the shows, episodes, comments and clips as four 1 x 1 tiles (Unbounded 800 28); then Decks of
  * ranked cards 250 x 84 (the rank in Unbounded 800 24, hot-text, the cover 56) under TOP SHOWS and TOP EPISODES. Signed out: the empty block
  * with a light Sign in; no listening: "Nothing here — you didn't listen that month."; a failed load: the error tile with Retry.
@@ -68,12 +68,12 @@ function reportText(r: MonthReport): string {
   return lines.join('\n');
 }
 
-/** The figure with each digit a step of the hot-to-violet gradient (`.glowtext`; a gradient on words needs a masked view the app does not ship). */
+/** The figure with each digit a step of the hot gradient (`.glowtext`; a gradient on words needs a masked view the app does not ship). */
 function GlowFigure(props: { text: string }): React.ReactElement {
   const chars = [...props.text];
   return (
     <Type step="hero" className="text-hotText" style={[PAGE_TYPE.total88, tabular]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.5} testID="report-figure">
-      {chars.map((ch, i) => <Type key={i} step="hero" className="text-hotText" style={[PAGE_TYPE.total88, tabular, { color: mixColour(colour.hot, colour.hotEnd, (i + 0.5) / chars.length) }]}>{ch}</Type>)}
+      {chars.map((ch, i) => <Type key={i} step="hero" className="text-hotText" style={[PAGE_TYPE.total88, tabular, { color: mixColour(colour.hot, colour.hotText, (i + 0.5) / chars.length) }]}>{ch}</Type>)}
     </Type>
   );
 }

@@ -66,15 +66,7 @@ jest.mock('@/ui/shell/providers', () => ({
 jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null, goBack: () => undefined }));
 // 039: the settings page is a `Page`; where the bars sit is not what this guard is about.
 jest.mock('@/ui/shell/toastPlacement', () => ({ useToastPlacement: () => ({ tabs: false, now: false, player: false }) }));
-// M31 S-B: the Updates / Notifications pages sit in the settings page body (`PushedPage` under it needs the router's path); the bar is not what these guards are about.
-const mockBody = (c: unknown): unknown => (typeof c === 'function' ? (c as (layout: { top: number; titleBottom: number; reserve: number }) => unknown)({ top: 0, titleBottom: 0, reserve: 0 }) : c);
-// M31 S-A: a page with a bottom zone (Change email's button) passes it as `below`; draw it after the body.
-jest.mock('@/ui/kit/PushedPage', () => ({
-  PushedPage: (p: { children: unknown; below?: unknown }) => {
-    const { createElement, Fragment } = require('react');
-    return createElement(Fragment, null, mockBody(p.children), p.below ?? null);
-  },
-}));
+// 039: PushedPage is retired (the pages are Page / PageList); nothing is mocked in its place.
 jest.mock('@/notify/expo', () => ({ expoNotify: { status: () => Promise.resolve('granted') } }));
 jest.mock('@/social/m12-api', () => ({ useM12Api: () => mockM12 }));
 jest.mock('@/ui/settings/NotifyShows', () => ({ NotifyShows: () => null }));
@@ -203,10 +195,10 @@ describe('1 (rendered). every way out of the sheet records an answer, and the sh
     expect(style(disc)).toMatchObject({ width: 60, height: 60, borderRadius: 30 });
     const title = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header' && style(n)['fontSize'] === 21)[0]!;
     expect(title).toBeDefined();
-    // "A rating helps a lot" is drawn one character at a time, hot to violet: the first and last differ.
+    // "A rating helps a lot" is drawn one character at a time, all hotText now (Q8: one accent; was hot to violet, first and last differed).
     const chars = r.root.findAll((n) => n.props['testID'] === 'glow-words')[0]!.findAll((n) => typeof n.type === 'string' && n.children.length === 1 && typeof n.children[0] === 'string' && n.children[0] !== ' ');
     const colourOf = (n: ReactTestInstance): unknown => style(n)['color'];
-    expect(colourOf(chars[0]!)).not.toBe(colourOf(chars[chars.length - 1]!));
+    expect(colourOf(chars[0]!)).toBe(colourOf(chars[chars.length - 1]!));
     act(() => { jest.runOnlyPendingTimers(); });
     act(() => r.unmount());
   });

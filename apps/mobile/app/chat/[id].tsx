@@ -10,7 +10,7 @@
  * M24 US1: a long-press on a message from the other person offers Report; a reported message is
  * hidden for me at once (and sent to Admin, which can remove it for both of us).
  *
- * M31 W4-C (T052; design-pulse2 `social.html#chat-thread--screen`, `--signed-out`, `--cannot-send`, `--error`, `--toast`; layout
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W4-C (T052; design-pulse2 `social.html#chat-thread--screen`, `--signed-out`, `--cannot-send`, `--error`, `--toast`; layout
  * pattern Thread): the messages hang from the spine at x 40, 10 under the status bar, in nodes — a raise tick ("Mon", "9:12") marks
  * each gap over 10 minutes (`nodes.ts`); theirs are raise bubbles, yours hot with void words (`MessageBubble`). The thumb zone has
  * the back circle, their avatar (36) and name (Unbounded 22) with "open profile ›" — the whole group opens the profile — then the

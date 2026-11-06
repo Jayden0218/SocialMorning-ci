@@ -11,7 +11,7 @@
  * `{"days":[]}`. So the page was right: correct, one day of picks. An empty answer shows
  * "No earlier picks yet".
  *
- * M31 W5-D (T064; design-pulse2 `discover.html` `picks-past--screen`, `picks-past--error`, layout pattern Thread): a pushed page, the title bar low
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W5-D (T064; design-pulse2 `discover.html` `picks-past--screen`, `picks-past--error`, layout pattern Thread): a pushed page, the title bar low
  * ("Past picks", "Every day the editors picked"). The days hang from a spine at x 44: the date as a solid hot chip on it with "2 picks" in mono,
  * and each pick a raise card 46 in (radius 18, 12 of padding): the cover (56) with the show's first letter over it, the note in italics
  * (Geist 13/18), the show, the title (one line) and Play (34). A pick with no episode is a note card that says "Open the show ›". At the spine's

@@ -20,7 +20,7 @@
  * M31 W4-A (T050; design-pulse2 social.html `profile-followers--screen`, `--own-empty`, `--other-empty`, `--load-failed`,
  * `profile-following--screen`, `--own-empty`; layout pattern Mosaic): people are 1 x 1 tiles (rows 84, 10 apart, radius 22, in
  * the Me tab's lane), each an avatar 40 and the name 14/600 over a bio line 11 in text3; a deleted account reads "Deleted account"
- * in italics and is not a link. The edge label is "People". The title is the page's (30), the subtitle "Rui Costa · 1.2k"
+ * in italics and is not a link. The section heading is "People". The title is the page's (30), the subtitle "Rui Costa · 1.2k"
  * (the name, then the count the profile passed; "You" on your own empty list). Loading is ghost tiles; the end says "That's all";
  * a failed load is an inline tile at the top of the mosaic, "Couldn't load followers right now." with a light Retry; an empty
  * list is the centred empty block ("Nobody yet" and the sentence; your own with a light Open Discover).

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -75,7 +75,24 @@ test('finds the -xl variant (r13-xl-me-end.json) and does not mistake it for r13
 test('fails only when none of the requested flows has a file', () => {
   const r = runNamed('r99-other-end.json');
   assert.equal(r.status, 1);
-  assert.match(r.stderr, /no hierarchy file for r04, r13, r15/);
+  assert.match(r.stderr, /no hierarchy file for r01, r02, r03, r04/);
+});
+
+// 039 verifier fix: the default flows are every route flow in .maestro/check (r*.yaml; the -xl variants ride on their id), not just r04, r13, r15.
+test('by default every route flow file in .maestro/check is looked for; those that did not run are skipped, not silently left out', () => {
+  const ids = [...new Set(readdirSync(path.join(HERE, '..', '.maestro', 'check')).filter((n) => /^r\d+-.*\.yaml$/.test(n)).map((n) => n.split('-')[0]))].sort();
+  assert.ok(ids.length >= 20, `route flows found: ${ids.join(' ')}`);
+  const r = runNamed('r07-episode-player-end.json');
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  for (const id of ids.filter((i) => i !== 'r07')) assert.match(r.stdout, new RegExp(`^${id}\\t-\\tnot run in this check\\tskipped`, 'm'), `${id} is not in the table`);
+  assert.match(r.stdout, /r07-episode-player\t\d+\t/);
+});
+
+test('--flows still narrows the list', () => {
+  const r = runNamed('r07-episode-player-end.json', '--flows', 'r07,r08');
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /r08\t-\tnot run in this check\tskipped/);
+  assert.doesNotMatch(r.stdout, /^r04\t/m);
 });
 
 test('a real `maestro hierarchy` root has bounds [0,0][0,0]: the screen is the first non-empty frame, and texts are still read (run 42017007191 read 0 texts)', () => {

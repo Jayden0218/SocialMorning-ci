@@ -1,16 +1,14 @@
-// Likes: episodes people you follow liked, newest first, on a spine; tap a card to open the like, the circle to play.
+// Likes: episodes people you follow liked, newest first, one card each; tap a card to open the like, the circle to play.
 /**
  * M19 T031 (US3, FR-021): the Likes timeline — likes from accounts you follow (only those whose
  * likes are public; never someone you blocked or a show you hid), 20 a page, newest first. From Me.
  *
- * M31 W3-C (T041; design-pulse2 `listen.html` `likes--screen`, `--signed-out`, `--empty`, `--loading`, `--error`; layout
- * pattern Thread on time): each node is the friend's avatar (28, a void ring round it) on the spine with their name and
- * "liked · when" (the head opens their profile), over a raise card — the episode (cover 52, title, show, a 34 play circle),
- * their note in italics. Tapping the card opens the like (`/like/[owner]/[episode]`); the circle plays. Loading is a
- * grey spine and breathing ghost rows; a failure is the grey-glow empty block with Retry; signed out, a light Sign in.
+ * Words as drawn (design-pulse2 `listen.html` `likes--screen`, `--signed-out`, `--empty`, `--loading`, `--error`): the friend's avatar with their name and "liked · when" (the
+ * head opens their profile), over the episode (cover 52, title, show, a 34 play circle) and their note in italics. Tapping the card opens the like
+ * (`/like/[owner]/[episode]`); the circle plays. Loading is breathing ghost rows; a failure is the grey-glow empty block with Retry; signed out, a light Sign in.
  *
  * Spec 039 (Feed lane, design B): a `FeedPage`; each like is ONE card (the friend's avatar, name and "liked · when" on the head row, which opens their
- * profile; the episode strip, which opens the like; the 34 play circle; their note). No spine. A failed load is an `InlineNotice` with Retry; signed out and
+ * profile; the episode strip, which opens the like; the 34 play circle; their note). A failed load is an `InlineNotice` with Retry; signed out and
  * none yet are empty blocks.
  *
  * Not as drawn: the reaction and comment counts under a card are not here (`/v1/me/likes` sends none).

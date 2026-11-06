@@ -10,7 +10,7 @@
  *
  * M31 W3-C (T041; design-pulse2 `discover.html` `me-listening--screen`, `--signed-out`, `--empty`, `--30-days`; layout
  * pattern Panel): the pill switch "30 days | All time" (46 tall), the range in mono 11 over the total in Unbounded 800
- * 52 (tabular), the 120 tall bars (`ListeningBars`), then the edge label "Top shows" and a deck of ranked cards
+ * 52 (tabular), the 120 tall bars (`ListeningBars`), then the section heading "Top shows" and a deck of ranked cards
  * (250 × 84: the rank in Unbounded 800 24 hot text, the cover 56, the show and its minutes), each opening its show. A
  * failed load is the error tile (radius 22, a warning mark, a Retry pill); signed out, the empty block with a light
  * Sign in; no minutes yet, the same block with the switch kept above it.

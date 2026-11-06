@@ -32,13 +32,14 @@ export function TrendingSearchBar(props: { hints: readonly string[]; onOpen: (fr
 }
 
 /** The Home switch; on the Moments view its search circle is named with the same trending hint. */
-export function TrendingHomeSwitch(props: { hints: readonly string[]; view: HomeView; onChange: (view: HomeView) => void; onSearch: (fromY: number, hint: string | undefined) => void }): React.ReactElement {
+export function TrendingHomeSwitch(props: { hints: readonly string[]; view: HomeView; onChange: (view: HomeView) => void; onSearch: (fromY: number, hint: string | undefined) => void; inBand?: boolean }): React.ReactElement {
   // Only the Moments view has the circle; on Discover the field above shows the hint, so no timer here.
   const hint = useTrendingHint(props.view === 'moments' ? props.hints : []);
   return (
     <HomeSwitch
       view={props.view}
       onChange={props.onChange}
+      {...(props.inBand === true ? { inBand: true } : {})}
       {...(props.view === 'moments' ? { search: { label: hint ? `Search. Trending: ${hint}` : 'Search shows and episodes', onOpen: (fromY: number) => props.onSearch(fromY, hint) } } : {})}
     />
   );

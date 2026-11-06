@@ -54,7 +54,7 @@ frames_check() {
   [ "$code" -eq 0 ] || echo "::error title=device check::a11y-frames failed (exit $code), see a11y-frames.txt"
 }
 
-# 039 (T020): the layout grid. edges-check.mjs reads hierarchy/r04, r13, r15 (and -xl) and fails text left of the 20 pt gutter or more than 4 distinct
+# 039 (T020): the layout grid. edges-check.mjs reads hierarchy/ of every route flow r*.yaml in this folder (and -xl; a flow that was not run is `skipped`) and fails text left of the 20 pt gutter or more than 4 distinct
 # left edges; its table is edges-check.txt and its result one more row of summary.tsv (`edges-check`). A red row never stops the other flows (they have run).
 edges_check() {
   local code=0

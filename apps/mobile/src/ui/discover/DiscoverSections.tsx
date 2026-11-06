@@ -3,7 +3,7 @@
  * Discover's three sections (M5 US1), reused by the zero-subscription Updates tab.
  *
  * M31 D-A (T031; design-pulse2 `index.html#updates--screen` note "With no subscriptions, the deck is replaced by Discover sections, as today"):
- * each section is named by an edge label in the 28 lane, as Discover's own sections are. The picks are a Deck of cards (270 wide, snapping);
+ * each section is named by an section heading on the page's gutter, as Discover's own sections are. The picks are a Deck of cards (270 wide, snapping);
  * the two lists sit in one raise panel (radius 24, the 28 lane on the left, the gutter on the right). The stale notice is a hot-text caption.
  * Props unchanged.
  */

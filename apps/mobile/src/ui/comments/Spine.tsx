@@ -1,6 +1,6 @@
 // The loading placeholder of the comment-style pages: raise bars, breathing.
 /**
- * M31 W2-B drew a time spine here (a 2 px hot-to-violet line, a node's chip column, a tick, the replies stage's glow). Spec 039 I2: no page hangs anything on a
+ * M31 W2-B drew a time spine here (a 2 px hot line, a node's chip column, a tick, the replies stage's glow). Spec 039 I2: no page hangs anything on a
  * spine any more (comments, replies, history, notifications, likes are cards in the page's flow on the gutter), so `SpineLine`, `SpineNode`, `Tick` and `StageGlow`
  * are deleted with their tests. `GhostRows` stays under its old file name: the bars start at the page's gutter like the content they stand in for.
  */

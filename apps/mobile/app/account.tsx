@@ -17,7 +17,7 @@
  *
  *
  * M31 S-A (T060; design-pulse2 `settings.html` `account--screen`, `account--signed-out`, `account--sign-out-dialog`; Panel + Mosaic): the
- * same eleven links and Sign out, drawn as three groups under edge labels ACCOUNT, EVERYDAY and INFO. "Account and security" is a full-width
+ * same eleven links and Sign out, drawn as three groups under section headings ACCOUNT, EVERYDAY and INFO. "Account and security" is a full-width
  * hero tile (88, radius 22: avatar 52, the name of the page in Unbounded 17, the masked email in mono 12, a chevron); the seven everyday pages
  * are large two-column tiles (112, radius 22) with a one-line state in mono 12 (the accent, the space used, whether new-episode pushes are on …);
  * the four information pages are rows in one group tile with 1 px dividers; Sign out is a ring pill centred at the foot of the scroll and asks

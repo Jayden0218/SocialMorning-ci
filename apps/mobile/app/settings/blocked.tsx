@@ -9,7 +9,7 @@
  * M31 S-A (T060; design-pulse2 `settings-blocked--screen`, `--with-blocks`; Mosaic): with blocks, the count in Unbounded 64 beside "listener(s) blocked", the line,
  * then the listeners as two-column cards (radius 22, padding 14): an initials disc 48, the name, and the **Unblock** pill (40, raise-2; it asks first — `BlockButton`
  * `onTile`); an odd last card keeps its half width; "— end of list —" closes the list. Empty: the flat curve, "You have not blocked anyone" and the hint line, 200 down.
- * Blocks are kept on the phone, so the list fills at once after a block. RN has no gradient text, so the count is hot-text, not the drawing's hot-to-violet.
+ * Blocks are kept on the phone, so the list fills at once after a block. RN has no gradient text, so the count is hot-text, not the drawing's hot.
  */
 import { Box } from '@/ui/lib/box';
 import { useSafety } from '@/safety/context';

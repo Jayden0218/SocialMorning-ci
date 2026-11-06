@@ -10,7 +10,7 @@
  * M31 W3-B (T041; design-pulse2 `downloads--screen`, `-empty`, `-settings`, `-select-mode`, `-delete-dialog`,
  * `toast--downloads`; "Layout: Mosaic"): a pushed page with the title bar low — "Downloads", "6 episodes · 151 MB of
  * 1 GB", a gear and a check circle (Select). The tiles (src/ui/downloads/DownloadTile.tsx) sit in three groups named
- * by an edge label — In progress, Needs attention, Downloaded. Tap a tile = the episode; long-press = Remove (a finished
+ * by an section heading — In progress, Needs attention, Downloaded. Tap a tile = the episode; long-press = Remove (a finished
  * or failed one) or Cancel (one still running); a failed tile has a Retry pill. The gear slides the settings panel over
  * the mosaic (Allow mobile data, the budget chips with a ring of how much is used, Remove finished downloads) and
  * becomes a ×. Select turns the title bar into the action bar: "n selected", Select all / Clear, "Delete n episodes"

@@ -5,7 +5,7 @@
  * Our own words, not 小宇宙's (M7: copy nothing).
  *
  * M31 S-C (T062; design-pulse2 `shell.html` `rate-sheet--sheet`, `toast--rate-sheet`): the kit `ActionSheet` with no title row — the
- * close circle (36) top right; "Enjoying SocialNet?" in Unbounded 800 21 over "A rating helps a lot" in the hot-to-violet
+ * close circle (36) top right; "Enjoying SocialNet?" in Unbounded 800 21 over "A rating helps a lot" in the hot
  * gradient words, and a 60 thumbs-up disc (hot at 16 %, hot-text glyph, a hot glow) beside them; the line in Geist 500 15; then
  * Give feedback (ring, 52) and Rate us (hot, void words, 52) side by side. The toast after Rate us is the app's light toast.
  *
@@ -84,7 +84,7 @@ export function rateMayAsk(s: SettingsStore, a: { onTabs: boolean; blockedThisLa
   return a.onTabs && !a.blockedThisLaunch && shouldAskRating(s);
 }
 
-/** Words in the hot-to-violet gradient (`.glowtext`): each character a step of it — a gradient on words needs a masked view the app does not ship. */
+/** Words in the hot gradient (`.glowtext`): each character a step of it — a gradient on words needs a masked view the app does not ship. */
 export function GlowWords(props: { text: string; from: string; to: string }): React.ReactElement {
   const chars = [...props.text];
   return (
@@ -137,7 +137,7 @@ export function RateSheet(props: { onTabs: boolean; segment: string | undefined;
       <Box className="flex-row items-center" style={{ gap: AUTH.rate.gap }}>
         <Box className="flex-1" style={{ gap: bars.dot - 1 }}>
           <Type step="hero" className="text-text" style={AUTH_TYPE.rateTitle} accessibilityRole="header">Enjoying SocialNet?</Type>
-          <GlowWords text="A rating helps a lot" from={c.hot} to={c.hotEnd} />
+          <GlowWords text="A rating helps a lot" from={c.hot} to={c.hotText} />
         </Box>
         <Box
           testID="rate-disc"

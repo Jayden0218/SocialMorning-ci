@@ -6,7 +6,7 @@
  *
  * M31 S-B (T060; design-pulse2 `settings-not-interested--screen`, `--empty`, `--signed-out`, `toast--settings-not-interested`; layout Panel):
  * the hidden items are rows in one group (the kind in mono 11 hot-text caps — SHOW / EPISODE — over the name in Geist 600 15, two lines,
- * and a quiet Restore pill 36 tall at the end) under the edge label HIDDEN; the subtitle sits under the title in the bottom bar. Restore
+ * and a quiet Restore pill 36 tall at the end) under the heading HIDDEN; the subtitle sits under the title in the bottom bar. Restore
  * removes the row at once and dims its pill while it works. Empty is the kit's block ("Nothing hidden" and the hint), signed out is one
  * tile, loading is the kit's ghost. "No more to fetch" closes a long list. Not as drawn: the list is one scroll, not a virtualised
  * list (it holds the few things one listener hid).

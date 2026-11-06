@@ -20,8 +20,8 @@
  * (`EpisodeRowSheet`), with two Updates-only actions: Remove from Updates (this phone's list;
  * the show stays subscribed) and Star / Unstar this show (as on /subscriptions).
  *
- * M31 D-A (T031; design-pulse2 `index.html#updates--screen`, `library--*`; layout pattern Deck): the page is the Deck — a Voice edge label over the
- * 56-circle status row (signed in), a Starred edge label over 52 covers, then the new episodes as 290 x 350 cards that snap, the next one
+ * M31 D-A (T031; design-pulse2 `index.html#updates--screen`, `library--*`; layout pattern Deck): the page is the Deck — a Voice section heading over the
+ * 56-circle status row (signed in), a Starred section heading over 52 covers, then the new episodes as 290 x 350 cards that snap, the next one
  * peeking in (`UpdateEpisodeRow`). "Updates" and "My subscriptions · n ›" sit low in the title bar (rule 1; the link opens /subscriptions). A
  * card swipes up to mark played and down to remove (the old row swipes, turned for a sideways deck). The caption "n shows could not refresh"
  * sits above the deck. With no subscriptions the deck is replaced by Discover's sections under the empty block, as before. The refresh,

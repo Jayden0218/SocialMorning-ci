@@ -15,6 +15,8 @@ const FILES = [
   'src/ui/discover/DiscoverMosaic.tsx',
   'src/ui/comments/Spine.tsx',
   'src/ui/status/measures.ts',
+  'src/ui/kit/Avatar.tsx',
+  'src/design/tokens.ts',
 ];
 const OLD = [/#060608/i, /#ff4d6d/i, /rgba\(\s*6\s*,\s*6\s*,\s*8\s*[,)]/i];
 

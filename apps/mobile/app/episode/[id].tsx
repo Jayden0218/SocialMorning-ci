@@ -17,7 +17,7 @@
  * it) and the episode's heat curve (70 bars, the hot run lit) with the counts under it (`EpisodeStage`). The thumb zone sits 112
  * up — Back, the show link, the title (long-press copies), then Play this episode and Subscribe (`EpisodeTitleBlock`) — over a
  * 300 tall fade, with the tray under it: Add to queue · Comments n · Like · Share · More (`EpisodeTray`). Scrolling up moves the
- * cover away (the page glow stays) and shows the sections, each named by an edge label: Notes (with the host's poll and links),
+ * cover away (the page glow stays) and shows the sections, each named by an section heading: Notes (with the host's poll and links),
  * Comments, Clips, Related (a deck of cards). The title block and the tray stay (measured from the top of the home strip, which the root pads:
  * `episodeLayout`). Favourite moved to the More sheet (the drawing's
  * action map); the slim bar's show link, Subscribe and Play (iPhone-1007) are always on screen now, so the collapsing bar is gone.

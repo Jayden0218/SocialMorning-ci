@@ -20,7 +20,6 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { bars, colour, glow, typeScale } from '@/design';
 import { Fade } from '@/ui/kit/Fade';
 import { Curve, spread } from '@/ui/kit/Curve';
-import { DiscoverMosaic, GradientTime, HOT_HEIGHT, HotNowTile, type MosaicActions, type ShortcutTile } from '@/ui/discover/DiscoverMosaic';
 import { DRAWN_ORDER, shortcutTiles, untouched } from '@/ui/discover/DiscoverShortcuts';
 import { SWITCH_HEIGHT, SWITCH_LIFT } from '@/ui/discover/HomeSwitch';
 import { DiscoverGlow, GLOW } from '@/ui/discover/DiscoverGlow';
@@ -31,7 +30,6 @@ import { SearchBar } from '@/ui/discover/parts';
 import { SHORTCUT_IDS } from '@socialmorning/social-core';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 import type { Moment } from '@/discover/moments-api';
-import type { PickWithFaces } from '@/discover/explore-api';
 
 jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: () => undefined }, queue: { list: () => [] } }), useToast: () => () => undefined, useCovered: () => false }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() }, useRouter: () => ({ push: jest.fn() }), useFocusEffect: () => undefined }));
@@ -94,7 +92,7 @@ describe('7 Discover bottom zone', () => {
     expect(flat(g)).toMatchObject({ bottom: 0, height: 360 });
   });
   // Spec 039 D4 (was: "the title and search sit 16 above the switch (ZONE_BOTTOM 76); the mosaic starts 6 under the status bar (MOSAIC_TOP 6)"): the title and search are in the
-  // Page's title row now, so only the switch's own measure is pinned; the page clears it with an end spacer (`SWITCH_CLEAR`, rendered in layout039.test.tsx).
+  // Page's title row now, so only the switch's own measure is pinned; the page gives it its own band (`home-band`, tested in layout039.test.tsx).
   it('the switch is 60 above the tab bar', () => {
     expect(SWITCH_LIFT + SWITCH_HEIGHT).toBe(60);
   });
@@ -129,7 +127,7 @@ describe('8 the heat curve as drawn on Moments', () => {
   });
 });
 
-describe('4/5 the Discover shortcut tiles, the pick and Hot now', () => {
+describe('4/5 the Discover shortcut tiles (order)', () => {
   it('untouched, the eight run in the drawn order: Friends listening, Categories, Queue, Issues, Premium, Academy, Plaza, Talked about', () => {
     expect(shortcutTiles(SHORTCUT_IDS.map((id) => ({ id }))).map((t) => t.label)).toEqual(['Friends listening', 'Categories', 'Queue', 'Issues', 'Premium', 'Academy', 'Plaza', 'Talked about']);
     expect(shortcutTiles([]).map((t) => t.id)).toEqual([...DRAWN_ORDER]);
@@ -140,54 +138,7 @@ describe('4/5 the Discover shortcut tiles, the pick and Hot now', () => {
     expect(untouched(SHORTCUT_IDS.map((id, i) => (i === 3 ? { id, hidden: true } : { id })))).toBe(false);
     expect(shortcutTiles([{ id: 'plaza' }, { id: 'queue', hidden: true }]).map((t) => t.id)).toEqual(['plaza', 'categories', 'issues', 'friends', 'academy', 'premium', 'talked']);
   });
-
-  const PICK = { kind: 'pick', key: 'k', why: 'Short, warm, and good with coffee.', episode: { id: 'e1', feedUrl: 'https://f', guid: 'g', title: 'Why mornings matter', showTitle: 'Morning Notes', enclosureUrl: 'https://a.mp3' } } as unknown as PickWithFaces;
-  const HOT: Moment = { episodeId: 'h1', showTitle: 'S', episodeTitle: 'Hot ep', startMs: 872_000, endMs: 910_000, reactions: 41, rank: 1, followed: false, comments: [{ id: 'c', author: 'Rui', text: 'the part I replay', likes: 1 }] };
-  const tiles = (): ShortcutTile[] => DRAWN_ORDER.map((id, i) => ({ label: `T${i}`, icon: 'grid-outline', onPress: jest.fn(), ...(id === 'premium' ? { tinted: true } : {}), ...(id === 'queue' ? { count: 4 } : {}) }));
-  const acts = (): MosaicActions => ({ onOpen: jest.fn(), onPlay: jest.fn(), onQueue: jest.fn(), onPast: jest.fn(), onHot: jest.fn() });
-  const mosaic = (): ReactTestRenderer => render(createElement(DiscoverMosaic, { pick: PICK, date: '2026-10-27', stats: { listeners: 120, comments: 14 }, hot: HOT, tiles: tiles(), offline: false, actions: acts() }));
-
-  it('the pick: "TODAY\'S PICK · OCT 27" and "PAST →" on one row at the top (mono 11, 0.08 em), the cover dimmed to 90 %, the foot clear at 30 % to void at 92 %', () => {
-    const r = mosaic();
-    const eyebrow = textWith(r, "TODAY'S PICK · OCT 27");
-    expect(classOf(eyebrow)).toContain('text-pulse-tag');
-    expect(flat(eyebrow)).toMatchObject({ letterSpacing: 0.88 });
-    const past = textWith(r, 'PAST →');
-    expect(classOf(past)).toContain('text-hotText');
-    expect(typeScale.tag.size).toBe(11);
-    // "Past picks" is not pushed down by a 48 tall box: the words sit at the top, the touch is made with hitSlop
-    const link = labelled(r, 'Past picks');
-    expect(link.props['hitSlop']).toBeTruthy();
-    expect(flat(link)['minHeight']).toBeUndefined();
-    const foot = r.root.findAll((n) => Array.isArray(n.props['colors']) && n.props['colors'][1] === colour.pickFoot)[0]!;
-    expect(foot.props['colors']).toEqual([colour.clear, colour.pickFoot]);
-    expect(foot.props['locations']).toEqual([0.3, 1]);
-  });
-  it('the pick: the counts wrap to a second line rather than cut, in text2', () => {
-    const t = textWith(mosaic(), '120 listened · 14 comments');
-    expect(t.props['numberOfLines']).toBe(2);
-    expect(classOf(t)).toContain('text-text2');
-  });
-  it('Hot now: the time is the hot gradient, a step per character, from hot to the gradient end', () => {
-    const r = render(createElement(GradientTime, { text: '14:32', from: colour.hot }));
-    const chars = texts(r).filter((t) => say(t.props['children']).length === 1);
-    expect(chars.map((c) => say(c.props['children'])).join('')).toBe('14:32');
-    const cols = chars.map((c) => String(flat(c)['color']));
-    expect(new Set(cols).size).toBe(5);
-    expect(cols[0]).not.toBe(cols[4]);
-    expect(classOf(texts(r)[0]!)).toContain('text-pulse-number'); // 038 D3: was text-pulse-figure; figure is an alias of number
-    expect(typeScale.figure.size).toBe(34);
-  });
-  it('Premium is its own solid tile colour; Queue carries its count in mono after the label', () => {
-    const r = mosaic();
-    const premium = r.root.findAll((n) => n.props['accessibilityLabel'] === 'T4' && typeof n.props['onPress'] === 'function')[0]!;
-    expect(classOf(premium)).toContain('bg-premiumTint');
-    expect(colour.premiumTint).toBe('#2a1530');
-    const queue = r.root.findAll((n) => n.props['accessibilityLabel'] === 'T2' && typeof n.props['onPress'] === 'function')[0]!;
-    expect(say(queue.findAll((x) => String(x.type) === 'Text')[0]!.props['children'])).toBe('T2 4');
-    expect(queue.props['accessibilityValue']).toEqual({ text: '4 queued' });
-    expect(queue.findAll((x) => String(x.type) === 'Text' && classOf(x).includes('font-mono'))).toHaveLength(1);
-  });
+  // 039 verifier fix: the pick, Hot now and the tinted Premium / Queue count tile guards went with the DiscoverMosaic component, which no page draws.
 });
 
 describe('the Moments card as drawn', () => {
@@ -312,15 +263,6 @@ describe('Launch as drawn', () => {
 });
 
 describe('round 3 (wave 1b): what the capture found', () => {
-  it('Hot now keeps its padding on an inner box: the tile itself has none, so its `flex: 1` share is not widened by 28 on the web', () => {
-    const r = render(createElement(HotNowTile, { moment: { episodeId: 'e', showTitle: 's', episodeTitle: 't', startMs: 872_000, endMs: 910_000, reactions: 2400, rank: 1, followed: true, comments: [{ id: 'c', author: 'Rui', text: 'x', likes: 1 }] }, onPress: jest.fn() }));
-    const tile = r.root.findAll((n) => typeof n.props['onPress'] === 'function' && String(n.props['accessibilityLabel']).startsWith('Hot now'))[0]!;
-    const f = flat(tile);
-    expect(f['padding']).toBeUndefined();
-    expect(f).toMatchObject({ minHeight: HOT_HEIGHT, flex: 1, minWidth: 0 });
-    const inner = tile.findAll((n) => flat(n)['padding'] === 14)[0];
-    expect(inner).toBeTruthy();
-  });
   it('the search field says "Trending: …", as drawn (the hint alone did not say what the line is), and still names itself "Search. Trending: …"', () => {
     const r = render(createElement(SearchBar, { hint: 'morning routines', onPress: jest.fn() }));
     expect(texts(r).map((t) => say(t.props['children']))).toContain('Trending: morning routines');

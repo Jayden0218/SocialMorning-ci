@@ -13,7 +13,7 @@
  * M31 W4-A (T050; design-pulse2 social.html `stickers-decorate--screen`, `--chosen`, `--signed-out`, `--empty`, `--toast`; layout pattern Stage + Deck):
  * the stage is a live preview of your profile head (raise, radius 28, the glow; photo 84, name, "preview of your profile", and the hint "drag to
  * move, two fingers to resize and turn" at its foot) with the placed stickers on it. When one is chosen ("Chosen: First hour") eight 38 buttons
- * nudge it (left, up, down, right, smaller, bigger, turn left, turn right) over "To the front" and "Remove". Under the edge label "Your
+ * nudge it (left, up, down, right, smaller, bigger, turn left, turn right) over "To the front" and "Remove". Under the section heading "Your
  * stickers" the Deck is 96 x 118 cards (the disc 48, the name 11); a placed card has a hot border and a hot check. The title bar is back,
  * "Decorate my profile" (20), "2 of 10 placed", an Undo circle (dimmed until changed) and the hot Save. Signed out: a lock disc and "Sign in to
  * decorate your profile." with a light Sign in; none yet: "You have no stickers yet. Listen for an hour to earn the first."

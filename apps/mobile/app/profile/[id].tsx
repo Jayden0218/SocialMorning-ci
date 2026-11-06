@@ -24,8 +24,8 @@
  *
  * M31 D-C (design-pulse2 `social.html` `profile--screen`, `--own`, `--host`, `--signed-out`, `--stats-empty`, `--suspended`, `--load-failed`,
  * `--more-sheet`, `--block-dialog`, `--blocked`; layout pattern Stage, then a Mosaic): the Stage (glow, the person's stickers, the photo in
- * a light ring, the name, their lines), then under the edge label "Numbers" the four number tiles, Listening time as a hot-tinted 2 x 1
- * tile and "Often listened" as a 2 x 2 tile of covers; below, edge labels Stickers, Recent (a Thread), Likes · n (a Thread, "View all ›") and
+ * a light ring, the name, their lines), then under the heading "Numbers" the four number tiles, Listening time as a hot-tinted 2 x 1
+ * tile and "Often listened" as a 2 x 2 tile of covers; below, section headings Stickers, Recent (a Thread), Likes · n (a Thread, "View all ›") and
  * Playlists (a Deck). The bottom zone holds back and — on someone else's page — Follow (hot pill), Message and More (48 circles); on your own
  * page back and the light Edit profile pill; on a blocked page the quiet "Unblock <name>" pill. The ⋯ sheet is the kit sheet with the
  * name as its head, Block and Report under a rule in hot-text. The header ⋯ left for the More circle (same sheet); the collapsed name

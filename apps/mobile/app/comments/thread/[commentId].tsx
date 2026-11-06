@@ -12,7 +12,7 @@
  * conversation oldest first). A tap on a card opens its menu (as the long-press), which adds
  * Share (the episode link at that moment) and Mute (others' cards; hidden for me only).
  *
- * M31 W2-B (T032; `design-pulse2/social.html#comment-thread--screen` and its variants): the Pulse Stage + Thread. The comment being
+ * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W2-B (T032; `design-pulse2/social.html#comment-thread--screen` and its variants): the Pulse Stage + Thread. The comment being
  * answered is the stage at the top (avatar, name, its solid moment chip that plays from there, the words in Unbounded 22, the
  * heart, the age and episode, ⋯) over a soft glow; the replies hang on the spine below it, each with an age tick; the thumb zone
  * has the back circle, "Replies 6", the All / Newest capsule and the reply composer with a mic. Signed out the composer is one

@@ -46,10 +46,9 @@ export const STAGE_TYPE = {
   small12: t(12, 16),
 } as const;
 
-/** Wallet (`walletPhone`): the tiles start 12 under the status bar, 28 in from the left (the PLUS edge label's lane), 20 from the right. */
+/** Wallet (`walletPhone`): the tiles start 12 under the status bar, 28 in from the left (the PLUS section heading's lane), 20 from the right. */
 export const WALLET = {
   top: 62 - STATUS,
-  lane: 28,
   right: 20,
   gap: 12,
   radius: 22,

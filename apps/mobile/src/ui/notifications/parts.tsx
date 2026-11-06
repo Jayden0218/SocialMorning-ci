@@ -1,6 +1,6 @@
 // The parts the Notifications pages share: the day grouping, a raise card, the unread dot.
 /**
- * M31 W4-C (T052), restyled by spec 039 I2 (design B). The spine column, the day blocks with their vertical edge labels and the stale line had no page left
+ * M31 W4-C (T052), restyled by spec 039 I2 (design B). The spine column, the day blocks with their vertical section headings and the stale line had no page left
  * drawing them once Notifications moved onto `Page` (a `Section` per day, an `InlineNotice` for a stale list), and are deleted. What stays:
  *
  *  - `groupByDay`: consecutive items under one day heading ("Today", "Yesterday", then the date).

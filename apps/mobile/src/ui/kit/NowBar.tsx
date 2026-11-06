@@ -10,7 +10,7 @@
  * ticker (Geist Mono 12/16) — "12:32 / 48:10" in text2, or "🔥 41 reacting at 14:32" in hot-text
  * while the position is inside a hot moment, when the cover also gets a 1 px hot ring; a 40 light
  * play/pause circle with a void glyph; a 40 playlist button. A 2 px progress line runs along the
- * bottom edge inside the radius, hot to violet over `trackSoft`.
+ * bottom edge inside the radius, hot over `trackSoft`.
  *
  * Round 2 (owner, 2026-10-28): the parts are 10 apart and 8 in from the edge as drawn (`gap:10`, `padding:0 8px`) — they had been
  * 12 apart and 8 in, which moved the play circle 2 and the title 2 off — and the sizes are the `player` / `bars` tokens.
@@ -245,7 +245,7 @@ function Bar(props: NowBarProps & { wrap: Wrap; panHandlers: object }): React.Re
         </Pressable>
         {/* The 2 px progress line along the bottom edge, inside the radius. */}
         <Box className="absolute left-0 right-0 bottom-0 bg-trackSoft" style={{ height: bars.progress }} pointerEvents="none">
-          <LinearGradient testID="now-progress" colors={[c.hot, colour.violet]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ width: `${Math.round(progress * 100)}%`, height: bars.progress }} />
+          <LinearGradient testID="now-progress" colors={[c.hot, c.hot]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ width: `${Math.round(progress * 100)}%`, height: bars.progress }} />
         </Box>
       </Box>
     </Animated.View>

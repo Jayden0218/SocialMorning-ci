@@ -73,8 +73,8 @@ export function PremiumSection(props: { shows: ShowCard[]; onShow: (feedUrl: str
             <Pressable onPress={() => props.onShow(s.feedUrl)} accessibilityRole="button" accessibilityLabel={`${s.title}, ${s.author}. Premium pick`} className="flex-1 flex-row items-center" style={{ padding: spacing.row, gap: spacing.row }}>
               <Artwork url={s.imageUrl} size={PREMIUM_CARD.cover} name={s.title} />
               <Box className="flex-1 min-w-0" style={{ gap: spacing.hair }}>
-                <Box className="self-start bg-violet/25 rounded-chip" style={{ paddingHorizontal: PX.six, paddingVertical: PX.three }}>
-                  <Type step="badge" className="text-hotEnd">PREMIUM</Type>
+                <Box className="self-start bg-hotSoft rounded-chip" style={{ paddingHorizontal: PX.six, paddingVertical: PX.three }}>
+                  <Type step="badge" className="text-hotText">PREMIUM</Type>
                 </Box>
                 <Type step="row" className="text-text font-bold" numberOfLines={1}>{s.title}</Type>
                 <Type step="caption" className="text-text2" numberOfLines={1}>{s.author}</Type>

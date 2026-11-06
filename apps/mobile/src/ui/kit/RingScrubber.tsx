@@ -2,7 +2,7 @@
 /**
  * M31 T022 (design-pulse2 `kit.js` `PK.ring`; listen.html `player--screen`, "Layout: Ring"): the
  * Pulse player's scrubber. The 100 heat buckets are 100 spokes starting at 12 o'clock and running
- * clockwise, each as long as its bucket is hot (`4 + maxL * v`). Played spokes run hot to violet
+ * clockwise, each as long as its bucket is hot (`4 + maxL * v`). Played spokes run hot
  * (graded across the played part), the rest are `barIdle`. The cover sits in the middle (the
  * caller's `children`, `inner` × the ring), a knob (16, text colour, a 4 pt halo) marks the
  * position, and 18 pt avatar pins sit on the rim at today's comment moments.

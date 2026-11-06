@@ -11,7 +11,7 @@
  * reaction chips, then the "Comments · n" heading; the comments are raise cards, 12 apart; the composer is the list's `below` slot (over the keyboard's avoiding view). The cover
  * stage, the veil, the spine and the comments zone are gone.
  *
- * F3 (design-pulse2 `listen.html` `like--screen`, `like--gone`; layout pattern Stage + Thread): the liked episode's art is the
+ * Before spec 039 (F3, the page as drawn then, with a stage and a spine; the 039 paragraph above is what it is now) — F3 (design-pulse2 `listen.html` `like--screen`, `like--gone`; layout pattern Stage + Thread): the liked episode's art is the
  * stage (330 tall, a veil to void), and on it, 150 from the top: who liked it and when (the avatar and name open their profile; the
  * flag reports them), their note in Unbounded 700 22, the episode strip (raise at 80 %, radius 16, cover 40, play 32) and the
  * reaction chips (34 tall; yours is light; tap again = "Take back"). Below, a spine and the comments as raise cards (avatar 24,

@@ -1,4 +1,4 @@
-// Top of Notifications: System and From hosts open their pages; a switch between Interactions and People.
+// The switch between Interactions and People at the top of Notifications.
 /**
  * The two cards at the top of Notifications (M10): System and People. M12 FR-001 (B2): on
  * the iPhone both were plain boxes — tapping did nothing. Each is now a tab that chooses what
@@ -20,16 +20,14 @@
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { Text } from '@/ui/kit/Text';
-import { Icon, type IconName } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
-import { bars, colour, typeStyle } from '@/design';
-import { ME_MOSAIC } from '@/ui/me/mosaic';
+import { bars, typeStyle } from '@/design';
 
 export type NoticeSection = 'interactions' | 'people';
 export type NoticePage = 'system' | 'hosts';
 
-/** The drawn numbers: the switch is 44 (the choices 38), a badge 16, a tile 84 with 12 of padding. */
-export const NOTICE = { switchHeight: 44, switchPad: 3, switchGap: 4, choiceHeight: 38, choicePadX: 16, badge: 16, badgePadX: 4, tileHeight: 84, tilePad: 12, tileIcon: 22 } as const;
+/** The drawn numbers: the switch is 44 (the choices 38), a badge 16. */
+export const NOTICE = { switchHeight: 44, switchPad: 3, switchGap: 4, choiceHeight: 38, choicePadX: 16, badge: 16, badgePadX: 4 } as const;
 
 /** What each tab says under the track, and in its spoken name. */
 export function noticeLine(section: NoticeSection, unread: number): string {
@@ -89,34 +87,6 @@ export function NoticeCards(props: { section: NoticeSection; unread: number; int
         selected={props.section === 'interactions'}
         onPress={() => props.onSelect('interactions')}
       />
-    </Box>
-  );
-}
-
-function Entry(props: { title: string; line: string; icon: IconName; onPress: () => void }): React.ReactElement {
-  return (
-    <Pressable
-      onPress={props.onPress}
-      accessibilityRole="link"
-      accessibilityLabel={`${props.title}. ${props.line}`}
-      className="flex-1 bg-raise justify-between"
-      style={{ minHeight: NOTICE.tileHeight, borderRadius: ME_MOSAIC.radius, padding: NOTICE.tilePad }}
-    >
-      <Icon name={props.icon} size={NOTICE.tileIcon} color={colour.text} />
-      <Box>
-        <Type step="compact" className="text-text" numberOfLines={1}>{`${props.title} ›`}</Type>
-        <Type step="tag" className="text-text3" numberOfLines={2}>{props.line}</Type>
-      </Box>
-    </Pressable>
-  );
-}
-
-/** M21 US10: the two tiles above the thread — each opens its own page. `iconColour` is kept for callers. */
-export function NoticeEntries(props: { iconColour?: string; onOpen: (page: NoticePage) => void }): React.ReactElement {
-  return (
-    <Box className="flex-row" style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right, gap: ME_MOSAIC.gap }} testID="notice-entries">
-      <Entry title="System" line="Messages from SocialNet" icon="notifications-outline" onPress={() => props.onOpen('system')} />
-      <Entry title="From hosts" line="Shows you follow" icon="mic-outline" onPress={() => props.onOpen('hosts')} />
     </Box>
   );
 }

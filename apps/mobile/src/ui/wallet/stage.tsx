@@ -4,8 +4,8 @@
  *  - `Big`: Unbounded 800 at the drawn size (`big(text, size)`), in text.
  *  - `Line`: Geist 500 at the drawn size in text-2 (or the colour given: hot-text for an answer).
  *  - `Cap`: mono 11 in caps with 0.08 em (`cap(text, colour)`).
- *  - `GlowWords`: words in the hot-to-violet gradient (`.glowtext`) — each character a step of it, because a gradient on words needs a masked view the app does not ship.
- *  - `CornerGlow`: the violet radial glow in a tile's corner (`radial-gradient(#7A3CFF, transparent 70%)`).
+ *  - `GlowWords`: words in the hot gradient (`.glowtext`) — each character a step of it, because a gradient on words needs a masked view the app does not ship.
+ *  - `CornerGlow`: the hot radial glow in a tile's corner (`radial-gradient(#7A3CFF, transparent 70%)`).
  *  - `MarkTile`: the 48 tile with a mark (the load error's "!").
  * They draw nothing of their own beyond that: the pages place them.
  */
@@ -44,18 +44,18 @@ export function Cap(props: { children: string; tone?: 'hot' | 'text3'; align?: A
   return <Type step="tag" className={props.tone === 'text3' ? 'text-text3' : 'text-hotText'} style={props.align === 'center' ? [STAGE_TYPE.cap, CENTRE] : STAGE_TYPE.cap} testID={props.testID}>{props.children}</Type>;
 }
 
-/** Words in the hot-to-violet gradient; `style` is the type, `trailing` letter spacing included. */
+/** Words in the hot gradient; `style` is the type, `trailing` letter spacing included. */
 export function GlowWords(props: { text: string; style: object; /** The type step (039 I2: the claim code is the `number` step); `hero` by default. */ step?: TypeName; testID?: string; selectable?: boolean; accessibilityLabel?: string }): React.ReactElement {
   const chars = [...props.text];
   const step = props.step ?? 'hero';
   return (
     <Type step={step} className="text-hotText" style={props.style} selectable={props.selectable} testID={props.testID} accessibilityLabel={props.accessibilityLabel ?? props.text}>
-      {chars.map((ch, i) => <Type key={i} step={step} className="text-hotText" style={[props.style, { color: mixColour(colour.hot, colour.hotEnd, (i + 0.5) / chars.length) }]} accessible={false}>{ch}</Type>)}
+      {chars.map((ch, i) => <Type key={i} step={step} className="text-hotText" style={[props.style, { color: mixColour(colour.hot, colour.hotText, (i + 0.5) / chars.length) }]} accessible={false}>{ch}</Type>)}
     </Type>
   );
 }
 
-/** The violet radial glow in a tile's corner: `size` wide, `opacity` strong, clipped by the tile. */
+/** The hot radial glow in a tile's corner: `size` wide, `opacity` strong, clipped by the tile. */
 export function CornerGlow(props: { size: number; offset: number; opacity: number }): React.ReactElement {
   const id = useId().replace(/[^a-zA-Z0-9]/g, '');
   return (
@@ -63,8 +63,8 @@ export function CornerGlow(props: { size: number; offset: number; opacity: numbe
       <Svg width={props.size} height={props.size}>
         <Defs>
           <RadialGradient id={`cg${id}`} cx="50%" cy="50%" rx="50%" ry="50%" gradientUnits="objectBoundingBox">
-            <Stop offset="0" stopColor={colour.violet} stopOpacity="1" />
-            <Stop offset="0.7" stopColor={colour.violet} stopOpacity="0" />
+            <Stop offset="0" stopColor={colour.hot} stopOpacity="1" />
+            <Stop offset="0.7" stopColor={colour.hot} stopOpacity="0" />
           </RadialGradient>
         </Defs>
         <Rect x="0" y="0" width={props.size} height={props.size} fill={`url(#cg${id})`} />
