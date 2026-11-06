@@ -49,6 +49,13 @@ appId: app.socialmorning.mobile
     visible: "Scan a QR code"
     timeout: 30000
 # Chart and its rules
+# 039 (run 42210796897): after Back from Categories the page is at its top, where the shortcut tiles ("Talked about" at y 667-731 of 844) sit
+# under the Moments/Discover switch band; Maestro counts them visible and the tap lands on the band. Swipe the tiles up above the band first.
+- swipe:
+    start: 50%, 70%
+    end: 50%, 30%
+- waitForAnimationToEnd:
+    timeout: 5000
 - scrollUntilVisible:
     element: "Talked about"
     centerElement: true

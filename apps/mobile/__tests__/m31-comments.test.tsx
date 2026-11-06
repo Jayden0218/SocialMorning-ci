@@ -474,7 +474,9 @@ describe('the sheets', () => {
 
   it('the composer sheet: Post is a hot 38 pill, the write box is 120 min, the count is mono, a reply says "Reply"', () => {
     const r = mount(createElement(ComposerSheet, { initial: { episodeId: 'e1', body: '', moment: { offsetMs: 872_000 } } as never, onClose: jest.fn(), onPosted: jest.fn() }));
-    const post = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Post' && typeof n.type === 'string')[0]!;
+    // 039 (run 42210796897): the Post Pressable is now the 44 frame (m39-frames.test.tsx); the 38 hot pill is drawn inside it. Same two assertions, read on the pill.
+    const frame = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Post' && typeof n.type === 'string')[0]!;
+    const post = frame.findAll((n) => typeof n.type === 'string' && String(n.props['className']).includes('bg-hot'))[0]!;
     expect(styleOf(post)['height']).toBe(38);
     expect(String(post.props['className'])).toContain('bg-hot');
     expect(text(r)).toContain('New comment');

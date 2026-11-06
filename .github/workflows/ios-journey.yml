@@ -31,6 +31,11 @@ on:
         description: 'suite=check only: which route flows (a glob in apps/mobile/.maestro/check, e.g. r05-*); default every one, plus the R20/R21 re-runs'
         required: false
         default: 'r*'
+      xl:
+        description: 'suite=check with a narrowed check_flows only: also re-run the matched flows that the full run re-runs at the largest text size (r04, r07, r08, r13 as -xl), then the frames and edges checks. Default false'
+        type: boolean
+        required: false
+        default: false
       reduce_motion:
         description: '036 D2: suite=check only. Default false: Reduce Motion is left OFF for R01-R19 (green in runs 41590881804 and 41590884920); true turns it on at boot. The R20/R21 re-runs always turn it on. The journey suite and scheduled runs keep it on, as before'
         type: boolean
@@ -173,6 +178,7 @@ jobs:
         if: env.SUITE == 'check'
         env:
           CHECK_FLOWS: ${{ inputs.check_flows || 'r*' }}
+          CHECK_XL: ${{ inputs.xl && '1' || '0' }}
         run: apps/mobile/.maestro/check/run-check.sh "$UDID" "$RUNNER_TEMP/device-check"
       - name: the app's own log for the check's window
         if: always() && env.SUITE == 'check'

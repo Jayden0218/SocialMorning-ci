@@ -49,6 +49,8 @@ import { COMMENTS } from './measures';
 import { drawnType } from '@/design/type-px';
 
 const POST = { height: COMMENTS.postHeight, paddingHorizontal: COMMENTS.postPad };
+/** 039 (run 42210796897): the Post pill measured 66 x 38. The Pressable is a 44 frame, -3 above and below so the 38 head row stays; the pill is drawn inside it. */
+const POST_FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - COMMENTS.postHeight) / 2 };
 const MOMENT = { borderRadius: COMMENTS.momentCardRadius, padding: COMMENTS.momentCardPad, gap: 10 };
 const BOX = { minHeight: COMMENTS.writeMin, borderRadius: COMMENTS.writeRadius };
 /** Cancel is text in a 38 tall head row (the Post pill sets the height): its 48 pt tap is the hitSlop. */
@@ -127,8 +129,8 @@ export function ComposerSheet(props: {
       </Pressable>
       <Type step="section" className="text-text font-display font-bold flex-1 text-center" numberOfLines={1} accessibilityRole="header">{state.parentId ? 'Reply' : 'New comment'}</Type>
       <Pressable
-        className={`bg-hot rounded-pill justify-center items-center ${cannot ? 'opacity-50' : ''}`}
-        style={POST}
+        className={`justify-center ${cannot ? 'opacity-50' : ''}`}
+        style={POST_FRAME}
         hitSlop={5}
         disabled={cannot}
         onPress={submit}
@@ -136,7 +138,9 @@ export function ComposerSheet(props: {
         accessibilityLabel="Post"
         accessibilityState={{ disabled: cannot, busy }}
       >
-        <Type step="row" className="text-void">Post</Type>
+        <Box className="bg-hot rounded-pill justify-center items-center" style={POST}>
+          <Type step="row" className="text-void">Post</Type>
+        </Box>
       </Pressable>
     </Box>
   );

@@ -94,6 +94,16 @@ env:
       - eraseText: 80
       - inputText: ${REPLY}
 - tapOn: "Post"
+# 039 (run 42210796897): the reply's register-episode PUT took 14.7 s on the loaded CI host (api.log 12:52:52 -> 12:53:07), past the app's 10 s timeout, so the sheet
+# said "Couldn't reach the server - your draft is kept." and no POST was sent. The draft is kept on purpose; press Post again (twice at most).
+- repeat:
+    while:
+      visible: "Couldn't reach the server.*"
+    times: 2
+    commands:
+      - tapOn: "Post"
+      - waitForAnimationToEnd:
+          timeout: 15000
 - extendedWaitUntil:
     visible: "\\d+ repl(y|ies)\\. Open the replies"
     timeout: 30000

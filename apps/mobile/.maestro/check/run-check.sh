@@ -77,13 +77,29 @@ categories_check() {
 }
 
 # CHECK_FLOWS (workflow input check_flows): a glob of route flows, default every one. Anything narrower skips
-# the R20/R21 re-runs (used for the guard: one flow broken on purpose, run alone).
+# the R20/R21 re-runs (used for the guard: one flow broken on purpose, run alone), unless CHECK_XL=1 (workflow input xl, default false):
+# then the matched flows that the full run also re-runs at the largest text size are re-run with it, after the narrowed pass.
 PATTERN=${CHECK_FLOWS:-r*}
+XL_FLOWS="r04-discover r07-episode-player r08-comments r13-me"   # the full run's R20 list, below
+MATCHED=""
 for f in check/$PATTERN.yaml; do
   [ -e "$f" ] || { echo "::error title=device check::no flow matches $PATTERN"; printf 'none\t1\t0\n' >> "$OUT/summary.tsv"; break; }
+  MATCHED="$MATCHED $(basename "$f" .yaml)"
   run_flow "$(basename "$f" .yaml)" "$f"
 done
 if [ "$PATTERN" != "r*" ]; then
+  if [ "${CHECK_XL:-0}" = "1" ]; then
+    xcrun simctl ui "$UDID" content_size accessibility-extra-extra-extra-large
+    xcrun simctl spawn "$UDID" defaults write com.apple.Accessibility ReduceMotionEnabled -bool true
+    {
+      echo "content_size: $(xcrun simctl ui "$UDID" content_size 2>&1)"
+      echo "ReduceMotionEnabled: $(xcrun simctl spawn "$UDID" defaults read com.apple.Accessibility ReduceMotionEnabled 2>&1)"
+    } | tee "$OUT/a11y-settings.txt"
+    for n in $XL_FLOWS; do
+      case " $MATCHED " in *" $n "*) run_flow "$n-xl" "check/$n.yaml" -e SUFFIX=-xl ;; esac
+    done
+    xcrun simctl ui "$UDID" content_size large || true
+  fi
   find "$OUT/maestro" -path '*takeScreenshot*' -name '*.png' -exec cp {} "$OUT/screenshots/" \; 2> /dev/null || true
   frames_check
   edges_check
