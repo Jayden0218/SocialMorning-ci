@@ -76,7 +76,8 @@ export function analyse(tree, { gutter = GUTTER, maxEdges = MAX_EDGES } = {}) {
       const [x1, y1, x2, y2] = b.map((v) => v / k);
       const onScreen = x2 > 0 && x1 < W && y2 > 0 && y1 < H && x2 > x1 && y2 > y1;
       const chromeBand = y1 < 50 || y1 >= H - 100; // status bar; tab bar / now bar / home indicator
-      if (onScreen && !chromeBand) texts.push({ label, x: Math.round(x1), x2: Math.round(x2), y: Math.round(y1), y2: Math.round(y2), bleed: id.endsWith('-bleed') });
+      const scrolledOff = x1 < 0; // partly scrolled out of a horizontal shelf (run 42223854981): not a row start
+      if (onScreen && !chromeBand && !scrolledOff) texts.push({ label, x: Math.round(x1), x2: Math.round(x2), y: Math.round(y1), y2: Math.round(y2), bleed: id.endsWith('-bleed') });
     }
     for (const c of n.children ?? []) visit(c, skip);
   })(tree, false);

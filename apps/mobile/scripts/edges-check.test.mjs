@@ -157,3 +157,12 @@ test('rows of text centred on the screen are not row starts (an empty state); a 
   writeFileSync(g, JSON.stringify({ attributes: { bounds: '[0,0][390,844]' }, children: [n('Wide', 12, 366, 300)] }));
   assert.equal(spawnSync(process.execPath, [SCRIPT, g], { encoding: 'utf8' }).status, 1);
 });
+
+// Run 42223854981 (r14): a chip in a horizontally scrolled row starts at -31 pt — scrolled, not misaligned.
+test('text partly scrolled off the left edge (x < 0, a scrolled shelf) is not a row start', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'edges-'));
+  const n = (l, x, y) => ({ attributes: { text: l, bounds: `[${x},${y}][${x + 120},${y + 20}]` }, children: [] });
+  const f = path.join(dir, 't.json');
+  writeFileSync(f, JSON.stringify({ attributes: { bounds: '[0,0][390,844]' }, children: [n('Title', 20, 120), n('Sort: Recently added', -31, 200), n('Body', 20, 300)] }));
+  assert.equal(spawnSync(process.execPath, [SCRIPT, f], { encoding: 'utf8' }).status, 0);
+});
