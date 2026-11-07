@@ -22,7 +22,7 @@ import { PulseButton } from '@/ui/kit/PulseButton';
 import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
-import { colour, gutter, typeScale } from '@/design';
+import { bars, colour, gutter, typeScale } from '@/design';
 import { useWindowDimensions } from 'react-native';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
@@ -95,7 +95,7 @@ export default function TextStatusScreen(): React.ReactElement {
                     selectionColor={colour.hot}
                     accessibilityLabel="Your status text"
                     className={`text-text ${typeScale.statement.cls}`}
-                    style={[{ padding: 0 }, statusType.cardWords]}
+                    style={[{ padding: 0, minHeight: bars.circle }, statusType.cardWords]} // 038: a 44 tap target (a11y-frames: 312 x 30); the 230 card is unchanged
                   />
                 </Textarea>
                 <Type step="mono" className={over ? 'text-hotText self-end' : 'text-text3 self-end'} accessibilityLiveRegion="polite">

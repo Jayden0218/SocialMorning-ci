@@ -130,7 +130,7 @@ export function EpisodeExtras(props: { episodeId: string; atMs: number; noFavour
           <Text className="text-muted text-xs mt-gap">New playlist</Text>
           <Box className="flex-row items-center gap-gap">
             <Input className="flex-1 bg-background border border-border rounded-row h-auto" style={{ paddingHorizontal: 0 }}>
-              <InputField value={title} onChangeText={setTitle} maxLength={PLAYLIST_TITLE_MAX} placeholder="Playlist name" placeholderTextColor={c.muted} accessibilityLabel="New playlist name" returnKeyType="done" onSubmitEditing={create} className="p-row text-text text-body" />
+              <InputField value={title} onChangeText={setTitle} maxLength={PLAYLIST_TITLE_MAX} placeholder="Playlist name" placeholderTextColor={c.muted} accessibilityLabel="New playlist name" returnKeyType="done" onSubmitEditing={create} className="p-row text-text text-body" style={TAP} />
             </Input>
             <Pressable onPress={create} disabled={busy || title.trim() === ''} accessibilityRole="button" accessibilityLabel="Create playlist and add" accessibilityState={{ disabled: busy || title.trim() === '' }} className={`justify-center rounded-pill bg-primary px-section ${title.trim() === '' ? 'opacity-40' : ''}`} style={TAP}><Text className="text-onPrimary text-body font-bold">Create</Text></Pressable>
           </Box>

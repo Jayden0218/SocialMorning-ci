@@ -171,7 +171,7 @@ export function PlaylistPanel(props: { episodeId: string; onClose: () => void })
               returnKeyType="done"
               onSubmitEditing={create}
               className="text-text text-pulse-body font-medium"
-              style={[typeStyle('body'), { padding: 0 }]}
+              style={[typeStyle('body'), { padding: 0, minHeight: bars.circle }]} // 038: a 44 tap target inside the 48 box (a11y-frames: 191 x 36)
             />
           </Input>
         </Box>
