@@ -19,16 +19,16 @@ import { counts, isFollowing } from './follows.ts';
 import { recentBy } from './activity.ts';
 
 /** M22 US17 item 6: the shows `id` listened to most in the last 90 days (by listened time), with title and artwork. */
-export async function oftenListened(h: Ctx, id: string, today: string): Promise<OftenListenedShow[]> {
+export async function oftenListened(h: Ctx, id: string, today: string, listened?: Promise<Awaited<ReturnType<typeof listenedRowsFor>>>): Promise<OftenListenedShow[]> {
   const cutoff = new Date(new Date(`${today}T00:00:00Z`).getTime() - (OFTEN_LISTENED_DAYS - 1) * 86_400_000).toISOString().slice(0, 10);
-  const rows = (await listenedRowsFor(h.db, id)).filter((r) => r.day >= cutoff);
+  const rows = (await (listened ?? listenedRowsFor(h.db, id))).filter((r) => r.day >= cutoff);
   const top = stats(rows, today, OFTEN_LISTENED_MAX).all.topShows;
   if (top.length === 0) return [];
   const urls = top.map((t) => t.feedUrl);
-  const hidden = await hiddenFeeds(h, urls);
-  // Lane ST (moved): the host's overrides are its items.
-  const over = new Map([...(await (await import('../../studio/ddb/page.ts')).overridesOf(h.store, urls))].map(([u, o]) => [u, { title: o.title, cover_url: o.coverUrl }]));
-  const shows = await showsByUrl(h.store, urls);
+  // Lane ST (moved): the host's overrides are its items. 038 (r10): the three reads do not depend on each other, so they go out together.
+  const P = await import('../../studio/ddb/page.ts');
+  const [hidden, overrides, shows] = await Promise.all([hiddenFeeds(h, urls), P.overridesOf(h.store, urls), showsByUrl(h.store, urls)]);
+  const over = new Map([...overrides].map(([u, o]) => [u, { title: o.title, cover_url: o.coverUrl }]));
   const out: OftenListenedShow[] = [];
   for (const t of top) {
     if (hidden.has(t.feedUrl)) continue; // hidden by moderation
@@ -50,16 +50,17 @@ export async function setPrivateListening(h: Ctx, id: string, value: boolean): P
 }
 
 /** M21 US8 (FR-074): the shows a listener hosts — the proven claim owner or an invited host (lane ST's rows). */
-export async function hostOf(h: Ctx, listenerId: string): Promise<{ feedUrl: string; title: string }[]> {
-  const l = await getListener(h, listenerId);
+export async function hostOf(h: Ctx, listenerId: string, known?: Awaited<ReturnType<typeof getListener>>): Promise<{ feedUrl: string; title: string }[]> {
+  const l = known ?? (await getListener(h, listenerId));
   if (!l || l.suspendedAt || l.hiddenAt) return [];
   // Lane ST (moved): proven claims and co-host pointers, overrides and Studio-made shows are its items.
   const P = await import('../../studio/ddb/page.ts');
-  const hidden = await hiddenFeeds(h);
-  const w = (await P.showsHostedBy(h.store, listenerId)).filter((x) => !hidden.has(x.feedUrl));
-  const titles = await P.stTitles(h.store, h.db, w.map((x) => x.feedUrl));
+  // 038 (r10): the hidden list and the hosted shows are read together; then the titles and the show items together.
+  const [hidden, hosted] = await Promise.all([hiddenFeeds(h), P.showsHostedBy(h.store, listenerId)]);
+  const w = hosted.filter((x) => !hidden.has(x.feedUrl));
+  const urls = w.map((x) => x.feedUrl);
+  const [titles, shows] = await Promise.all([P.stTitles(h.store, h.db, urls), showsByUrl(h.store, urls)]);
   const rows = w.map((x) => ({ feed_url: x.feedUrl, title: titles.get(x.feedUrl) ?? null }));
-  const shows = await showsByUrl(h.store, rows.map((r) => r.feed_url));
   const seen = new Set<string>();
   const out: { feedUrl: string; title: string }[] = [];
   for (const r of rows) {
@@ -90,24 +91,34 @@ export async function profile(h: Ctx, id: string, viewerId: string | undefined, 
   const look = { ...(l.avatarUrl ? { avatarUrl: l.avatarUrl } : {}), ...(l.bio ? { bio: l.bio } : {}) };
   const bare = { id: l.id, displayName: l.displayName, ...look, followers: 0, following: 0, isFollowing: false, stats: null, recent: [], hostOf: [], privateSubscriptions: true, oftenListened: [] };
   if (l.suspendedAt) return { ...bare, suspended: true };
-  if (viewerId && viewerId !== id && (await hasBlocked(h, id, viewerId))) return bare;
-  const blockedByMe = viewerId && viewerId !== id ? await hasBlocked(h, viewerId, id) : false;
-  const c = await counts(h, id, viewerId);
-  const following = viewerId ? await isFollowing(h, viewerId, id) : false;
-  const privateListening = l.privateListening === true;
-  const showStats = !privateListening || viewerId === id;
-  const s = showStats ? stats(await listenedRowsFor(h.db, id), today) : null;
-  const recent = (await recentBy(h, id)).map(toFeedItem);
-  let likesCount: number | undefined;
-  if (l.likesPublic !== false || viewerId === id) {
-    const { likesCountOf } = await import('../ddb/likes.ts'); // lane SC (moved)
-    likesCount = await likesCountOf(h.store, id);
-  }
-  const m21 = { hostOf: await hostOf(h, id), ...(likesCount !== undefined ? { likesCount } : {}), privateSubscriptions: viewerId === id ? false : l.privateSubscriptions === true };
-  const deco = await stickerView(h.db, id, viewerId); // M21 US9 (lane AC)
+  // 038 (r10-clip): the reads below do not depend on each other. They went out one after another (20-24 rounds of calls,
+  // 9.8 s on a slow CI runner against the app's 10 s limit); now they go out together (test/profile-depth.test.ts).
+  // "They blocked me" is read with the rest and still decides first (the bare profile); the other reads are then unused.
+  const other = viewerId !== undefined && viewerId !== id;
   const self = viewerId === id;
+  const privateListening = l.privateListening === true;
+  const showStats = !privateListening || self;
   const hideOften = l['hideOftenListened'] === true;
-  const often = self || (!hideOften && !privateListening) ? await oftenListened(h, id, today) : [];
+  const wantOften = self || (!hideOften && !privateListening);
+  const wantLikes = l.likesPublic !== false || self;
+  // One read of the listened rows for the stats and "often listened" both.
+  const listened = showStats || wantOften ? listenedRowsFor(h.db, id) : undefined;
+  listened?.catch(() => undefined); // awaited below; this only stops an early rejection being reported as unhandled
+  const [blockedMe, blockedByMe, c, following, recentRows, likesCount, hosts, deco, often] = await Promise.all([
+    other ? hasBlocked(h, id, viewerId) : false,
+    other ? hasBlocked(h, viewerId, id) : false,
+    counts(h, id, viewerId),
+    viewerId ? isFollowing(h, viewerId, id) : false,
+    recentBy(h, id),
+    wantLikes ? import('../ddb/likes.ts').then(({ likesCountOf }) => likesCountOf(h.store, id)) : undefined, // lane SC (moved)
+    hostOf(h, id, l),
+    stickerView(h.db, id, viewerId), // M21 US9 (lane AC)
+    wantOften ? oftenListened(h, id, today, listened) : [],
+  ]);
+  if (blockedMe) return bare;
+  const s = showStats && listened ? stats(await listened, today) : null;
+  const recent = recentRows.map(toFeedItem);
+  const m21 = { hostOf: hosts, ...(likesCount !== undefined ? { likesCount } : {}), privateSubscriptions: self ? false : l.privateSubscriptions === true };
   const m22 = { oftenListened: often, ...(self ? { hideOftenListened: hideOften } : {}) };
   const country = typeof l.country === 'string' ? l.country.trim() : '';
   return { ...deco, ...m22, id: l.id, displayName: l.displayName, ...look, followers: c.followers, following: c.following, isFollowing: following, stats: s, recent, ...m21, ...(blockedByMe ? { blockedByMe: true } : {}), ...(country ? { country } : {}) };
