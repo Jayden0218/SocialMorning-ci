@@ -16,7 +16,7 @@
  * Reduce Motion and the web build show a Play button and no movement.
  *
  * Deviations from the drawing (reported in the gate log): the cover is not tinted per cover (research
- * T020 §2: the glow is the fixed hot pair until a colour library is compiled green); the
+ * T020 §2: the glow is the fixed hot-to-violet pair until a colour library is compiled green); the
  * flame's number is the moment's reactions, the comment number the episode's comments once known.
  */
 import { memo, useEffect, useMemo, useState } from 'react';
@@ -42,8 +42,6 @@ import { reactAt } from './moment-actions';
 /** The bars of the card's curve (the drawing draws 70). */
 export const CARD_BARS = 70;
 const CURVE_HEIGHT = 24;
-/** The curve's named frame is 44 tall: 20 under the 24 bars; `hang` lets that reach hang below the box so the bars stay where drawn. */
-const CURVE_REACH = bars.circle - CURVE_HEIGHT;
 /** Distances from the page's bottom edge (the drawing's, less the 92 tab bar; see the header). */
 const AT = { curve: 76, circle: 104, title: 114, column: 208 } as const;
 /** Drawn: the Play circle and the action column are 16 from the right edge; the title block ends 84 from it. */
@@ -52,8 +50,8 @@ const TITLE_RIGHT = RIGHT + 56 + spacing.row;
 const SOUND_DROP = 10;
 /** What the drawing has under the page: the tab bar 58 + the 34 safe area. */
 const DRAWN_BELOW = bars.tab + 34;
-/** Each action is drawn 28 + 4 + 11 = 43 tall: its frame is 44 x 44 (not a `hitSlop`, which the accessibility frame does not include). */
-const ACTION = { gap: spacing.hair, minWidth: bars.circle, minHeight: bars.circle } as const;
+/** Round each action's drawn 28 + 4 + 11 so the touch is 48+ without moving it. */
+const ACTION_SLOP = { top: 3, bottom: 3, left: 7, right: 7 };
 /** The drawn count is 11 tall (28 + 4 + 11 = 43 per action, 165 for the column); the face's safe line is 15, so 2 comes off above and below. */
 export const COUNT_LINE = { marginVertical: -2 } as const;
 const CIRCLE = 56;
@@ -62,7 +60,7 @@ const TICK_MS = 250;
 const NO_HEAT: readonly number[] = Array.from<number>({ length: 100 }).fill(0);
 const SCRIM = [colour.scrimTop, colour.scrimMid, colour.scrimFoot, colour.scrimFoot] as const;
 const SCRIM_AT = [0, 0.38, 0.76, 1] as const;
-const GLOW = [colour.hot, colour.line] as const;
+const GLOW = [colour.hot, colour.violet] as const;
 const FILL = StyleSheet.absoluteFill;
 
 export type CardActions = {
@@ -164,15 +162,14 @@ function MomentCardView(props: {
           accessibilityRole="button"
           accessibilityLabel={props.soundOn ? 'Sound on. Turn sound off' : 'Sound off. Turn sound on'}
           accessibilityState={{ selected: props.soundOn }}
-          className="absolute justify-center"
-          style={{ left: side, top: props.top + SOUND_DROP - (bars.circle - PILL) / 2, minHeight: bars.circle }}
+          hitSlop={bars.dotSmall}
+          className="absolute overflow-hidden"
+          style={{ left: spacing.row + 2, top: props.top + SOUND_DROP, height: PILL, borderRadius: PILL / 2 }}
         >
-          <Box className="overflow-hidden" style={{ height: PILL, borderRadius: PILL / 2 }}>
-            <BlurView intensity={30} tint="dark" style={[FILL, { backgroundColor: colour.glassDark }]} />
-            <Box className="flex-row items-center justify-center" style={{ height: PILL, paddingHorizontal: spacing.row, gap: spacing.hair + 2 }}>
-              <Icon name={props.soundOn ? 'volume-high' : 'volume-mute'} size={16} color={colour.text} />
-              <Type step="chip" className="text-text">{props.soundOn ? 'Sound on' : 'Sound off'}</Type>
-            </Box>
+          <BlurView intensity={30} tint="dark" style={[FILL, { backgroundColor: colour.glassDark }]} />
+          <Box className="flex-row items-center justify-center" style={{ height: PILL, paddingHorizontal: spacing.row, gap: spacing.hair + 2 }}>
+            <Icon name={props.soundOn ? 'volume-high' : 'volume-mute'} size={16} color={colour.text} />
+            <Type step="chip" className="text-text">{props.soundOn ? 'Sound on' : 'Sound off'}</Type>
           </Box>
         </Pressable>
       ) : null}
@@ -181,15 +178,15 @@ function MomentCardView(props: {
 
       {/* Action column: icon 28, 4, the count in mono 11; 18 between; 16 from the right edge. */}
       <Box className="absolute items-center" style={{ right: RIGHT, bottom: AT.column, gap: spacing.block - 6 }}>
-        <Pressable onPress={flame} accessibilityRole="button" accessibilityLabel={`React at ${at}. ${count} reacted`} accessibilityState={{ selected: isReacted }} className="items-center" style={ACTION}>
+        <Pressable onPress={flame} accessibilityRole="button" accessibilityLabel={`React at ${at}. ${count} reacted`} accessibilityState={{ selected: isReacted }} hitSlop={ACTION_SLOP} className="items-center" style={{ gap: spacing.hair }}>
           <Icon name={isReacted ? 'flame' : 'flame-outline'} size={28} color={isReacted ? colour.hot : colour.text} />
           <Type step="tag" className="text-text" style={COUNT_LINE}>{shortCount(count)}</Type>
         </Pressable>
-        <Pressable onPress={() => actions.comments(item)} accessibilityRole="button" accessibilityLabel={`Comments at ${at}`} className="items-center" style={ACTION}>
+        <Pressable onPress={() => actions.comments(item)} accessibilityRole="button" accessibilityLabel={`Comments at ${at}`} hitSlop={ACTION_SLOP} className="items-center" style={{ gap: spacing.hair }}>
           <Icon name="chatbubble-outline" size={28} color={colour.text} />
           <Type step="tag" className="text-text" style={COUNT_LINE}>{heat.comments !== undefined ? shortCount(heat.comments) : 'Chat'}</Type>
         </Pressable>
-        <Pressable onPress={() => actions.share(item)} accessibilityRole="button" accessibilityLabel={`Share a clip of ${at}`} className="items-center" style={ACTION}>
+        <Pressable onPress={() => actions.share(item)} accessibilityRole="button" accessibilityLabel={`Share a clip of ${at}`} hitSlop={ACTION_SLOP} className="items-center" style={{ gap: spacing.hair }}>
           <Icon name="share-outline" size={28} color={colour.text} />
           <Type step="tag" className="text-text" style={COUNT_LINE} numberOfLines={1}>Share</Type>
         </Pressable>
@@ -224,8 +221,6 @@ function MomentCardView(props: {
           data={curve ?? heat.buckets ?? NO_HEAT}
           count={CARD_BARS}
           height={CURVE_HEIGHT}
-          reach={CURVE_REACH}
-          hang
           min={2}
           flat={curve === undefined && heat.buckets === undefined}
           {...(hot ? { hotRange: hot } : {})}

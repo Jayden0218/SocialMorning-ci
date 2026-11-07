@@ -17,7 +17,7 @@
  * in EpisodeMoreSheet swap the order of Download and Add to queue; in RelatedEpisodes make the card `width: 148`.
  */
 import { createElement } from 'react';
-import { StyleSheet } from 'react-native';
+import { Dimensions, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
@@ -145,6 +145,7 @@ import { hash } from '@/feeds/hash';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 import type { AdapterEvent, AudioAdapter } from '@/playback/expo-audio-adapter';
 import { episode as EPISODE_TOKENS, player as PLAYER_TOKENS } from '@/design/tokens';
+import { episodeLayout } from '@/ui/episode/measures';
 import { colour } from '@/design';
 import { isFavourite } from '@/me/favourites';
 import { listMoments } from '@/me/moments';
@@ -241,12 +242,22 @@ afterEach(() => {
   setReducedMotionForTest(undefined);
 });
 
-describe('the page in design B\'s Detail frame (spec 039: was the drawing\'s 470 stage, 112 thumb zone and 40 tray)', () => {
-  it('puts the parts in the page\'s flow: the header, the heat strip, the tray, then the sections; nothing is absolutely placed', async () => {
+describe('the page on the drawing\'s 390 × 844 phone (status bar 50, home inset 34)', () => {
+  it('puts the parts where the drawing does', async () => {
     const r = await mount(harness().runtime);
+    // The cover fills the top 470 under a 480 veil.
+    expect(style(byId(r, 'episode-cover'))['height']).toBe(470);
+    expect(style(byId(r, 'episode-veil'))['height']).toBe(480);
+    // Two pills at 64; the curve at 330; the counts are in the title block's flow (M31 F13), not at a fixed 384.
+    expect(style(byId(r, 'episode-pills'))['top']).toBe(64);
+    expect(style(byId(r, 'episode-curve'))['top']).toBe(330);
+    expect(style(byId(r, 'episode-counts'))['position']).toBeUndefined();
+    // The thumb zone 112 up, the tray 40 up and 12 in — from the screen's edge: the root pads the 34 pt home strip, so the page's own
+    // offsets are 78 and 6 from the strip.
+    expect(style(byId(r, 'episode-title-pos'))['bottom'] as number + 34).toBe(112);
+    const tray = style(byId(r, 'episode-tray-pos'));
+    expect([(tray['bottom'] as number) + 34, tray['left'], tray['right']]).toEqual([40, 12, 12]);
     expect(style(byId(r, 'episode-tray'))['height']).toBe(60);
-    for (const id of ['episode-title-block', 'episode-heat', 'episode-tray']) expect(style(byId(r, id))['position']).toBeUndefined();
-    expect(hosts(r, (n) => ['episode-title-pos', 'episode-tray-pos', 'episode-cover', 'episode-veil'].includes(n.props['testID'] as string))).toHaveLength(0);
     // The curve: 70 bars, none taller than 40, the hot run five bars lit hot.
     const bars = byId(r, 'episode-curve').findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'curve-bar');
     expect(bars).toHaveLength(70);
@@ -256,11 +267,14 @@ describe('the page in design B\'s Detail frame (spec 039: was the drawing\'s 470
     expect(hot.length).toBeLessThanOrEqual(8);
   });
 
-  it('the title row has Back and "Episode"; the content has the 20 gutter', async () => {
-    const r = await mount(harness().runtime);
-    expect(byId(r, 'page-title-row')).toBeDefined();
-    expect(labels(r)).toContain('Back');
-    expect(text(r)).toContain('Episode');
+  it('moves with a taller status bar (the top parts); the bottom parts stay on the strip the root pads', async () => {
+    const r = await mount(harness().runtime, { top: 59, bottom: 44, left: 0, right: 0 });
+    expect(style(byId(r, 'episode-pills'))['top']).toBe(73);
+    expect(style(byId(r, 'episode-curve'))['top']).toBe(339);
+    // The root pads the taller strip by itself: the page's offsets from the strip do not move (78 and 6), so on screen they are 10 higher.
+    expect(style(byId(r, 'episode-title-pos'))['bottom']).toBe(78);
+    expect(style(byId(r, 'episode-tray-pos'))['bottom']).toBe(6);
+    expect(episodeLayout({ top: 50 })).toMatchObject({ pillsTop: 64, curveTop: 330, stageHeight: 470, titleBottom: 78, trayBottom: 6 });
   });
 
   it('says what the stage says: the date pill, the hottest moment, and the counts', async () => {
@@ -503,6 +517,8 @@ describe('the ⋯ sheet', () => {
     expect(inner(r, 'Create playlist and add').props['accessibilityState']).toMatchObject({ disabled: true });
     expect(inner(r, 'Create playlist and add').props['className']).toContain('opacity-40');
     const field = hosts(r, (n) => n.props['accessibilityLabel'] === 'New playlist name')[0]!;
+    // 038 (a11y-frames, run 41934113529: 191 x 36): the name box is at least 44 tall, a tap target like any other.
+    expect(Number(style(field)['minHeight'] ?? 0)).toBeGreaterThanOrEqual(44);
     await act(async () => { field.props['onChangeText']('Walks'); });
     expect(inner(r, 'Create playlist and add').props['accessibilityState']).toMatchObject({ disabled: false });
     await press(r, 'Create playlist and add');
@@ -541,9 +557,11 @@ describe('the sections', () => {
   it('F3 defect 1: nothing sits behind the title block at the top; Comments is a section of its own after Related', async () => {
     mockNotes = '<p>A short one about the first hour.</p>';
     const r = await mount(harness().runtime);
-    // 039: no fold spacer; the header, the heat strip and the tray come first, then the sections in the same order.
-    const order = r.root.findAll((n) => typeof n.type === 'string' && ['episode-title-block', 'episode-heat', 'episode-tray', 'episode-section-notes', 'episode-section-related', 'comment-preview'].includes(n.props['testID'] as string)).map((n) => n.props['testID']);
-    expect(order).toEqual(['episode-title-block', 'episode-heat', 'episode-tray', 'episode-section-notes', 'episode-section-related', 'comment-preview']);
+    const { height } = Dimensions.get('window');
+    // The sections start at the fold: a spacer from the stage's foot to the screen's foot (the drawing's first screen is the stage and the thumb zone only).
+    expect(style(byId(r, 'episode-fold'))['height']).toBe(Math.max(0, height - episodeLayout({ top: 47 }).stageHeight));
+    const order = r.root.findAll((n) => typeof n.type === 'string' && ['episode-stage', 'episode-fold', 'episode-section-notes', 'episode-section-related', 'comment-preview'].includes(n.props['testID'] as string)).map((n) => n.props['testID']);
+    expect(order).toEqual(['episode-stage', 'episode-fold', 'episode-section-notes', 'episode-section-related', 'comment-preview']);
     expect(hosts(r, (n) => n.props['testID'] === 'episode-section-comments')).toHaveLength(1);
   });
 
@@ -553,7 +571,7 @@ describe('the sections', () => {
     const seek = jest.spyOn(h.runtime, 'seek');
     const r = await mount(h.runtime);
     expect(hosts(r, (n) => n.props['testID'] === 'episode-section-notes')).toHaveLength(1);
-    expect(text(r)).toContain('Notes');
+    expect(labels(r)).toContain('Notes');
     await press(r, 'Play from 04:12');
     expect(seek).toHaveBeenCalledWith(252_000);
     expect(mockPush).toHaveBeenCalledWith('/player');
@@ -569,10 +587,26 @@ describe('the sections', () => {
     expect(hosts(r, (n) => style(n)['textTransform'] === 'uppercase').length).toBeGreaterThan(0);
   });
 
+  it('the fade under the thumb zone is 300 tall over the stage and 260 once the page has scrolled', async () => {
+    const r = await mount(harness().runtime);
+    const fadeHeight = () => hosts(r, (n) => Array.isArray(n.props['colors']) && style(n)['zIndex'] === 15).map((n) => style(n)['height']);
+    expect(fadeHeight()).toEqual([300]);
+    const scroll = r.root.findAll((n) => n.props['testID'] === 'episode-scroll' && typeof n.props['onScroll'] === 'function')[0]!;
+    await act(async () => { scroll.props['onScroll']({ nativeEvent: { contentOffset: { y: 120 } } }); });
+    expect(fadeHeight()).toEqual([260]);
+    await act(async () => { scroll.props['onScroll']({ nativeEvent: { contentOffset: { y: 0 } } }); });
+    expect(fadeHeight()).toEqual([300]);
+  });
+
   it('Related with nothing to suggest is the dashed empty card with today\'s line, keeping the section\'s right margin', async () => {
     const r = await mount(harness().runtime);
     const empty = byId(r, 'empty-deck');
     expect(style(empty)).toMatchObject({ height: 180, borderRadius: 22, borderStyle: 'dashed' });
+    // Some box above the card carries the 16 right margin (the deck's own bleeds to the edge).
+    let up: ReactTestInstance | null = empty.parent;
+    let margin: unknown;
+    while (up && margin === undefined) { margin = style(up)['marginRight']; up = up.parent; }
+    expect(margin).toBe(16);
     expect(text(r)).toContain('Nothing to suggest yet — play something and come back.');
   });
 });

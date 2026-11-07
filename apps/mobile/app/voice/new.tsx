@@ -24,11 +24,13 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { askMicrophone, useVoiceRecorder, voiceSessionOff, voiceSessionOn } from '@/playback/expo-audio-adapter';
 import { Linking } from 'react-native';
 import { Box } from '@/ui/lib/box';
-import { colour, radius, spacing } from '@/design';
+import { ScrollView } from '@/ui/lib/scroll-view';
+import { colour, gutter, radius, spacing } from '@/design';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { FormPage } from '@/ui/form/FormPage';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
+import { PageGlow } from '@/ui/kit/PageGlow';
 import { VoiceRing } from '@/ui/voice/VoiceRing';
 import { VOICE_PAGE, voiceType } from '@/ui/voice/measures';
 import { usePlayer } from '@/playback/store';
@@ -42,6 +44,7 @@ import { VoiceTextBox } from '@/ui/comments/VoiceTextReview';
 import { StatusComposerItems, itemsForPost, type ComposerItem } from '@/ui/social/StatusComposerItems';
 import { useM22SocialApi } from '@/social/api-m22-social';
 import { useSocial } from '@/social/context';
+import { useWindowDimensions } from 'react-native';
 
 /** The old one-line rule, word for word, split into `VoiceNew-B`'s numbered list. */
 const RULES = ['Up to 60 seconds.', 'People who follow you can play it', 'for 24 hours; then it is deleted.'] as const;
@@ -144,8 +147,10 @@ export default function NewVoicePost(): React.ReactElement {
   const recorded = phase.kind === 'done' || phase.kind === 'posting';
   const cancel = () => { if (phase.kind === 'recording') { if (speech) speech.cancel(); else void stop(); } leave(); };
   const insets = useContext(SafeAreaInsetsContext);
+  const { width } = useWindowDimensions();
+  const side = gutter(width);
   return (
-    <FormPage
+    <PushedPage
       title="Voice status"
       tone="none"
       safeBottom={insets?.bottom ?? 0}
@@ -153,45 +158,53 @@ export default function NewVoicePost(): React.ReactElement {
       backIcon="close"
       backLabel="Cancel"
       {...(recorded ? { subtitle: `${shownMs >= 0 ? clock : ''} recorded` } : {})}
-      {...(error ? { extra: <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> } : {})}
-      {...(recorded ? { trailing: <PulseButton label="Post" kind="hot" busy={phase.kind === 'posting'} onPress={() => { if (phase.kind === 'done') void post(phase.uri, phase.ms); }} /> } : {})}
+      {...(error ? { extra: <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type>, extraAbove: VOICE_PAGE.errorLine } : {})}
+      {...(recorded ? { right: <PulseButton label="Post" kind="hot" busy={phase.kind === 'posting'} onPress={() => { if (phase.kind === 'done') void post(phase.uri, phase.ms); }} /> } : {})}
     >
-      <Box className="flex-row" style={{ gap: VOICE_PAGE.tileGap }}>
-        {RULES.map((line, i) => (
-          <Box key={line} testID="voice-rule" className="flex-1 bg-raise" style={{ borderRadius: radius.row, padding: VOICE_PAGE.tilePad, gap: spacing.gap - 2 }}>
-            <Box className="items-center justify-center bg-hotSoft rounded-pill" style={{ width: VOICE_PAGE.number, height: VOICE_PAGE.number }}><Type step="badge" className="text-hotText" style={voiceType.number}>{String(i + 1)}</Type></Box>
-            <Type step="caption" className="text-text" style={voiceType.rule}>{line}</Type>
+      {(layout) => (
+        <Box className="flex-1">
+          <PageGlow top={VOICE_PAGE.glowTop} strength={recording ? VOICE_PAGE.glowRecording : VOICE_PAGE.glowIdle} />
+          {/* Drawn at fixed places on the page: the rules 10 under the status bar, the ring 120, the review (or the items row alone) 408 / 420. */}
+          <Box className="absolute flex-row" style={{ left: side, right: side, top: layout.top + VOICE_PAGE.rulesTop, gap: VOICE_PAGE.tileGap }}>
+            {RULES.map((line, i) => (
+              <Box key={line} testID="voice-rule" className="flex-1 bg-raise" style={{ borderRadius: radius.row, padding: VOICE_PAGE.tilePad, gap: spacing.gap - 2 }}>
+                <Box className="items-center justify-center bg-hotSoft rounded-pill" style={{ width: VOICE_PAGE.number, height: VOICE_PAGE.number }}><Type step="badge" className="text-hotText" style={voiceType.number}>{String(i + 1)}</Type></Box>
+                <Type step="caption" className="text-text" style={voiceType.rule}>{line}</Type>
+              </Box>
+            ))}
           </Box>
-        ))}
-      </Box>
-      {phase.kind === 'denied' ? (
-        <Box className="items-center" style={{ gap: spacing.row }}>
-          <Box className="items-center justify-center bg-raise rounded-pill" style={{ width: VOICE_PAGE.deniedIcon, height: VOICE_PAGE.deniedIcon }}><Icon name="mic-off-outline" size={28} color={colour.hotText} /></Box>
-          <Type step="row" className="text-text text-center" style={voiceType.denied}>SocialNet needs the microphone to record. You can allow it in the phone's settings.</Type>
-          <PulseButton kind="ring" label="Open settings" onPress={() => void Linking.openSettings()} />
-        </Box>
-      ) : (
-        <Box className="items-center">
-          <VoiceRing
-            state={recording ? 'recording' : recorded ? 'done' : 'idle'}
-            fraction={shownMs / VOICE_MAX_MS}
-            seconds={Math.floor(shownMs / 1000)}
-            clock={clock}
-            cap={cap}
-            line={recording ? 'Recording — tap to stop' : phase.kind === 'done' ? 'Tap to record again' : 'Tap to record'}
-            label={recording ? 'Stop recording' : phase.kind === 'done' ? 'Record again' : 'Start recording'}
-            busy={phase.kind === 'posting'}
-            onPress={() => void (recording ? stop() : start())}
-          />
+          {phase.kind === 'denied' ? (
+            <Box className="absolute items-center" style={{ left: spacing.block, right: spacing.block, top: layout.top + VOICE_PAGE.deniedTop, gap: spacing.row }}>
+              <Box className="items-center justify-center bg-raise rounded-pill" style={{ width: VOICE_PAGE.deniedIcon, height: VOICE_PAGE.deniedIcon }}><Icon name="mic-off-outline" size={28} color={colour.hotText} /></Box>
+              <Type step="row" className="text-text text-center" style={voiceType.denied}>SocialNet needs the microphone to record. You can allow it in the phone's settings.</Type>
+              <PulseButton kind="ring" label="Open settings" onPress={() => void Linking.openSettings()} />
+            </Box>
+          ) : (
+            <Box className="absolute items-center" style={{ left: 0, right: 0, top: layout.top + VOICE_PAGE.ringTop }}>
+              <VoiceRing
+                state={recording ? 'recording' : recorded ? 'done' : 'idle'}
+                fraction={shownMs / VOICE_MAX_MS}
+                seconds={Math.floor(shownMs / 1000)}
+                clock={clock}
+                cap={cap}
+                line={recording ? 'Recording — tap to stop' : phase.kind === 'done' ? 'Tap to record again' : 'Tap to record'}
+                label={recording ? 'Stop recording' : phase.kind === 'done' ? 'Record again' : 'Start recording'}
+                busy={phase.kind === 'posting'}
+                onPress={() => void (recording ? stop() : start())}
+              />
+            </Box>
+          )}
+          <ScrollView className="absolute" keyboardShouldPersistTaps="handled" style={{ left: 0, right: 0, bottom: 0, top: layout.top + (recorded && text !== undefined ? VOICE_PAGE.reviewTop : VOICE_PAGE.itemsTop) }} contentContainerStyle={{ paddingHorizontal: side, paddingBottom: layout.reserve, gap: VOICE_PAGE.belowRing }} showsVerticalScrollIndicator={false}>
+            {recorded && text !== undefined ? (
+              <Box style={{ gap: spacing.gap }}>
+                <Type step="tag" className="text-text3" style={voiceType.caps}>WHAT YOU SAID — CHECK IT BEFORE POSTING</Type>
+                <Box className="bg-raise" style={{ borderRadius: radius.row, padding: spacing.row }}><VoiceTextBox text={text} onChange={setText} /></Box>
+              </Box>
+            ) : null}
+            <StatusComposerItems items={items} onChange={setItems} colours={c} />
+          </ScrollView>
         </Box>
       )}
-      {recorded && text !== undefined ? (
-        <Box style={{ gap: spacing.gap }}>
-          <Type step="tag" className="text-text2" style={voiceType.caps}>WHAT YOU SAID — CHECK IT BEFORE POSTING</Type>
-          <Box className="bg-raise" style={{ borderRadius: radius.row, padding: spacing.row }}><VoiceTextBox text={text} onChange={setText} /></Box>
-        </Box>
-      ) : null}
-      <StatusComposerItems items={items} onChange={setItems} colours={c} />
-    </FormPage>
+    </PushedPage>
   );
 }

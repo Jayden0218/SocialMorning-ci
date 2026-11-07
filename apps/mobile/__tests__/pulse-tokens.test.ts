@@ -1,7 +1,7 @@
 // Checks the Pulse tokens: palette, type scale, spacing, bars maths, fonts, and the wave rules of the token check.
 /**
  * M31 T021 guards. Break each one to see it fail:
- *  - G-P1 palette: change `void` in src/design/tokens.ts (the drawings' #111318);
+ *  - G-P1 palette: change `void` in src/design/tokens.ts (the drawings' #060608);
  *  - G-P2 type scale: change a size in `fontSize['pulse-row']` without `typeScale.row.size`;
  *  - G-P3 bars: change `bars.nowGap` (the drawings' 8) — the 92 / 100 / 166 / 176 sums go red;
  *  - G-P4 wave rules: add `className="p-3 text-[15px]"` to a wave file and run `node scripts/token-check.mjs`
@@ -17,7 +17,7 @@ const MOBILE = join(__dirname, '..');
 
 it('G-P1: the palette is the drawings\' (kit.css :root)', () => {
   expect({ void: colour.void, raise: colour.raise, raise2: colour.raise2, line: colour.line, text: colour.text, text2: colour.text2, text3: colour.text3, idle: colour.idle, hot: colour.hot, hotText: colour.hotText, violet: colour.violet, ok: colour.ok, warn: colour.warn }).toEqual({
-    void: '#111318', raise: '#1a1d23', raise2: '#22262e', line: '#2c313a', text: '#eceef2', text2: '#9aa1ad', text3: '#8a919e', idle: '#77767e', hot: '#f2867e', hotText: '#f2867e', violet: '#7a3cff', ok: '#3ddc97', warn: '#ffb547',
+    void: '#060608', raise: '#111116', raise2: '#1a1a21', line: '#24242c', text: '#f4f2ee', text2: '#a3a1ab', text3: '#8a8893', idle: '#77767e', hot: '#ff4d6d', hotText: '#ff8095', violet: '#7a3cff', ok: '#3ddc97', warn: '#ffb547',
   });
 });
 
@@ -77,22 +77,21 @@ it('motion: tap 120 · move 240 · sheet 360 · breathe 2.4 s · bubble 1.2 s ·
   expect([motion.tap, motion.move, motion.sheet, motion.breathe, motion.bubble, motion.nowReturn]).toEqual([120, 240, 360, 2400, 1200, 600]);
 });
 
-// 039 D4: the tab bar grew by one label line (bars.tab 58 -> 58 + 15 = 73), so every number that stands on it is now written from `bars.tab` (was 92 / 100 / 158 / 166 / 92 / 158).
 // 037 D1: was "title bar 100 / 168, pushed 40 / 108, toast 176" (a title bar at the foot); now the title bar is at the top (titleBarTop) and the toast sits 8 over the highest bar (166 / 100 / 42 / 106).
-it('G-P3: the bars stack as drawn on a 34 pt inset — tab bar 34 + bars.tab, now bar 8 above it, toast 8 over the highest bar', () => {
-  expect(bars.tab).toBe(58 + 15);
-  expect(bottomInset(34, { tabs: true })).toBe(34 + bars.tab);
-  expect(nowBarBottom(34, { tabs: true })).toBe(42 + bars.tab); // the now bar floats 8 above the tab bar
+it('G-P3: the bars stack as drawn on a 34 pt inset — tab bar 92, now bar at 100, bars tops 92 / 158 / 34 / 98, toast 166', () => {
+  expect(bars.tab + 34).toBe(92);
+  expect(bottomInset(34, { tabs: true })).toBe(92);
+  expect(nowBarBottom(34, { tabs: true })).toBe(100); // the now bar floats 8 above the tab bar
   expect(titleBarTop(47)).toBe(53); // the title bar hangs 6 under the status bar
-  expect(barsTop(34, { tabs: true })).toBe(34 + bars.tab); // the highest bar: the tab bar alone
-  expect(barsTop(34, { tabs: true, now: true })).toBe(100 + bars.tab); // …the now bar over it
+  expect(barsTop(34, { tabs: true })).toBe(92); // the highest bar: the tab bar alone
+  expect(barsTop(34, { tabs: true, now: true })).toBe(158); // …the now bar over it
   expect(barsTop(34)).toBe(34); // a pushed page: the home strip
   expect(nowBarBottom(34)).toBe(40); // …and its now bar
   expect(barsTop(34, { now: true })).toBe(98); // …with the now bar on it
-  expect(bottomInset(34, { tabs: true, now: true })).toBe(100 + bars.tab);
-  expect(toastBottom(34)).toBe(108 + bars.tab); // no options: both bars
-  expect(toastBottom(34, { tabs: true, now: true })).toBe(108 + bars.tab);
-  expect(toastBottom(34, { tabs: true })).toBe(42 + bars.tab); // the tab bar alone
+  expect(bottomInset(34, { tabs: true, now: true })).toBe(158);
+  expect(toastBottom(34)).toBe(166); // no options: both bars
+  expect(toastBottom(34, { tabs: true, now: true })).toBe(166);
+  expect(toastBottom(34, { tabs: true })).toBe(100); // the tab bar alone
   expect(toastBottom(34, {})).toBe(42); // a pushed page, no bar
   expect(toastBottom(34, { now: true })).toBe(106); // a pushed page with the now bar
   expect(toastBottom(34, { player: true })).toBe(112); // the player: clears the tray (design-pulse2 listen.html, toast at 112)
@@ -102,7 +101,7 @@ it('the generated CSS carries the Pulse steps with their line heights', () => {
   const css = readFileSync(join(MOBILE, 'global.css'), 'utf8');
   expect(css).toContain('--text-pulse-hero: 30px;');
   expect(css).toContain('--text-pulse-hero--line-height: 38px;');
-  expect(css).toContain('--color-hot: #f2867e;');
+  expect(css).toContain('--color-hot: #ff4d6d;');
   expect(css).toContain('--spacing-block: 24px;');
   expect(css).toContain('--radius-sheet: 32px;');
 });

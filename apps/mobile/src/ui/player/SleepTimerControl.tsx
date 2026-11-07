@@ -13,7 +13,7 @@
  *   "End of episode" chip and the fade note.
  * - `more` (More settings): "Sleep, longer" — a 90 ring and End of episode as a switch, and the note.
  * - `full` (the moon's sheet): a 270 clock — six 52 circles round a 6 track, the chosen one hot, the
- *   track filling hot as time runs out — with the time left in the middle ("24:12 / pausing
+ *   track filling hot → violet as time runs out — with the time left in the middle ("24:12 / pausing
  *   in") and Cancel under it; off, it reads "Off" and "Tap a time". End of episode is a 44 chip.
  * The chosen one is announced as selected (FR-003); never hue alone — the filled circle and the words say it.
  */

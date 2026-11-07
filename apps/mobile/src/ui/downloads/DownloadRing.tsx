@@ -1,8 +1,8 @@
-// A download's progress ring: hot while it runs, white at 40 % when paused, a green check when done.
+// A download's progress ring: hot to violet while it runs, white at 40 % when paused, a green check when done.
 /**
  * M31 W3-B (T041; design-pulse2 `downloads--screen`, `arcBox(40, frac, …, { w: 4 })`): a 40 ring with a 4 stroke and
  * round caps, the track `#24242C` (the `line` colour). The arc starts at 12 o'clock and runs clockwise. Running:
- * the hot gradient with the percent in mono 10 in the middle; paused: `barIdle` (white at 40 %); done: the
+ * the hot to violet gradient with the percent in mono 10 in the middle; paused: `barIdle` (white at 40 %); done: the
  * full gradient ring with an `ok`-green check (16). It is a picture of a number the tile already says in words
  * ("Downloading · 42 %"), so it is hidden from a screen reader.
  */
@@ -37,7 +37,7 @@ export function DownloadRing(props: { state: RingState; percent?: number | undef
         <Defs>
           <LinearGradient id={id} x1="0" y1="0" x2="1" y2="1">
             <Stop offset="0" stopColor={colour.hot} />
-            <Stop offset="1" stopColor={colour.hot} />
+            <Stop offset="1" stopColor={colour.violet} />
           </LinearGradient>
         </Defs>
         <Circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={colour.line} strokeWidth={stroke} />

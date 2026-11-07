@@ -7,11 +7,7 @@
  * Comments are ≤ 280 characters; one emoji reaction per listener, tapped again to take it back.
  * Report reports the person (the like) or a comment's author through the shared report sheet.
  *
- * Spec 039 (Detail template): a `DetailList` (`PageList`): Back + "Like" in the title row; the header is who liked it and when, their note, the episode strip and the
- * reaction chips, then the "Comments · n" heading; the comments are raise cards, 12 apart; the composer is the list's `below` slot (over the keyboard's avoiding view). The cover
- * stage, the veil, the spine and the comments zone are gone.
- *
- * Before spec 039 (F3, the page as drawn then, with a stage and a spine; the 039 paragraph above is what it is now) — F3 (design-pulse2 `listen.html` `like--screen`, `like--gone`; layout pattern Stage + Thread): the liked episode's art is the
+ * F3 (design-pulse2 `listen.html` `like--screen`, `like--gone`; layout pattern Stage + Thread): the liked episode's art is the
  * stage (330 tall, a veil to void), and on it, 150 from the top: who liked it and when (the avatar and name open their profile; the
  * flag reports them), their note in Unbounded 700 22, the episode strip (raise at 80 %, radius 16, cover 40, play 32) and the
  * reaction chips (34 tall; yours is light; tap again = "Take back"). Below, a spine and the comments as raise cards (avatar 24,
@@ -22,8 +18,10 @@
  * like Report (it was a bin).
  */
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from '@/design/tailwind';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { Text } from '@/ui/kit/Text';
@@ -32,15 +30,18 @@ import { colour, spacing, typeStyle } from '@/design';
 import { likeStage } from '@/design/tokens';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Avatar } from '@/ui/kit/Avatar';
+import { Fade } from '@/ui/kit/Fade';
 import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
 import { IconButton } from '@/ui/kit/PulseButton';
-import { DetailList, DetailPage } from '@/ui/detail/DetailPage';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { relativeTime } from '@/ui/kit/format';
-import { KeyboardPage, PageEmpty, ageLabel, LIST, PlayDot } from '@/ui/me/lists';
+import { KeyboardPage, PageEmpty, ageLabel, emptyTop, DRAWN, LIST, PlayDot } from '@/ui/me/lists';
 import { ME_TYPE } from '@/ui/me/measures';
-import { COMMENTS } from '@/ui/comments/measures';
+import { BottomZone, ZoneTitle } from '@/ui/comments/CommentsBottom';
+import { COMMENTS, ZONE_BOTTOM } from '@/ui/comments/measures';
+import { SpineLine } from '@/ui/comments/Spine';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
@@ -51,13 +52,17 @@ import { nowMs as clockMs } from '@/ui/kit/clock';
 /** The reactions offered; any one per listener. Plain emoji — our own choice of five. */
 const EMOJI = ['👍', '❤️', '😂', '🔥', '👏'] as const;
 
-/** Spec 039: the sizes inside the page; the stage (cover to the fold, veil, words at 150) and the 118 thread offset are gone. */
+/** Drawn on the 390 × 844 phone (status bar 50): the stage is 330 tall, its words start at 150; the comments hang 118 under the chips. */
 const LIKE = {
+  stageHeight: 330,
+  veilHeight: 340,
+  top: 150,
   gap: 10,
   avatar: 36,
   flag: 18,
   strip: { radius: 16, pad: 8, cover: 40, coverRadius: 10, play: 32 },
   chip: 34,
+  thread: 118,
   card: { avatar: 24, gap: 8 },
   field: 56,
   send: 36,
@@ -71,6 +76,7 @@ export default function LikePostScreen(): React.ReactElement {
   const { listener } = useSocial();
   const toast = useToast();
   const { open, play } = useCardActions();
+  const { width } = useWindowDimensions();
   const [state, setState] = useState<State>({ kind: 'loading' });
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -103,12 +109,17 @@ export default function LikePostScreen(): React.ReactElement {
   };
 
   if (state.kind !== 'ok') {
+    const loading = state.kind === 'loading';
     return (
-      <DetailPage title="Like">
-        {state.kind === 'loading' ? <Box className="items-center"><Loader /></Box> : null}
-        {state.kind === 'gone' ? <PageEmpty top={0} title="Not here" line="This like is not here any more, or is private" /> : null}
-        {state.kind === 'error' ? <PageEmpty top={0} title="Couldn't load" line="Couldn't load this right now." action={{ label: 'Retry', onPress: load }} /> : null}
-      </DetailPage>
+      <PushedPage title="Like" tone={loading ? 'hot' : 'grey'}>
+        {(l) => (
+          <Box className="flex-1" style={{ paddingTop: l.top + (DRAWN.listTop - DRAWN.status) }}>
+            {loading ? <Box style={{ marginTop: emptyTop(260) }}><Loader /></Box> : null}
+            {state.kind === 'gone' ? <PageEmpty top={emptyTop(260)} title="Not here" line="This like is not here any more, or is private" /> : null}
+            {state.kind === 'error' ? <PageEmpty top={emptyTop(260)} title="Couldn't load" line="Couldn't load this right now." action={{ label: 'Retry', onPress: load }} /> : null}
+          </Box>
+        )}
+      </PushedPage>
     );
   }
 
@@ -125,12 +136,22 @@ export default function LikePostScreen(): React.ReactElement {
 
   return (
     <KeyboardPage>
-      <DetailList<(typeof comments)[number]>
-        title="Like"
-        gap={spacing.row}
-        keyboardShouldPersistTaps="handled"
-        header={
-          <Box testID="like-stage" style={{ gap: LIKE.gap }}>
+      <PushedPage title="Like" bare tone="none">
+        {(l) => {
+          // A taller status bar moves the stage's words down with it (the drawn phone has 50).
+          const shift = Math.max(0, l.top - DRAWN.status);
+          const foot = l.titleBottom;
+          return (
+            <Box className="flex-1">
+              <ScrollView testID="like-scroll" className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: foot + LIKE.field + 44 + 2 * LIKE.gap + 40 }}>
+                <Box testID="like-stage" style={{ paddingTop: LIKE.top + shift }}>
+                  <Box testID="like-cover" className="absolute left-0 right-0 top-0 overflow-hidden" style={{ height: LIKE.stageHeight + shift }} accessible={false} importantForAccessibility="no-hide-descendants">
+                    <Box style={{ position: 'absolute', left: (width - Math.max(width, LIKE.stageHeight + shift)) / 2, top: 0 }}>
+                      <Artwork url={art ?? null} size={Math.max(width, LIKE.stageHeight + shift)} name={like.episode.showTitle} />
+                    </Box>
+                  </Box>
+                  <LinearGradient testID="like-veil" colors={[likeStage.veilTop, colour.void]} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, height: LIKE.veilHeight + shift }} />
+                  <Box style={{ marginHorizontal: spacing.screenX, gap: LIKE.gap }}>
                     <Box className="flex-row items-center" style={{ gap: LIKE.gap }}>
                       {who ? (
                         <Pressable onPress={() => router.push({ pathname: '/profile/[id]', params: { id: who.id } })} accessibilityRole="link" accessibilityLabel={`${who.displayName}, liked ${relativeTime(like.createdAt, now)}`} className="flex-1 flex-row items-center" style={{ gap: LIKE.gap, minHeight: LIKE.avatar + 12 }}>
@@ -178,13 +199,14 @@ export default function LikePostScreen(): React.ReactElement {
                         );
                       })}
                     </Box>
-            <Type step="heading" accessibilityRole="header" className="text-text">{`Comments · ${comments.length}`}</Type>
-          </Box>
-        }
-        data={comments}
-        keyExtractor={(m) => m.id}
-        ListEmptyComponent={<Type step="note" className="text-text2">No comments yet. Say something kind.</Type>}
-        renderItem={({ item: m }) => (
+                  </Box>
+                </Box>
+
+                <Box testID="like-thread" style={{ marginTop: LIKE.thread }}>
+                  <SpineLine />
+                  <Box style={{ paddingTop: spacing.row - 2, paddingLeft: LIST.left + LIST.indent, paddingRight: spacing.screenX, gap: spacing.row }}>
+                    {comments.length === 0 ? <Type step="note" className="text-text2">No comments yet. Say something kind.</Type> : null}
+                    {comments.map((m) => (
                       <Box key={m.id} testID="like-comment" className="bg-raise" style={{ borderRadius: LIST.cardRadius, padding: LIST.cardPad, gap: spacing.gap }}>
                         <Box className="flex-row items-center" style={{ gap: LIKE.card.gap }}>
                           <Avatar size={LIKE.card.avatar} url={m.author.avatarUrl} name={m.author.displayName} />
@@ -204,8 +226,13 @@ export default function LikePostScreen(): React.ReactElement {
                           )}
                         </Box>
                       </Box>
-        )}
-        below={
+                    ))}
+                  </Box>
+                </Box>
+              </ScrollView>
+              <Fade bottom={0} height={COMMENTS.fullHeight - 150} />
+              <BottomZone bottom={ZONE_BOTTOM}>
+                <ZoneTitle title="Comments" count={comments.length} size={24} back={{ icon: 'chevron-back', label: 'Back', onPress: () => router.back() }} />
                 <Box testID="like-composer" className="flex-row items-center bg-raise2 border-line" style={{ height: LIKE.field, borderRadius: COMMENTS.composerRadius, paddingLeft: spacing.section, paddingRight: spacing.hair + 2, borderWidth: StyleSheet.hairlineWidth * 3, gap: 6 }}>
                   <Input className="flex-1 h-auto border-0 bg-clear" style={{ paddingHorizontal: 0 }}>
                     <InputField value={draft} onChangeText={setDraft} maxLength={LIKE_COMMENT_MAX} placeholder={listener ? 'Write a comment' : 'Sign in to comment'} placeholderTextColor={colour.text3} accessibilityLabel="Write a comment on this like" className="text-text" style={[ME_TYPE.field15, { height: LIKE.field }]} />
@@ -214,10 +241,12 @@ export default function LikePostScreen(): React.ReactElement {
                     <Icon name="send" size={18} color={colour.void} />
                   </Pressable>
                 </Box>
-        }
-        belowHeight={LIKE.field}
-      />
-      <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
+              </BottomZone>
+              <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
+            </Box>
+          );
+        }}
+      </PushedPage>
     </KeyboardPage>
   );
 }

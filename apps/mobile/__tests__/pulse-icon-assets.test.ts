@@ -87,7 +87,7 @@ describe('app.json points at the Pulse files', () => {
     const splash = expo.plugins.find((p: unknown) => Array.isArray(p) && p[0] === 'expo-splash-screen')[1];
     expect(String(splash.backgroundColor).toLowerCase()).toBe(colour.background.toLowerCase());
     expect(String(splash.backgroundColor).toLowerCase()).toBe(colour.void.toLowerCase());
-    expect(String(expo.android.adaptiveIcon.backgroundColor).toLowerCase()).toBe('#111318');
+    expect(String(expo.android.adaptiveIcon.backgroundColor).toLowerCase()).toBe('#060608');
     expect(expo.userInterfaceStyle).toBe('dark');
     // Nothing light is left in the config: the old cream page or the old yellow.
     expect(JSON.stringify(expo)).not.toMatch(/fbf8f1|FDC621|"light"/i);
@@ -101,11 +101,12 @@ describe('the pictures', () => {
     // Corners are square and dark (iOS rounds them; a rounded or cream corner would show).
     for (const [x, y] of CORNERS_1024) {
       const i = (y * 1024 + x) * 4;
-      expect(px(p, i) + px(p, i + 1) + px(p, i + 2)).toBeLessThan(80);
+      expect(px(p, i) + px(p, i + 1) + px(p, i + 2)).toBeLessThan(60);
     }
-    // Row M (039 Q9): the core is the one accent #F2867E, centre of the disc, left of the glyph.
+    // The hot-pink core sits at the centre of the play disc, left of the glyph.
     const c = (400 * 1024 + 420) * 4;
-    expect([px(p, c), px(p, c + 1), px(p, c + 2)]).toEqual([0xf2, 0x86, 0x7e]);
+    expect(px(p, c)).toBeGreaterThan(200);
+    expect(px(p, c + 2)).toBeGreaterThan(px(p, c + 1));
   });
 
   it('the in-app mark is the same picture: 1024, RGB', () => {
@@ -125,10 +126,10 @@ describe('the pictures', () => {
     expect(r.x1 - r.x0).toBeGreaterThan(500); // and it is the ring, not an empty file
   });
 
-  it('the Android background is solid base #111318, RGB', () => {
+  it('the Android background is solid void, RGB', () => {
     const p = decode('assets/android-icon-background.png');
     expect([p.width, p.height, p.colourType]).toEqual([1024, 1024, 2]);
-    for (const i of [0, (512 * 1024 + 512) * 4, (1023 * 1024 + 1023) * 4]) expect([...p.rgba.subarray(i, i + 3)]).toEqual([0x11, 0x13, 0x18]);
+    for (const i of [0, (512 * 1024 + 512) * 4, (1023 * 1024 + 1023) * 4]) expect([...p.rgba.subarray(i, i + 3)]).toEqual([6, 6, 8]);
   });
 
   it('the Android monochrome icon is one shape inside the same safe zone, transparent at the corners, not the old microphone', () => {

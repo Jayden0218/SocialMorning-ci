@@ -12,6 +12,7 @@ import { ActionSheet, closesOnRelease } from '@/ui/kit/ActionSheet';
 import { Chip } from '@/ui/kit/Chip';
 import { Curve } from '@/ui/kit/Curve';
 import { Dialog } from '@/ui/kit/Dialog';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { EmptyState, splitSentence } from '@/ui/kit/EmptyState';
 import { Fade } from '@/ui/kit/Fade';
 import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
@@ -206,7 +207,7 @@ describe('title bar', () => {
   });
 });
 
-describe('fade', () => {
+describe('fade and edge label', () => {
   it('fade: 200 tall by default (Discover asks for 360) at `bottom`, transparent to void at 55 %, never takes a touch', () => {
     const r = render(createElement(Fade, { bottom: 160 }));
     const g = r.root.findAll((n) => Array.isArray(n.props['colors']))[0]!;
@@ -214,7 +215,18 @@ describe('fade', () => {
     expect(flat(g.props['style'])).toMatchObject({ bottom: 160, height: 200, zIndex: 15 });
     expect(g.props['pointerEvents']).toBe('none');
   });
-  // 039 I2: the edge-label test went with `EdgeLabel` (retired: sections are named by Section headings); `retired-check` refuses its import.
+  it('edge label: the section name in Geist Mono 11 (the tag style), uppercase, text3, still a header for a screen reader', () => {
+    const r = render(createElement(EdgeLabel, { label: "Today's pick", top: 30 }));
+    const h = r.root.findAll((n) => n.props['accessibilityRole'] === 'header')[0]!;
+    expect(h.props['accessibilityLabel']).toBe("Today's pick");
+    // The unconstrained measuring copy and the turned label: the same words twice.
+    expect(words(r)).toEqual(["TODAY'S PICK", "TODAY'S PICK"]);
+    const t = r.root.findAll((n) => String(n.type) === 'Text' && n.props['numberOfLines'] === 1)[0]!;
+    expect(classOf(t)).toContain('text-text3');
+    expect(classOf(t)).toContain('font-mono'); // 038 D3: was font-display; the edge label is the tag style
+    expect(flat(t.props['style'])).toMatchObject({ letterSpacing: typeScale.edge.tracking });
+    expect(JSON.stringify(flat(t.props['style'])['transform'])).toContain('-90deg');
+  });
 });
 
 describe('curve (the heat bars)', () => {
@@ -233,7 +245,7 @@ describe('curve (the heat bars)', () => {
     expect(b[10]!['backgroundColor']).toBe(colour.barIdle);
     expect(b[0]!['backgroundColor']).toBe(playedColour(0, 10));
     expect(b[9]!['backgroundColor']).toBe(playedColour(9, 10));
-    expect(b[0]!['backgroundColor']).toBe(b[9]!['backgroundColor']); // Q8: one accent, no grade to violet (was: not.toBe)
+    expect(b[0]!['backgroundColor']).not.toBe(b[9]!['backgroundColor']);
   });
   it('hotRange lights a run of bars hot with a glow; glow adds it to played bars', () => {
     const r = render(createElement(Curve, { data, hotRange: [20, 24] }));
@@ -269,7 +281,7 @@ describe('ring', () => {
     const stroke = (i: number) => l[i]!.props['stroke'];
     expect(stroke(60)).toBeDefined();
     expect(JSON.stringify(l[0]!.props)).not.toContain('NaN');
-    expect(new Set(l.map((x) => JSON.stringify(x.props['stroke']))).size).toBe(2); // Q8: played = hot, the rest barIdle (was: > 5, a gradient)
+    expect(new Set(l.map((x) => JSON.stringify(x.props['stroke']))).size).toBeGreaterThan(5); // a gradient, not one colour
   });
   it('the knob sits where the progress is; a quarter in is at 3 o\'clock', () => {
     const r = render(createElement(Ring, { heat, progress: 0.25, size: 330 }));

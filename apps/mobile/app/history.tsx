@@ -1,13 +1,17 @@
-// Listening history by day, with where you stopped; filter to finished only, search, select and delete.
+// Listening history by day on a spine, with where you stopped; filter to finished only, search, select and delete.
 /**
  * Listening history (收听历史, M10): what this phone played, most recent first, with where you stopped; search and "Only finished" as in the reference.
  *
- * Spec 039 (design B): a `PageList` (Back, "Listening history", "All · 42 episodes", a search circle and a select (check) circle; the chips "All" and "Only
- * finished" under the title). The rows sit under light day tags (TODAY, YESTERDAY, EARLIER THIS WEEK, EARLIER), each a raise card (`ThreadCard`): cover 44, title,
- * show, and a 34 play dot — or "Finished" in green when it is done; an unfinished one shows its played curve (40 bars) and "Stopped at m:ss". Tap a card = play
- * from where you stopped (a tablet opens it in the right pane); long-press = the shared episode sheet ("More for …", also the card's `longpress` accessibility
- * action) whose Details tile opens the episode page. Select mode turns the title into "n selected" with Clear all, Delete (n) and Done, and a tick circle beside
- * each card. Same rows, same spoken names, same toasts.
+ * M31 W3-C (T041; design-pulse2 `listen.html` `history--screen`, `history--empty`, `history--select-mode`,
+ * `history--clear-dialog`, `history--episode-sheet`, `toast--history`; layout pattern Thread): the rows hang from the
+ * spine at x 40 under light day tags (TODAY, YESTERDAY, EARLIER THIS WEEK, EARLIER). A row is a raise card (radius 18):
+ * cover 44, title, show, and a 34 play dot — or "Finished" in green when it is done; an unfinished one shows its played
+ * curve (40 bars) and "Stopped at m:ss". The title bar is low (rule 1) and 26 wide: "Listening history", "All · 42
+ * episodes", a search circle and a select (check) circle; the chips "All" and "Only finished" sit above it. Tap a card =
+ * play from where you stopped (a tablet opens it in the right pane); long-press = the shared episode sheet ("More for
+ * …", also the card's `longpress` accessibility action) whose Details tile opens the episode page. Select mode turns
+ * the title bar into "n selected" with Clear all, Delete (n) and Done, and a tick circle on the spine beside each card.
+ * Same rows, same spoken names, same toasts.
  *
  * M21 US4 (FR-035): a long-press on a row opens the shared episode sheet (`EpisodeRowSheet`).
  * M21 US10 (T110) / M24 US20: ▶ Play, Share and "View comments (N)" are in that sheet (ONE comment-counts call for the first 100 rows).
@@ -16,14 +20,15 @@
  * phone (`src/me/history.ts`). Opening the page also hides rows another phone deleted.
  * M22 US16: on a tablet (`useOpensInPane`) a row opens its episode in the right pane (src/ui/shell/ListDetail.tsx).
  *
- * Not as drawn: the rows show no per-episode heat (History keeps none), so the curve is an even meter.
+ * Not as drawn: the rows show no per-episode heat (History keeps none), so the curve is an even meter; the spine is fixed
+ * over the page, not part of the scrolling list (a long list is virtualised).
  */
 import { router, useFocusEffect } from 'expo-router';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HISTORY_DELETE_MAX, useM22LibraryApi } from '@/social/api-m22-library';
 import { useConfirm } from '@/ui/kit/confirm';
-import { useWindowDimensions } from 'react-native';
+import { FlatList } from '@/ui/lib/flat-list';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { hideDeletedElsewhere, hideFromHistory, listeningHistory, matchesAll, type HistoryRow } from '@/me/history';
@@ -32,12 +37,9 @@ import { Chip } from '@/ui/kit/Chip';
 import { mmss } from '@/ui/kit/format';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
-import { PageList } from '@/ui/kit/layout';
-import { goBack } from '@/ui/kit/PageHeader';
-import { IconButton } from '@/ui/kit/PulseButton';
-import { useToastPlacement } from '@/ui/shell/toastPlacement';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { colour, gutter, hit, spacing } from '@/design';
+import { colour, hit, spacing } from '@/design';
 import { EndOfList } from '@/ui/kit/EndOfList';
 import { EpisodeRowSheet } from '@/ui/kit/EpisodeRowSheet';
 import type { CachedEpisode } from '@/storage/types';
@@ -46,10 +48,14 @@ import { usePlayer } from '@/playback/store';
 import { useM12Api } from '@/social/m12-api';
 import { plural } from '@socialmorning/social-core';
 import { ME_TYPE } from '@/ui/me/measures';
-import { DayTag, KeyboardPage, LIST, PageEmpty, PlayDot, PlayedBars, SearchField, ThreadCard } from '@/ui/me/lists';
+import { DayTag, DRAWN, KeyboardPage, EmptySpine, LIST, PageEmpty, PlayDot, PlayedBars, SearchField, ThreadCard, ThreadNode, ThreadSpine, threadPad } from '@/ui/me/lists';
 
 const DAY = 24 * 60 * 60 * 1000;
 const NONE: ReadonlySet<string> = new Set();
+/** The chips row is 36; the search field above it 48; the select bar's buttons 48. */
+const CHIPS = 36;
+/** The words under the select bar ("You can delete up to 100 at a time."): one 13/18 line and its gap. */
+const LIMIT_LINE = 18 + spacing.gap;
 
 /** The day heading a row falls under, counted in calendar days on this phone. */
 function dayLabel(at: number, now: number): string {
@@ -190,110 +196,118 @@ export default function HistoryScreen(): React.ReactElement {
       </Box>
     </Box>
   );
-  const { now } = useToastPlacement();
-  const side = gutter(useWindowDimensions().width);
+  const extraAbove = selecting
+    ? hit.min + (overLimit ? LIMIT_LINE : 0) + spacing.gap
+    : CHIPS + (searching ? LIST.field + spacing.gap : 0) + spacing.gap;
 
   return (
     <KeyboardPage>
-    <ListDetail
-      placeholder="Choose an episode to see it here."
-      detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
-      list={
-        // 039: design B's frame around the list the page owns; the root layout pads the home strip (safeBottom 0). The spine is gone (cards, as on Notifications).
-        <PageList
-          title={selecting ? `${chosen.size} selected` : 'Listening history'}
-          {...(selecting ? {} : { subtitle })}
-          {...(selecting ? {} : { leading: <IconButton icon="chevron-back" label="Back" onPress={goBack} fill size={22} /> })}
-          trailing={actions.length > 0 ? <Box className="flex-row" style={{ gap: spacing.row }}>{actions.map((a) => <IconButton key={a.label} icon={a.icon} label={a.label} onPress={a.onPress} fill />)}</Box> : undefined}
-          header={extra}
-          now={now}
-          safeBottom={0}
-          data={groups}
-          // Owner, 2026-10-05: the bottom of a fetched list says so.
-          ListFooterComponent={groups.length > 0 ? <EndOfList /> : undefined}
-          keyExtractor={(g) => g.label}
-          keyboardShouldPersistTaps="handled"
-          contentStyle={{ flexGrow: 1 }}
-          ListEmptyComponent={
-            <Box style={{ marginHorizontal: -side }}>
-              <PageEmpty
-                top={0}
-                title={term || finished ? 'Nothing matches' : 'Nothing played yet'}
-                {...(term || finished ? {} : { line: 'Choose an episode to see it here.' })}
+    <PushedPage
+      title={selecting ? `${chosen.size} selected` : 'Listening history'}
+      {...(selecting ? {} : { subtitle })}
+      actions={actions}
+      onBack={selecting ? null : undefined}
+      extra={extra}
+      extraAbove={extraAbove}
+    >
+      {(layout) => (
+        <Box className="flex-1" style={{ paddingTop: layout.top + (DRAWN.listTop - DRAWN.status) }}>
+          {groups.length === 0 ? <EmptySpine top={layout.top + (LIST.emptySpineTop - DRAWN.status)} /> : <ThreadSpine top={layout.top + (DRAWN.listTop - DRAWN.status)} />}
+          <ListDetail
+            placeholder="Choose an episode to see it here."
+            detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+            list={
+              <FlatList
+                className="flex-1"
+                data={groups}
+                // Owner, 2026-10-05: the bottom of a fetched list says so.
+                ListFooterComponent={groups.length > 0 ? <EndOfList /> : undefined}
+                keyExtractor={(g) => g.label}
+                contentContainerStyle={{ ...threadPad(layout.reserve), flexGrow: 1 }}
+                keyboardShouldPersistTaps="handled"
+                ListEmptyComponent={
+                  <PageEmpty
+                    top={LIST.emptyBlockTop - DRAWN.listTop - LIST.top}
+                    title={term || finished ? 'Nothing matches' : 'Nothing played yet'}
+                    {...(term || finished ? {} : { line: 'Choose an episode to see it here.' })}
+                  />
+                }
+                ItemSeparatorComponent={() => <Box style={{ height: LIST.historyGap }} />}
+                renderItem={({ item: group }) => (
+                  <ThreadNode grow lead={<DayTag text={group.label} />}>
+                    <Box style={{ gap: spacing.row - 2 }}>
+                      {group.rows.map((item) => {
+                        const show = showOf.get(item.episode.id);
+                        const where = item.finished ? 'Finished' : `Stopped at ${mmss(item.offsetMs)}`;
+                        const duration = item.episode.durationMs;
+                        const done = item.finished ? 1 : duration !== undefined && duration > 0 ? Math.min(1, item.offsetMs / duration) : 0;
+                        const card = (
+                          <ThreadCard>
+                            <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
+                              <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={LIST.cover} name={show?.title} />
+                              <Box className="flex-1 min-w-0">
+                                <Type step="compact" className="text-text" numberOfLines={2}>{item.episode.title}</Type>
+                                <Type step="caption" className="text-text2" style={[ME_TYPE.show11, { marginTop: spacing.hair }]} numberOfLines={1}>{show?.title ?? ''}</Type>
+                              </Box>
+                              {item.finished ? <Type step="mono" className="text-ok" style={ME_TYPE.mono11}>Finished</Type> : <PlayDot size={LIST.playDot} />}
+                            </Box>
+                            {item.finished ? null : (
+                              <Box className="flex-row items-center" style={{ gap: spacing.gap }}>
+                                <Box className="flex-1"><PlayedBars share={done} /></Box>
+                                <Type step="mono" className="text-text3" style={ME_TYPE.mono11}>{where}</Type>
+                              </Box>
+                            )}
+                          </ThreadCard>
+                        );
+                        return selecting ? (
+                          // Defect 2 (2026-10-07): a button with the Selected trait ("checkbox" has no iOS
+                          // trait, so the rows were missing from the accessibility tree), and the whole row —
+                          // the tick on the spine too — is one touch target: nothing inside takes the touch.
+                          <Pressable key={item.episode.id} onPress={() => toggle(item.episode.id)} accessibilityRole="button" accessibilityState={{ selected: chosen.has(item.episode.id) }} accessibilityLabel={`Select ${item.episode.title}`} hitSlop={{ left: LIST.indent, top: 4, bottom: 4 }}>
+                            <Box pointerEvents="none">
+                              {card}
+                              <Box
+                                testID="history-tick"
+                                className={chosen.has(item.episode.id) ? 'absolute items-center justify-center bg-hot' : 'absolute bg-void border-2 border-text'}
+                                style={{ left: LIST.tickLeft, top: LIST.tickTop, width: LIST.tick, height: LIST.tick, borderRadius: LIST.tick / 2, zIndex: 3 }}
+                              >
+                                {chosen.has(item.episode.id) ? <Icon name="checkmark" size={14} color={colour.void} /> : null}
+                              </Box>
+                            </Box>
+                          </Pressable>
+                        ) : (
+                          // M24 US20 (`History-B`): the row's extras (▶ Play, Share, "View comments (N)", Details) are in the
+                          // shared episode sheet a long-press opens; "More for …" is also the card's `longpress` accessibility action.
+                          <Pressable
+                            key={item.episode.id}
+                            onPress={() => openRow(item.episode.id)}
+                            onLongPress={() => setMenuFor(item.episode)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`${item.episode.title}. ${where}`}
+                            accessibilityHint="Long-press for more actions"
+                            accessibilityActions={[{ name: 'longpress', label: `More for ${item.episode.title}` }]}
+                            onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'longpress') setMenuFor(item.episode); }}
+                          >
+                            {card}
+                          </Pressable>
+                        );
+                      })}
+                    </Box>
+                  </ThreadNode>
+                )}
               />
-            </Box>
-          }
-          renderItem={({ item: group }) => (
-            <Box testID="history-day" style={{ gap: spacing.row - 2 }}>
-              <Box className="flex-row"><DayTag text={group.label} /></Box>
-              {group.rows.map((item) => {
-                const show = showOf.get(item.episode.id);
-                const where = item.finished ? 'Finished' : `Stopped at ${mmss(item.offsetMs)}`;
-                const duration = item.episode.durationMs;
-                const done = item.finished ? 1 : duration !== undefined && duration > 0 ? Math.min(1, item.offsetMs / duration) : 0;
-                const card = (
-                  <ThreadCard>
-                    <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
-                      <Artwork url={item.episode.imageUrl ?? show?.imageUrl} size={LIST.cover} name={show?.title} />
-                      <Box className="flex-1 min-w-0">
-                        <Type step="compact" className="text-text" numberOfLines={2}>{item.episode.title}</Type>
-                        <Type step="caption" className="text-text2" style={[ME_TYPE.show11, { marginTop: spacing.hair }]} numberOfLines={1}>{show?.title ?? ''}</Type>
-                      </Box>
-                      {item.finished ? <Type step="mono" className="text-ok" style={ME_TYPE.mono11}>Finished</Type> : <PlayDot size={LIST.playDot} />}
-                    </Box>
-                    {item.finished ? null : (
-                      <Box className="flex-row items-center" style={{ gap: spacing.gap }}>
-                        <Box className="flex-1"><PlayedBars share={done} /></Box>
-                        <Type step="mono" className="text-text3" style={ME_TYPE.mono11}>{where}</Type>
-                      </Box>
-                    )}
-                  </ThreadCard>
-                );
-                return selecting ? (
-                  // Defect 2 (2026-10-07): a button with the Selected trait ("checkbox" has no iOS
-                  // trait, so the rows were missing from the accessibility tree), and the whole row —
-                  // the tick beside the card too — is one touch target: nothing inside takes the touch.
-                  <Pressable key={item.episode.id} onPress={() => toggle(item.episode.id)} accessibilityRole="button" accessibilityState={{ selected: chosen.has(item.episode.id) }} accessibilityLabel={`Select ${item.episode.title}`}>
-                    <Box pointerEvents="none" className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
-                      <Box
-                        testID="history-tick"
-                        className={chosen.has(item.episode.id) ? 'items-center justify-center bg-hot' : 'bg-void border-2 border-text'}
-                        style={{ width: LIST.tick, height: LIST.tick, borderRadius: LIST.tick / 2 }}
-                      >
-                        {chosen.has(item.episode.id) ? <Icon name="checkmark" size={14} color={colour.void} /> : null}
-                      </Box>
-                      <Box className="flex-1">{card}</Box>
-                    </Box>
-                  </Pressable>
-                ) : (
-                  // M24 US20 (`History-B`): the row's extras (▶ Play, Share, "View comments (N)", Details) are in the
-                  // shared episode sheet a long-press opens; "More for …" is also the card's `longpress` accessibility action.
-                  <Pressable
-                    key={item.episode.id}
-                    onPress={() => openRow(item.episode.id)}
-                    onLongPress={() => setMenuFor(item.episode)}
-                    accessibilityRole="button"
-                    accessibilityLabel={`${item.episode.title}. ${where}`}
-                    accessibilityHint="Long-press for more actions"
-                    accessibilityActions={[{ name: 'longpress', label: `More for ${item.episode.title}` }]}
-                    onAccessibilityAction={(e) => { if (e.nativeEvent.actionName === 'longpress') setMenuFor(item.episode); }}
-                  >
-                    {card}
-                  </Pressable>
-                );
-              })}
-            </Box>
-          )}
-        />
-      }
-    />
-    {dialog}
-    <EpisodeRowSheet
-      episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl: menuFor.feedUrl, imageUrl: menuFor.imageUrl ?? stores.feeds.getShow(menuFor.feedUrl)?.imageUrl } : undefined}
-      onClose={() => setMenuFor(undefined)}
-      comments={menuFor ? comments[menuFor.id] : undefined}
-      actions={menuFor ? [{ icon: 'play', label: 'Play', onPress: () => { const id = menuFor.id; setMenuFor(undefined); play(id); } }] : []}
-    />
+            }
+          />
+          {dialog}
+          <EpisodeRowSheet
+            episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl: menuFor.feedUrl, imageUrl: menuFor.imageUrl ?? stores.feeds.getShow(menuFor.feedUrl)?.imageUrl } : undefined}
+            onClose={() => setMenuFor(undefined)}
+            comments={menuFor ? comments[menuFor.id] : undefined}
+            actions={menuFor ? [{ icon: 'play', label: 'Play', onPress: () => { const id = menuFor.id; setMenuFor(undefined); play(id); } }] : []}
+          />
+        </Box>
+      )}
+    </PushedPage>
     </KeyboardPage>
   );
 }

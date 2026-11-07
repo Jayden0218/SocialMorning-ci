@@ -82,8 +82,8 @@ export const AUTH = {
   genre: { height: 56, radius: 18, padX: 12, gap: 8, icon: 20, tick: 16 },
   /** A reason tile on "Not liking these?": 76 tall, radius 22, padding 12 / 14. */
   reason: { height: 76, radius: 22, padY: 12, padX: 14, ring: 1.5, icon: 20 },
-  /** The Panel pages: the reasons' 2 × 2 is 10 apart. */
-  panel: { tileGap: 10 },
+  /** The Panel pages: content starts 28 from the left (the edge label's lane), the reasons' 2 × 2 is 10 apart. */
+  panel: { lane: 28, tileGap: 10 },
   /** The "Tell us more…" box: at least 90 tall, radius 22, padding 16. */
   note: { minHeight: 90, radius: 22, pad: 16 },
   /** The rate sheet's close (36), thumbs disc (60) and buttons (52). */

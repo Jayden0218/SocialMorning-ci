@@ -151,10 +151,10 @@ describe('F9-2 Wallet purchase rows (wallet--plus)', () => {
 describe('F9-6 Creator (creator--screen, creator--host-proven)', () => {
   beforeEach(() => { mockSubs = ['https://a.test/feed.xml', 'https://b.test/feed.xml']; });
   // Dropped (coordinator decision): Get my code enabled while empty. The drawing's picture shows it lit, its NOTES say "Disabled until the field holds an http(s) address"; the notes win.
-  it('the academy card is a flat raise card (039: was light, bg-text): no opacity on the card', async () => {
+  it('the academy card is flat light: class bg-text, no opacity on the card', async () => {
     const r = await render(createElement(CreatorScreen));
     const link = r.root.findAll((x) => x.props['testID'] === 'creator-academy')[0]!;
-    expect(String(link.props['className'])).toContain('bg-raise');
+    expect(String(link.props['className'])).toContain('bg-text');
     expect(flat(link)['opacity'] ?? 1).toBe(1);
   });
   // 037 D1: was "the foot's whole height AND the title row (>= 160 + 44)"; the title is at the top now, so only the foot's whole height is under the last card.

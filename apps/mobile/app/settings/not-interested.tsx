@@ -6,7 +6,7 @@
  *
  * M31 S-B (T060; design-pulse2 `settings-not-interested--screen`, `--empty`, `--signed-out`, `toast--settings-not-interested`; layout Panel):
  * the hidden items are rows in one group (the kind in mono 11 hot-text caps — SHOW / EPISODE — over the name in Geist 600 15, two lines,
- * and a quiet Restore pill 36 tall at the end) under the heading HIDDEN; the subtitle sits under the title in the bottom bar. Restore
+ * and a quiet Restore pill 36 tall at the end) under the edge label HIDDEN; the subtitle sits under the title in the bottom bar. Restore
  * removes the row at once and dims its pill while it works. Empty is the kit's block ("Nothing hidden" and the hint), signed out is one
  * tile, loading is the kit's ghost. "No more to fetch" closes a long list. Not as drawn: the list is one scroll, not a virtualised
  * list (it holds the few things one listener hid).
@@ -22,9 +22,7 @@ import { PageEmpty } from '@/ui/me/lists';
 import { InfoGhost } from '@/ui/show/InfoGroup';
 import { useToast } from '@/ui/shell/providers';
 import { Section, SettingsPage, Tile, QuietPill } from '@/ui/settings/panel';
-import { SET_TYPE } from '@/ui/settings/measures';
-import { spacing } from '@/design';
-import { player } from '@/design/tokens';
+import { SET, SET_TYPE } from '@/ui/settings/measures';
 
 const SUBTITLE = 'Episodes and shows For You no longer recommends.';
 
@@ -42,7 +40,10 @@ export default function NotInterestedScreen(): React.ReactElement {
   };
   if (items.length === 0) {
     return page(
-      <Section><PageEmpty title="Nothing hidden" line="Nothing hidden. Use ⋯ on a For You row to hide it." top={0} /></Section>,
+      <>
+        <Box style={{ height: SET.emptyTop }} />
+        <Section><PageEmpty title="Nothing hidden" line="Nothing hidden. Use ⋯ on a For You row to hide it." top={0} /></Section>
+      </>,
     );
   }
   return page(
@@ -54,7 +55,7 @@ export default function NotInterestedScreen(): React.ReactElement {
             const kind = item.kind === 'show' ? 'Show' : 'Episode';
             const id = `${item.kind}|${item.itemKey}`;
             return (
-              <Box key={id} testID="hidden-row" className="flex-row items-center" style={{ minHeight: player.panelRow, paddingVertical: spacing.gap, paddingHorizontal: spacing.section, gap: spacing.row }}>
+              <Box key={id} testID="hidden-row" className="flex-row items-center" style={{ minHeight: SET.rowMin, paddingVertical: SET.rowPadY, paddingHorizontal: SET.rowPadX, gap: SET.rowGap }}>
                 <Box className="flex-1" style={{ minWidth: 0 }}>
                   <Type step="tag" className="text-hotText" style={SET_TYPE.kind}>{kind}</Type>
                   <Type step="row" className="text-text" numberOfLines={2}>{name}</Type>

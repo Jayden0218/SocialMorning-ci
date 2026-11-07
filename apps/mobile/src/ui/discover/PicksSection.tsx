@@ -1,7 +1,7 @@
 // Editor's picks on Discover: a deck of cards, each with its note, counts, add-to-queue and Play.
 /**
  * M31 T030 (design-pulse2 `home--fold-a`, "Picks"). The mosaic at the top of the page shows the first
- * pick as its tile; this deck lists every pick under the heading "Picks": cards 270 x 220, a cover
+ * pick as its tile; this deck lists every pick under the edge label "Picks": cards 270 x 220, a cover
  * (64) with the show and the title (Unbounded) in the first row, the owner's note in italics, and at the
  * foot the counts in mono 11 with "+" and Play (38). "Today's picks, with every note ›" under the deck
  * opens /picks/daily; "Past picks →" is in the pick tile (drawn there, not repeated here).
@@ -19,8 +19,7 @@ import { Type } from '@/ui/kit/Type';
 import { spacing } from '@/design';
 import type { DiscoverItem, EpisodeCard } from '@/social/api';
 import type { Face } from '@/discover/explore-api';
-import { DECK, UNBOUNDED, DeckCard, DiscPlay, RingAdd } from './Deck';
-import { DiscoverSection, DiscoverShelf, SectionLink } from './DiscoverLayout';
+import { DECK, UNBOUNDED, Deck, DeckCard, DeckLink, DeckSection, DiscPlay, RingAdd } from './Deck';
 import { shortDate, type Act } from './sections-common';
 
 export { shortDate };
@@ -46,8 +45,8 @@ function Faces(props: { faces: Face[] }): React.ReactElement | null {
 export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: Face[] })[]; date?: string; onPast?: () => void; onQueue: (card: EpisodeCard) => void; /** M21: "Today's picks" page. */ onDaily?: () => void }): React.ReactElement | null {
   if (props.items.length === 0) return null;
   return (
-    <DiscoverSection title={props.date ? `Editor's picks · ${shortDate(props.date)}` : "Editor's picks"}>
-      <DiscoverShelf width={PICK_CARD.width} height={PICK_CARD.height}>
+    <DeckSection label="Picks" spoken={props.date ? `Editor's pick · ${shortDate(props.date)}` : "Editor's pick"}>
+      <Deck width={PICK_CARD.width} height={PICK_CARD.height}>
         {props.items.map((p) => {
           const stats = p.stats ?? props.stats?.[p.episode.id];
           const e = p.episode;
@@ -74,9 +73,8 @@ export function PicksSection(props: Act & { items: (DiscoverItem & { likedBy?: F
             </DeckCard>
           );
         })}
-      </DiscoverShelf>
-      {props.onPast ? <SectionLink label="Past picks" onPress={props.onPast} /> : null}
-      {props.onDaily ? <SectionLink label="Today's picks, with every note" onPress={props.onDaily} /> : null}
-    </DiscoverSection>
+      </Deck>
+      {props.onDaily ? <DeckLink label="Today's picks, with every note" onPress={props.onDaily} /> : null}
+    </DeckSection>
   );
 }

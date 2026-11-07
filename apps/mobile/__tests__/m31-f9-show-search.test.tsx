@@ -93,7 +93,7 @@ describe('F9-11 Show search shows RESULTS', () => {
     const r = await mount();
     press(r, "Search this show's episodes");
     type(r, 'Episode 2');
-    expect(texts(r).has('Results')).toBe(true);
+    expect(texts(r).has('RESULTS')).toBe(true);
     expect(allById(r, 'show-big-tile')).toHaveLength(0);
     const rows = allById(r, 'show-row-tile');
     expect(rows).toHaveLength(1);
@@ -105,8 +105,7 @@ describe('F9-11 Show search shows RESULTS', () => {
     press(r, "Search this show's episodes");
     type(r, 'Episode 2');
     press(r, 'Close search');
-    expect(texts(r).has('Results')).toBe(false);
-    expect(texts(r).has('Episodes')).toBe(true);
-    expect(allById(r, 'show-row-tile')).toHaveLength(4);
+    expect(texts(r).has('RESULTS')).toBe(false);
+    expect(allById(r, 'show-big-tile')).toHaveLength(1);
   });
 });

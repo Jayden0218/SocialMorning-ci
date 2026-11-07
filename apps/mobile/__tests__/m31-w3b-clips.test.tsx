@@ -138,7 +138,7 @@ describe('the clip page (clip--screen)', () => {
     const r = await mount(createElement(ClipScreen));
     expect(mockPlayClip).toHaveBeenCalledWith(mockEpisode, { startMs: 722_000, endMs: 752_000 });
     const t = texts(r);
-    for (const s of ['Clip · 30 s', '12:02 – 12:32', 'Rui', 'Why mornings matter', '“the part I replay every morning”']) expect(t).toContain(s);
+    for (const s of ['CLIP · 30 s', '12:02 – 12:32', 'Rui', 'Why mornings matter', '“the part I replay every morning”']) expect(t).toContain(s);
     expect(byLabel(r, 'by Rui')).toHaveLength(0); // a link, not a button
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'by Rui' && n.props['accessibilityRole'] === 'link').length).toBeGreaterThan(0);
   });
@@ -243,12 +243,13 @@ describe('the clip page (clip--screen)', () => {
     expect(r.root.findAll((n) => n.props['testID'] === 'clip-ring')).toHaveLength(0);
   });
 
-  it('a missing clip is the not-found page with its line; offline says only so', async () => {
+  it('a missing clip is the grey not-found page with its line; offline says only so', async () => {
     const { ApiError } = jest.requireActual('@/social/api') as { ApiError: new (code: string, message: string, status: number) => Error };
     mockGetClipError = new ApiError('not_found', 'nope', 404);
     const r = await mount(createElement(ClipScreen));
     expect(texts(r)).toContain('No such clip.');
     expect(texts(r)).toContain('The link may be wrong, or the clip was deleted.');
+    expect(r.root.findAll((n) => n.props['testID'] === 'page-glow').length).toBeGreaterThan(0);
     act(() => r.unmount()); rendered.pop();
     mockGetClipError = new ApiError('network', 'x', 0);
     const r2 = await mount(createElement(ClipScreen));
@@ -345,6 +346,7 @@ describe('the New clip page (app/clip/new.tsx)', () => {
     const r = await mount(createElement(NewClipScreen));
     expect(texts(r)).toContain('Not in the library');
     expect(texts(r)).toContain('This episode is not in the library.');
+    expect(r.root.findAll((n) => n.props['testID'] === 'page-glow').length).toBeGreaterThan(0);
     expect(byLabel(r, 'Back').length).toBeGreaterThan(0);
     expect(byLabel(r, 'Save')).toHaveLength(0);
   });

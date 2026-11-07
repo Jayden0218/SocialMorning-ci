@@ -2,7 +2,7 @@
 /**
  * M31 W3-B (T041; design-pulse2 `clip--screen`, `arcBox(200, .62, …, { w: 8, track: 'rgba(255,255,255,.18)' })`): the
  * track is white at 18 % (`glassEdge`, 15 %, is the nearest token — decoration, the words beside it carry the time),
- * the played arc runs hot with round caps from 12 o'clock, 8 thick; in the middle a 110 light disc with a void
+ * the played arc runs hot to violet with round caps from 12 o'clock, 8 thick; in the middle a 110 light disc with a void
  * play or pause glyph (40). It follows the clock itself, so the page does not re-render on every tick (guard G-PERF
  * in perf-port.test.tsx). The disc is the page's "Play the clip" button.
  */
@@ -31,7 +31,7 @@ function Arc(props: { fraction: number }): React.ReactElement {
       <Defs>
         <LinearGradient id={id} x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor={colour.hot} />
-          <Stop offset="1" stopColor={colour.hot} />
+          <Stop offset="1" stopColor={colour.violet} />
         </LinearGradient>
       </Defs>
       <Circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={colour.glassEdge} strokeWidth={stroke} />

@@ -10,7 +10,7 @@
  * M24 US1: a long-press on a message from the other person offers Report; a reported message is
  * hidden for me at once (and sent to Admin, which can remove it for both of us).
  *
- * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W4-C (T052; design-pulse2 `social.html#chat-thread--screen`, `--signed-out`, `--cannot-send`, `--error`, `--toast`; layout
+ * M31 W4-C (T052; design-pulse2 `social.html#chat-thread--screen`, `--signed-out`, `--cannot-send`, `--error`, `--toast`; layout
  * pattern Thread): the messages hang from the spine at x 40, 10 under the status bar, in nodes — a raise tick ("Mon", "9:12") marks
  * each gap over 10 minutes (`nodes.ts`); theirs are raise bubbles, yours hot with void words (`MessageBubble`). The thumb zone has
  * the back circle, their avatar (36) and name (Unbounded 22) with "open profile ›" — the whole group opens the profile — then the
@@ -18,39 +18,36 @@
  * a hot "1012 / 1000" count sits above it. When you cannot send, a dashed 56 note replaces the box; signed out, a lock block with a
  * light Sign in; a failed load, the wifi block (the name row stays, so the profile is one tap away); no messages, "Say hello to Ana."
  *
- * Spec 039 (Feed lane, design B): a `FeedPage` — the title row at the TOP holds Back, the person's name (the title is a link: it opens their profile) with
- * "open profile ›" under it, and their avatar (36) after it; the messages are bubbles under a small caps heading for each gap over 10 minutes (no spine, no tick). The composer
- * is unchanged: the foot zone (`BottomZone`) rides above the keyboard with the box, the Send circle, the attached episode and the cannot-send note, and the list leaves room for
- * it. Signed out, a failed load and "Say hello" are the list's body.
- *
  * Not as drawn: the toast sits where the pushed-page toast sits (the drawing lifts it to 176 over the composer; the toast placement
  * in the shell has no entry for this page yet).
  */
 import { reportAndDrop } from '@/telemetry/reportError';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, useWindowDimensions } from 'react-native';
 import { RNFlatList } from '@/ui/lib/flat-list';
 import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { colour, spacing } from '@/design';
+import { colour, gutter } from '@/design';
 import { Avatar } from '@/ui/kit/Avatar';
 import { Fade } from '@/ui/kit/Fade';
 import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
-import { PulseButton } from '@/ui/kit/PulseButton';
+import { goBack } from '@/ui/kit/PageHeader';
+import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { MessageBubble } from '@/ui/chat/MessageBubble';
-import { ErrBlock, SignInBlock } from '@/ui/chat/blocks';
+import { CenterAt, ErrBlock, SignInBlock } from '@/ui/chat/blocks';
 import { CHAT } from '@/ui/chat/measures';
 import { chatNodes, type ChatNode } from '@/ui/chat/nodes';
 import { BottomZone, useZoneBottom } from '@/ui/comments/CommentsBottom';
-import { COMMENTS, ZONE_BOTTOM } from '@/ui/comments/measures';
-import { DayHeading } from '@/ui/notifications/cards';
-import { FeedPage } from '@/ui/feed/FeedPage';
+import { COMMENTS, ZONE_BOTTOM, belowStatus } from '@/ui/comments/measures';
+import { Tick } from '@/ui/comments/Spine';
+import { useInsets } from '@/ui/comments/useInsets';
+import { ThreadNode, ThreadSpine } from '@/ui/me/lists';
 import { useCardActions } from '@/discover/useDiscover';
 import { ApiError } from '@/social/api';
 import { useSocial } from '@/social/context';
@@ -69,6 +66,8 @@ export default function ChatThread(): React.ReactElement {
   const { api, listener } = useSocial();
   const chat = useChatApi();
   const { open, play } = useCardActions();
+  const insets = useInsets();
+  const { width } = useWindowDimensions();
   const list = useRef<RNFlatList<ChatNode>>(null);
   const { safety } = useSafety();
   const [more, setMore] = useState<ChatMessage | undefined>(undefined);
@@ -160,15 +159,50 @@ export default function ChatThread(): React.ReactElement {
   // M24 US1: what I reported stays hidden for me.
   const shown = useMemo(() => messages.filter((m) => m.fromMe || !safety.isHidden('chat_message', m.id)), [messages, safety]);
   const nodes = useMemo(() => chatNodes(shown, new Date(clockMs())), [shown]);
+  const listTop = belowStatus(insets.top, CHAT.spineTop);
+
+  const header = (
+    <Box className="flex-row items-center" style={{ gap: CHAT.headerGap, paddingHorizontal: CHAT.headerPadX }} testID="chat-header">
+      <IconButton icon="chevron-back" label="Back" onPress={goBack} fill />
+      <Pressable
+        onPress={() => router.push({ pathname: '/profile/[id]', params: { id: otherId } })}
+        accessibilityRole="link"
+        accessibilityLabel={`${name}, open profile`}
+        className="flex-1 flex-row items-center"
+        style={{ gap: CHAT.headerGap }}
+      >
+        <Avatar size={CHAT.headerAvatar} url={who?.avatarUrl} name={name} />
+        <Box className="flex-1 min-w-0">
+          <Type step="heading" className="text-text font-extrabold" numberOfLines={1}>{name}</Type>
+          <Type step="tag" className="text-text3" numberOfLines={1}>open profile ›</Type>
+        </Box>
+      </Pressable>
+    </Box>
+  );
 
   // 035 B2: the foot zone rides above the keyboard itself (BottomZone, src/ui/comments/CommentsBottom.tsx).
   const zoneOf = (composer: React.ReactNode) => (
     <BottomZone bottom={ZONE_BOTTOM}>
       <Box style={{ gap: COMMENTS.zoneGap }} onLayout={(e) => setZone(e.nativeEvent.layout.height + ZONE_BOTTOM)}>
+        {header}
         {composer}
       </Box>
     </BottomZone>
   );
+
+  if (!listener) {
+    return (
+      <Box className="flex-1 bg-void">
+        <CenterAt top={260}>
+          <SignInBlock line="Sign in to chat.">
+            <PulseButton label="Sign in" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')} full />
+          </SignInBlock>
+        </CenterAt>
+        <Fade bottom={0} height={300} />
+        {zoneOf(null)}
+      </Box>
+    );
+  }
 
   const composer = canSend ? (
     <Box style={{ gap: CHAT.composerGap }} testID="chat-composer">
@@ -215,56 +249,47 @@ export default function ChatThread(): React.ReactElement {
     </Box>
   );
 
-  const empty = !listener ? (
-    <SignInBlock line="Sign in to chat.">
-      <PulseButton label="Sign in" accessibilityLabel="Sign in" onPress={() => router.push('/auth/sign-in')} full />
-    </SignInBlock>
-  ) : !loaded ? <Loader />
-    : error ? <ErrBlock line={error} />
-      : <Type step="lede" className="text-text text-center">{`Say hello to ${name}.`}</Type>;
-  const openProfile = () => router.push({ pathname: '/profile/[id]', params: { id: otherId } });
-  const hasZone = listener !== undefined && !(error && nodes.length === 0);
-
   return (
     <KeyboardAvoidingView className="flex-1 bg-void" {...(Platform.OS === 'ios' ? {} : { behavior: 'height' as const })}>
-      <FeedPage<ChatNode>
-        now={false}
-        title={name}
-        titleLabel={`${name}, open profile`}
-        onTitle={openProfile}
-        subtitle="open profile ›"
-        trailing={
-          <Pressable onPress={openProfile} accessible={false} importantForAccessibility="no" accessibilityLabel={`${name}, profile picture`}>
-            <Avatar size={CHAT.headerAvatar} url={who?.avatarUrl} name={name} />
-          </Pressable>
-        }
-        scrollRef={list}
-        data={listener ? nodes : []}
-        keyExtractor={(n) => n.key}
-        footExtra={hasZone ? zone + zoneLift + COMMENTS.nodeGap : 0}
-        gap={spacing.row}
-        keyboardShouldPersistTaps="handled"
-        onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
-        contentStyle={{ flexGrow: 1 }}
-        ListEmptyComponent={<Box className="items-center">{empty}</Box>}
-        renderItem={({ item: node }) => (
-          <Box testID="chat-node" style={{ gap: spacing.row }}>
-            <DayHeading label={node.tick} />
-            <Box style={{ gap: CHAT.bubbleGap }}>
-              {node.messages.map((item) => (item.fromMe
-                ? <MessageBubble key={item.id} message={item} showRead={item.id === lastMine} onOpenEpisode={(e) => void open(e)} onPlayEpisode={(e) => void play(e)} />
-                : (
-                  <Pressable key={item.id} onLongPress={() => setMore(item)} delayLongPress={350} accessibilityLabel={`Message from ${name}: ${item.body || 'an episode'}`} accessibilityHint="Long-press for Report" accessibilityActions={[{ name: 'longpress', label: 'Report' }]} onAccessibilityAction={() => setMore(item)}>
-                    <MessageBubble message={item} showRead={false} onOpenEpisode={(e) => void open(e)} onPlayEpisode={(e) => void play(e)} />
-                  </Pressable>
-                ))
+      {nodes.length > 0 ? (
+        <>
+          <ThreadSpine top={listTop} />
+          <Box className="absolute left-0 right-0 bottom-0" style={{ top: listTop }} testID="chat-thread">
+            <RNFlatList
+              ref={list}
+              className="flex-1"
+              data={nodes}
+              keyExtractor={(n) => n.key}
+              contentContainerStyle={{ paddingTop: COMMENTS.listTop, paddingLeft: COMMENTS.listLeft, paddingRight: gutter(width), paddingBottom: zone + zoneLift + COMMENTS.nodeGap }}
+              ItemSeparatorComponent={() => <Box style={{ height: COMMENTS.nodeGap }} />}
+              keyboardShouldPersistTaps="handled"
+              onContentSizeChange={() => list.current?.scrollToEnd({ animated: false })}
+              renderItem={({ item: node }) => (
+                <ThreadNode lead={<Tick text={node.tick} />}>
+                  <Box style={{ gap: CHAT.bubbleGap }}>
+                    {node.messages.map((item) => (item.fromMe
+                      ? <MessageBubble key={item.id} message={item} showRead={item.id === lastMine} onOpenEpisode={(e) => void open(e)} onPlayEpisode={(e) => void play(e)} />
+                      : (
+                        <Pressable key={item.id} onLongPress={() => setMore(item)} delayLongPress={350} accessibilityLabel={`Message from ${name}: ${item.body || 'an episode'}`} accessibilityHint="Long-press for Report" accessibilityActions={[{ name: 'longpress', label: 'Report' }]} onAccessibilityAction={() => setMore(item)}>
+                          <MessageBubble message={item} showRead={false} onOpenEpisode={(e) => void open(e)} onPlayEpisode={(e) => void play(e)} />
+                        </Pressable>
+                      ))
+                    )}
+                  </Box>
+                </ThreadNode>
               )}
-            </Box>
+            />
           </Box>
-        )}
-      />
+        </>
+      ) : !loaded ? (
+        <CenterAt top={280}><Loader /></CenterAt>
+      ) : error ? (
+        <CenterAt top={280}><ErrBlock line={error} /></CenterAt>
+      ) : (
+        <CenterAt top={280}><Type step="lede" className="text-text text-center">{`Say hello to ${name}.`}</Type></CenterAt>
+      )}
       <Fade bottom={0} height={300} />
-      {hasZone ? zoneOf(composer) : null}
+      {zoneOf(error && nodes.length === 0 ? null : composer)}
       <MoreSheet
         open={more !== undefined}
         title={more ? `Message from ${name}` : ''}

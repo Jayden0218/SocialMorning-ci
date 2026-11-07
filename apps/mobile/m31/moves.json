@@ -318,14 +318,14 @@
    "file": "apps/mobile/src/ui/discover/sections.tsx",
    "name": "c.label",
    "destination": "c.onPress",
-   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — 039 verifier fix: the Discover mosaic is gone, the shortcut is a Browse tile (BrowseTile in a TileGrid)",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
    "now": {
-    "file": "apps/mobile/src/ui/discover/DiscoverPage.tsx",
-    "name": "t.label",
-    "destination": "t.onPress"
+    "file": "apps/mobile/src/ui/discover/DiscoverMosaic.tsx",
+    "name": "c.label",
+    "destination": "c.onPress"
    },
    "via": [
-    "apps/mobile/src/ui/discover/DiscoverPage.tsx"
+    "apps/mobile/src/ui/discover/DiscoverMosaic.tsx"
    ]
   },
   {
@@ -347,14 +347,14 @@
    "file": "apps/mobile/src/ui/discover/sections.tsx",
    "name": "Past picks",
    "destination": "props.onPast",
-   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now DiscoverMosaic.tsx \"Past picks\"; 039 verifier fix: the mosaic is gone, \"Past picks\" is the picks section's SectionLink",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file — T030 (lane W2-A, design-pulse2 home--fold-a): redrawn as a deck; now DiscoverMosaic.tsx \"Past picks\"",
    "now": {
-    "file": "apps/mobile/src/ui/discover/DiscoverLayout.tsx",
-    "name": "props.accessibilityLabel ?? props.label",
-    "destination": "props.onPress"
+    "file": "apps/mobile/src/ui/discover/DiscoverMosaic.tsx",
+    "name": "Past picks",
+    "destination": "actions.onPast"
    },
    "via": [
-    "apps/mobile/src/ui/discover/DiscoverLayout.tsx"
+    "apps/mobile/src/ui/discover/DiscoverMosaic.tsx"
    ],
    "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
   },
@@ -392,31 +392,31 @@
    "file": "apps/mobile/src/ui/discover/sections.tsx",
    "name": "Today's picks, with every note",
    "destination": "props.onDaily",
-   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file 039 (Page/Section layout): now a SectionLink in PicksSection",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
    "now": {
-    "file": "apps/mobile/src/ui/discover/DiscoverLayout.tsx",
-    "name": "props.accessibilityLabel ?? props.label",
-    "destination": "props.onPress"
+    "file": "apps/mobile/src/ui/discover/PicksSection.tsx",
+    "name": "Today's picks, with every note",
+    "destination": "props.onDaily"
    },
    "via": [
-    "apps/mobile/src/ui/discover/DiscoverLayout.tsx"
+    "apps/mobile/src/ui/discover/PicksSection.tsx"
    ],
-   "passesFile": "apps/mobile/src/ui/discover/PicksSection.tsx"
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
   },
   {
    "file": "apps/mobile/src/ui/discover/sections.tsx",
    "name": "Full chart",
    "destination": "props.onFull",
-   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file 039 (Page/Section layout): \"Full chart ›\" became the Charts heading's \"See all\" link (same /chart)",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
    "now": {
-    "file": "apps/mobile/src/ui/kit/layout/Section.tsx",
-    "name": "See all ${props.title}",
-    "destination": "props.onSeeAll"
+    "file": "apps/mobile/src/ui/discover/ChartSection.tsx",
+    "name": "Full chart",
+    "destination": "props.onFull"
    },
    "via": [
-    "apps/mobile/src/ui/kit/layout/Section.tsx"
+    "apps/mobile/src/ui/discover/ChartSection.tsx"
    ],
-   "passesFile": "apps/mobile/src/ui/discover/ChartSection.tsx"
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
   },
   {
    "file": "apps/mobile/src/ui/discover/sections.tsx",
@@ -527,16 +527,16 @@
    "file": "apps/mobile/src/ui/discover/sections.tsx",
    "name": "Explore more categories",
    "destination": "props.onPress",
-   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file 039 (Page/Section layout): now a SectionLink in CategorySections",
+   "reason": "T025 split of src/ui/discover/sections.tsx into one file per section (review D7, tasks.md T025): the same element with the same name and destination, now in its own file",
    "now": {
-    "file": "apps/mobile/src/ui/discover/DiscoverLayout.tsx",
-    "name": "props.accessibilityLabel ?? props.label",
+    "file": "apps/mobile/src/ui/discover/CategorySections.tsx",
+    "name": "Explore more categories",
     "destination": "props.onPress"
    },
    "via": [
-    "apps/mobile/src/ui/discover/DiscoverLayout.tsx"
+    "apps/mobile/src/ui/discover/CategorySections.tsx"
    ],
-   "passesFile": "apps/mobile/src/ui/discover/CategorySections.tsx"
+   "passesFile": "apps/mobile/src/ui/discover/DiscoverPage.tsx"
   },
   {
    "file": "apps/mobile/src/ui/discover/sections.tsx",
@@ -659,10 +659,10 @@
    "file": "apps/mobile/app/(tabs)/me.tsx",
    "name": "{listener.displayName}",
    "destination": "dynamic",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile) 039 (Page/Section layout): \"View profile\" is the button under your name, same destination (your profile)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile)",
    "now": {
     "file": "apps/mobile/app/(tabs)/me.tsx",
-    "name": "View profile",
+    "name": "${listener.displayName}, open your profile",
     "destination": "openProfile"
    }
   },
@@ -670,10 +670,10 @@
    "file": "apps/mobile/app/(tabs)/me.tsx",
    "name": "${listener.displayName}, open your profile",
    "destination": "dynamic",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile) 039 (Page/Section layout): \"View profile\" is the button under your name, same destination (your profile)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile)",
    "now": {
     "file": "apps/mobile/app/(tabs)/me.tsx",
-    "name": "View profile",
+    "name": "${listener.displayName}, open your profile",
     "destination": "openProfile"
    }
   },
@@ -681,10 +681,10 @@
    "file": "apps/mobile/app/(tabs)/me.tsx",
    "name": "My profile ›",
    "destination": "/profile/${listener.listenerId}",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile) 039 (Page/Section layout): \"View profile\" is the button under your name, same destination (your profile)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile)",
    "now": {
     "file": "apps/mobile/app/(tabs)/me.tsx",
-    "name": "View profile",
+    "name": "My profile ›",
     "destination": "openProfile"
    }
   },
@@ -692,10 +692,10 @@
    "file": "apps/mobile/app/(tabs)/me.tsx",
    "name": "My profile",
    "destination": "dynamic",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile) 039 (Page/Section layout): \"View profile\" is the button under your name, same destination (your profile)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--screen action map \"Name, open your profile · My profile: Title bar name and subtitle\" — your name and \"My profile ›\" moved from the page body into the bottom title bar (same destination: your profile)",
    "now": {
     "file": "apps/mobile/app/(tabs)/me.tsx",
-    "name": "View profile",
+    "name": "My profile ›",
     "destination": "openProfile"
    }
   },
@@ -703,7 +703,7 @@
    "file": "apps/mobile/app/(tabs)/me.tsx",
    "name": "Sign in ›",
    "destination": "/auth/sign-in",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--signed-out action map \"Sign in: Title bar\" — \"Sign in ›\" is the title bar's title in place of the name (same destination: /auth/sign-in) 039 (Page/Section layout): \"Sign in\" is the page title with a \"Sign in\" button under it (Link to /auth/sign-in)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--signed-out action map \"Sign in: Title bar\" — \"Sign in ›\" is the title bar's title in place of the name (same destination: /auth/sign-in)",
    "now": {
     "file": "apps/mobile/app/(tabs)/me.tsx",
     "name": "Sign in",
@@ -714,7 +714,7 @@
    "file": "apps/mobile/app/(tabs)/me.tsx",
    "name": "Sign in",
    "destination": "dynamic",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--signed-out action map \"Sign in: Title bar\" — \"Sign in ›\" is the title bar's title in place of the name (same destination: /auth/sign-in) 039 (Page/Section layout): \"Sign in\" is the page title with a \"Sign in\" button under it (Link to /auth/sign-in)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): me--signed-out action map \"Sign in: Title bar\" — \"Sign in ›\" is the title bar's title in place of the name (same destination: /auth/sign-in)",
    "now": {
     "file": "apps/mobile/app/(tabs)/me.tsx",
     "name": "Sign in",
@@ -843,7 +843,7 @@
    "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
    "name": "Play from ${mmss(c.offsetMs)}",
    "destination": "props.onSeek",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"Play from m:ss: Timestamp on the spine\" — the moment chip left the card for the spine node (SpineNode → TimestampChip, \"Play from m:ss\"); 039: the spine is gone, the comments page passes the chip seek(momentMs) directly",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): comments--screen action map \"Play from m:ss: Timestamp on the spine\" — the moment chip left the card for the spine node (SpineNode → TimestampChip, \"Play from m:ss\")",
    "now": {
     "file": "apps/mobile/src/ui/kit/TimestampChip.tsx",
     "name": "props.accessibilityLabel ?? `Play from ${props.text}`",
@@ -852,8 +852,8 @@
    "via": [
     "apps/mobile/src/ui/kit/TimestampChip.tsx"
    ],
-   "passesFile": "apps/mobile/app/comments/[episodeId].tsx",
-   "handlerHas": "seek("
+   "passesFile": "apps/mobile/src/ui/comments/Spine.tsx",
+   "handlerHas": "props.onSeek"
   },
   {
    "file": "apps/mobile/src/ui/comments/CommentRow.tsx",
@@ -2334,15 +2334,12 @@
    "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
    "name": "Close",
    "destination": "close",
-   "reason": "039: the Close circle left AuthShell for the Form frame: app/auth/email.tsx hands `<FormPage backLabel=\"Close\" onBack={closeEmail}>` (same name, same handler: leave the sign-in page); earlier: approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html auth-email--screen action map \"Close (AuthShell): Bottom title bar, ✕ circle\" — the ✕ left the page's top for the title bar's back circle (same name \"Close\", same handler: leave the sign-in page)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): settings.html auth-email--screen action map \"Close (AuthShell): Bottom title bar, ✕ circle\" — the ✕ left the page's top for the title bar's back circle (same name \"Close\", same handler: leave the sign-in page)",
    "now": {
-    "file": "apps/mobile/app/auth/email.tsx",
+    "file": "apps/mobile/src/ui/auth/AuthShell.tsx",
     "name": "Close",
-    "destination": "closeEmail"
-   },
-   "via": [
-    "apps/mobile/app/auth/email.tsx"
-   ]
+    "destination": "close"
+   }
   },
   {
    "file": "apps/mobile/src/ui/shell/LegalDoc.tsx",
@@ -2401,16 +2398,15 @@
    "file": "apps/mobile/app/chart.tsx",
    "name": "Retry",
    "destination": "load",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html chart--error action map \"Retry: Button in the tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile; its onRetry is the page's load) | 039 (Detail template): now the InlineNotice's button (was the RetryTile's)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html chart--error action map \"Retry: Button in the tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile; its onRetry is the page's load)",
    "now": {
-    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
-    "name": "props.actionLabel",
-    "destination": "props.onAction"
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
    },
    "via": [
-    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
-   ],
-   "passesFile": "apps/mobile/app/chart.tsx"
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
   },
   {
    "file": "apps/mobile/app/chart.tsx",
@@ -2452,16 +2448,15 @@
    "file": "apps/mobile/app/issue/[id].tsx",
    "name": "Retry",
    "destination": "load",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html issue--screen action map \"Retry: Error tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile) | 039 (Detail template): now the InlineNotice's button (was the RetryTile's)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html issue--screen action map \"Retry: Error tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile)",
    "now": {
-    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
-    "name": "props.actionLabel",
-    "destination": "props.onAction"
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
    },
    "via": [
-    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
-   ],
-   "passesFile": "apps/mobile/app/issue/[id].tsx"
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
   },
   {
    "file": "apps/mobile/app/issues.tsx",
@@ -2545,16 +2540,15 @@
    "file": "apps/mobile/app/report/[month].tsx",
    "name": "Retry",
    "destination": "dynamic",
-   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html report--error action map \"Retry: Tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile) | 039 (Detail template): now the InlineNotice's button (was the RetryTile's)",
+   "reason": "approved in design-pulse2 (owner 2026-10-27, \"yes all\"): discover.html report--error action map \"Retry: Tile\" — Retry is the quiet pill in the shared error tile (Mosaic.tsx RetryTile)",
    "now": {
-    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
-    "name": "props.actionLabel",
-    "destination": "props.onAction"
+    "file": "apps/mobile/src/ui/discover/Mosaic.tsx",
+    "name": "Retry",
+    "destination": "props.onRetry"
    },
    "via": [
-    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
-   ],
-   "passesFile": "apps/mobile/app/report/[month].tsx"
+    "apps/mobile/src/ui/discover/Mosaic.tsx"
+   ]
   },
   {
    "file": "apps/mobile/app/report/[month].tsx",
@@ -3026,247 +3020,6 @@
     "name": "Your status text",
     "destination": "setBody"
    }
-  },
-  {
-   "file": "apps/mobile/app/(tabs)/me.tsx",
-   "name": "SocialNet PLUS: see what it adds. Listening stays free",
-   "destination": "dynamic",
-   "reason": "039 (Page/Section layout, D2: behaviour and destinations stay): the PLUS pill (spoken name unchanged in MePill) is the \"SocialNet PLUS\" link to /wallet",
-   "now": {
-    "file": "apps/mobile/app/(tabs)/me.tsx",
-    "name": "SocialNet PLUS",
-    "destination": "/wallet"
-   }
-  },
-  {
-   "file": "apps/mobile/app/(tabs)/me.tsx",
-   "name": "Saved moments, ${counts.moments}. Save a moment while listening and add a note",
-   "destination": "dynamic",
-   "reason": "039 (Page/Section layout, D2: behaviour and destinations stay): the Saved moments tile (spoken name unchanged in MeTile) is the \"Saved moments\" link to /moments",
-   "now": {
-    "file": "apps/mobile/app/(tabs)/me.tsx",
-    "name": "Saved moments",
-    "destination": "/moments"
-   }
-  },
-  {
-   "file": "apps/mobile/app/(tabs)/me.tsx",
-   "name": "{`Your ${monthName(lastMonth(new Date()))}`}",
-   "destination": "dynamic",
-   "reason": "039 (Page/Section layout, D2: behaviour and destinations stay): the month pill is the same link, now built from `month` held in state",
-   "now": {
-    "file": "apps/mobile/app/(tabs)/me.tsx",
-    "name": "Your ${monthName(month)}: your month in listening",
-    "destination": "dynamic"
-   }
-  },
-  {
-   "file": "apps/mobile/app/(tabs)/me.tsx",
-   "name": "Your ${monthName(lastMonth(new Date()))}: your month in listening",
-   "destination": "dynamic",
-   "reason": "039 (Page/Section layout, D2: behaviour and destinations stay): the month pill is the same link, now built from `month` held in state",
-   "now": {
-    "file": "apps/mobile/app/(tabs)/me.tsx",
-    "name": "Your ${monthName(month)}: your month in listening",
-    "destination": "dynamic"
-   }
-  },
-  {
-   "file": "apps/mobile/app/notifications.tsx",
-   "name": "{n.actor.name}",
-   "destination": "dynamic",
-   "reason": "039 (Page/Section layout, D2: behaviour and destinations stay): an interaction is one card (NoticeItemCard) that opens its target",
-   "now": {
-    "file": "apps/mobile/src/ui/notifications/cards.tsx",
-    "name": "props.label",
-    "destination": "props.onOpen"
-   },
-   "via": [
-    "apps/mobile/src/ui/notifications/cards.tsx"
-   ],
-   "passesFile": "apps/mobile/app/notifications.tsx"
-  },
-  {
-   "file": "apps/mobile/app/notifications.tsx",
-   "name": "More for ${what}",
-   "destination": "dynamic",
-   "reason": "039 (Page/Section layout, D2: behaviour and destinations stay): the card's ⋯ (Mute this) is NoticeItemCard's more button",
-   "now": {
-    "file": "apps/mobile/src/ui/notifications/cards.tsx",
-    "name": "props.moreLabel",
-    "destination": "props.onMore"
-   },
-   "via": [
-    "apps/mobile/src/ui/notifications/cards.tsx"
-   ],
-   "passesFile": "apps/mobile/app/notifications.tsx"
-  },
-  {
-   "file": "apps/mobile/app/notifications.tsx",
-   "name": "Retry",
-   "destination": "dynamic",
-   "reason": "039 (Page/Section layout, D2: behaviour and destinations stay): Retry on a failed load is the InlineNotice's button",
-   "now": {
-    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
-    "name": "props.actionLabel",
-    "destination": "props.onAction"
-   },
-   "via": [
-    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
-   ],
-   "passesFile": "apps/mobile/app/notifications.tsx"
-  },
-  {
-   "file": "apps/mobile/src/ui/discover/RecFeedback.tsx",
-   "name": "Not liking these? Tell us why",
-   "destination": "/onboarding/not-liking",
-   "reason": "039 (Page/Section layout, D2: behaviour and destinations stay): the link is a SectionLink (same words and spoken name, same destination)",
-   "now": {
-    "file": "apps/mobile/src/ui/discover/DiscoverLayout.tsx",
-    "name": "props.accessibilityLabel ?? props.label",
-    "destination": "props.onPress"
-   },
-   "via": [
-    "apps/mobile/src/ui/discover/DiscoverLayout.tsx"
-   ],
-   "passesFile": "apps/mobile/src/ui/discover/RecFeedback.tsx"
-  },
-  {
-   "file": "apps/mobile/app/me/listening.tsx",
-   "name": "Retry",
-   "destination": "dynamic",
-   "reason": "039 (Detail template, D2: behaviour and destinations stay): Retry on a failed load is the InlineNotice's button (was the error tile's Retry)",
-   "now": {
-    "file": "apps/mobile/src/ui/kit/layout/InlineNotice.tsx",
-    "name": "props.actionLabel",
-    "destination": "props.onAction"
-   },
-   "via": [
-    "apps/mobile/src/ui/kit/layout/InlineNotice.tsx"
-   ],
-   "passesFile": "apps/mobile/app/me/listening.tsx"
-  },
-  {
-   "file": "apps/mobile/app/chat/[id].tsx",
-   "name": "${name}, open profile",
-   "destination": "/profile/[id]",
-   "reason": "039: the thread's title row is `<FeedPage titleLabel=\"${name}, open profile\" onTitle={openProfile}>`; the same tap opens the same profile, now through the named handler openProfile (it was an inline router.push)",
-   "now": {
-    "file": "apps/mobile/app/chat/[id].tsx",
-    "name": "${name}, open profile",
-    "destination": "openProfile"
-   }
-  },
-  {
-   "file": "apps/mobile/app/creator.tsx",
-   "name": "Creator academy",
-   "destination": "/academy",
-   "reason": "039: the academy card is read out in full now (\"Creator academy: how claiming, numbers, comments, clips and the Studio work\"); the Link still goes to /academy",
-   "now": {
-    "file": "apps/mobile/app/creator.tsx",
-    "name": "",
-    "destination": "/academy"
-   }
-  },
-  {
-   "file": "apps/mobile/src/ui/settings/rows.tsx",
-   "name": "",
-   "destination": "props.href as never",
-   "reason": "039: src/ui/settings/rows.tsx was retired (no page imports it since the List lane); the link row is LinkRow in the SettingsPage family (src/ui/settings/panel.tsx)",
-   "now": {
-    "file": "apps/mobile/src/ui/settings/panel.tsx",
-    "name": "",
-    "destination": "props.href as never"
-   },
-   "via": [
-    "apps/mobile/src/ui/settings/panel.tsx"
-   ]
-  },
-  {
-   "file": "apps/mobile/src/ui/settings/rows.tsx",
-   "name": "spoken",
-   "destination": "dynamic",
-   "reason": "039: src/ui/settings/rows.tsx was retired (no page imports it since the List lane); the link row is LinkRow in the SettingsPage family (src/ui/settings/panel.tsx)",
-   "now": {
-    "file": "apps/mobile/src/ui/settings/panel.tsx",
-    "name": "spoken",
-    "destination": "dynamic"
-   },
-   "via": [
-    "apps/mobile/src/ui/settings/panel.tsx"
-   ]
-  },
-  {
-   "file": "apps/mobile/src/ui/settings/rows.tsx",
-   "name": "props.label",
-   "destination": "dynamic",
-   "reason": "039: src/ui/settings/rows.tsx was retired (no page imports it since the List lane); the switch row is SwitchRow in the SettingsPage family (src/ui/settings/panel.tsx)",
-   "now": {
-    "file": "apps/mobile/src/ui/settings/panel.tsx",
-    "name": "props.label",
-    "destination": "dynamic"
-   },
-   "via": [
-    "apps/mobile/src/ui/settings/panel.tsx"
-   ]
-  },
-  {
-   "file": "apps/mobile/src/ui/settings/rows.tsx",
-   "name": "spoken",
-   "destination": "props.onPress",
-   "reason": "039: src/ui/settings/rows.tsx was retired (no page imports it since the List lane); the pressable row is SetRow in the SettingsPage family (src/ui/settings/hub-parts.tsx)",
-   "now": {
-    "file": "apps/mobile/src/ui/settings/hub-parts.tsx",
-    "name": "label",
-    "destination": "dynamic"
-   },
-   "via": [
-    "apps/mobile/src/ui/settings/hub-parts.tsx"
-   ]
-  },
-  {
-   "file": "apps/mobile/src/ui/social/NoticeCards.tsx",
-   "name": "${props.title}. ${props.line}",
-   "destination": "props.onPress",
-   "reason": "039 verifier fix (NoticeEntries deleted: no page drew its two 1 x 1 tiles; Notifications has them as the System and Hosts chips of NoticeChips): the same link, now a chip",
-   "now": {
-    "file": "apps/mobile/src/ui/notifications/cards.tsx",
-    "name": "props.label",
-    "destination": "props.onPress"
-   },
-   "via": [
-    "apps/mobile/src/ui/notifications/cards.tsx"
-   ]
-  },
-  {
-   "file": "apps/mobile/src/ui/social/NoticeCards.tsx",
-   "name": "System",
-   "destination": "props.onOpen",
-   "reason": "039 verifier fix (NoticeEntries deleted): System opens /notifications/system from the System chip of NoticeChips",
-   "now": {
-    "file": "apps/mobile/src/ui/notifications/cards.tsx",
-    "name": "System. Messages from SocialNet",
-    "destination": "props.onOpen"
-   },
-   "via": [
-    "apps/mobile/src/ui/notifications/cards.tsx"
-   ],
-   "passesFile": "apps/mobile/app/notifications.tsx"
-  },
-  {
-   "file": "apps/mobile/src/ui/social/NoticeCards.tsx",
-   "name": "From hosts",
-   "destination": "props.onOpen",
-   "reason": "039 verifier fix (NoticeEntries deleted): From hosts opens /notifications/hosts from the Hosts chip of NoticeChips",
-   "now": {
-    "file": "apps/mobile/src/ui/notifications/cards.tsx",
-    "name": "From hosts. Shows you follow",
-    "destination": "props.onOpen"
-   },
-   "via": [
-    "apps/mobile/src/ui/notifications/cards.tsx"
-   ],
-   "passesFile": "apps/mobile/app/notifications.tsx"
   }
  ]
 }

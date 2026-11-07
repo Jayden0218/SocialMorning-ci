@@ -10,7 +10,8 @@
  *    block under the System / From hosts tiles; two drawings disagree, so no test (the coordinator can pick; "Retry" is already the spoken name there).
  */
 import { createElement } from 'react';
-import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { StyleSheet } from 'react-native';
+import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 let mockIssues: () => Promise<unknown> = () => Promise.resolve([]);
@@ -37,6 +38,7 @@ async function render(): Promise<ReactTestRenderer> {
   mounted.push(r);
   return r;
 }
+const flat = (n: ReactTestInstance | undefined): Record<string, unknown> => (StyleSheet.flatten(n?.props['style'] as never) ?? {}) as Record<string, unknown>;
 const say = (n: unknown): string => {
   if (n === null || n === undefined || typeof n === 'boolean') return '';
   if (typeof n === 'string' || typeof n === 'number') return String(n);
@@ -46,21 +48,21 @@ const say = (n: unknown): string => {
 
 describe('F9-3 Issues, load failed (states--error-page)', () => {
   beforeEach(() => { mockIssues = () => Promise.reject(new Error('offline')); });
-  // 039 (Feed lane): was the whole-page error (a 72 "!" tile, the sentence in Unbounded 20, a light Retry pill in the foot); design B's error is an InlineNotice
-  // (the sentence in the body step, a Retry button) at the top of the list.
-  it('the sentence is the page\'s own, in an InlineNotice', async () => {
+  it('the sentence is the page\'s own, in Unbounded 20 (heading, 038 D3: was 24), beside a 72 "!" tile', async () => {
     const r = await render();
-    const notice = r.root.findAll((x) => x.props['testID'] === 'inline-notice' && typeof x.type === 'string');
-    expect(notice).toHaveLength(1);
     const sentence = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === "Couldn't load the issues right now.")[0];
     expect(sentence).toBeDefined();
+    expect(flat(sentence)['fontSize']).toBe(20);
+    expect(r.root.findAll((x) => typeof x.type === 'string' && flat(x)['width'] === 72 && flat(x)['height'] === 72)).not.toHaveLength(0);
+    expect(r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === '!')).not.toHaveLength(0);
   });
-  it('Retry is a button in the notice, and it asks again', async () => {
+  it('Retry is the light pill in the foot (a button with the kit\'s light fill), and it asks again', async () => {
     const calls: number[] = [];
     mockIssues = () => { calls.push(1); return Promise.reject(new Error('offline')); };
     const r = await render();
     const retry = r.root.findAll((x) => x.props['accessibilityLabel'] === 'Retry' && x.props['accessibilityRole'] === 'button' && typeof x.props['onPress'] === 'function')[0];
     expect(retry).toBeDefined();
+    expect(String(retry!.props['className'])).toContain('bg-text');
     const before = calls.length;
     await act(async () => { retry!.props['onPress'](); for (let i = 0; i < 6; i++) await Promise.resolve(); });
     expect(calls.length).toBe(before + 1);

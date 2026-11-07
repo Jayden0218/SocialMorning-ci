@@ -70,8 +70,7 @@ import { useReducedMotion } from '@/ui/kit/useReducedMotion';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { runOnJS } from 'react-native-reanimated';
 import { GestureDetector, usePanGesture } from 'react-native-gesture-handler';
-import { Page } from '@/ui/kit/layout';
-import { IconButton } from '@/ui/kit/PulseButton';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
 import { Fade } from '@/ui/kit/Fade';
 import { spacing } from '@/design';
@@ -112,10 +111,9 @@ const TYPED_SHOWS = 4;
  */
 const ZONE_REST = 6;
 const ZONE_OVER_KEYBOARD = 8;
-/** A result page starts 14 under the status bar (the drawing's `scroll(…, 64)` against 58); the title row of `Page` sits above it now. */
+/** The content starts 8 under the status bar; on a result page 14 (the drawing's `scroll(…, 64)` against 58). */
+const BODY_TOP = 8;
 const RESULTS_TOP = 14;
-/** Keep a tap on a result working while the keyboard is up, and drag down to dismiss it (as the ScrollView did before `Page`; its `scroll` type does not list them yet: coordinator). */
-const KEEP_TAPS = { keyboardShouldPersistTaps: 'handled', keyboardDismissMode: 'on-drag' } as const;
 /** The fade behind the zone: 240 tall at rest; over the keyboard 160 tall, standing on it. */
 const FADE_REST = 240;
 const FADE_KEYBOARD = 160;
@@ -385,11 +383,10 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
           detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
           list={
             <GestureDetector gesture={tabSwipe}>
-              <Page
-                title="Search"
-                leading={<IconButton icon="chevron-back" label="Back" onPress={leave} fill size={22} />}
-                footExtra={zoneHeight + zoneBottom + spacing.section}
-                scroll={KEEP_TAPS}
+              <ScrollView
+                contentContainerStyle={{ paddingTop: statusBar + (results ? RESULTS_TOP : BODY_TOP), paddingBottom: zoneHeight + zoneBottom + spacing.section }}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
               >
                 {trimmed === '' ? (
                   <SearchHome
@@ -408,7 +405,7 @@ export function SearchPage(props: SearchPageProps): React.ReactElement {
                 {results && !looksLikeFeedUrl(trimmed)
                   ? (tab === 'moments' ? <WithMoments term={submitted}>{resultsFor}</WithMoments> : resultsFor(NO_MOMENTS))
                   : null}
-              </Page>
+              </ScrollView>
             </GestureDetector>
           }
         />

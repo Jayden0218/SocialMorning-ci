@@ -4,7 +4,7 @@
  *  - T030 no `Icon` is given a colour that animates, so keying the drawing by colour never remounts per frame: a source scan of every `<Icon ... color={...}>` for
  *    animation helpers (`interpolate`, `mixColour`, `Animated`, shared values). Break: put `color={mixColour(a, b, t)}` on an Icon in any file;
  *  - T031 the title bar and the status reply bar each lift ONCE by the reported keyboard height (300, strip 34: bar at 300 - 34 + 8 = 274, not 548), also with a
- *    `FormPage` around the bar (039: was `PushedPage`), and `barLift` is `liftedBottom` (one owner). Break: add the keyboard twice in `barLift` or `FormFrame`;
+ *    `PushedPage` around the bar, and `barLift` is `liftedBottom` (one owner). Break: add the keyboard twice in `barLift` or `usePushedLayout`;
  *  - T032 the chat list leaves room for the raised foot zone (padding grows by the lift). Break: take the lift off the list's `paddingBottom`;
  *  - T033 `search` keeps its 25 s limit when a client sets a shorter `timeoutMs`. Break: `deps.timeoutMs ?? SEARCH_TIMEOUT_MS` again;
  *  - T034 the rate sheet never asks again sooner than RATE_SPACING_DAYS (30), whatever the admin's `reaskAfterDays` (FR-017; 036 D6 moved the m25-config pin to 45 days).
@@ -51,7 +51,8 @@ jest.mock('@/ui/kit/haptics', () => ({ tick: () => undefined }));
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn(() => ({ width: 390, height: 844, scale: 3, fontScale: 1 })) }));
 
 import ChatThread from '../app/chat/[id]';
-import { FormPage } from '@/ui/form/FormPage';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { TitleBar } from '@/ui/kit/TitleBar';
 import { StatusReplies } from '@/ui/social/StatusReplies';
 import { liftedBottom } from '@/ui/kit/useKeyboardHeight';
 import { barLift } from '@/ui/status/useKeyboardHeight';
@@ -121,11 +122,10 @@ describe('T030 Icon key: no icon animates its colour', () => {
 const status = { id: 's1', mine: false, author: { id: 'u2', name: 'Ana', initials: 'A' }, durationMs: 41_000, url: 'https://x/a.m4a', text: 'Hi', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 3_600_000).toISOString(), items: [], reactions: [], myReaction: null, suggested: false };
 const replies = (inside: boolean) => {
   const el = createElement(StatusReplies, { status: status as never, colours: { accent: '#fff', muted: '#888', text: '#fff', onPrimary: '#000' }, pauseAll: () => undefined, onChanged: () => undefined });
-  // 039: was a PushedPage with the bar as its function child; the bar sits beside a FormPage with a foot slot (both ride the keyboard, each once).
-  return inside ? createElement('View' as never, null, createElement(FormPage as never, { title: 'Status', tone: 'none', below: createElement('View' as never, { testID: 'foot-slot' }), belowHeight: 44 } as never), el) : el;
+  return inside ? createElement(PushedPage as never, { title: 'Status', tone: 'none', below: createElement('View' as never, { testID: 'foot-slot' }), belowHeight: 44 } as never, el) : el;
 };
 // 037 D1: the page's own title bar is at the top now and never lifts; the page's foot slot (`below`) is what rides with the keyboard.
-const titleBarTop = () => flat(host('page-title-row')[0]!)['top'] as number | undefined; // 039: Page's title row is in the flow, it has no top
+const titleBarTop = () => r!.root.findAllByType(TitleBar)[0]!.props['top'] as number;
 const belowBottom = () => flat(host('pushed-below')[0]!)['bottom'] as number;
 
 describe('T031 one owner of the keyboard lift', () => {
@@ -138,7 +138,7 @@ describe('T031 one owner of the keyboard lift', () => {
     emit('keyboardWillShow', 300);
     expect(flat(host('status-bar')[0]!)['bottom']).toBe(300 - STRIP + STAGE.keyboardGap);
   });
-  it('inside a FormPage the bar still lifts once, and the page\'s own foot slot lifts once; its title bar stays at the top', async () => {
+  it('inside a PushedPage the bar still lifts once, and the page\'s own foot slot lifts once; its title bar stays at the top', async () => {
     await mount(replies(true));
     const rest = belowBottom();
     const top = titleBarTop();

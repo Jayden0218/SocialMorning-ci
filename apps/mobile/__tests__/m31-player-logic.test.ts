@@ -230,7 +230,7 @@ describe('small rules of the page', () => {
   });
 
   it('the glow is the show\'s colour when it is a plain hex, else the drawing\'s pink (or the listener\'s other accent); the drawing\'s indigo is the other end', () => {
-    expect(glowPair('#336699', colour.hot)).toEqual(['#336699', colour.glowGrey]);
+    expect(glowPair('#336699', colour.hot)).toEqual(['#336699', '#5b3df5']);
     expect(glowPair(' #336699 ', colour.hot)[0]).toBe('#336699');
     expect(glowPair('rebeccapurple', colour.hot)[0]).toBe('#ff6b8b');
     expect(glowPair(null, colour.hot)[0]).toBe('#ff6b8b');

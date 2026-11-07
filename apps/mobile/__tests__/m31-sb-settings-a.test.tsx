@@ -14,7 +14,7 @@
  *  - Third-party sharing: a lead tile and one tile per party, each read as one sentence: the `accessibilityLabel` dropped — red;
  *  - Widgets: drawings 120 x 60 and 60 x 60, hot squares for art: `SET.widgetWide` changed — red.
  */
-import { spacing } from '@/design';
+import { contentTopReserve, titleBarTop } from '@/design';
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -110,17 +110,15 @@ const press = async (r: ReactTestRenderer, label: string): Promise<void> => {
 };
 
 describe('the Settings parts (settings.html `row`, `group`, `big`, `page`)', () => {
-  // 039 (List lane): was 60 tall, 13 / 16 of padding, an icon 22 -> now 56 tall, 8 / 16 of padding, a tinted 34 icon tile.
-  it('a switch row is 56 tall, 16 of padding, 12 between icon, words and switch', async () => {
+  it('a switch row is 60 tall, 13 / 16 of padding, 12 between icon, words and switch', async () => {
     const r = await render(createElement(SwitchRow, { icon: 'time-outline', label: 'Queue adds to the end', line: 'The line', value: true, onChange: jest.fn() }));
-    const row = hosts(r, (n) => flat(n)['minHeight'] === 56)[0]!;
+    const row = hosts(r, (n) => flat(n)['minHeight'] === SET.rowMin)[0]!;
     expect(row).toBeDefined();
-    expect(flat(row)).toMatchObject({ minHeight: 56, paddingVertical: 8, paddingHorizontal: 16, gap: 12 });
-    expect(hosts(r, (n) => flat(n)['width'] === 34 && flat(n)['height'] === 34)).toHaveLength(1);
+    expect(flat(row)).toMatchObject({ minHeight: 60, paddingVertical: 13, paddingHorizontal: 16, gap: 12 });
   });
   it('a plain display row has the same frame', async () => {
     const r = await render(createElement(Row, { label: 'Owner', line: 'x' }));
-    expect(hosts(r, (n) => flat(n)['minHeight'] === 56)).toHaveLength(1);
+    expect(hosts(r, (n) => flat(n)['minHeight'] === 60)).toHaveLength(1);
   });
   it('a link row opens its page and never reaches under 48', async () => {
     const r = await render(createElement(LinkRow, { href: '/settings/queue-backups', icon: 'time-outline', label: 'Playlist backups', line: 'The last 10' }));
@@ -153,21 +151,19 @@ describe('the Settings parts (settings.html `row`, `group`, `big`, `page`)', () 
 });
 
 describe('the page body (settings.html `page`)', () => {
-  // 039 (List lane): was the owned ScrollView with 14 under the title block, 28 in for the edge-label lane, 16 from the right, blocks 12 apart ->
-  // now a `Page`: the 20 gutter, 24 between blocks, the title row (Back + title), and no lane.
-  it('is a Page: the 20 gutter, 24 between blocks, a title row with Back, no edge-label lane', async () => {
+  // 037 D1: was "starts 14 under the status bar" (paddingTop 14); it starts 14 under the title block now (6 + the block's reserve + 14).
+  it('starts 14 under the title block, 28 in for the edge-label lane, 16 from the right, blocks 12 apart', async () => {
     const r = await render(createElement(WidgetsScreen));
-    const scroll = byId(r, 'page-scroll')[0]!;
+    const scroll = byId(r, 'settings-scroll')[0]!;
     const c = StyleSheet.flatten(scroll.props['contentContainerStyle'] as never) as Record<string, unknown>;
-    expect(c).toMatchObject({ paddingHorizontal: spacing.screenX, gap: spacing.block });
-    expect(byId(r, 'page-title-row')).toHaveLength(1);
-    expect(r.root.findAll((n) => typeof n.type === 'string' && flat(n)['paddingLeft'] === 28)).toHaveLength(0);
-    expect(words(r)).toContain('How to');
+    expect(c).toMatchObject({ paddingTop: 14 + titleBarTop(0) + contentTopReserve(), paddingRight: 16, paddingLeft: 0, gap: 12 });
+    const section = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['paddingLeft'] === 28)[0];
+    expect(section).toBeDefined();
   });
-  it('a page that had no lane (Playlist backups) is the same Page', async () => {
+  it('a page without edge labels (Playlist backups) draws 16 in from the left', async () => {
     const r = await render(createElement(QueueBackupsScreen));
-    const c = StyleSheet.flatten(byId(r, 'page-scroll')[0]!.props['contentContainerStyle'] as never) as Record<string, unknown>;
-    expect(c['paddingHorizontal']).toBe(spacing.screenX);
+    const c = StyleSheet.flatten(byId(r, 'settings-scroll')[0]!.props['contentContainerStyle'] as never) as Record<string, unknown>;
+    expect(c['paddingLeft']).toBe(16);
   });
 });
 
@@ -212,10 +208,10 @@ describe('Not interested (settings-not-interested--screen, --empty, --signed-out
     mockDismissals = { items, loaded: true, restore: jest.fn(() => Promise.resolve()) };
     const r = await render(createElement(NotInterestedScreen));
     expect(byId(r, 'hidden-row')).toHaveLength(2);
-    expect(flat(byId(r, 'hidden-row')[0])).toMatchObject({ minHeight: 56, paddingVertical: 8, paddingHorizontal: 16 }); // was 60 / 13 / 16
+    expect(flat(byId(r, 'hidden-row')[0])).toMatchObject({ minHeight: 60, paddingVertical: 13, paddingHorizontal: 16 });
     const kind = hosts(r, (n) => say(n.props['children']) === 'Show')[0]!;
     expect(flat(kind)).toMatchObject({ textTransform: 'uppercase' });
-    expect(words(r)).toEqual(expect.arrayContaining(['Hidden', 'Episodes and shows For You no longer recommends.', 'No more to fetch']));
+    expect(words(r)).toEqual(expect.arrayContaining(['HIDDEN', 'Episodes and shows For You no longer recommends.', 'No more to fetch']));
     await press(r, 'Restore The Daily Grind');
     expect(mockDismissals.restore).toHaveBeenCalledWith('show', 'f1');
     expect(mockToast).toHaveBeenCalledWith('Restored');
@@ -226,12 +222,11 @@ describe('Not interested (settings-not-interested--screen, --empty, --signed-out
     await press(r, 'Restore The Daily Grind');
     expect(mockToast).toHaveBeenCalledWith("Couldn't restore — try again.");
   });
-  // 039 (List lane): was "the kit block, 140 under the first line" (a spacer of SET.emptyTop) -> now the kit block right under the title row, no spacer.
-  it('empty: the kit block under the title, no 140 spacer', async () => {
+  it('empty: the kit block, 140 under the first line', async () => {
     const r = await render(createElement(NotInterestedScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Nothing hidden', 'Nothing hidden. Use ⋯ on a For You row to hide it.']));
     const spacer = hosts(r, (n) => flat(n)['height'] === SET.emptyTop && flat(n)['width'] === undefined)[0];
-    expect(spacer).toBeUndefined();
+    expect(spacer).toBeDefined();
   });
   it('signed out: one tile with the sentence', async () => {
     mockListener = undefined;
@@ -243,14 +238,16 @@ describe('Not interested (settings-not-interested--screen, --empty, --signed-out
 
 describe('Playlist backups (settings-queue-backups--screen, --empty, --restore-dialog)', () => {
   const backup = (id: number, reason: 'chooser' | 'restore' | 'manual') => ({ id, createdAt: Date.UTC(2026, 9, 27, 8, 14), device: id === 1 ? undefined : 'iPad', reason, items: ['e1', 'e2', 'e3'] });
-  // 039 (List lane): was "the versions hang from a 2-wide spine, a dot each, the newest hot" (backups-spine, backup-node, thread padding 34) -> now three tiles, no spine, no dots, no left padding.
-  it('the versions are tiles one under the other: no spine, no dots', async () => {
+  it('the versions hang from a 2-wide spine, a dot each, the newest hot', async () => {
     mockBackups = [backup(3, 'chooser'), backup(2, 'restore'), backup(1, 'manual')];
     const r = await render(createElement(QueueBackupsScreen));
-    expect(byId(r, 'backups-spine')).toHaveLength(0);
-    expect(byId(r, 'backup-node')).toHaveLength(0);
-    expect(flat(byId(r, 'backups-thread')[0])['paddingLeft']).toBeUndefined();
-    expect(words(r).filter((w) => w === 'Restore')).toHaveLength(3);
+    expect(flat(byId(r, 'backups-spine')[0])).toMatchObject({ width: 2, left: 11 });
+    const nodes = byId(r, 'backup-node');
+    expect(nodes).toHaveLength(3);
+    expect(String(nodes[0]!.props['className'])).toContain('bg-hot');
+    expect(String(nodes[1]!.props['className'])).toContain('bg-raise2');
+    expect(flat(nodes[0])).toMatchObject({ width: 12, height: 12, left: -29 });
+    expect(flat(byId(r, 'backups-thread')[0])['paddingLeft']).toBe(34);
     expect(words(r)).toEqual(expect.arrayContaining(['The last 10 versions of your playlist on this phone.', 'Starts with Why mornings matter', 'Not kept when you chose a playlist', 'Saved before a restore', 'Saved by you']));
   });
   it('Restore asks first, then restores and says so; the pills are disabled meanwhile', async () => {
@@ -279,7 +276,7 @@ describe('Import or export (settings-opml--screen, --from-app, --found, toast--s
     expect(count).toBeDefined();
     expect(byId(r, 'step-dot')).toHaveLength(3);
     expect(flat(byId(r, 'step-dot')[0])).toMatchObject({ width: 28, height: 28 });
-    expect(words(r)).toEqual(expect.arrayContaining(['Export', 'Import', 'Export OPML from your other app', 'Paste it here', 'Subscribe', 'Nothing new to import', 'From Overcast']));
+    expect(words(r)).toEqual(expect.arrayContaining(['EXPORT', 'IMPORT', 'Export OPML from your other app', 'Paste it here', 'Subscribe', 'Nothing new to import', 'From Overcast']));
   });
   it('a chosen app opens its steps in a raise-2 tile; tapping again closes them', async () => {
     const r = await render(createElement(OpmlScreen));
@@ -327,7 +324,7 @@ describe('Widgets (settings-widgets--screen)', () => {
     const d = byId(r, 'widget-drawing');
     expect(d.map((n) => flat(n)['width'])).toEqual([120, 120, 60, 60]);
     expect(d.every((n) => flat(n)['height'] === 60 && flat(n)['borderRadius'] === 14)).toBe(true);
-    expect(words(r)).toEqual(expect.arrayContaining(['How to', 'The four', 'How to add a widget', 'Now playing', 'Playlist', 'Daily pick', 'Listening this week']));
+    expect(words(r)).toEqual(expect.arrayContaining(['HOW TO', 'THE FOUR', 'How to add a widget', 'Now playing', 'Playlist', 'Daily pick', 'Listening this week']));
   });
   it('the steps are numbered in mono hot-text', async () => {
     const r = await render(createElement(WidgetsScreen));

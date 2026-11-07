@@ -11,9 +11,11 @@ import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { MomentCard, type Ambient, type CardActions } from '@/ui/discover/MomentCard';
+import { DiscoverMosaic, HOT_HEIGHT, MOSAIC, PICK_HEIGHT, type MosaicActions, type ShortcutTile } from '@/ui/discover/DiscoverMosaic';
 import { shortCount } from '@/ui/discover/moments-logic';
 import { bars } from '@/design';
 import type { Moment } from '@/discover/moments-api';
+import type { PickWithFaces } from '@/discover/explore-api';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn(() => ({ width: 390, height: 844, scale: 3, fontScale: 2 })) }));
@@ -62,4 +64,37 @@ describe('F10-H1 the Moments card (F6, W1)', () => {
     expect(w).toContain('Morning Notes · 12.3M reacted here');
   });
 });
-// 039 verifier fix: the F10-H2 guards (Discover mosaic tiles are minHeight boxes; the pick prints 12.3M) went with the DiscoverMosaic component, which no page draws (Discover is a Page of sections).
+
+const PICK = { kind: 'pick', key: 'k', why: 'Short, warm, and good with coffee.', episode: { id: 'e1', feedUrl: 'https://f', guid: 'g', title: 'Why mornings matter', showTitle: 'Morning Notes', enclosureUrl: 'https://a.mp3' } } as unknown as PickWithFaces;
+const HOT: Moment = { ...MOMENT, episodeId: 'h1', showTitle: 'S', episodeTitle: 'Hot ep', reactions: 41, comments: [] };
+const tiles = (n: number): ShortcutTile[] => Array.from({ length: n }, (_, i) => ({ label: `T${i}`, icon: 'grid-outline', onPress: jest.fn() }));
+const acts = (): MosaicActions => ({ onOpen: jest.fn(), onPlay: jest.fn(), onQueue: jest.fn(), onPast: jest.fn(), onHot: jest.fn() });
+function mosaic(): ReactTestRenderer {
+  let r!: ReactTestRenderer;
+  act(() => { r = create(createElement(DiscoverMosaic, { pick: PICK, date: '2026-10-27', stats: { listeners: 12_345_678, comments: 14 }, hot: HOT, tiles: tiles(8), offline: false, actions: acts(), onSearch: jest.fn() } as never)); });
+  mounted.push(r);
+  return r;
+}
+const tile = (r: ReactTestRenderer, label: string): ReactTestInstance => {
+  const is = (n: ReactTestInstance | null): boolean => n !== null && n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function';
+  return r.root.findAll((n) => is(n) && !is(n.parent))[0]!;
+};
+
+describe('F10-H2 the Discover mosaic (F7, W1)', () => {
+  it('the shortcut, Hot now and pick tiles are minHeight boxes (the drawn size is the least), not fixed heights', () => {
+    const r = mosaic();
+    const hot = tile(r, 'Hot now: play Hot ep from 14:32. 41 reacting');
+    const short = tile(r, 'T2');
+    expect([flat(hot)['height'], flat(short)['height']]).toEqual([undefined, undefined]);
+    expect(Number(flat(hot)['minHeight'])).toBe(HOT_HEIGHT);
+    expect(Number(flat(short)['minHeight'])).toBe(MOSAIC.row);
+    const pick = r.root.findAll((n) => typeof n.type === 'string' && Number(flat(n)['minHeight']) === PICK_HEIGHT)[0];
+    expect(pick).toBeTruthy();
+    expect(r.root.findAll((n) => typeof n.type === 'string' && flat(n)['height'] === PICK_HEIGHT)).toHaveLength(0);
+  });
+  it('the pick tile prints "12.3M listened", not 12345678', () => {
+    const w = texts(mosaic()).map(said).join(' | ');
+    expect(w).toContain('12.3M listened');
+    expect(w).not.toContain('12345678');
+  });
+});

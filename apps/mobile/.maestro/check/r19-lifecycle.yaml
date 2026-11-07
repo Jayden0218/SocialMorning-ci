@@ -5,7 +5,7 @@ appId: app.socialmorning.mobile
 ---
 - runFlow: _ensure-signed-in.yaml
 - runFlow: _me.yaml
-- tapOn: "View profile"
+- tapOn: "Listener 05, open your profile"
 - extendedWaitUntil:
     visible: "This is you"
     timeout: 30000

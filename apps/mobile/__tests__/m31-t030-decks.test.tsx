@@ -68,37 +68,32 @@ const say = (n: unknown): string => {
 };
 const words = (r: ReactTestRenderer): string[] => r.root.findAll((x) => String(x.type) === 'Text').map((x) => say(x.props['children']));
 /** The header labels (edge labels) on the page: what a screen reader announces, and the drawn text is the same or its short form. */
-// Spec 039 D4 (was: only the edge label's `accessibilityLabel`): a Discover section's heading is a `Section` title (the words are the name), an edge label (the search page's `DeckSection`) still has the label.
-const edgeLabels = (r: ReactTestRenderer): string[] => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header').map((n) => String(n.props['accessibilityLabel'] ?? say(n.props['children'])));
+const edgeLabels = (r: ReactTestRenderer): string[] => r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header').map((n) => String(n.props['accessibilityLabel']));
 /** The nearest host above `n` whose style has this width and height. */
 const sized = (r: ReactTestRenderer, w: number, h: number): ReactTestInstance[] => r.root.findAll((n) => typeof n.type === 'string' && flat(n)['width'] === w && flat(n)['height'] === h);
 
 describe('the deck itself', () => {
-  it('snaps one card at a time: interval = card + 10, the first card on the 20 gutter, cards 10 apart', () => {
+  it('snaps one card at a time: interval = card + 10, the first card at the 28 lane, cards 10 apart', () => {
     const r = render(createElement(Deck, { width: 270, height: 220 } as React.ComponentProps<typeof Deck>, [createElement('i', { key: 1 }), createElement('i', { key: 2 })]));
     const deck = host(r, 'deck')[0]!;
     expect(deck.props['snapToInterval']).toBe(280);
     expect(deck.props['horizontal']).toBe(true);
     const content = StyleSheet.flatten(deck.props['contentContainerStyle']) as Record<string, number>;
     expect([content['paddingLeft'], content['gap']]).toEqual([DECK.lane, 10]);
-    // 039 I2: was 28 (the edge label's lane); now the 20 gutter.
-    expect(DECK.lane).toBe(20);
+    expect(DECK.lane).toBe(28);
     expect(flat(deck)['height']).toBe(220);
   });
-  it('a section is a heading on the gutter (read as the spoken name), then its content, with 24 below it and no edge label', () => {
-    // 039 I2: was "between 2 above and 18 below, at least 120 tall, under its edge label" (the vertical label needed the height); now a Section-style heading, no minimum height.
+  it('a section holds its content between 2 above and 18 below, at least 120 tall, under its edge label', () => {
     const r = render(createElement(DeckSection, { label: 'Charts', spoken: 'The chart' } as React.ComponentProps<typeof DeckSection>, createElement('i')));
-    const section = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['paddingBottom'] === 24)[0]!;
-    expect([flat(section)['paddingTop'], flat(section)['minHeight']]).toEqual([undefined, undefined]);
+    const section = r.root.findAll((n) => typeof n.type === 'string' && flat(n)['minHeight'] === 120)[0]!;
+    expect([flat(section)['paddingTop'], flat(section)['paddingBottom']]).toEqual([2, 18]);
     expect(edgeLabels(r)).toEqual(['The chart']);
-    expect(words(r)).toContain('Charts');
-    expect(r.root.findAll((n) => n.props['testID'] === 'edge-measure')).toHaveLength(0);
   });
-  it('a link under a deck is hot-text 13 / 600, 8 below it and 20 from the left, named for a screen reader', () => {
+  it('a link under a deck is hot-text 13 / 600, 10 below it and 28 from the left, named for a screen reader', () => {
     const onPress = jest.fn();
     const r = render(createElement(DeckLink, { label: 'Full chart', onPress }));
     const link = one(r, 'Full chart');
-    expect([flat(link)['marginTop'], flat(link)['marginLeft']]).toEqual([8, 20]); // 039 I2: was 10 and 28
+    expect([flat(link)['marginTop'], flat(link)['marginLeft']]).toEqual([10, 28]);
     expect(words(r)).toContain('Full chart ›');
     act(() => { link.props['onPress'](); });
     expect(onPress).toHaveBeenCalled();
@@ -118,10 +113,10 @@ describe('Picks (home--fold-a)', () => {
   const items = [{ kind: 'pick' as const, key: 'p1', episode: card('p1'), why: 'Short, warm.', stats: { listeners: 120, comments: 14 } }, { kind: 'pick' as const, key: 'p2', episode: card('p2') }];
   it('cards 270 x 220 under "Picks" (spoken "Editor\'s pick · Oct 27"), the cover 64, the note in quotes, counts and both buttons at 38', () => {
     const r = render(createElement(PicksSection, { items, date: '2026-10-27', onOpen: jest.fn(), onPlay: jest.fn(), onQueue: jest.fn(), onDaily: jest.fn() }));
-    expect(host(r, 'shelf')).toHaveLength(1); // spec 039 D4 (was: a snapping deck, interval 280)
+    expect(host(r, 'deck')[0]!.props['snapToInterval']).toBe(280);
     expect(host(r, 'deck-card')).toHaveLength(2);
     expect(sized(r, 270, 220)).toHaveLength(2);
-    expect(edgeLabels(r)).toEqual(["Editor's picks · Oct 27"]); // spec 039 D4 (was the spoken "Editor's pick · Oct 27")
+    expect(edgeLabels(r)).toEqual(["Editor's pick · Oct 27"]);
     expect(words(r)).toContain('“Short, warm.”');
     expect(words(r)).toContain('120 listened'); expect(words(r).join('|')).not.toContain('14 comments'); // F2a: the deck card says "n listened" only, as drawn (the Editor's pick tile keeps the comments)
     expect(flat(one(r, 'Play Title p1'))['width']).toBe(38);
@@ -143,7 +138,7 @@ describe('For you (home--fold-a, home--hidden-undo)', () => {
   const base = () => ({ rows, onOpen: jest.fn(), onPlay: jest.fn(), onOpenAt: jest.fn(), onMore: jest.fn() });
   it('cards 250 x 290, the cover 120, the reason in hot-text, Play 40, "···" 36 on the cover', () => {
     const r = render(createElement(ForYouSection, base()));
-    expect(host(r, 'shelf')).toHaveLength(1); // spec 039 D4 (was: a snapping deck, interval 260)
+    expect(host(r, 'deck')[0]!.props['snapToInterval']).toBe(260);
     expect(sized(r, 250, 290)).toHaveLength(3);
     expect(r.root.findAll((n) => typeof n.type === 'string' && flat(n)['height'] === 120 && flat(n)['overflow'] === 'hidden').length).toBeGreaterThan(0); // the cover band: the card's width, 120 tall
     expect(words(r)).toContain('Because you follow Morning Notes');
@@ -232,22 +227,11 @@ describe('Charts (home--fold-a)', () => {
     const rank2 = r.root.findAll((n) => String(n.type) === 'Text' && say(n.props['children']) === '2')[0]!;
     expect(String(rank2.props['className'])).toMatch(/text-text2/);
   });
-  // Spec 039 integration (D2): a chart's name is a button again; it brings its card to the left of the shelf (scrolls the Charts shelf to that card's x). "Full chart" is the Section's "See all".
-  // Break: make the name a plain title again, or scroll to the wrong card.
-  it('pressing a chart\'s name scrolls the Charts shelf to that card; the Section\'s "See all" opens the chart', () => {
+  it('a chart\'s name brings its card to the left of the deck; "Full chart ›" opens the chart', () => {
     const onFull = jest.fn();
     const r = render(createElement(ChartSection, { tabs, onOpen: jest.fn(), onPlay: jest.fn(), onFull }));
-    const shelf = r.root.findAll((n) => n.props['testID'] === 'shelf' && n.instance && typeof (n.instance as { scrollTo?: unknown }).scrollTo === 'function')[0]!;
-    const scrollTo = jest.fn();
-    (shelf.instance as unknown as { scrollTo: unknown }).scrollTo = scrollTo;
-    // the test renderer lays nothing out: each card reports where it sits (282 = 270 + the 12 gap)
-    const cells = host(r, 'shelf-card');
-    expect(cells).toHaveLength(3);
-    cells.forEach((c, i) => act(() => { c.props['onLayout']({ nativeEvent: { layout: { x: i * 282, y: 0, width: 270, height: 220 } } }); }));
     act(() => { one(r, 'Talked about chart').props['onPress'](); });
-    expect(scrollTo).toHaveBeenCalledWith({ x: 282, animated: true });
-    expect(words(r)).toContain('Talked about');
-    act(() => { one(r, 'See all Charts').props['onPress'](); });
+    act(() => { one(r, 'Full chart').props['onPress'](); });
     expect(onFull).toHaveBeenCalled();
   });
 });
@@ -292,7 +276,7 @@ describe('Shows, Premium, Video (home--fold-b)', () => {
     const onShow = jest.fn();
     const r = render(createElement(ShowTiles, { title: 'Popular shows', short: 'Popular', shows: [{ feedUrl: 'https://f/a.xml', title: 'Show a', line: 'Author a' }, { feedUrl: 'https://f/b.xml', title: 'Show b' }], caption: 'Picked for you', onShow }));
     expect(sized(r, 150, 180)).toHaveLength(2);
-    expect(host(r, 'shelf')).toHaveLength(1); // spec 039 D4 (was: a snapping deck, interval 160)
+    expect(host(r, 'deck')[0]!.props['snapToInterval']).toBe(160);
     expect(words(r)).toEqual(expect.arrayContaining(['Show a', 'Author a', 'Picked for you']));
     expect(edgeLabels(r)).toEqual(['Popular shows']);
     act(() => { one(r, 'Show a. Author a').props['onPress'](); });
@@ -307,7 +291,7 @@ describe('Shows, Premium, Video (home--fold-b)', () => {
     expect(r.root.findAll((n) => typeof n.type === 'string' && flat(n)['width'] === 72 && flat(n)['height'] === 72).length).toBeGreaterThan(0);
     act(() => { one(r, 'Show p, Author p. Premium pick').props['onPress'](); });
     expect(onShow).toHaveBeenCalledWith('https://f/p.xml');
-    expect(String(host(r, 'deck-card')[0]!.props['className'])).toMatch(/bg-hotSoft/);
+    expect(String(host(r, 'deck-card')[0]!.props['className'])).toMatch(/bg-premiumTint/);
   });
   it('Video: cards 260 x 150 with a video mark, the title and the show; a card opens the episode', () => {
     const onOpen = jest.fn();
@@ -358,7 +342,7 @@ describe('Lists, Said, New, Hunt (home--fold-b)', () => {
     expect(words(r)).toContain("Three lesser-heard episodes from shows you don't follow. New ones every day.");
     expect(sized(r, 250, 76)).toHaveLength(2);
     expect(flat(one(r, 'Play Title h1'))['width']).toBe(36);
-    expect(flat(one(r, 'Shuffle the treasure hunt'))['minHeight']).toBe(36); // spec 039 D4 (was height 36)
+    expect(flat(one(r, 'Shuffle the treasure hunt'))['height']).toBe(36);
     await act(async () => { one(r, 'Shuffle the treasure hunt').props['onPress'](); });
     expect(mockHunt).toHaveBeenLastCalledWith(1);
   });

@@ -27,7 +27,7 @@ export type PlayVoice = typeof playVoice;
 
 /**
  * M31 W2-B (`social.html` `voiceBlock`): a raise2 block, radius 14, padding 8 / 10 — a 32 light disc with a void glyph, a
- * 26-bar wave (22 tall) that fills hot as the voice plays, and the length in mono (text2). The speech text its
+ * 26-bar wave (22 tall) that fills hot to violet as the voice plays, and the length in mono (text2). The speech text its
  * author posted sits under it in italics, in quotes (Geist 400 14/20, text2). The wave is not the recording's own: the app
  * keeps no level data, so the bars are a fixed shape drawn from the length (the drawing's are too).
  */

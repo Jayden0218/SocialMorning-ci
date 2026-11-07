@@ -46,12 +46,12 @@ const words = (n: ReactTestInstance | ReactTestRenderer): string[] => ('root' in
 const flat = (s: unknown) => (StyleSheet.flatten(s as never) ?? {}) as Record<string, unknown>;
 const pressOf = (r: ReactTestRenderer, label: string) => r.root.findAll((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function')[0]!;
 
-it('four tabs, each an icon of 26 with its name drawn under it (039 D4; was icons only, no label drawn)', () => {
+it('icons only: four tabs, each an icon of 26, no label drawn — the names are for the screen reader', () => {
   const r = render();
   expect(tabs(r).map((t) => t.props['accessibilityLabel'])).toEqual(['Discover', 'Updates', 'Chat', 'Me']);
   const icons = r.root.findAll((n) => typeof n.props['name'] === 'string' && n.props['size'] === bars.tabIcon);
   expect(new Set(icons.map((i) => i.props['name']))).toEqual(new Set(['compass', 'headset-outline', 'chatbubbles-outline', 'person-circle-outline']));
-  expect(words(r)).toEqual(['Discover', 'Updates', 'Chat', 'Me']); // 039 D4: was [] — the names are drawn now
+  expect(words(r)).toEqual([]); // no Text anywhere: nothing is written under the icons
 });
 
 it('idle icons are `idle` coloured outlines; the active one is the filled icon in `text` colour', () => {
@@ -78,7 +78,7 @@ it('a count badge is 16 tall with the count in it; over 99 it says 99+; the spok
   const r = render({ items });
   const badges = byId(r, 'tab-badge');
   expect(badges).toHaveLength(2);
-  expect(words(r).filter((w) => !ITEMS.some((i) => i.label === w))).toEqual(['3', '99+']); // 039 D4: the four names are drawn too; the badge words are what is left
+  expect(words(r)).toEqual(['3', '99+']);
   const pill = badges[0]!.findAll((n) => typeof n.type === 'string' && flat(n.props['style'])['height'] === bars.badge && flat(n.props['style'])['minWidth'] === bars.badge);
   expect(pill.length).toBeGreaterThan(0); // 16 tall, at least 16 wide
   expect(tabs(r).map((t) => t.props['accessibilityLabel'])).toEqual(['Discover', 'Updates', 'Chat, 3 new', 'Me, 150 new']);

@@ -17,7 +17,7 @@
  *
  *
  * M31 S-A (T060; design-pulse2 `settings.html` `account--screen`, `account--signed-out`, `account--sign-out-dialog`; Panel + Mosaic): the
- * same eleven links and Sign out, drawn as three groups under section headings ACCOUNT, EVERYDAY and INFO. "Account and security" is a full-width
+ * same eleven links and Sign out, drawn as three groups under edge labels ACCOUNT, EVERYDAY and INFO. "Account and security" is a full-width
  * hero tile (88, radius 22: avatar 52, the name of the page in Unbounded 17, the masked email in mono 12, a chevron); the seven everyday pages
  * are large two-column tiles (112, radius 22) with a one-line state in mono 12 (the accent, the space used, whether new-episode pushes are on …);
  * the four information pages are rows in one group tile with 1 px dividers; Sign out is a ring pill centred at the foot of the scroll and asks
@@ -46,6 +46,7 @@ import { PanelGroup } from '@/ui/me/Panel';
 import { SignOut } from '@/ui/me/SignOut';
 import { Avatar } from '@/ui/kit/Avatar';
 import { Icon } from '@/ui/kit/Icon';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { useDownloads, useStores } from '@/ui/shell/providers';
 import { BigGrid, BigTile, SetPage, SetRow, Sec } from '@/ui/settings/hub-parts';
@@ -78,34 +79,38 @@ export default function SettingsScreen(): React.ReactElement {
   const masked = listener?.email ? listener.email.replace(/^(.)(.*)(.@.*)$/, (_m, a: string, mid: string, b: string) => `${a}${'*'.repeat(Math.min(6, mid.length))}${b}`) : '';
   const signedIn = listener !== undefined;
   return (
-    <SetPage title="Settings">
-      <Sec label="Account">
-        <Link href="/settings/account" asChild accessibilityLabel="Account and security">
-          <Hero signedIn={signedIn} name={listener?.displayName} avatarUrl={avatarUrl} masked={masked} />
-        </Link>
-      </Sec>
-      <Sec label="Everyday">
-        <BigGrid>
-          <Link href="/settings/appearance" asChild accessibilityLabel="Appearance"><BigTile icon="diamond-outline" label="Appearance" state={ACCENTS[readAccent(stores.settings)].label} /></Link>
-          <Link href="/settings/downloads" asChild accessibilityLabel="Downloads and cache"><BigTile icon="download-outline" label="Downloads and cache" state={sizeLabel(downloads.usedBytes())} /></Link>
-          <Link href="/settings/push" asChild accessibilityLabel="Notifications"><BigTile icon="notifications-outline" label="Notifications" state={signedIn ? (getPref(stores.settings, 'newEpisodePush') ? 'New episodes on' : 'New episodes off') : 'Sign in'} /></Link>
-          <Link href="/settings/privacy" asChild accessibilityLabel="Privacy"><BigTile icon="lock-closed-outline" label="Privacy" state={signedIn ? 'What others see' : '—'} /></Link>
-          <Link href="/settings/minor" asChild accessibilityLabel="Minor mode"><BigTile icon="moon-outline" label="Minor mode" state={getPref(stores.settings, 'hideExplicit') ? 'On' : 'Off'} /></Link>
-          <Link href="/settings/more" asChild accessibilityLabel="More"><BigTile icon="play" label="More" state="OPML · For You" /></Link>
-          {/* M21 US10 (T110): the playback switches have their own page. */}
-          <Link href="/settings/playback" asChild accessibilityLabel="Playback"><BigTile icon="headset-outline" label="Playback" state={getPref(stores.settings, 'skipSilence') ? 'Skip silence on' : 'Skip silence off'} /></Link>
-        </BigGrid>
-      </Sec>
-      {/* M24 US20 (`Account-B`): "Not interested" moved to More › Recommendations, beside "How For You works". */}
-      <Sec label="Info">
-        <PanelGroup>
-          <Link href="/settings/sharing" asChild accessibilityLabel="Third-party sharing list"><SetRow icon="information-circle-outline" label="Third-party sharing list" /></Link>
-          <Link href="/settings/collected" asChild accessibilityLabel="Personal information we collect"><SetRow icon="document-text-outline" label="Personal information we collect" /></Link>
-          <Link href="/settings/help" asChild accessibilityLabel="Help and feedback"><SetRow icon="chatbox-ellipses-outline" label="Help and feedback" /></Link>
-          <Link href="/settings/about" asChild accessibilityLabel="About SocialNet"><SetRow icon="globe-outline" label="About SocialNet" /></Link>
-        </PanelGroup>
-      </Sec>
-      {listener ? <SignOut onSignOut={() => void auth.signOut()} className="items-center" /> : null}
-    </SetPage>
+    <PushedPage title="Settings">
+      {(layout) => (
+        <SetPage layout={layout}>
+          <Sec label="Account">
+            <Link href="/settings/account" asChild accessibilityLabel="Account and security">
+              <Hero signedIn={signedIn} name={listener?.displayName} avatarUrl={avatarUrl} masked={masked} />
+            </Link>
+          </Sec>
+          <Sec label="Everyday">
+            <BigGrid>
+              <Link href="/settings/appearance" asChild accessibilityLabel="Appearance"><BigTile icon="diamond-outline" label="Appearance" state={ACCENTS[readAccent(stores.settings)].label} /></Link>
+              <Link href="/settings/downloads" asChild accessibilityLabel="Downloads and cache"><BigTile icon="download-outline" label="Downloads and cache" state={sizeLabel(downloads.usedBytes())} /></Link>
+              <Link href="/settings/push" asChild accessibilityLabel="Notifications"><BigTile icon="notifications-outline" label="Notifications" state={signedIn ? (getPref(stores.settings, 'newEpisodePush') ? 'New episodes on' : 'New episodes off') : 'Sign in'} /></Link>
+              <Link href="/settings/privacy" asChild accessibilityLabel="Privacy"><BigTile icon="lock-closed-outline" label="Privacy" state={signedIn ? 'What others see' : '—'} /></Link>
+              <Link href="/settings/minor" asChild accessibilityLabel="Minor mode"><BigTile icon="moon-outline" label="Minor mode" state={getPref(stores.settings, 'hideExplicit') ? 'On' : 'Off'} /></Link>
+              <Link href="/settings/more" asChild accessibilityLabel="More"><BigTile icon="play" label="More" state="OPML · For You" /></Link>
+              {/* M21 US10 (T110): the playback switches have their own page. */}
+              <Link href="/settings/playback" asChild accessibilityLabel="Playback"><BigTile icon="headset-outline" label="Playback" state={getPref(stores.settings, 'skipSilence') ? 'Skip silence on' : 'Skip silence off'} /></Link>
+            </BigGrid>
+          </Sec>
+          {/* M24 US20 (`Account-B`): "Not interested" moved to More › Recommendations, beside "How For You works". */}
+          <Sec label="Info">
+            <PanelGroup>
+              <Link href="/settings/sharing" asChild accessibilityLabel="Third-party sharing list"><SetRow icon="information-circle-outline" label="Third-party sharing list" /></Link>
+              <Link href="/settings/collected" asChild accessibilityLabel="Personal information we collect"><SetRow icon="document-text-outline" label="Personal information we collect" /></Link>
+              <Link href="/settings/help" asChild accessibilityLabel="Help and feedback"><SetRow icon="chatbox-ellipses-outline" label="Help and feedback" /></Link>
+              <Link href="/settings/about" asChild accessibilityLabel="About SocialNet"><SetRow icon="globe-outline" label="About SocialNet" /></Link>
+            </PanelGroup>
+          </Sec>
+          {listener ? <SignOut onSignOut={() => void auth.signOut()} className="items-center" /> : null}
+        </SetPage>
+      )}
+    </PushedPage>
   );
 }

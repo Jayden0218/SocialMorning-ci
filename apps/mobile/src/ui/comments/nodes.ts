@@ -1,6 +1,6 @@
-// Groups an ordered list of comments into nodes (one moment chip and its comments), and finds the node nearest a moment.
+// Groups an ordered list of comments into the nodes of the spine, and finds the node nearest a moment.
 /**
- * M31 W2-B (`social.html` `node`; `index.html#comments--screen` notes "Orders"). In "By moment" the list groups top-level
+ * M31 W2-B (`social.html` `node`; `index.html#comments--screen` notes "Orders"). In "By moment" the spine groups top-level
  * comments under one moment chip — those within the same second share a node, in the order they come — with "n reacted"
  * beside it; in the other orders every comment is its own node and carries its own chip. A comment with no moment gets a node
  * with no chip. "n reacted" counts what listeners did at that moment: the comments, their likes and their replies — the app

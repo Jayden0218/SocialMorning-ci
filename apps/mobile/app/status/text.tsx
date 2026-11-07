@@ -14,13 +14,16 @@
  */
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
+import { PageGlow } from '@/ui/kit/PageGlow';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { FormPage } from '@/ui/form/FormPage';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { useColours } from '@/ui/kit/useColours';
-import { colour, typeScale } from '@/design';
+import { colour, gutter, typeScale } from '@/design';
+import { useWindowDimensions } from 'react-native';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { useSocial } from '@/social/context';
 import { ApiError } from '@/social/api';
@@ -42,6 +45,8 @@ export default function TextStatusScreen(): React.ReactElement {
   const [body, setBody] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const { width } = useWindowDimensions();
+  const side = gutter(width);
   const n = textLength(body);
   const over = n > TEXT_STATUS_MAX;
   const ok = n > 0 && !over && listener !== undefined;
@@ -62,40 +67,46 @@ export default function TextStatusScreen(): React.ReactElement {
   };
 
   return (
-    <FormPage
+    <PushedPage
       title="Text status"
       subtitle="Your followers see it on Updates for 24 hours."
-      {...(error ? { extra: <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> } : {})}
-      {...(listener !== undefined ? { trailing: <PulseButton label="Post" kind="hot" onPress={() => void post()} disabled={!ok} busy={busy} /> } : {})}
+      tone="none"
+      {...(error ? { extra: <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type>, extraAbove: TEXT_PAGE.errorLine } : {})}
+      {...(listener !== undefined ? { right: <PulseButton label="Post" kind="hot" onPress={() => void post()} disabled={!ok} busy={busy} /> } : {})}
     >
-      {listener === undefined ? (
-        <SignInBlock line="Sign in to post a status." />
-      ) : (
-        <>
-          <Box testID="status-text-card" className="bg-raise border border-line justify-between" style={{ minHeight: TEXT_PAGE.cardMin, borderRadius: TEXT_PAGE.cardRadius, padding: TEXT_PAGE.cardPad }}>
-            <Textarea className="border-0 bg-transparent h-auto w-full" style={{ padding: 0 }}>
-              <TextareaInput
-                placeholderTextColor={colour.text3}
-                placeholder="What are you listening to?"
-                value={body}
-                onChangeText={setBody}
-                multiline
-                textAlignVertical="top"
-                autoFocus
-                cursorColor={colour.hot}
-                selectionColor={colour.hot}
-                accessibilityLabel="Your status text"
-                className={`text-text ${typeScale.statement.cls}`}
-                style={[{ padding: 0 }, statusType.cardWords]}
-              />
-            </Textarea>
-            <Type step="mono" className={over ? 'text-hotText self-end' : 'text-text2 self-end'} accessibilityLiveRegion="polite">
-              {over ? `${n - TEXT_STATUS_MAX} over · ${n} / ${TEXT_STATUS_MAX}` : `${n} / ${TEXT_STATUS_MAX}`}
-            </Type>
-          </Box>
-          <StatusComposerItems items={items} onChange={setItems} colours={c} />
-        </>
+      {(layout) => (
+        <Box className="flex-1">
+          <PageGlow top={TEXT_PAGE.glowTop} strength={TEXT_PAGE.glowStrength} />
+          {listener === undefined ? (
+            <Box className="absolute left-0 right-0" style={{ top: layout.top + TEXT_PAGE.signInTop }}><SignInBlock line="Sign in to post a status." /></Box>
+          ) : (
+            <ScrollView className="absolute" style={{ left: 0, right: 0, top: layout.top + TEXT_PAGE.cardTop, bottom: 0 }} contentContainerStyle={{ paddingHorizontal: side, paddingBottom: layout.reserve, gap: TEXT_PAGE.gap }} keyboardShouldPersistTaps="handled">
+              <Box testID="status-text-card" className="bg-raise border border-line justify-between" style={{ minHeight: TEXT_PAGE.cardMin, borderRadius: TEXT_PAGE.cardRadius, padding: TEXT_PAGE.cardPad }}>
+                <Textarea className="border-0 bg-transparent h-auto w-full" style={{ padding: 0 }}>
+                  <TextareaInput
+                    placeholderTextColor={colour.text3}
+                    placeholder="What are you listening to?"
+                    value={body}
+                    onChangeText={setBody}
+                    multiline
+                    textAlignVertical="top"
+                    autoFocus
+                    cursorColor={colour.hot}
+                    selectionColor={colour.hot}
+                    accessibilityLabel="Your status text"
+                    className={`text-text ${typeScale.statement.cls}`}
+                    style={[{ padding: 0 }, statusType.cardWords]}
+                  />
+                </Textarea>
+                <Type step="mono" className={over ? 'text-hotText self-end' : 'text-text3 self-end'} accessibilityLiveRegion="polite">
+                  {over ? `${n - TEXT_STATUS_MAX} over · ${n} / ${TEXT_STATUS_MAX}` : `${n} / ${TEXT_STATUS_MAX}`}
+                </Type>
+              </Box>
+              <StatusComposerItems items={items} onChange={setItems} colours={c} />
+            </ScrollView>
+          )}
+        </Box>
       )}
-    </FormPage>
+    </PushedPage>
   );
 }

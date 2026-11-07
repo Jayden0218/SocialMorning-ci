@@ -5,7 +5,7 @@
  * react-native-android-widget). The steps follow the phone's own way of adding a widget; the
  * pictures are our own small drawings in views and token colours, not screenshots of any phone.
  *
- * M31 S-B (T060; design-pulse2 `settings-widgets--screen`; layout Panel): under the heading HOW TO a tile holds "How to add a widget" (Unbounded 16) and the
+ * M31 S-B (T060; design-pulse2 `settings-widgets--screen`; layout Panel): under the edge label HOW TO a tile holds "How to add a widget" (Unbounded 16) and the
  * phone's numbered steps (the number in mono hot-text, the step in Geist 14 / 20); under THE FOUR one tile lists the widgets, each a small drawing (wide 120 x 60 or
  * square 60, radius 14, raise-2, hot squares for art) beside its name (Geist 600 14) and line (12). No buttons: a widget is added from the home screen.
  */

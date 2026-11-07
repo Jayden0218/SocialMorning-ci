@@ -16,18 +16,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { PanResponder, Platform, useWindowDimensions } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
+import { Input, InputField } from '@/ui/lib/input';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { usePlayer, usePlayerSelector, sameClock, selectClock, type PlayableEpisode } from '@/playback/store';
 import { canSave, endHere, nudgeEdge, openComposer, problemText, setCaption, startHere, type ComposerState } from '@/graph/composer';
 import { mmss } from '@/ui/kit/format';
-import { colour, gutter, spacing } from '@/design';
+import { colour, gutter, radius, spacing } from '@/design';
 import { fractionAt } from '@/ui/kit/pulse-math';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Ring } from '@/ui/kit/RingScrubber';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { FormPage } from '@/ui/form/FormPage';
-import { AuthField } from '@/ui/auth/AuthShell';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type } from '@/ui/kit/Type';
 import { PlayerBackdrop } from '@/ui/player/PlayerBackdrop';
@@ -75,8 +75,6 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
     ...(props.initialRange ? { range: props.initialRange } : {}),
     ...(props.initialCaption ? { caption: props.initialCaption } : {}),
   }));
-  // The foot (problem line, caption, Preview + Save) grows with the problem line, so the page leaves what is measured.
-  const [foot, setFoot] = useState<number>(COMPOSER.field + COMPOSER.buttons + 2 * spacing.row);
   const heat = useEpisodeHeat(props.episode.id, true);
   const duration = props.episode.durationMs ?? heat.durationMs;
   const size = Math.min(COMPOSER.ring, width - 2 * gutter(width) - 20);
@@ -117,64 +115,70 @@ export function ClipComposer(props: ClipComposerProps): React.ReactElement {
     </Box>
   );
 
-  const below = (
-    <Box style={{ gap: spacing.row }} onLayout={(e) => { const h = Math.round(e.nativeEvent.layout.height); if (h !== foot) setFoot(h); }}>
+  const extra = (
+    <>
       {s.problem ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{problemText[s.problem]}</Type> : null}
-      <AuthField
-        label="Caption"
-        value={s.caption}
-        onChangeText={(t: string) => setS(setCaption(s, t))}
-        placeholder="Caption (optional)"
-        maxLength={COMPOSER.caption}
-        accessibilityLabel="Caption"
-        returnKeyType="done"
-      />
+      <Input className="bg-raise2 border-0 h-auto" style={{ height: COMPOSER.field, borderRadius: radius.input, paddingHorizontal: 0 }}>
+        <InputField
+          value={s.caption}
+          onChangeText={(t: string) => setS(setCaption(s, t))}
+          placeholder="Caption (optional)"
+          placeholderTextColor={colour.text3}
+          maxLength={COMPOSER.caption}
+          accessibilityLabel="Caption"
+          returnKeyType="done"
+          className="text-text text-pulse-row"
+          style={{ paddingHorizontal: COMPOSER.fieldPad }}
+        />
+      </Input>
       <Box className="flex-row" style={{ gap: spacing.row - 2 }}>
         <Box className="flex-1"><PulseButton label="Preview" kind="quiet" icon="play" onPress={() => player.playClip(props.episode, s.range)} full /></Box>
         <Box className="flex-1"><PulseButton label="Save" kind="light" onPress={() => props.onSave(s)} disabled={blocked && !props.saving} busy={props.saving} full /></Box>
       </Box>
-    </Box>
+    </>
   );
 
   return (
     <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <FormPage title="New clip" subtitle={`From ${props.episode.title} · now at ${mmss(position)}`} tone="none" below={below} belowHeight={foot}>
-        <Box testID="clip-composer" style={{ gap: COMPOSER.rowGap }}>
-          <PlayerBackdrop feedUrl={props.episode.feedUrl} top={-60} opacity={0.5} />
-          <Box className="items-center">
-            <Box style={{ width: size, height: size }}>
-              <Ring heat={heat.buckets ?? NO_HEAT} progress={duration ? Math.min(1, position / duration) : 0} size={size} knob={false} pins={[]}>
-                <Artwork url={props.episode.artworkUrl} size={Math.round(size * 0.62)} name={props.episode.showTitle} rounded="pill" />
-              </Ring>
-              {shares ? (
-                <Svg width={2 * r + COMPOSER.arc} height={2 * r + COMPOSER.arc} style={{ position: 'absolute', left: size / 2 - r - COMPOSER.arc / 2, top: size / 2 - r - COMPOSER.arc / 2, transform: [{ rotate: `${shares.from * 360 - 90}deg` }] }} pointerEvents="none">
-                  <Circle cx={r + COMPOSER.arc / 2} cy={r + COMPOSER.arc / 2} r={r} fill="none" stroke={colour.text} strokeWidth={COMPOSER.arc} strokeLinecap="round" strokeDasharray={`${arcLen.toFixed(1)} ${(circ * 2).toFixed(1)}`} />
-                </Svg>
-              ) : null}
-              {/* The grab layer: a bit bigger than the ring so the arc outside it can be reached. */}
-              <Box testID="clip-range" {...pan.panHandlers} accessible accessibilityRole="adjustable" accessibilityLabel={spoken} className="absolute" style={{ left: -COMPOSER.arc, top: -COMPOSER.arc, width: size + 2 * COMPOSER.arc, height: size + 2 * COMPOSER.arc }} />
+      <PushedPage title="New clip" subtitle={`From ${props.episode.title} · now at ${mmss(position)}`} tone="none" extra={extra} extraAbove={COMPOSER.field + COMPOSER.buttons + 2 * spacing.row}>
+        {(layout) => (
+          <Box className="flex-1" testID="clip-composer">
+            <PlayerBackdrop feedUrl={props.episode.feedUrl} top={-60} opacity={0.5} />
+            <Box className="items-center" style={{ paddingTop: layout.top + COMPOSER.ringTop }}>
+              <Box style={{ width: size, height: size }}>
+                <Ring heat={heat.buckets ?? NO_HEAT} progress={duration ? Math.min(1, position / duration) : 0} size={size} knob={false} pins={[]}>
+                  <Artwork url={props.episode.artworkUrl} size={Math.round(size * 0.62)} name={props.episode.showTitle} rounded="pill" />
+                </Ring>
+                {shares ? (
+                  <Svg width={2 * r + COMPOSER.arc} height={2 * r + COMPOSER.arc} style={{ position: 'absolute', left: size / 2 - r - COMPOSER.arc / 2, top: size / 2 - r - COMPOSER.arc / 2, transform: [{ rotate: `${shares.from * 360 - 90}deg` }] }} pointerEvents="none">
+                    <Circle cx={r + COMPOSER.arc / 2} cy={r + COMPOSER.arc / 2} r={r} fill="none" stroke={colour.text} strokeWidth={COMPOSER.arc} strokeLinecap="round" strokeDasharray={`${arcLen.toFixed(1)} ${(circ * 2).toFixed(1)}`} />
+                  </Svg>
+                ) : null}
+                {/* The grab layer: a bit bigger than the ring so the arc outside it can be reached. */}
+                <Box testID="clip-range" {...pan.panHandlers} accessible accessibilityRole="adjustable" accessibilityLabel={spoken} className="absolute" style={{ left: -COMPOSER.arc, top: -COMPOSER.arc, width: size + 2 * COMPOSER.arc, height: size + 2 * COMPOSER.arc }} />
+              </Box>
+            </Box>
+            <Box className="flex-row items-center justify-between" style={{ marginTop: COMPOSER.rowGap, paddingHorizontal: gutter(width) }}>
+              <Box style={{ gap: spacing.gap - 2 }}>
+                <Type step="edge" className="text-text3">START</Type>
+                <TimestampChip text={mmss(s.range.startMs)} solid />
+              </Box>
+              <Box className="items-center" style={{ gap: spacing.hair }}>
+                <Type step="hero" className="text-text" style={clipsType.length} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{`${length} s`}</Type>
+                <Type step="edge" className="text-text3">LENGTH</Type>
+              </Box>
+              <Box className="items-end" style={{ gap: spacing.gap - 2 }}>
+                <Type step="edge" className="text-text3">END</Type>
+                <TimestampChip text={mmss(s.range.endMs)} solid />
+              </Box>
+            </Box>
+            <Box style={{ marginTop: spacing.block, paddingHorizontal: gutter(width), gap: COMPOSER.nudgeGap }}>
+              {nudgeRow('start')}
+              {nudgeRow('end')}
             </Box>
           </Box>
-          <Box className="flex-row items-center justify-between">
-            <Box style={{ gap: spacing.gap - 2 }}>
-              <Type step="edge" className="text-text2">START</Type>
-              <TimestampChip text={mmss(s.range.startMs)} solid />
-            </Box>
-            <Box className="items-center" style={{ gap: spacing.hair }}>
-              <Type step="hero" className="text-text" style={clipsType.length} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">{`${length} s`}</Type>
-              <Type step="edge" className="text-text2">LENGTH</Type>
-            </Box>
-            <Box className="items-end" style={{ gap: spacing.gap - 2 }}>
-              <Type step="edge" className="text-text2">END</Type>
-              <TimestampChip text={mmss(s.range.endMs)} solid />
-            </Box>
-          </Box>
-          <Box style={{ gap: COMPOSER.nudgeGap }}>
-            {nudgeRow('start')}
-            {nudgeRow('end')}
-          </Box>
-        </Box>
-      </FormPage>
+        )}
+      </PushedPage>
     </KeyboardAvoidingView>
   );
 }

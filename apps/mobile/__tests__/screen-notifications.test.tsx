@@ -85,7 +85,7 @@ it('signed out: People says to sign in', async () => {
 it('People: the feed under "Today", and a row opens its episode at the moment', async () => {
   const r = await mount(createElement(NotificationsScreen));
   const t = allText(r);
-  expect(t).toContain('Today');
+  expect(t).toContain('TODAY');
   expect(t).toContain('Bea');
   expect(t).toContain('The salt episode');
   expect(t).toContain('Rain sounds');

@@ -31,11 +31,11 @@ const PCT = (n: number): string => `${Math.round(n * 100)}%`;
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
-/** The glow's two colours: the show's theme colour (or the listener's hot) and a neutral. */
+/** The glow's two colours: the show's theme colour (or the listener's hot) and violet. */
 export function glowPair(themeColour: string | null | undefined, hot: string): readonly [string, string] {
   // The drawing's pink and indigo — unless the listener chose another accent, which takes the hot side.
   const own = hot === colour.hot ? PLAYER.glowPink : hot;
-  return [themeColour && HEX.test(themeColour.trim()) ? themeColour.trim() : own, PLAYER.glowEnd];
+  return [themeColour && HEX.test(themeColour.trim()) ? themeColour.trim() : own, PLAYER.glowIndigo];
 }
 
 /** `top` and `opacity` are the glow's own (the Episode page's scrolled glow is `glow(…, −300, .3)`); the player's are the defaults. */

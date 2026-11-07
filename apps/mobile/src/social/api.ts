@@ -9,8 +9,6 @@
  * tell "the server said no" from "we could not reach the server" (FR-032).
  */
 
-import { createProfileCache, forgetProfiles } from './profile-cache';
-
 export type ErrorCode =
   | 'validation' | 'unauthenticated' | 'forbidden' | 'not_found' | 'conflict' | 'locked'
   | 'duration_unknown' | 'reply_depth' | 'self_follow' | 'unavailable' | 'internal' | 'network'
@@ -300,8 +298,6 @@ export type ApiDeps = {
   timeoutMs?: number;
   /** M6 (FR-015): the server said this account is suspended — the app signs out locally and keeps the message. */
   onSuspended?: (message: string, appeals: string | undefined, appealToken?: string) => void;
-  /** Spec 039 Q5: the clock the profile cache ages by (tests); the real one by default. */
-  now?: () => number;
 };
 
 /**
@@ -402,12 +398,11 @@ export const UPLOAD_TIMEOUT_MS = 60_000;
 
 export function createApi(deps: ApiDeps): ApiClient {
   const call = requester(deps);
-  const profileOf = createProfileCache(deps.now ?? Date.now);
   return {
-    signIn: async (email, password, deviceLabel) => { forgetProfiles(); return (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-in', { email, password, deviceLabel })).json; },
-    signOut: async () => { await call('POST', '/v1/auth/sign-out'); forgetProfiles(); },
+    signIn: async (email, password, deviceLabel) => (await call<{ token: string; listener: Listener }>('POST', '/v1/auth/sign-in', { email, password, deviceLabel })).json,
+    signOut: async () => { await call('POST', '/v1/auth/sign-out'); },
     requestCode: async (email) => (await call<{ sent: true; resendAfterSeconds: number }>('POST', '/v1/auth/code', { email })).json,
-    verifyCode: async (email, code, displayName) => { forgetProfiles(); return (await call<{ token: string; listener: Listener } | { needsName: true }>('POST', '/v1/auth/code/verify', { email, code, ...(displayName ? { displayName } : {}) })).json; },
+    verifyCode: async (email, code, displayName) => (await call<{ token: string; listener: Listener } | { needsName: true }>('POST', '/v1/auth/code/verify', { email, code, ...(displayName ? { displayName } : {}) })).json,
     deleteMeWithCode: async (code) => { await call('DELETE', '/v1/me', { code }); },
     me: async () => (await call<{ listener: Listener }>('GET', '/v1/me')).json.listener,
     deleteMe: async (password) => { await call('DELETE', '/v1/me', { password }); },
@@ -428,9 +423,9 @@ export function createApi(deps: ApiDeps): ApiClient {
     getClip: async (id) => (await call<{ clip: Clip; episode: EpisodeRecord }>('GET', `/v1/clips/${id}`)).json,
     deleteClip: async (id) => { await call('DELETE', `/v1/clips/${id}`); },
     episodeClips: async (episodeId, before) => (await call<{ clips: Clip[]; next?: string }>('GET', `/v1/episodes/${episodeId}/clips${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
-    follow: async (id) => { await call('PUT', `/v1/listeners/${id}/follow`); forgetProfiles(); },
-    unfollow: async (id) => { await call('DELETE', `/v1/listeners/${id}/follow`); forgetProfiles(); },
-    profile: (id) => profileOf(id, async () => (await call<{ profile: Profile }>('GET', `/v1/listeners/${id}`)).json.profile),
+    follow: async (id) => { await call('PUT', `/v1/listeners/${id}/follow`); },
+    unfollow: async (id) => { await call('DELETE', `/v1/listeners/${id}/follow`); },
+    profile: async (id) => (await call<{ profile: Profile }>('GET', `/v1/listeners/${id}`)).json.profile,
     followers: async (id, before) => (await call<{ listeners: ClipAuthor[]; next?: string }>('GET', `/v1/listeners/${id}/followers${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
     following: async (id, before) => (await call<{ listeners: ClipAuthor[]; next?: string }>('GET', `/v1/listeners/${id}/following${before ? `?before=${encodeURIComponent(before)}` : ''}`)).json,
     setPrivacy: async (privateListening) => (await call<{ privateListening: boolean }>('PUT', '/v1/me/privacy', { privateListening })).json,

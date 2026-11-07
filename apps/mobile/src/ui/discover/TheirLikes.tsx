@@ -5,7 +5,7 @@
  * episode. A card opens the like post (`/like/[owner]/[episode]`, OUR OWN DESIGN, owner
  * 2026-10-06). Signed out, or nothing liked → no section.
  *
- * M31 D-C (design-pulse2 `home--fold-a`, "Their likes"): a Deck under the heading "Their likes" (the owner's rename of the section
+ * M31 D-C (design-pulse2 `home--fold-a`, "Their likes"): a Deck under the edge label "Their likes" (the owner's rename of the section
  * is the label), cards 230 x 150 — a face 26 and "Rui liked" (Geist 600 13), the note in Unbounded 15 / 21 (the `UNBOUNDED[15]` step,
  * quoted), and at the foot the cover 34 (radius 8) with the episode in text2 13 / 500. "All likes" was the section title's link; it is
  * the deck's last card as drawn ("Card · last card of the deck 'All likes'"). Not as drawn: a like with no note shows the episode only
@@ -22,8 +22,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { ME_TYPE } from '@/ui/me/measures';
 import { useProfileApi, type LikeItem } from '@/social/profile-api';
-import { DECK, UNBOUNDED, DeckCard, useEdge } from './Deck';
-import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
+import { DECK, UNBOUNDED, Deck, DeckCard, DeckSection, useEdge } from './Deck';
 
 /** Drawn: cards 230 x 150, the face 26, the cover 34 (radius 8). */
 export const LIKE_CARD = { width: 230, height: 150, face: 26, cover: 34, coverRadius: 8 } as const;
@@ -52,8 +51,8 @@ export function TheirLikes(props: { signedIn: boolean }): React.ReactElement | n
   if (items.length === 0) return null;
   const shown = items.filter((it): it is LikeItem & { listener: NonNullable<LikeItem['listener']> } => it.listener !== undefined);
   return (
-    <DiscoverSection title={edge.spoken}>
-      <DiscoverShelf width={LIKE_CARD.width} height={LIKE_CARD.height}>
+    <DeckSection label={edge.label} spoken={edge.spoken}>
+      <Deck width={LIKE_CARD.width} height={LIKE_CARD.height}>
         {[
           ...shown.map((it) => {
             return (
@@ -81,7 +80,7 @@ export function TheirLikes(props: { signedIn: boolean }): React.ReactElement | n
             </Pressable>
           </DeckCard>,
         ]}
-      </DiscoverShelf>
-    </DiscoverSection>
+      </Deck>
+    </DeckSection>
   );
 }

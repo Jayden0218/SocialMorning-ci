@@ -14,23 +14,21 @@
 import { useEffect, useState } from 'react';
 import { BackHandler } from 'react-native';
 import { openSystem } from '@/ui/kit/openLink';
+import { FlatList } from '@/ui/lib/flat-list';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { PageList } from '@/ui/kit/layout';
-import { goBack } from '@/ui/kit/PageHeader';
-import { IconButton } from '@/ui/kit/PulseButton';
-import { useToastPlacement } from '@/ui/shell/toastPlacement';
-import { spacing } from '@/design';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { LICENCES, LICENCES_GENERATED, licenceText, type Licence } from '@/legal/licences';
-import { Lede, SetCard, SetPage, SetRow } from '@/ui/settings/hub-parts';
+import { Lede, SetCard, SetRow } from '@/ui/settings/hub-parts';
 import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
-function Detail(props: { entry: Licence; onBack: () => void }): React.ReactElement {
+function Detail(props: { entry: Licence; layout: { top: number; reserve: number } }): React.ReactElement {
   const text = licenceText(props.entry);
   const url = props.entry.url;
   return (
-    <SetPage title={props.entry.name} onBack={props.onBack}>
+    <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: props.layout.top + SET.top, paddingBottom: props.layout.reserve, paddingHorizontal: SET.side, gap: SET.gap }}>
       <Type step="mono" className="text-text2" style={SET_TYPE.mono13}>{`Version ${props.entry.version} · ${props.entry.licence}`}</Type>
       {url && /^https?:\/\//.test(url) ? (
         <Pressable onPress={() => void openSystem(url).catch(() => undefined)} accessibilityRole="link" accessibilityLabel={`Open ${url}`} hitSlop={12} className="self-start">
@@ -42,13 +40,12 @@ function Detail(props: { entry: Licence; onBack: () => void }): React.ReactEleme
           {text ?? `This package is published under the ${props.entry.licence} licence. Its full text is in the package itself${url ? ', at the address above' : ''}.`}
         </Type>
       </SetCard>
-    </SetPage>
+    </ScrollView>
   );
 }
 
 export default function LicencesScreen(): React.ReactElement {
   const [open, setOpen] = useState<Licence | undefined>();
-  const placed = useToastPlacement();
   // Android's back closes an open licence first, then leaves the page.
   useEffect(() => {
     if (!open) return;
@@ -57,31 +54,34 @@ export default function LicencesScreen(): React.ReactElement {
   }, [open]);
   if (open) {
     return (
-      <Detail entry={open} onBack={() => setOpen(undefined)} />
+      <PushedPage title={open.name} onBack={() => setOpen(undefined)}>
+        {(layout) => <Detail entry={open} layout={layout} />}
+      </PushedPage>
     );
   }
   const last = LICENCES.length - 1;
   return (
-    <PageList
-      title="Open-source licences"
-      leading={<IconButton icon="chevron-back" label="Back" onPress={goBack} fill size={22} />}
-      safeBottom={0}
-      now={placed.now}
-      testID="licence-list"
-      gap={0}
-      data={LICENCES as Licence[]}
-      keyExtractor={(e) => `${e.name}@${e.version}`}
-      ListHeaderComponent={
-        <Box style={{ paddingTop: spacing.row, paddingBottom: spacing.block }}>
-          <Lede small>{`SocialNet is built with these ${LICENCES.length} open-source packages. Thank you to everyone who made them. List made ${LICENCES_GENERATED}.`}</Lede>
-        </Box>
-      }
-      renderItem={({ item, index }) => (
-        <Box className="bg-raise overflow-hidden" style={{ borderTopLeftRadius: index === 0 ? SET.radius : 0, borderTopRightRadius: index === 0 ? SET.radius : 0, borderBottomLeftRadius: index === last ? SET.radius : 0, borderBottomRightRadius: index === last ? SET.radius : 0 }}>
-          {index > 0 ? <Box className="bg-line" style={{ height: 1, marginLeft: spacing.section }} accessible={false} importantForAccessibility="no-hide-descendants" /> : null}
-          <SetRow mono label={item.name} line={`${item.version} · ${item.licence}`} onPress={() => setOpen(item)} accessibilityLabel={`${item.name}, ${item.licence}`} />
-        </Box>
+    <PushedPage title="Open-source licences">
+      {(layout) => (
+        <FlatList
+          className="flex-1"
+          testID="licence-list"
+          contentContainerStyle={{ paddingTop: layout.top + SET.top, paddingBottom: layout.reserve, paddingHorizontal: SET.side }}
+          data={LICENCES as Licence[]}
+          keyExtractor={(e) => `${e.name}@${e.version}`}
+          ListHeaderComponent={
+            <Box style={{ paddingBottom: SET.gap }}>
+              <Lede small>{`SocialNet is built with these ${LICENCES.length} open-source packages. Thank you to everyone who made them. List made ${LICENCES_GENERATED}.`}</Lede>
+            </Box>
+          }
+          renderItem={({ item, index }) => (
+            <Box className="bg-raise overflow-hidden" style={{ borderTopLeftRadius: index === 0 ? SET.radius : 0, borderTopRightRadius: index === 0 ? SET.radius : 0, borderBottomLeftRadius: index === last ? SET.radius : 0, borderBottomRightRadius: index === last ? SET.radius : 0 }}>
+              {index > 0 ? <Box className="bg-line" style={{ height: 1, marginLeft: SET.rowPadX }} accessible={false} importantForAccessibility="no-hide-descendants" /> : null}
+              <SetRow mono label={item.name} line={`${item.version} · ${item.licence}`} onPress={() => setOpen(item)} accessibilityLabel={`${item.name}, ${item.licence}`} />
+            </Box>
+          )}
+        />
       )}
-    />
+    </PushedPage>
   );
 }

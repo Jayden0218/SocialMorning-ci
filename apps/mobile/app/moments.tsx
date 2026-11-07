@@ -13,9 +13,6 @@
  * cover and "Episode not on this phone" in hot text; Play says so in a toast. The title bar is low: "Saved moments", the
  * count and a search circle that opens the field above it. Same actions, names and handlers as before.
  *
- * Spec 039 (Feed lane, design B): a `FeedPage`; the moments are a vertical stream of cards, one under another on the 20 gutter (no deck, no dots, no snap);
- * a card keeps its parts (the 130 cover with the time, the show, the title, the note, the foot) and grows if the note needs room.
- *
  * Not as drawn: no RN text-shadow blur on the cover's time beyond the scrim shadow; the keyboard lifts the whole page.
  */
 import { useFocusEffect } from 'expo-router';
@@ -23,24 +20,26 @@ import { useCallback, useMemo, useState } from 'react';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour, radius, spacing } from '@/design';
+import { colour, spacing } from '@/design';
 import { deleteMoment, editMoment, listMoments, NOTE_MAX, type Moment } from '@/me/moments';
 import { usePlayer } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
 import { mmss } from '@/ui/kit/format';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { Icon } from '@/ui/kit/Icon';
-import { FeedEmpty, FeedPage } from '@/ui/feed/FeedPage';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { CoverBand } from '@/ui/discover/Deck';
 import { plural } from '@socialmorning/social-core';
 // M22 US17 item 16 / FR-027: the same search as History.
 import { matchesAll } from '@/me/history';
 import { ME_TYPE } from '@/ui/me/measures';
-import { KeyboardPage, round, SearchField, slop } from '@/ui/me/lists';
+import { CardDeck, DRAWN, emptyTop, KeyboardPage, LIST, PageEmpty, round, SearchField, slop } from '@/ui/me/lists';
 
-/** A moment's card: at least 360 tall, a line round it; the cover is 130; the body pads 14 with 8 between parts. */
-const CARD = { height: 360, cover: 130, pad: 14, gap: spacing.gap, tool: 40, from: 44 } as const;
+/** The deck's card: 360 tall, radius 26, a line round it; the cover is 130; the body pads 14 with 8 between parts. */
+const CARD = { height: 360, radius: 26, cover: 130, pad: 14, gap: spacing.gap, tool: 40, from: 44 } as const;
+/** The deck starts 110 from the top of the drawn phone, 60 under its status bar. */
+const DECK_TOP = 110;
 
 export default function MomentsScreen(): React.ReactElement {
   const stores = useStores();
@@ -78,7 +77,7 @@ export default function MomentsScreen(): React.ReactElement {
     const missing = e === undefined;
     const editingThis = editing?.id === item.id;
     return (
-      <Box testID="moment-card" className="bg-raise border border-line overflow-hidden" style={{ minHeight: CARD.height, borderRadius: radius.card }}>
+      <Box testID="moment-card" className="bg-raise border border-line overflow-hidden" style={{ height: CARD.height, borderRadius: CARD.radius }}>
         <Box style={{ height: CARD.cover }} className={missing ? 'bg-raise2' : ''}>
           {missing ? null : <CoverBand url={e.imageUrl ?? show?.imageUrl} name={show?.title ?? e.title} height={CARD.cover} />}
           <Type step="hero" className="text-text absolute" style={[ME_TYPE.momentTime, { left: spacing.row, bottom: spacing.row, textShadowColor: colour.scrim, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 12 }]} accessible={false}>{mmss(item.atMs)}</Type>
@@ -123,24 +122,26 @@ export default function MomentsScreen(): React.ReactElement {
 
   return (
     <KeyboardPage>
-      <FeedPage<Moment>
+      <PushedPage
         title="Saved moments"
         {...(rows.length > 0 ? { subtitle: plural(rows.length, 'moment') } : {})}
         actions={rows.length > 0 ? [{ icon: 'search-outline', label: 'Search your saved moments', onPress: () => { if (searching) setTerm(''); setSearching(!searching); } }] : []}
-        {...(searching ? { header: <SearchField value={term} onChange={setTerm} placeholder="Search your saved moments" autoFocus /> } : {})}
-        data={shown}
-        keyExtractor={(m) => m.id}
-        keyboardShouldPersistTaps="handled"
-        contentStyle={{ flexGrow: 1 }}
-        gap={spacing.row}
-        ListEmptyComponent={
-          <FeedEmpty
-            title={rows.length > 0 ? 'Nothing matches' : 'No saved moments'}
-            {...(rows.length > 0 ? {} : { line: 'No saved moments — tap “Save moment” while listening' })}
-          />
-        }
-        renderItem={({ item }) => card(item)}
-      />
+        {...(searching ? { extra: <SearchField value={term} onChange={setTerm} placeholder="Search your saved moments" autoFocus />, extraAbove: LIST.field + spacing.gap } : {})}
+      >
+        {(layout) => (
+          <Box className="flex-1" style={{ paddingTop: layout.top + (DECK_TOP - DRAWN.status) }}>
+            {shown.length === 0 ? (
+              <PageEmpty
+                top={emptyTop(260) - (DECK_TOP - DRAWN.listTop)}
+                title={rows.length > 0 ? 'Nothing matches' : 'No saved moments'}
+                {...(rows.length > 0 ? {} : { line: 'No saved moments — tap “Save moment” while listening' })}
+              />
+            ) : (
+              <CardDeck count={shown.length} height={CARD.height} label="Saved moments" card={(i) => card(shown[i]!)} />
+            )}
+          </Box>
+        )}
+      </PushedPage>
     </KeyboardPage>
   );
 }

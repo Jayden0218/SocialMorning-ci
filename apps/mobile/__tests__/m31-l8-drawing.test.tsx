@@ -266,9 +266,7 @@ describe('the controls and the tray, as drawn', () => {
     playing(h, 12_000);
     const r = mount(h.runtime);
     const follow = host(r, 'Subscribe to this show');
-    // 039: the Pressable is a 44 frame (-5 above and below); the 34 pill that is drawn is its child — the drawn size is unchanged
-    const pill = follow.findAll((n) => typeof n.props['className'] === 'string' && (n.props['className'] as string).includes('rounded-pill'))[0]!;
-    expect(styleOf(pill)).toMatchObject({ height: 34, paddingHorizontal: 14 });
+    expect(styleOf(follow)).toMatchObject({ height: 34, paddingHorizontal: 14 });
     expect(styleOf(follow).marginBottom).toBeUndefined();
     const show = host(r, 'Show: Morning Notes');
     expect(styleOf(show).minHeight).toBe(44); // 036 D7: the link is a 44 frame, marginVertical -13 keeps the 18 row as drawn
@@ -456,8 +454,8 @@ describe('nothing playing, as drawn', () => {
 
 describe('the backdrop is the drawing\'s glow', () => {
   it('uses the drawing\'s pink and indigo, and its closest-side reach', () => {
-    expect(glowPair(undefined, colour.hot)).toEqual(['#ff6b8b', colour.glowGrey]);
-    expect(glowPair('#336699', colour.hot)).toEqual(['#336699', colour.glowGrey]);
+    expect(glowPair(undefined, colour.hot)).toEqual(['#ff6b8b', '#5b3df5']);
+    expect(glowPair('#336699', colour.hot)).toEqual(['#336699', '#5b3df5']);
     expect(glowPair(undefined, '#2dd4bf')[0]).toBe('#2dd4bf');
     expect(glowShape(GLOW_A)).toEqual({ cx: 0.35, cy: 0.5, rx: 0.35, ry: 0.5 });
     expect(glowShape(GLOW_B)).toEqual({ cx: 0.7, cy: 0.4, rx: expect.closeTo(0.3, 5), ry: 0.4 });

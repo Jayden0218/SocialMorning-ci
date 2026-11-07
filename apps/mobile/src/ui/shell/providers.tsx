@@ -18,7 +18,6 @@ import { PlayerProvider, createPlayerRuntime, type PlayerRuntime } from '@/playb
 import { hash } from '@/feeds/hash';
 import { createSqliteStores } from '@/storage/sqlite';
 import { toPlayable } from '@/storage/playable';
-import { rememberLastPlayed } from '@/me/last-played';
 import type { Stores } from '@/storage/types';
 import { createApi, requester, setTokenRotatedListener } from '@/social/api';
 import { configureErrorReports, reportAndDrop } from '@/telemetry/reportError';
@@ -347,9 +346,6 @@ export function AppProviders(props: { children?: ReactNode }): ReactNode {
         if (IMMEDIATE.has(reason)) { listened.close(); void listened.push(); }
         // FR-019: an episode that has a position has been played — it leaves the inbox.
         stores.inboxState.mark(row.episodeId, 'played', nowMs());
-        // Spec 039 Q3: Me's "Continue listening" offers the last episode played when nothing is loaded.
-        const playing = toPlayable(stores, row.episodeId);
-        if (playing) rememberLastPlayed(stores, row, { ...playing, url: stores.feeds.getEpisode(row.episodeId)?.enclosureUrl ?? playing.url });
         // M22 US17: "Delete after playing" (off by default) removes a finished episode's download.
         if (reason === 'finished') downloads.afterFinished(row.episodeId);
       },

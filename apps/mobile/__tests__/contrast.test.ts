@@ -16,20 +16,20 @@ import { withAccent } from '@/design/accent';
 const round = (n: number) => Math.round(n * 100) / 100;
 
 it('the measured ratios are the ones the Pulse palette was chosen for', () => {
-  expect(round(contrastRatio(colour.text, colour.void))).toBe(16);
-  expect(round(contrastRatio(colour.text, colour.raise2))).toBe(13.06);
-  expect(round(contrastRatio(colour.text2, colour.void))).toBe(7.15);
-  expect(round(contrastRatio(colour.text2, colour.raise2))).toBe(5.83);
-  expect(round(contrastRatio(colour.text3, colour.void))).toBe(5.86);
-  expect(round(contrastRatio(colour.text3, colour.raise2))).toBe(4.78);
-  expect(round(contrastRatio(colour.hotText, colour.void))).toBe(7.51);
-  expect(round(contrastRatio(colour.hotText, colour.raise2))).toBe(6.13);
-  expect(round(contrastRatio(colour.void, colour.hot))).toBe(7.51);
-  expect(round(contrastRatio(colour.idle, colour.void))).toBe(4.14);
-  expect(round(contrastRatio(colour.violet, colour.void))).toBe(3.47);
+  expect(round(contrastRatio(colour.text, colour.void))).toBe(18.11);
+  expect(round(contrastRatio(colour.text, colour.raise2))).toBe(15.48);
+  expect(round(contrastRatio(colour.text2, colour.void))).toBe(7.95);
+  expect(round(contrastRatio(colour.text2, colour.raise2))).toBe(6.79);
+  expect(round(contrastRatio(colour.text3, colour.void))).toBe(5.81);
+  expect(round(contrastRatio(colour.text3, colour.raise2))).toBe(4.96);
+  expect(round(contrastRatio(colour.hotText, colour.void))).toBe(8.46);
+  expect(round(contrastRatio(colour.hotText, colour.raise2))).toBe(7.23);
+  expect(round(contrastRatio(colour.void, colour.hot))).toBe(6.3);
+  expect(round(contrastRatio(colour.idle, colour.void))).toBe(4.51);
+  expect(round(contrastRatio(colour.violet, colour.void))).toBe(3.78);
   // The unplayed heat bars are white at 40 %: 3.73 on the page, over the 3:1 information floor
   // (the drawings' 18–28 % are 1.6–2.4 and fail it).
-  expect(round(contrastRatio(colour.barIdle, colour.void))).toBe(3.83);
+  expect(round(contrastRatio(colour.barIdle, colour.void))).toBe(3.73);
 });
 
 it('G2: every declared pair clears its floor', () => {
@@ -47,7 +47,7 @@ it('G-E1: no waiver — words on hot are void, and nothing is shipped under its 
 
 it('the colours this app avoids would have failed — that is why they are not used', () => {
   // White words on hot: 3.21, under the body floor — so words on hot are void.
-  expect(round(contrastRatio('#ffffff', colour.hot))).toBe(2.47);
+  expect(round(contrastRatio('#ffffff', colour.hot))).toBe(3.21);
   expect(contrastRatio('#ffffff', colour.hot)).toBeLessThan(BODY_MIN);
   // Violet is never for words: 3.78 on the page, under the body floor.
   expect(contrastRatio(colour.violet, colour.void)).toBeLessThan(BODY_MIN);

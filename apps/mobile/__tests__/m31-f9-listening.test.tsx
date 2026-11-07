@@ -83,19 +83,19 @@ describe('F9-5 Listening data, All time (me-listening--all-time)', () => {
     expect(total.props['numberOfLines']).toBe(1);
   });
 
-  it.each(['30d', 'all'])('the range switch is the first block under the title row (039: it was pinned to the foot) — %s', async (range) => {
+  it.each(['30d', 'all'])('the range switch sits in the title bar\'s foot (pushed-below), not at the top of the scroll — %s', async (range) => {
     const r = await render();
     if (range === 'all') await press(r, 'All time');
     const sw = byId(r, 'segment-switch');
     expect(sw).toHaveLength(1);
-    expect(inside(sw[0]!, 'pushed-below')).toBe(false);
-    expect(inside(sw[0]!, 'page-scroll')).toBe(true);
+    expect(inside(sw[0]!, 'pushed-below')).toBe(true);
   });
 
-  it('top shows are cards 150 wide with a 130 cover on a Shelf (039; was a snapping deck), not 250 x 84 rows', async () => {
+  it('top shows are a deck of 150-wide cards (snap 160) with a 130 cover, not 250 x 84 rows', async () => {
     const r = await render();
     await press(r, 'All time');
-    expect(byId(r, 'shelf').length).toBeGreaterThan(0);
+    const deck = byId(r, 'deck')[0]!;
+    expect(deck.props['snapToInterval']).toBe(160);
     expect(r.root.findAll((n) => n.props['size'] === 130).length).toBeGreaterThan(0);
   });
 

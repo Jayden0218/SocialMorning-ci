@@ -1,4 +1,4 @@
-// The heat bars: where people reacted along an episode, as a row of bars; played ones turn hot.
+// The heat bars: where people reacted along an episode, as a row of bars; played ones turn hot to violet.
 /**
  * M31 T022 (design-pulse2 `kit.js` `PK.bars`): `count` bars drawn from the 100 heat buckets
  * (every `round(100 / count)`-th), each `min + (height - min) * v` tall. The played bars run hot to
@@ -50,8 +50,6 @@ export function Curve(props: {
   onSeek?: (fraction: number) => void;
   /** 036 T015: room added BELOW the bars so the touch (and accessible) frame reaches 44; the bars stay `height` tall. */
   reach?: number;
-  /** The `reach` hangs below the box (a negative bottom margin), so the bars sit where they would without it. */
-  hang?: boolean;
   /** The spoken name ("Where people reacted"). Without one the bars are hidden from a screen reader. */
   accessibilityLabel?: string;
   className?: string;
@@ -78,7 +76,7 @@ export function Curve(props: {
   return (
     <Box
       className={`flex-row items-end ${props.className ?? ''}`}
-      style={{ height: height + (props.reach ?? 0), paddingBottom: props.reach ?? 0, gap, ...(props.hang === true ? { marginBottom: -(props.reach ?? 0) } : null) }}
+      style={{ height: height + (props.reach ?? 0), paddingBottom: props.reach ?? 0, gap }}
       onLayout={(e) => { setWidth(e.nativeEvent.layout.width); }}
       {...(seek ? pan.panHandlers : {})}
       {...(label !== undefined

@@ -13,14 +13,13 @@
  * the spine's stops back to two; swap `bg-hot` on the Post pill; drop the rule above Report; change `cardLeft`'s 56.
  */
 import { createElement } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, processColor } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
 const mockSeek = jest.fn();
-const seeks: number[] = [];
 let mockListener: { listenerId: string; displayName: string } | undefined = { listenerId: 'me', displayName: 'Me' };
 let mockParams: Record<string, string> = { episodeId: 'e1' };
 let mockLive: number | undefined;
@@ -100,6 +99,7 @@ import { ComposerSheet } from '@/ui/comments/Composer';
 import { CommentsMap, liveDiscs } from '@/ui/comments/CommentsMap';
 import { Capsule, ComposerBar, SignInBar } from '@/ui/comments/CommentsBottom';
 import { IconButton } from '@/ui/kit/PulseButton';
+import { SpineLine, SpineNode } from '@/ui/comments/Spine';
 import { voiceWave } from '@/ui/comments/VoiceComment';
 import { DRAWN_ICONS } from '@/ui/kit/drawn-icons';
 import { GluestackUIProvider } from '@/ui/lib/gluestack-ui-provider';
@@ -154,8 +154,6 @@ function harness() {
   let listener: ((e: AdapterEvent) => void) | undefined;
   const adapter: AudioAdapter = { execute: async () => undefined, subscribe: (l) => { listener = l; return () => undefined; }, configure: async () => undefined, release: () => undefined };
   const runtime = createPlayerRuntime({ adapter, stores: createMemoryStores(hash), now: () => 1, notify: () => undefined });
-  const seek = runtime.seek;
-  runtime.seek = (toMs: number) => { seeks.push(toMs); seek(toMs); };
   return { runtime, push: (e: AdapterEvent) => listener?.(e) };
 }
 function mount(el: React.ReactElement, insets = { top: 50, bottom: 34 }): ReactTestRenderer {
@@ -174,7 +172,7 @@ beforeEach(() => {
   jest.useFakeTimers();
   jest.setSystemTime(new Date(SERVER));
   setReducedMotionForTest(true);
-  mockPush.mockClear(); mockBack.mockClear(); mockSeek.mockClear(); seeks.length = 0;
+  mockPush.mockClear(); mockBack.mockClear(); mockSeek.mockClear();
   mockListener = { listenerId: 'me', displayName: 'Me' };
   mockParams = { episodeId: 'e1' };
   mockLive = undefined;
@@ -201,45 +199,37 @@ describe('the page puts each part where the drawing does (390 × 844, 50 pt stat
     ];
   };
 
-  // 039 verifier fix: the deleted SpineNode seek assertion, restored on the page (the node's chip is the page's "Play from 14:32").
-  it('pressing the moment chip "Play from 14:32" seeks the player to 872 000 ms', async () => {
+  it('the strip is at 56, the map at 102, the spine at 140, the zone 6 over the home strip', async () => {
     two();
     const r = mount(createElement(CommentsScreen));
     await act(async () => { await Promise.resolve(); });
-    act(() => { pressable(r, 'Play from 14:32').props['onPress'](); });
-    await act(async () => { await Promise.resolve(); });
-    expect(seeks).toEqual([872_000]);
-  });
-
-  // 039 (Feed lane): was "the strip is at 56, the map at 102, the thread at 140" (absolute tops under the status bar); the strip and the map are the list's header now, in flow under the
-  // title row, on the page's gutter. The zone (the capsule and the composer) is unchanged: 6 over the home strip.
-  it('the strip and the map are in the list header; the zone is 6 over the home strip', async () => {
-    two();
-    const r = mount(createElement(CommentsScreen));
-    await act(async () => { await Promise.resolve(); });
-    expect(styleOf(byId(r, 'comments-strip'))['top']).toBeUndefined();
-    expect(styleOf(byId(r, 'comments-map-row'))['top']).toBeUndefined();
-    expect(byId(r, 'page-title-row')).toBeDefined();
+    near(styleOf(byId(r, 'comments-strip'))['top'], 56);
+    near(styleOf(byId(r, 'comments-map-row'))['top'], 102);
+    near(styleOf(byId(r, 'comments-thread'))['top'], 140);
     // 6 over the home strip: the root layout pads the strip once, so the page starts above it (the drawing's 40 = 34 + 6).
     near(styleOf(byId(r, 'comments-zone'))['bottom'], 6);
     near(styleOf(byId(r, 'comments-zone'))['left'], 12);
     near(styleOf(byId(r, 'comments-zone'))['gap'], 10);
   });
 
-  it('a taller status bar moves the title row down by the difference; a taller home inset moves the zone nothing', async () => {
+  it('a taller status bar and home inset move the page by the difference', async () => {
     two();
-    // 039 D2 (list was -> now): the title row is pinned, so the status bar's difference lands on the pin's top padding, not the scroll content's.
-    const content = (r: ReactTestRenderer) => StyleSheet.flatten(r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'page-title-pin')[0]!.props['style'] as never) as Style;
     const r = mount(createElement(CommentsScreen), { top: 59, bottom: 34 });
-    const r0 = mount(createElement(CommentsScreen), { top: 50, bottom: 34 });
-    near(content(r)['paddingTop'] as number, (content(r0)['paddingTop'] as number) + 9);
+    near(styleOf(byId(r, 'comments-strip'))['top'], 65);
+    near(styleOf(byId(r, 'comments-thread'))['top'], 149);
     // A taller home inset moves nothing: the root pads that strip, so the zone stays 6 above it on every phone.
     const r2 = mount(createElement(CommentsScreen), { top: 50, bottom: 40 });
     near(styleOf(byId(r2, 'comments-zone'))['bottom'], 6);
     expect([belowStatus(50, 102), aboveInset(34, 40), aboveInset(0, 40)]).toEqual([102, 40, 6]);
   });
 
-  // 039 I2: "the spine is 2 wide at x 40 and runs hot, violet at 60 %, line" went with `SpineLine`, which no page draws any more.
+  it('the spine is 2 wide at x 40 and runs hot, violet at 60 %, line', () => {
+    const r = mount(createElement(SpineLine));
+    const line = byId(r, 'spine-line');
+    near(styleOf(line)['left'], 40); near(styleOf(line)['width'], 2);
+    expect(line.props['locations']).toEqual([0, 0.6, 1]);
+    expect(line.props['colors']).toEqual([colour.hot, colour.violet, colour.line].map((x) => processColor(x)));
+  });
 
   it('the thumb zone: a 44 close circle, the title with its count, a 40 capsule with a 3 rim, a 56 composer with radius 22', async () => {
     two();
@@ -327,7 +317,17 @@ describe('the spine groups comments under moments', () => {
     expect(nearestNode(nodes, 900_000)).toBe(1);
     expect(nearestNode(buildNodes([c({ id: 'n', offsetMs: null })], true), 5)).toBe(-1);
   });
-  // 039 I2: "a node: the chip in a 46 column over the spine" went with `SpineNode`, which no page draws any more.
+  it('a node: the chip in a 46 column over the spine, "41 reacted" in mono beside it', () => {
+    const r = mount(<SpineNode momentMs={872_000} reacted={41} onSeek={mockSeek}>{createElement('Marker')}</SpineNode>);
+    const node = byId(r, 'spine-node');
+    near(styleOf(node)['gap'], 10);
+    expect(text(r)).toContain('14:32');
+    expect(text(r)).toContain('41 reacted');
+    act(() => { pressable(r, 'Play from 14:32').props['onPress'](); });
+    expect(mockSeek).toHaveBeenCalledWith(872_000);
+    const col = r.root.findAll((n) => typeof n.type === 'string' && styleOf(n)['width'] === 46)[0]!;
+    expect(styleOf(col)['zIndex']).toBe(2);
+  });
 });
 
 describe('a card', () => {
@@ -474,9 +474,7 @@ describe('the sheets', () => {
 
   it('the composer sheet: Post is a hot 38 pill, the write box is 120 min, the count is mono, a reply says "Reply"', () => {
     const r = mount(createElement(ComposerSheet, { initial: { episodeId: 'e1', body: '', moment: { offsetMs: 872_000 } } as never, onClose: jest.fn(), onPosted: jest.fn() }));
-    // 039 (run 42210796897): the Post Pressable is now the 44 frame (m39-frames.test.tsx); the 38 hot pill is drawn inside it. Same two assertions, read on the pill.
-    const frame = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Post' && typeof n.type === 'string')[0]!;
-    const post = frame.findAll((n) => typeof n.type === 'string' && String(n.props['className']).includes('bg-hot'))[0]!;
+    const post = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Post' && typeof n.type === 'string')[0]!;
     expect(styleOf(post)['height']).toBe(38);
     expect(String(post.props['className'])).toContain('bg-hot');
     expect(text(r)).toContain('New comment');
@@ -536,25 +534,17 @@ describe('the replies page (Stage + Thread)', () => {
     return r;
   };
 
-  // 039 verifier fix: the stage's solid chip seeks to the comment's moment.
-  it('pressing the stage chip "Play from 14:32" seeks the player to 872 000 ms', async () => {
+  it('the stage is at 60 (the comment, its solid chip, its heart), the spine from 250, replies as cards with an age tick', async () => {
     mockThread = { parent, replies };
     const r = await open();
-    act(() => { pressable(r, 'Play from 14:32').props['onPress'](); });
-    await act(async () => { await Promise.resolve(); });
-    expect(seeks).toEqual([872_000]);
-  });
-
-  // 039 (Feed lane): was "the stage is at 60, the spine from 250, replies as cards 56 in with an age tick" (absolute tops, a spine-node and a tick per reply); the stage is the list's
-  // header now, the replies are cards on the gutter with no indent, no spine and no tick (the card says its age).
-  it('the stage is the list header (the comment, its solid chip, its heart); the replies are flush cards', async () => {
-    mockThread = { parent, replies };
-    const r = await open();
-    expect(styleOf(byId(r, 'thread-stage'))['top']).toBeUndefined();
+    near(styleOf(byId(r, 'thread-stage'))['top'], 60);
+    near(styleOf(byId(r, 'replies-thread'))['top'], 250);
     expect(text(r)).toContain('This is the part I replay every morning.');
     expect(labels(r)).toEqual(expect.arrayContaining(['Play from 14:32', 'Like. 41 likes', 'More for this comment']));
-    expect(allById(r, 'spine-node')).toHaveLength(0);
-    expect(allById(r, 'comment-card').map((n) => styleOf(n)['marginLeft'])).toEqual([0, 0]);
+    expect(allById(r, 'spine-node')).toHaveLength(2);
+    expect(allById(r, 'comment-card').map((n) => styleOf(n)['marginLeft'])).toEqual([56, 56]);
+    expect(text(r)).toContain('"4h"');
+    expect(text(r)).toContain('"3h"');
     expect(text(r)).toContain('"That\'s all"');
   });
 

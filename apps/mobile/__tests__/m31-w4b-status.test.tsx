@@ -260,6 +260,11 @@ describe('the text status page (status-text--screen)', () => {
     expect(mockToast).toHaveBeenCalledWith('Posted. It is gone after 24 hours.');
     expect(mockBack).toHaveBeenCalled();
   });
+  it('038 (a11y-frames, run 41980693503: 312 x 30): the status text box is at least 44 tall, a tap target like any other', async () => {
+    const r = await mount(createElement(TextStatusScreen));
+    const field = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Your status text' && typeof n.props['onChangeText'] === 'function')[0]!;
+    expect(Number(flat(field)['minHeight'] ?? 0)).toBeGreaterThanOrEqual(44);
+  });
   it('past 140 the count turns hot and Post stays dimmed', async () => {
     const r = await mount(createElement(TextStatusScreen));
     const field = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Your status text' && typeof n.props['onChangeText'] === 'function')[0]!;

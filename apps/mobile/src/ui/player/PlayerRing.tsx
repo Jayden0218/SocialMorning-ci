@@ -1,7 +1,7 @@
 // The player's ring: the reaction curve wrapped round the cover; drag to seek, avatar pins mark comments.
 /**
  * M31 T024 (design-pulse2 `player--screen`, "Layout: Ring"). The cover is a circle (0.62 of the ring) in
- * the middle of a 330 ring of 100 spokes — the heat curve; played spokes run hot from
+ * the middle of a 330 ring of 100 spokes — the heat curve; played spokes run hot → violet from
  * 12 o'clock, clockwise (kit `Ring`). Seek by turning the knob or tapping a spoke; to a screen reader
  * the ring is ONE adjustable control named "Seek" (value "14:32 of 34:17", swipe up/down = ±15 s),
  * the same name and value `Scrubber` and `HeatScrubber` had (guard G11), and the same +30 / −15 steps. A time bubble over the

@@ -57,30 +57,3 @@ test('T101: the deleted Editorial variants and old size names are refused where 
   assert.deepEqual(findRetired([f('src/ui/lib/text/styles.tsx', "md: 'text-md'")]), []);
   assert.ok(RETIRED_PATTERNS.length >= 5);
 });
-
-test('039: EdgeLabel is retired — an import of it fails, its file coming back fails, and the reason is the Section heading', () => {
-  const r = findRetired([
-    f('app/a.tsx', "import { EdgeLabel } from '@/ui/kit/EdgeLabel';"),
-    f('src/ui/x/Deck.tsx', "import { EdgeLabel } from '../kit/EdgeLabel';"),
-  ]);
-  assert.equal(r.length, 2);
-  assert.match(r[0], /^app\/a\.tsx:1 imports retired EdgeLabel \(039: sections are named by Section headings\)/);
-  const edge = RETIRED_PARTS.find((p) => p.name === 'EdgeLabel');
-  assert.equal(edge?.file, 'src/ui/kit/EdgeLabel.tsx');
-  const root = mkdtempSync(path.join(tmpdir(), 'retired-edge-'));
-  mkdirSync(path.join(root, 'src/ui/kit'), { recursive: true });
-  writeFileSync(path.join(root, edge.file), '');
-  assert.ok(revived(root, [edge]).length === 1);
-});
-
-test('039: PushedPage is retired; an import of it (or a file that brings it back) is refused with the reason', () => {
-  const r = findRetired([f('app/a.tsx', "import { PushedPage } from '@/ui/kit/PushedPage';")]);
-  assert.equal(r.length, 1);
-  assert.match(r[0], /^app\/a\.tsx:1 imports retired PushedPage \(039: pages use Page\/PageList\)/);
-  const root = mkdtempSync(path.join(tmpdir(), 'retired-'));
-  const p = RETIRED_PARTS.find((x) => x.name === 'PushedPage');
-  assert.ok(p, 'PushedPage is in RETIRED_PARTS');
-  mkdirSync(path.dirname(path.join(root, p.file)), { recursive: true });
-  writeFileSync(path.join(root, p.file), '');
-  assert.ok(revived(root).some((x) => x.includes('PushedPage')));
-});

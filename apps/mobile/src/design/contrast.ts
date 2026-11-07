@@ -66,6 +66,8 @@ export const PAIRS: Pair[] = [
   { fg: colour.quote, bg: colour.void, min: BODY_MIN, role: 'a quoted note, show line (text-quote) on the page' },
   { fg: colour.quote, bg: colour.raise, min: BODY_MIN, role: 'a quoted note on a card' },
   { fg: colour.quote, bg: colour.raise2, min: BODY_MIN, role: 'a quoted note on a sheet' },
+  { fg: colour.hotEnd, bg: colour.void, min: BODY_MIN, role: 'the violet end of gradient words, the PREMIUM tag (text-hotEnd) on the page' },
+  { fg: colour.hotEnd, bg: colour.raise, min: BODY_MIN, role: 'hotEnd words on a card' },
   { fg: colour.background, bg: colour.accent, min: BODY_MIN, role: 'the count on an accent badge (text-background on bg-accent)' },
   // Words on a solid fill: void on hot (tags, badges, hot button), void on text (light button, chosen chip).
   { fg: colour.void, bg: colour.hot, min: BODY_MIN, role: 'words on a hot button, tag or badge' }, // 6.30
@@ -93,6 +95,7 @@ export const PAIRS: Pair[] = [
   { fg: colour.void, bg: colour.text, min: BODY_MIN, role: 'void words on the chosen tab' },
   // Graphics that carry information or identify a control (floor 3).
   { fg: colour.idle, bg: colour.void, min: LARGE_MIN, role: 'idle tab icon (graphic)' }, // 4.51
+  { fg: colour.violet, bg: colour.void, min: LARGE_MIN, role: 'violet end of the gradient bars (graphic)' }, // 3.78
   { fg: colour.hot, bg: colour.void, min: LARGE_MIN, role: 'hot bars and the active dot (graphic)' }, // 6.30
   { fg: colour.hot, bg: colour.raise, min: LARGE_MIN, role: 'hot bars on a card (graphic)' }, // 5.85
   { fg: colour.barIdle, bg: colour.void, min: LARGE_MIN, role: 'unplayed heat bars and ring spokes (information)' }, // 3.73

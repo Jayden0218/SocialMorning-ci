@@ -3,7 +3,7 @@
  * M16a guard G-N1 (FR-012, FR-013, FR-016; owner 2026-10-02, said twice): no iOS-native chrome.
  *  - the root stack hides the native header for every screen, and no screen turns it back on;
  *  - every page in the stack draws the app's own bar (PageHeader, TopBar, the Pulse bottom TitleBar, the comments pages'
- *    ZoneTitle, FollowList, or — spec 039 — a frame by scripts/page-frame-check.mjs: Page/PageList or a local wrapper on them), except the pages listed in OWN_BAR, which draw their own top;
+ *    ZoneTitle, or FollowList, which draws a PageHeader), except the pages listed in OWN_BAR, which draw their own top;
  *  - no code calls the native alert (`Alert.alert`) — confirmations use src/ui/kit/confirm.tsx;
  *  - no file outside src/ui/lib uses the native switch — on/off is src/ui/kit/Toggle.tsx.
  *
@@ -18,9 +18,7 @@
  * The break that turns it red: set one screen's `headerShown: true` in app/_layout.tsx (e.g.
  * `<Stack.Screen name="inbox" options={{ title: 'Inbox', headerShown: true }} />`).
  */
-import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { createElement } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
@@ -108,50 +106,13 @@ it('no file in app/ turns the native header back on (source scan: nested layouts
   expect(on).toEqual([]);
 });
 
-/** The frame verdicts of page-frame-check for every page under `root` (one process, the same scanner the ratchet uses). */
-function frameVerdicts(root: string): Record<string, { status: string; direct: boolean; wrapped: boolean }> {
-  const r = spawnSync(process.execPath, [join(ROOT, 'scripts', 'page-frame-check.mjs'), '--json', '--root', root, '--exempt', join(ROOT, 'scripts', 'page-frame-exempt.json')], { encoding: 'utf8', maxBuffer: 1 << 24 });
-  expect(r.status).toBe(0);
-  return JSON.parse(r.stdout) as Record<string, { status: string; direct: boolean; wrapped: boolean }>;
-}
-const OLD_BAR_RE = /<(PageHeader|TopBar|TitleBar|PushedPage|ZoneTitle|BottomZone|FollowList|Redirect|OverlayPage|RecFeedbackForm)\b/;
-function drawsBar(f: string, src: string, verdicts: Record<string, { status: string; direct: boolean; wrapped: boolean }>): boolean {
-  if (OLD_BAR_RE.test(src)) return true;
-  const v = verdicts[f];
-  if (!v) return true; // not a page (a layout, a pure redirect)
-  if (v.status === 'exempt') return true;
-  if (v.wrapped) return true;
-  return v.direct && /\bleading\b/.test(src);
-}
-
-it('the frame definition is shared: a page with no frame is bare, a two-level wrapper and a Page with its Back are not (fixture)', () => {
-  const root = mkdtempSync(join(tmpdir(), 'nonative-'));
-  mkdirSync(join(root, 'app'), { recursive: true });
-  mkdirSync(join(root, 'src', 'ui'), { recursive: true });
-  const put = (p: string, t: string): void => writeFileSync(join(root, p), t);
-  put('app/bare.tsx', `import { Box } from '@/ui/lib/box';\nexport default function A() { return <Box />; }\n`);
-  put('app/nested.tsx', `import { Mid } from '@/ui/mid';\nexport default function B() { return <Mid />; }\n`);
-  put('app/direct.tsx', `import { Page } from '@/ui/kit/layout';\nexport default function C() { return <Page title="c" leading={null} />; }\n`);
-  put('app/noback.tsx', `import { Page } from '@/ui/kit/layout';\nexport default function D() { return <Page title="d" />; }\n`);
-  put('src/ui/mid.tsx', `import { Top } from '@/ui/top';\nexport function Mid() { return <Top />; }\n`);
-  put('src/ui/top.tsx', `import { Page } from '@/ui/kit/layout';\nexport function Top() { return <Page title="t" />; }\n`);
-  const verdicts = frameVerdicts(root);
-  const bare = Object.keys(verdicts).filter((f) => !drawsBar(f, readFileSync(join(root, f), 'utf8'), verdicts)).sort();
-  expect(bare).toEqual(['app/bare.tsx', 'app/noback.tsx']);
-});
-
 it('every page in the stack draws the app\'s own bar', () => {
   expect(routes.length).toBeGreaterThanOrEqual(40); // the scan found the pages — otherwise this proves nothing
   // M31 W3: `PushedPage` (src/ui/kit/PushedPage.tsx) is the Pulse pages' bar — the title bar low, by the thumb.
   // The chat thread's bar is the thumb zone (`BottomZone`: back, avatar, name, box; M31 W4-C).
   // A page that only redirects (`/inbox` → Updates, owner 2026-10-04) draws nothing, so needs no bar.
   // M31 S-C: `OverlayPage` (src/ui/kit/OverlayPage.tsx) is the same bar for a page that cannot ask the router (onboarding); `RecFeedbackForm` draws the whole "Not liking these?" page in it. M31 S-B: `SettingsPage` (src/ui/settings/panel.tsx) is a `PushedPage` with the settings body.
-  // Spec 039 D4 (was: the list above only): a `Page` (src/ui/kit/layout/Page.tsx) is the app's own title row; on a pushed page it must carry its Back in `leading`.
-  // Spec 039 I1: the local-wrapper names are no longer listed here (they kept growing). A page counts as framed by the ONE definition in
-  // scripts/page-frame-check.mjs (`--json`): it renders Page/PageList, or a local component up to 4 imports away does (SetPage -> SettingsPage -> Page);
-  // a page that renders Page/PageList itself must carry its Back in `leading`; the pages listed in scripts/page-frame-exempt.json are owner decisions.
-  const verdicts = frameVerdicts(ROOT);
-  const bare = routes.filter((f) => !drawsBar(f, readFileSync(join(ROOT, f), 'utf8'), verdicts));
+  const bare = routes.filter((f) => !/<(PageHeader|TopBar|TitleBar|PushedPage|ZoneTitle|BottomZone|FollowList|Redirect|OverlayPage|RecFeedbackForm|SettingsPage)\b/.test(readFileSync(join(ROOT, f), 'utf8')));
   expect(bare).toEqual([]);
 });
 

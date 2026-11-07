@@ -157,6 +157,7 @@ export function SearchZone(props: {
             })}
           </Box>
         ) : null}
+        {!typed ? <Type step="hero" className="text-text" accessibilityRole="header">Search</Type> : null}
       </Animated.View>
       <Box className="flex-row items-center" style={{ gap: PX.ten }}>
         <Animated.View

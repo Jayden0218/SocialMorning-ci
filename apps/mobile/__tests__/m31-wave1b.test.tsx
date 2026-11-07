@@ -142,12 +142,12 @@ describe('small things the capture found', () => {
     expect(src).toContain("export const NBSP = '\\u00A0';");
     expect(src).toContain('·$' + '{NBSP}`');
   });
-  it('the Moments page reads the bottom inset in a hook, not in the .tsx: the tab bar (bars.tab, 73 since 039; was 58) + the strip', () => {
+  it('the Moments page reads the bottom inset in a hook, not in the .tsx: the tab bar (58) + the strip', () => {
     let seen = 0;
     const setSeen = (v: number): void => { seen = v; };
     const Probe = (): null => { setSeen(useBelow()); return null; };
     render(createElement(SafeAreaInsetsContext.Provider, { value: { top: 50, bottom: 34, left: 0, right: 0 } }, createElement(Probe)));
-    expect(seen).toBe(bars.tab + 34);
+    expect(seen).toBe(58 + 34);
     const feed = SRC('src/ui/discover/MomentsFeed.tsx');
     expect(feed).toContain("from './useBelow'");
     expect(feed).not.toMatch(/insets\.bottom/);

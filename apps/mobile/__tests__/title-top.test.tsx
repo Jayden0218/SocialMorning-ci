@@ -9,10 +9,11 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { contentTopReserve } from '@/design';
+import { bars, barsReserve, contentTopReserve } from '@/design';
 import { TitleBar } from '@/ui/kit/TitleBar';
 import { Fade } from '@/ui/kit/Fade';
-import { OverlayPage, type PushedLayout } from '@/ui/kit/OverlayPage';
+import { PushedPage, type PushedLayout } from '@/ui/kit/PushedPage';
+import { OverlayPage } from '@/ui/kit/OverlayPage';
 
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn(() => ({ width: 390, height: 844, scale: 3, fontScale: 1 })) }));
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true }, usePathname: () => '/notifications' }));
@@ -72,8 +73,8 @@ describe('037 M2 TitleBar at the top', () => {
   });
 });
 
-// 037 M3 — OverlayPage places the bar by the top, whatever bars are at the foot. 039: PushedPage is retired (its four guards went with it; Page's title row and foot are pinned in src/ui/kit/layout/__tests__).
-describe('037 M3 OverlayPage', () => {
+// 037 M3 — PushedPage and OverlayPage place the bar by the top, whatever bars are at the foot.
+describe('037 M3 PushedPage and OverlayPage', () => {
   let seen: PushedLayout | undefined;
   const page = (el: React.ReactElement): ReactTestRenderer => {
     setReducedMotionForTest(true);
@@ -83,8 +84,42 @@ describe('037 M3 OverlayPage', () => {
     mounted.push(r);
     return r;
   };
+  const pushed = (now: boolean, extra: Record<string, unknown> = {}): ReactTestRenderer => page(createElement(PushedPage as React.ComponentType<Record<string, unknown>>, { title: 'Notifications', subtitle: 'New activity', now, ...extra }, ((l: PushedLayout) => { seen = l; return null; }) as never));
   const overlay = (extra: Record<string, unknown> = {}): ReactTestRenderer => page(createElement(OverlayPage as React.ComponentType<Record<string, unknown>>, { title: 'Terms', ...extra }, ((l: PushedLayout) => { seen = l; return null; }) as never));
   const barTop = (r: ReactTestRenderer): unknown => flat(r.root.findAll((n) => n.props['testID'] === 'title-bar' && typeof n.type === 'string')[0])['top'];
+
+  it('PushedPage: the title bar\'s top is the same with or without a now bar', () => {
+    const a = barTop(pushed(false));
+    const b = barTop(pushed(true));
+    expect(a).toBe(53);
+    expect(b).toBe(a);
+  });
+
+  it('PushedPage: the content starts under the title block, and its foot leaves room for the now bar only', () => {
+    pushed(false);
+    const idle = seen!;
+    pushed(true);
+    const playing = seen!;
+    expect(idle.top).toBe(53 + contentTopReserve());
+    expect(playing.top).toBe(idle.top);
+    expect(idle.reserve).toBe(barsReserve({}));
+    expect(playing.reserve - idle.reserve).toBe(bars.pushedGap + bars.now);
+  });
+
+  it('PushedPage: `extraAbove` (a search field) moves the content start down, not the foot', () => {
+    pushed(false);
+    const base = seen!;
+    pushed(false, { extra: createElement('Marker' as never), extraAbove: 60 });
+    expect(seen!.top - base.top).toBe(60);
+    expect(seen!.reserve).toBe(base.reserve);
+  });
+
+  it('PushedPage: the fade is at the top edge, under the title, not at the foot', () => {
+    const r = pushed(false);
+    const fade = r.root.findAllByType(Fade)[0]!;
+    expect(typeof fade.props['top']).toBe('number');
+    expect(fade.props['bottom']).toBeUndefined();
+  });
 
   it('OverlayPage: the bar sits at the top; the content starts under the block; the fade is at the top', () => {
     const r = overlay();

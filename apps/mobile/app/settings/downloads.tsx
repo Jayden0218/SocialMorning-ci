@@ -12,7 +12,7 @@
  * pages (`src/storage/clear-cache.ts`). Downloads are kept: they are not in the cache folder.
  *
  * M31 S-A (T060; design-pulse2 `settings-downloads--screen`, `--clear-cache-dialog`, `--clear-downloads-dialog`, `toast--settings-downloads`; Panel with a Stage-size value): "On this
- * phone" — the space used in Unbounded 56 with its unit at 22, the episode count in mono, an 8 tall bar (hot) against the limit, "of a 2.0 GB storage limit", then **Clear
+ * phone" — the space used in Unbounded 56 with its unit at 22, the episode count in mono, an 8 tall bar (hot to violet) against the limit, "of a 2.0 GB storage limit", then **Clear
  * downloaded episodes** (quiet pill 40) and the hot-text link **Manage downloads ›** to /downloads. "Cache": the size in Unbounded 40 ("Measuring" while counting), "Pictures and saved
  * pages", the reassurance line and **Clear cache**. "When": the two most-used switches as large tiles (Download queued episodes; Allow mobile data for downloads — "Off · waits for Wi-Fi").
  * "Tidy up": Delete after playing and When storage is full, remove the oldest, as rows with switches in one group tile. Both clears ask first in the kit dialog (Clear is hot).
@@ -28,6 +28,7 @@ import { useDownloads, useStores, useToast } from '@/ui/shell/providers';
 import { Toggle } from '@/ui/kit/Toggle';
 import { plural } from '@socialmorning/social-core';
 import { useConfirm } from '@/ui/kit/confirm';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { PanelGroup } from '@/ui/me/Panel';
 import { cacheBytes, clearCache, phoneCacheEntries, sizeLabel } from '@/storage/clear-cache';
@@ -92,49 +93,53 @@ export default function DownloadSettings(): React.ReactElement {
   const share = budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : 0;
 
   return (
-    <SetPage title="Downloads and cache">
-      <Sec label="Phone">
-        <SetCard testID="phone-card">
-          <Caps hot>On this phone</Caps>
-          <Box className="flex-row items-end justify-between">
-            <BigSize label={sizeLabel(used)} figure="size56" unit="unit22" />
-            <Type step="mono" className="text-text2" style={[SET_TYPE.mono13, { paddingBottom: SET.rowGap }]}>{plural(episodes, 'episode')}</Type>
-          </Box>
-          <Box testID="storage-bar" className="bg-raise2 overflow-hidden" style={{ height: BAR, borderRadius: BAR / 2 }} accessible={false}>
-            <LinearGradient colors={[colour.hot, colour.hot]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: BAR, width: `${share}%` }} />
-          </Box>
-          <Type step="mono" className="text-text2" style={SET_TYPE.mono12}>{`of a ${mb(budget)} storage limit`}</Type>
-          <Box className="flex-row items-center" style={{ gap: SET.tileGap, flexWrap: 'wrap' }}>
-            <SetButton label="Clear downloaded episodes" accessibilityLabel={`Clear downloaded episodes, ${mb(used)}`} onPress={clearAll} />
-            <Link href="/downloads" asChild accessibilityLabel="Manage downloads">
-              <SetButton kind="link" label="Manage downloads ›" accessibilityLabel="Manage downloads and storage limit" />
-            </Link>
-          </Box>
-        </SetCard>
-      </Sec>
-      <Sec label="Cache">
-        <SetCard testID="cache-card">
-          <Box className="flex-row items-end" style={{ gap: SET.gap }}>
-            {cache !== undefined ? <BigSize label={sizeLabel(cache)} figure="size40" unit="unit18" /> : <Type step="figure" className="text-text" style={SET_TYPE.size40}>Measuring</Type>}
-            <Note>Pictures and saved pages</Note>
-          </Box>
-          <Note>Clearing it never removes downloaded episodes.</Note>
-          <SetButton label="Clear cache" accessibilityLabel={`Clear cache, ${cache === undefined ? 'measuring' : sizeLabel(cache)}`} onPress={clearCacheNow} />
-        </SetCard>
-      </Sec>
-      <Sec label="When">
-        <BigGrid>
-          <BigTile icon="list-outline" label="Download queued episodes" state={auto ? 'On' : 'Off'} on={auto} right={<Toggle value={auto} onChange={(v) => { setAuto(v); setPref(stores.settings, 'autoDownloadQueued', v); }} label="Download queued episodes" />} />
-          <BigTile icon="wifi" label="Allow mobile data for downloads" state={mobile ? 'On' : 'Off · waits for Wi-Fi'} on={mobile} right={<Toggle value={mobile} onChange={(v) => { setMobile(v); downloads.setAllowMobile(v); }} label="Allow mobile data for downloads" />} />
-        </BigGrid>
-      </Sec>
-      <Sec label="Tidy up">
-        <PanelGroup>
-          <SetRow icon="trash-outline" label="Delete after playing" line="A downloaded episode is removed when you finish it" right={<Toggle value={afterPlay} onChange={(v) => { setAfterPlay(v); downloads.setDeleteAfterPlay(v); }} label="Delete after playing" />} />
-          <SetRow icon="albums-outline" label="When storage is full, remove the oldest" line="Starred episodes and ones you are part-way through are never removed" right={<Toggle value={evict} onChange={(v) => { setEvict(v); downloads.setEvictOldest(v); }} label="When storage is full, remove the oldest" />} />
-        </PanelGroup>
-      </Sec>
-      {dialog}
-    </SetPage>
+    <PushedPage title="Downloads and cache">
+      {(layout) => (
+        <SetPage layout={layout}>
+          <Sec label="Phone">
+            <SetCard testID="phone-card">
+              <Caps hot>On this phone</Caps>
+              <Box className="flex-row items-end justify-between">
+                <BigSize label={sizeLabel(used)} figure="size56" unit="unit22" />
+                <Type step="mono" className="text-text2" style={[SET_TYPE.mono13, { paddingBottom: SET.rowGap }]}>{plural(episodes, 'episode')}</Type>
+              </Box>
+              <Box testID="storage-bar" className="bg-raise2 overflow-hidden" style={{ height: BAR, borderRadius: BAR / 2 }} accessible={false}>
+                <LinearGradient colors={[colour.hot, colour.violet]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={{ height: BAR, width: `${share}%` }} />
+              </Box>
+              <Type step="mono" className="text-text2" style={SET_TYPE.mono12}>{`of a ${mb(budget)} storage limit`}</Type>
+              <Box className="flex-row items-center" style={{ gap: SET.tileGap, flexWrap: 'wrap' }}>
+                <SetButton label="Clear downloaded episodes" accessibilityLabel={`Clear downloaded episodes, ${mb(used)}`} onPress={clearAll} />
+                <Link href="/downloads" asChild accessibilityLabel="Manage downloads">
+                  <SetButton kind="link" label="Manage downloads ›" accessibilityLabel="Manage downloads and storage limit" />
+                </Link>
+              </Box>
+            </SetCard>
+          </Sec>
+          <Sec label="Cache">
+            <SetCard testID="cache-card">
+              <Box className="flex-row items-end" style={{ gap: SET.gap }}>
+                {cache !== undefined ? <BigSize label={sizeLabel(cache)} figure="size40" unit="unit18" /> : <Type step="figure" className="text-text" style={SET_TYPE.size40}>Measuring</Type>}
+                <Note>Pictures and saved pages</Note>
+              </Box>
+              <Note>Clearing it never removes downloaded episodes.</Note>
+              <SetButton label="Clear cache" accessibilityLabel={`Clear cache, ${cache === undefined ? 'measuring' : sizeLabel(cache)}`} onPress={clearCacheNow} />
+            </SetCard>
+          </Sec>
+          <Sec label="When">
+            <BigGrid>
+              <BigTile icon="list-outline" label="Download queued episodes" state={auto ? 'On' : 'Off'} on={auto} right={<Toggle value={auto} onChange={(v) => { setAuto(v); setPref(stores.settings, 'autoDownloadQueued', v); }} label="Download queued episodes" />} />
+              <BigTile icon="wifi" label="Allow mobile data for downloads" state={mobile ? 'On' : 'Off · waits for Wi-Fi'} on={mobile} right={<Toggle value={mobile} onChange={(v) => { setMobile(v); downloads.setAllowMobile(v); }} label="Allow mobile data for downloads" />} />
+            </BigGrid>
+          </Sec>
+          <Sec label="Tidy up">
+            <PanelGroup>
+              <SetRow icon="trash-outline" label="Delete after playing" line="A downloaded episode is removed when you finish it" right={<Toggle value={afterPlay} onChange={(v) => { setAfterPlay(v); downloads.setDeleteAfterPlay(v); }} label="Delete after playing" />} />
+              <SetRow icon="albums-outline" label="When storage is full, remove the oldest" line="Starred episodes and ones you are part-way through are never removed" right={<Toggle value={evict} onChange={(v) => { setEvict(v); downloads.setEvictOldest(v); }} label="When storage is full, remove the oldest" />} />
+            </PanelGroup>
+          </Sec>
+          {dialog}
+        </SetPage>
+      )}
+    </PushedPage>
   );
 }

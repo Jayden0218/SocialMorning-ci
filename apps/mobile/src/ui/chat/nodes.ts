@@ -1,4 +1,4 @@
-// Groups a conversation's messages into nodes under a heading: a new node after a gap of more than 10 minutes.
+// Groups a conversation's messages into the nodes of the spine: a new node after a gap of more than 10 minutes.
 /**
  * M31 W4-C (T052; `social.html#chat-thread--screen` notes: "a raise tick marks each time gap over 10 minutes ("Mon", "9:12")").
  * A node holds the messages that follow each other within 10 minutes. Its tick says when it began: the clock ("9:12") on

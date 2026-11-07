@@ -4,10 +4,7 @@
  * editor's note. From the same curation file as Editor's picks (`picks.json`). A pick the
  * server cannot name as an episode yet keeps its note and opens the show.
  *
- * Spec 039 (Detail template): a `DetailPage` (Back + the issue's title, "Issue No. n" under it, Share at its end); the intro, then the picks as one `Section` of raise cards,
- * each labelled "PICK n". The ring-and-spine thread is gone; a failed load is an `InlineNotice` with Retry.
- *
- * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W5-D (T064; design-pulse2 `discover.html` `issue--screen`, `issue--share`, layout pattern Thread): a pushed page, the title bar low (the
+ * M31 W5-D (T064; design-pulse2 `discover.html` `issue--screen`, `issue--share`, layout pattern Thread): a pushed page, the title bar low (the
  * issue's title at 24, "Issue No. 12", a share circle = "Share this issue" once it has loaded). Above the thread the issue's "NO. 12 ·
  * TUESDAY, 27 OCTOBER" in hot-text mono and the intro (Geist 500 15/22, as paragraphs). The picks are a numbered Thread (36 rings on a 2 wide
  * spine at x 36): each card is raise, radius 20, with the episode (cover 64, the show, the title in Unbounded 700 15, Play 38), the editors' note
@@ -23,14 +20,13 @@ import { useLoad } from '@/ui/kit/useLoad';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Share } from 'react-native';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
 import { Artwork } from '@/ui/kit/Artwork';
 import { Loader } from '@/ui/kit/Loader';
-import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
-import { DetailPage } from '@/ui/detail/DetailPage';
-import { InlineNotice, Section } from '@/ui/kit/layout';
-import { radius, spacing } from '@/design';
+import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { useCardActions } from '@/discover/useDiscover';
 import { dayTitle } from '@/discover/sections';
@@ -38,7 +34,10 @@ import { useSafety } from '@/safety/context';
 import { useM12Api, type Issue } from '@/social/m12-api';
 import { useStores, useSubscriptionSync } from '@/ui/shell/providers';
 import { DiscPlay } from '@/ui/discover/Deck';
+import { RetryTile } from '@/ui/discover/Mosaic';
 import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
+import { bodyTop, NumberedThread, ThreadRow } from '@/ui/discover/page-parts';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
 
 /** A card's rows are 12 of padding and 8 apart; the cards 16 apart. */
 const CARD_GAP = 8;
@@ -73,30 +72,30 @@ export default function IssueScreen(): React.ReactElement {
     Share.share({ message: lines.join('\n\n') }).catch(() => { /* dismissed */ });
   };
   return (
-    <DetailPage
+    <PushedPage
       title={state.kind === 'ok' ? state.issue.title : 'Issue'}
-      {...(state.kind === 'ok' ? { trailing: <IconButton icon="share-outline" label="Share this issue" onPress={share} fill /> } : {})}
+      subtitle={number ? `Issue No. ${number}` : 'Issue'}
+      actions={state.kind === 'ok' ? [{ icon: 'share-outline', label: 'Share this issue', onPress: share }] : []}
     >
-      <Type step="caption" className="text-text2">{number ? `Issue No. ${number}` : 'Issue'}</Type>
+      {(layout) => (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout), paddingBottom: layout.reserve }}>
           {state.kind === 'loading' ? <Loader className="my-section" /> : null}
-          {state.kind === 'error' ? <InlineNotice text="Couldn't load this issue." actionLabel="Retry" onAction={load} /> : null}
+          {state.kind === 'error' ? <RetryTile line="Couldn't load this issue." onRetry={load} /> : null}
           {state.kind === 'ok' ? (
-            <Box testID="issue-head" style={{ gap: CARD_GAP }}>
+            <Box testID="issue-head" style={{ paddingLeft: ME_MOSAIC.lane, paddingRight: PAGE.pad + 6, paddingBottom: PAGE.pad + 2, gap: 8 }}>
               <Type step="tag" className="text-hotText" style={PAGE_TYPE.mono11}>{`${number ? `NO. ${number} · ` : 'ISSUE · '}${dayTitle(state.issue.date).toUpperCase()}`}</Type>
               {paragraphs.map((p, k) => <Type key={k} step="body" className="text-quote font-medium">{p}</Type>)}
             </Box>
           ) : null}
           {items.length > 0 ? (
-            <Section title="Picks">
-            <Box style={{ gap: ROW_GAP }}>
+            <NumberedThread>
               {items.map((it, i) => {
                 const card = it.episode;
                 const on = subscribed.has(it.feedUrl);
                 const name = card?.showTitle ?? 'this show';
                 return (
-                  <Box key={`${it.order}-${it.feedUrl}`} testID="issue-pick" style={{ gap: spacing.hair }}>
-                    <Type step="mono" className="text-text3" style={PAGE_TYPE.mono11}>{`PICK ${i + 1}`}</Type>
-                    <Box className="bg-raise overflow-hidden" style={{ borderRadius: radius.row }}>
+                  <ThreadRow key={`${it.order}-${it.feedUrl}`} n={i + 1} gap={ROW_GAP}>
+                    <Box className="bg-raise overflow-hidden" style={{ borderRadius: PAGE.card.issue.radius }}>
                       {card ? (
                         <Box className="flex-row items-center" style={{ padding: PAGE.card.issue.pad, gap: PAGE.card.issue.pad }}>
                           <Pressable onPress={() => void open(card)} accessibilityRole="button" accessibilityLabel={`${card.title}, ${card.showTitle}`} className="flex-1 flex-row items-center min-w-0" style={{ gap: PAGE.card.issue.pad }}>
@@ -125,12 +124,13 @@ export default function IssueScreen(): React.ReactElement {
                         />
                       </Box>
                     </Box>
-                  </Box>
+                  </ThreadRow>
                 );
               })}
-            </Box>
-            </Section>
+            </NumberedThread>
           ) : null}
-    </DetailPage>
+        </ScrollView>
+      )}
+    </PushedPage>
   );
 }

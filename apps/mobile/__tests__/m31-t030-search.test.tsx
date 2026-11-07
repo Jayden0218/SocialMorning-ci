@@ -107,9 +107,9 @@ describe('the low zone (search--screen, search--results)', () => {
     const field2 = typed.root.findAll((n) => typeof n.type === 'string' && flat(n)['height'] === 48 && flat(n)['borderRadius'] === 18)[0]!;
     expect(String(field2.props['className'])).toMatch(/border-hot/);
   });
-  it('with nothing typed: the Scan mark (039: the name "Search" is the page\'s title row now, not the zone\'s); typed: ✕ takes the Scan mark\'s place', () => {
+  it('with nothing typed: the name "Search" and the Scan mark; typed: no name, and ✕ takes the Scan mark\'s place', () => {
     const empty = render(createElement(SearchZone, zoneProps()));
-    expect(words(empty)).not.toContain('Search');
+    expect(words(empty)).toContain('Search');
     expect(has(empty, 'Scan a QR code')).toBe(true);
     expect(has(empty, 'Clear search')).toBe(false);
     const onClear = jest.fn();
@@ -139,7 +139,7 @@ describe('the low zone (search--screen, search--results)', () => {
     act(() => { one(r, 'Shows').props['onPress'](); });
     expect(p.onTab).toHaveBeenCalledWith('shows');
     // The chosen tab's underline is hot, 2 thick.
-    expect([flat(tabs[3]!)['borderBottomWidth'], flat(tabs[3]!)['borderBottomColor']]).toEqual([2, '#f2867e']);
+    expect([flat(tabs[3]!)['borderBottomWidth'], flat(tabs[3]!)['borderBottomColor']]).toEqual([2, '#ff4d6d']);
     expect(flat(tabs[0]!)['borderBottomColor']).toBe('transparent');
   });
   it('F2a: the Published chips are not drawn when nothing matches (search--empty) — unless a date filter is on, so it can be undone', () => {
@@ -359,7 +359,7 @@ describe('the result page', () => {
     const mark = people.root.findAll((n) => typeof n.type === 'string' && flat(n)['marginTop'] === 160);
     expect(mark.length).toBeGreaterThan(0);
     // centred on the screen, not on the 28 / 16 margins (drawn x 76 for a 238 wide line; the build was +6): the block spans the full width.
-    expect(flat(mark[0]!)).toMatchObject({ marginLeft: -20, marginRight: -16 }); // 039 I2: was -28 (the edge label's lane)
+    expect(flat(mark[0]!)).toMatchObject({ marginLeft: -28, marginRight: -16 });
   });
   it('People tab: the connection message shows as a warn line', () => {
     const r = render(createElement(SearchResults, props('people', { people: { loading: false, people: [], loaded: false, error: 'Finding people needs a connection.' } })));

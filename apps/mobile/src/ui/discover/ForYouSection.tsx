@@ -20,8 +20,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import type { EpisodeCard } from '@/social/api';
 import type { DismissalKind } from '@/social/profile-api';
-import { CoverBand, DECK, UNBOUNDED, DeckCard, DiscPlay, useEdge } from './Deck';
-import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
+import { CoverBand, DECK, UNBOUNDED, Deck, DeckCard, DeckSection, DiscPlay, useEdge } from './Deck';
 import { HiddenNotice } from './NotInterested';
 import { useEpisodeHeat } from './useEpisodeHeat';
 import type { Act } from './sections-common';
@@ -78,7 +77,7 @@ function ForYouCard(props: Act & { row: Row; position: number; onOpenAt: (card: 
   );
 }
 
-/** For You — a deck of cards; the owner's rename of the section is the section heading. */
+/** For You — a deck of cards; the owner's rename of the section is the edge label. */
 export function ForYouSection(props: Act & { rows: Row[]; onOpenAt: (card: EpisodeCard, index: number) => void; /** M19 T021: the card's "···" (Not interested). */ onMore?: (card: EpisodeCard) => void; /** A card just hidden: its slot, drawn as the dashed Hidden card with Undo. */ hidden?: HiddenSlot; /** Drawn under the deck (the "Not liking these?" line). */ footer?: React.ReactNode }): React.ReactElement | null {
   const edge = useEdge('For You', 'For you');
   if (props.rows.length === 0 && !props.hidden) return null;
@@ -96,9 +95,9 @@ export function ForYouSection(props: Act & { rows: Row[]; onOpenAt: (card: Episo
   ));
   if (props.hidden) cards.splice(Math.min(props.hidden.at, cards.length), 0, <HiddenNotice key="hidden" kind={props.hidden.kind} onUndo={props.hidden.onUndo} />);
   return (
-    <DiscoverSection title={edge.spoken}>
-      <DiscoverShelf width={FOR_YOU_CARD.width} height={FOR_YOU_CARD.height}>{cards}</DiscoverShelf>
+    <DeckSection {...edge}>
+      <Deck width={FOR_YOU_CARD.width} height={FOR_YOU_CARD.height}>{cards}</Deck>
       {props.footer ?? null}
-    </DiscoverSection>
+    </DeckSection>
   );
 }

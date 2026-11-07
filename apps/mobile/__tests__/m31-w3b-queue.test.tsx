@@ -93,9 +93,7 @@ describe('the cards (queue--screen)', () => {
     expect(deck.props['snapToInterval']).toBe(QUEUE_PITCH);
     expect(QUEUE_PITCH).toBe(300);
     expect(flat({ props: { style: deck.props['contentContainerStyle'] } } as never)['gap']).toBe(10);
-    // 039 (Feed lane): was paddingLeft 28 (the lane); the deck starts on the page's gutter and runs off the right edge (paddingRight = the gutter).
-    expect(flat({ props: { style: deck.props['contentContainerStyle'] } } as never)['paddingLeft']).toBeUndefined();
-    expect(flat({ props: { style: deck.props['contentContainerStyle'] } } as never)['paddingRight']).toBe(20);
+    expect(flat({ props: { style: deck.props['contentContainerStyle'] } } as never)['paddingLeft']).toBe(28);
   });
 
   it('the cover is 46 % of the card (152) and carries the number, and DOWNLOADED on a downloaded one', () => {

@@ -1,8 +1,6 @@
-# 039 (run 42025739896): the Downloads tile keeps its spoken name "Downloads" (the count is drawn, not spoken); the profile link is "View profile".
-# 039: profile link is now "View profile" (run 42017007191)
 # R13 Me tab: profile, edit profile, followers, following, likes, subscriptions, history, favourites, downloads,
 # my comments, listening report — each opens and goes back. Re-run at the largest text size (R20, SUFFIX=-xl).
-# Labels (app/(tabs)/me.tsx unless named): title link "View profile" (:205); tiles "Downloads"
+# Labels (app/(tabs)/me.tsx unless named): title link "Listener 05, open your profile" (:205); tiles "Downloads"
 # (:157), "Listening history" (:161), "Favourites" (:162), "My comments" (:165), "Likes" (:172), report
 # "Your <Month YYYY>: your month in listening" (:180). Profile (app/profile/[id].tsx, no title bar): "This is
 # you" (:279), stat links "N following" / "N followers" (counts move: r12 follows Listener 02 back) / "N subscriptions" / "… Open listening data"
@@ -13,7 +11,7 @@ appId: app.socialmorning.mobile
 - runFlow: _me.yaml
 - takeScreenshot: r13-01-me${SUFFIX || ''}
 # Own profile and what it links to
-- tapOn: "View profile"
+- tapOn: "Listener 05, open your profile"
 - extendedWaitUntil:
     visible: "This is you"
     timeout: 30000
@@ -73,7 +71,7 @@ appId: app.socialmorning.mobile
     timeout: 30000
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "View profile"
+    visible: "Listener 05, open your profile"
     timeout: 30000
 # The Me tiles. A page whose title is the tile's own name is proven by its "Back" (the Me tab has none).
 - runFlow:

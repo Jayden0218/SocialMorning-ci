@@ -57,7 +57,7 @@ appId: app.socialmorning.mobile
       ENTRY: "Stickers"
       PROOF: "How stickers are earned"
       SHOT: r17-05-stickers
-      HUB: "View profile"
+      HUB: "Listener 05, open your profile"
 - runFlow:
     file: _open-page.yaml
     env:

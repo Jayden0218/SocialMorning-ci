@@ -56,10 +56,9 @@ it('lists every subscribed show with its newest episode', async () => {
   expect(t).toContain('Alpha Hour');
   expect(t).toContain('Beta Radio');
   expect(t).toContain('2 shows');
-  // 039 (Feed lane): was the edge label's capitals (ALL SHOWS); the Section heading is written as is.
-  expect(t).toContain('All shows');
+  expect(t).toContain('ALL SHOWS');
   expect(t).toMatch(/Updated 1 d ago/);
-  expect(t).not.toContain('Starred');
+  expect(t).not.toContain('STARRED');
 });
 
 it('searching narrows the list', async () => {
@@ -80,7 +79,7 @@ it('⋮ then Star stars the show (stored and synced) and a Starred strip appears
   await press(r, 'Star');
   expect(stores.subscriptions.list().find((s) => s.feedUrl === A)?.starred).toBe(true);
   expect(mockSync.push).toHaveBeenCalled();
-  expect(allText(r)).toContain('Starred');
+  expect(allText(r)).toContain('STARRED');
   expect(r.root.findAllByProps({ testID: 'starred-tile' }).length).toBeGreaterThan(0);
 });
 

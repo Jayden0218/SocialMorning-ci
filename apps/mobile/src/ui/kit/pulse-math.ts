@@ -65,11 +65,11 @@ export function mixColour(a: string, b: string, t: number): string {
 }
 
 /**
- * The played part's colour for step `k` of `n`. Spec 039 Q8 (row M has one accent): every played step is `hot` (it was a grade from hot to
- * violet). `hot` is passed in so the listener's accent colour can replace it; `k` and `n` stay so no caller changes.
+ * The played part's colour for step `k` of `n` (kit.js `grad`): hot at the start, violet at the
+ * end of what has been played. `hot` is passed in so the listener's accent colour can replace it.
  */
-export function playedColour(_k: number, _n: number, hot: string = colour.hot): string {
-  return hot;
+export function playedColour(k: number, n: number, hot: string = colour.hot): string {
+  return mixColour(hot, colour.violet, Math.min(1, k / Math.max(1, n)));
 }
 
 /** `n` samples of `data` (kit.js `pick`): every `round(len / n)`-th, at most `n`. Empty data → flat zeros. */

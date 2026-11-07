@@ -1,6 +1,6 @@
 // The speed dial: 26 ticks on a 270° arc from 0.5× to 3.0×; drag the knob round in 0.1 steps.
 /**
- * M31 T024 (design-pulse2 `player--playback-sheet`, `speedDial(176)`): ticks lit hot up to
+ * M31 T024 (design-pulse2 `player--playback-sheet`, `speedDial(176)`): ticks lit hot → violet up to
  * the rate (whole and half rates are longer and thicker), a 14 knob in a 4 halo, the rate in Unbounded
  * 800 (a fifth of the dial) in the middle over "SPEED" (the drawing's `.cap`), and "0.5" / "3.0" at the bottom corners in the
  * page's 15 pt mono (the drawing sets them in the inherited 15, not the 12 of a timestamp).

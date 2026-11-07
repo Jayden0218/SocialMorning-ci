@@ -4,7 +4,7 @@
  * first episode's artwork) or the name's tone; the name; "n episodes · Public/Private" under it. Tapping opens
  * `/playlists/<id>`.
  *
- * M31 D-C (design-pulse2 `profile--screen`: "Playlists (Deck)"): the card of a Deck under the heading "Playlists" — 230 x 96, the
+ * M31 D-C (design-pulse2 `profile--screen`: "Playlists (Deck)"): the card of a Deck under the edge label "Playlists" — 230 x 96, the
  * deck card (raise, a line border, radius 24), the cover 64 (radius 14) with the name in Unbounded 700 15 (two lines) and the count in
  * mono 11 text3 beside it. The drawing gives no size for this card; it is the Their likes card's width, with the Picks card's cover.
  */

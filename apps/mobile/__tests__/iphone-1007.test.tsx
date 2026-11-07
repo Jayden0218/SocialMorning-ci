@@ -36,12 +36,11 @@ import { updatesSnapshot } from '@/me/updates';
 import { GenreTiles } from '@/ui/discover/RecFeedback';
 import { GENRES } from '@/discover/genres';
 import { CategoryStrip, gridRows } from '@/ui/discover/sections';
-import { BrowseTile } from '@/ui/discover/DiscoverPage';
-import { TileGrid } from '@/ui/kit/layout';
+import { DiscoverMosaic, MOSAIC } from '@/ui/discover/DiscoverMosaic';
 import { shortcutTiles } from '@/ui/discover/DiscoverShortcuts';
 import { KEY_PICKED } from '@/discover/interests';
 import { getAppConfig } from '@/config/store';
-import { colour, spacing } from '@/design';
+import { colour } from '@/design';
 import { TopBar } from '@/ui/kit/TopBar';
 import { CommentRow } from '@/ui/comments/CommentRow';
 import { FeedItem } from '@/ui/social/FeedItem';
@@ -124,8 +123,7 @@ describe('2. tiles and History select rows are accessible buttons with a selecte
     expect(src).not.toMatch(/accessibilityRole="checkbox"/);
     expect(src).toMatch(/accessibilityRole="button" accessibilityState=\{\{ selected: chosen\.has/);
     // M31 W3-C: the tick circle on the spine is drawn inside the same Pressable, under `pointerEvents="none"` (rendered in m31-w3c-history.test.tsx).
-    // Spec 039 (was: `<Box pointerEvents="none">{card}<Box testID="history-tick"` — the tick drawn after the card on the spine; now: a row with the tick circle BEFORE the card, no spine). Still one Pressable, and nothing inside takes the touch.
-    expect(src).toMatch(/<Box pointerEvents="none"[^>]*>\s*<Box\s+testID="history-tick"[\s\S]*?\{card\}/);
+    expect(src).toMatch(/<Box pointerEvents="none">\s*\{card\}\s*<Box\s+testID="history-tick"/);
   });
 });
 
@@ -242,15 +240,15 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     expect(read('app/episode/[id].tsx')).not.toMatch(/solid=\{collapsed\}|TopBar/);
     // M31 W3-A2 (T040): the Show screen's thumb zone (Subscribe, Share, the title) is always on screen, so the slim bar is gone too.
     expect(read('app/show/[feedUrl].tsx')).not.toMatch(/solid=\{collapsed\}|TopBar|setCollapsed/);
-    // 039 (Detail): the Show page is a `DetailList` with its title row in the list, so it has no thumb zone; the Profile page's collapsed name is gone too (its title row is "Profile").
-    expect(read('app/show/[feedUrl].tsx')).not.toMatch(/show-thumb-zone/);
-    expect(read('app/profile/[id].tsx')).not.toMatch(/CollapsedName|setCollapsed/);
-    // Spec 039 D4 (was: the low title that fades with the scroll): Discover is a `Page` with its title row in the scroll, so there is no bar
-    // of any kind to show through; the title does not fade.
+    expect(read('app/show/[feedUrl].tsx')).toMatch(/testID="show-thumb-zone"/);
+    // M31 D-C: the profile's collapsed name is the solid void strip (`CollapsedName`, rendered in m31-dc-profile.test.tsx), shown from the page's own scroll state.
+    expect(read('app/profile/[id].tsx')).toMatch(/collapsed \? <CollapsedName/);
+    expect(read('src/ui/profile/ProfilePage.tsx')).toMatch(/testID="collapsed-name" className="absolute left-0 right-0 top-0 bg-void/);
+    // M31 T025: Discover has no collapsing bar any more (the title is low and fades alone, the search field
+    // stays — design-pulse2 home--screen), so nothing can show through a half-faded bar.
     const discover = read('src/ui/discover/DiscoverPage.tsx');
     expect(discover).not.toMatch(/smallBar|BAR\b/);
-    expect(discover).toMatch(/<Page\s+title="Discover"/);
-    expect(discover).not.toMatch(/COLLAPSE_FROM/);
+    expect(discover).toMatch(/interpolate\(scrollY\.value, \[COLLAPSE_FROM, COLLAPSE_TO\], \[1, 0\], Extrapolation\.CLAMP\)/);
   });
   // M31 W3-A (T040): the slim bar is gone; its show link, Subscribe and Play are in the title block, always on screen.
   // Rendered in m31-w3a-episode.test.tsx ("Back goes back; the show link opens the show"); this keeps the wiring.
@@ -270,14 +268,14 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
     const labels = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
     const noop = () => undefined;
     let r!: ReactTestRenderer;
-    act(() => { r = create(createElement(TileGrid, null, ...labels.map((label) => createElement(BrowseTile, { key: label, tile: { label, icon: shortcutTiles([])[0]!.icon, onPress: noop } })))); });
+    act(() => { r = create(createElement(DiscoverMosaic, { pick: undefined, hot: undefined, offline: false, tiles: labels.map((label) => ({ label, icon: shortcutTiles([])[0]!.icon, onPress: noop })), actions: { onOpen: noop, onPlay: noop, onQueue: noop, onHot: noop } })); });
     const tiles = hosts(r).filter((n) => labels.includes(n.props['accessibilityLabel'] as string));
     expect(tiles).toHaveLength(7);
     const sizes = tiles.map((t) => { const s = styleOf(t); return [s['flex'], s['minHeight'], s['width']]; });
     // No grow on a tile: a stretched tile is what ran away on the iPhone.
     for (const t of tiles) expect(styleOf(t)['flexGrow']).toBeUndefined();
     for (const s of sizes) expect(s).toEqual(sizes[0]);
-    expect(styleOf(tiles[0]!)['minHeight']).toBe(spacing.region + spacing.section); // F10: a minimum, so the words can grow the tile at 200 % (039: BrowseTile in a TileGrid, was MOSAIC.row in DiscoverMosaic)
+    expect(styleOf(tiles[0]!)['minHeight']).toBe(MOSAIC.row); // F10: a minimum, so the words can grow the tile at 200 %
     // The last tile's row has 2 cells: G and an empty one sharing the width.
     let rowHost: ReactTestInstance | null = tiles[6]!.parent;
     while (rowHost !== null && !(typeof rowHost.type === 'string' && rowHost.children.length > 1)) rowHost = rowHost.parent;
@@ -307,17 +305,16 @@ describe('6–13. the layout pass ("I see it overlap, the elements run away the 
       expect(r.root.findAll((n) => n.props['accessibilityLabel'] === `Hide ${g.name}` && typeof n.props['onPress'] === 'function').length).toBeGreaterThan(0);
     }
     expect(heights).toEqual(new Set([36]));
-    // The cloud wraps, 8 apart, on the page's own left edge (spec 039 D4: was the 28 lane, now none).
+    // The cloud wraps, 8 apart, starting at the 28 lane.
     const cloud = r.root.findAll((n) => typeof n.type === 'string' && styleOf(n)['flexWrap'] === 'wrap')[0]!;
-    expect([styleOf(cloud)['gap'], styleOf(cloud)['marginLeft']]).toEqual([8, undefined]);
+    expect([styleOf(cloud)['gap'], styleOf(cloud)['marginLeft']]).toEqual([8, 28]);
     act(() => r.unmount());
   });
-  // KEPT as a source check: where Discover hands the Browse grid its shortcut tiles is src/ui/discover/DiscoverPage.tsx.
-  // Spec 039 D4 (was: `<DiscoverMosaic tiles={tiles}>` and `onPremium: toPremium`): the tiles are a `TileGrid` under "Browse"; the page has no scroll handle, so Premium is left out.
-  it('8. Discover draws the shortcuts as a Browse grid', () => {
+  // KEPT as a source check: where Discover hands the mosaic its shortcut tiles is src/ui/discover/DiscoverPage.tsx.
+  it('8. Discover draws the shortcuts as mosaic tiles', () => {
     const page = read('src/ui/discover/DiscoverPage.tsx');
-    expect(page).toMatch(/useShortcutTiles\(\{ onCategories: page\.allCategories, onPremium: /);
-    expect(page).toMatch(/<Section title="Browse">[\s\S]*<TileGrid>/);
+    expect(page).toMatch(/useShortcutTiles\(\{ onCategories: page\.allCategories, onPremium: toPremium \}\)/);
+    expect(page).toMatch(/<DiscoverMosaic[\s\S]*tiles=\{tiles\}/);
   });
   // KEPT as source checks: 10–12 are layouts inside app/(tabs)/me.tsx (23 imports), app/episode/[id].tsx
   // (52) and app/player.tsx, with no smaller component that carries them.

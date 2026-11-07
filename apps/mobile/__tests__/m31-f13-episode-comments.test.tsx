@@ -15,6 +15,8 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
 import { EpisodeTitleBlock } from '@/ui/episode/EpisodeTitleBlock';
+import { EpisodeStage } from '@/ui/episode/EpisodeStage';
+import { episodeLayout } from '@/ui/episode/measures';
 import { CommentRow } from '@/ui/comments/CommentRow';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn() }, useRouter: () => ({ push: jest.fn() }), Link: (p: { children?: unknown }) => p.children }));
@@ -67,7 +69,14 @@ describe('F13-6 the Episode stats line is in the title column (widths W5)', () =
     expect(Number(flat(blockNode)['gap'])).toBeGreaterThanOrEqual(8);
     expect(texts.some((t) => say(t.props['children']).includes(RESUME))).toBe(true);
   });
-  // 039 I2: "the stage no longer draws the stats" went with EpisodeStage, which no page draws any more.
+
+  it('the stage no longer draws the stats (they are not absolutely placed over the title)', () => {
+    const layout = episodeLayout({ top: 50 });
+    const r = render(createElement(EpisodeStage, { layout, coverUrl: undefined, name: 'Morning Notes', date: 'TUE 27 OCT · 48:10', hottest: undefined, heat: [], counts: COUNTS, resume: RESUME, onHottest: jest.fn() } as never));
+    expect(r.root.findAll((n) => n.props['testID'] === 'episode-counts')).toHaveLength(0);
+    const texts = r.root.findAll((x) => String(x.type) === 'Text').map((t) => say(t.props['children']));
+    expect(texts.some((t) => t.includes('120 listened'))).toBe(false);
+  });
 });
 
 describe('F13-7 the Comments age keeps room (widths W6)', () => {

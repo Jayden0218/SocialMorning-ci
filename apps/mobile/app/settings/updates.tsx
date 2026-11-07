@@ -27,6 +27,7 @@ import { Platform } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import { File, Paths } from 'expo-file-system';
+import { Box } from '@/ui/lib/box';
 import { Icon } from '@/ui/kit/Icon';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
@@ -63,6 +64,7 @@ function StoreNote(props: { line: string }): React.ReactElement {
   const c = useColours();
   return (
     <SettingsPage title="Check for updates">
+      <Box style={{ height: SET.storeTop }} />
       <Section>
         <Tile>
           <Icon name="download-outline" size={SET.heroIcon} color={c.hotText} />

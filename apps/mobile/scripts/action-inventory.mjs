@@ -30,11 +30,7 @@ const TAGS = 'Pressable|TouchableOpacity|TouchableHighlight|Switch|TextInput|Lin
   // M31 S-A (T060 part 1): the Settings hub and pages A–M tappables (src/ui/settings/hub-parts.tsx).
   + '|SetRow|BigTile|SetButton'
   // M31 blind-spot fix: the kit sheet's own tiles and rows (a move into a sheet is now checkable).
-  + '|PulseTile|PanelRow|ComposerBar'
-  // 039 I1: design B's notice carries its one action as `actionLabel` + `onAction`.
-  + '|InlineNotice'
-  // 039 I1: the sign-in family's text field (a TextInput inside) is named by its accessibilityLabel.
-  + '|AuthField';
+  + '|PulseTile|PanelRow|ComposerBar';
 const OPEN = new RegExp(`<(${TAGS})\\b`);
 
 const files = [];
@@ -76,7 +72,6 @@ const nameOf = (block, tag, rest = '') => {
     const v = prop(block, p);
     if (v) return v;
   }
-  if (tag === 'InlineNotice') return prop(block, 'actionLabel') ?? '';
   if (tag === 'Row') { const v = prop(block, 'title'); if (v) return v; }
   for (const p of ['label', 'title', 'placeholder']) {
     const v = prop(block, p);
@@ -93,7 +88,7 @@ const destinationOf = (block) => {
   // Single or double quotes: a formatter pass (owner, 2026-10-04) writes "…".
   const push = /router\.(push|replace|navigate|back)\(\s*(?:['"]([^'"]*)['"]|`([^`]*)`|\{\s*pathname:\s*['"]([^'"]*)['"]|\))?/.exec(block);
   if (push) return push[1] === 'back' ? 'back' : (push[2] ?? push[3] ?? push[4] ?? 'dynamic');
-  for (const p of ['onPress', 'onAction', 'onOpen', 'onValueChange', 'onChangeText', 'onSubmitEditing', 'onLongPress']) {
+  for (const p of ['onPress', 'onOpen', 'onValueChange', 'onChangeText', 'onSubmitEditing', 'onLongPress']) {
     const v = prop(block, p);
     if (!v) continue;
     const call = /^\(?[^)]*\)?\s*=>\s*(?:void\s+)?([A-Za-z_$][\w$.]*)\s*\(/.exec(v);
@@ -107,7 +102,7 @@ const destinationOf = (block) => {
 const roleOf = (block, tag) => {
   const r = /accessibilityRole\s*=\s*(?:"([^"]*)"|\{\s*'([^']*)'\s*\})/.exec(block);
   if (r) return r[1] ?? r[2];
-  return { Switch: 'switch', Toggle: 'switch', SwitchRow: 'switch', SwitchCard: 'switch', TextInput: 'input', AuthField: 'input', InputField: 'input', TextareaInput: 'input', Slider: 'adjustable',
+  return { Switch: 'switch', Toggle: 'switch', SwitchRow: 'switch', SwitchCard: 'switch', TextInput: 'input', InputField: 'input', TextareaInput: 'input', Slider: 'adjustable',
     Link: 'link', MenuRow: 'link', LinkRow: 'link', Checkbox: 'checkbox', Radio: 'radio', TabBar: 'tablist' }[tag] ?? 'button';
 };
 
@@ -194,8 +189,7 @@ const readTag = (lines, i, col) => {
   let rest = '';
   for (let j = i; j < Math.min(lines.length, i + 40); j++) {
     block += (j === i ? lines[j].slice(col) : lines[j]) + '\n';
-    // 039 I1: `<PageList<Row> title=…>`: the `<Row>` type argument is not the end of the tag.
-    const flat = block.replace(/=>|>=|<=/g, '  ').replace(/^(<\w+)(<[^<>]*(?:<[^<>]*>[^<>]*)*>)/, (_m, a, g) => a + ' '.repeat(g.length));
+    const flat = block.replace(/=>|>=|<=/g, '  ');
     let depth = 0; let end = -1;
     for (let k = 0; k < flat.length; k++) {
       const c = flat[k];
@@ -214,8 +208,7 @@ const readTag = (lines, i, col) => {
   return { block, rest };
 };
 // M31 blind-spot fix: the bar actions a page hands to the title bar as props (back, title link, subtitle link).
-// 039 I1: design B's frames and their wrappers take the same props (`onTitle` + `titleLabel`, `onBack`).
-const PAGE_OPEN = /<(TitleBar|PushedPage|OverlayPage|Page|PageList|FeedPage|FeedScroll|DetailPage|DetailList|FormPage|SettingsPage|SetPage)\b/;
+const PAGE_OPEN = /<(TitleBar|PushedPage|OverlayPage)\b/;
 const barProps = (block) => {
   const out = [];
   const val = (n) => { const m = new RegExp(`\\b${n}\\s*=\\s*\\{`).exec(block); return m ? prop(block, n) : undefined; };
@@ -241,7 +234,6 @@ for (const abs of files) {
     const { block, rest } = readTag(lines, i, open.index);
     const prev = entries[entries.length - 1];
     const entryName = nameOf(block, tag, rest);
-    if (tag === 'InlineNotice' && !/\bonAction\s*=/.test(block)) continue;
     // `<Link asChild><Pressable …>` is one action: the Link carries the destination, the
     // Pressable just under it repeats the name. Count it once.
     if (prev && prev.file === `apps/mobile/${rel}` && i + 1 - prev.line <= 2 && prev.name === entryName && destinationOf(block) === 'dynamic') continue;

@@ -1,15 +1,18 @@
-// Tests the page glow (PageGlow) and the episode menu's queue tiles against their drawings.
+// Tests the pushed-page frame (PushedPage, PageGlow) and the episode menu's queue tiles against their drawings.
 /**
  * M31 W3-B (T041; design-pulse2 `listen.html` `pushed()`, `glow()`, `stile`, `toast--queue-buttons`). Each test names the revert that turns it red
  * (each was seen red once, then restored):
- *  - `tone="none"` draws no glow, `grey` the grey one (039: the pushed-page frame tests went with PushedPage);
+ *  - the title bar sits 6 above the foot (the drawing's 40 less the 34 pt strip the root pads) and 74 with the now bar (108 less 34):
+ *    `titleBarBottom` / `pushedLayout` — red; a page outside the root's padding adds its own strip (`safeBottom`);
+ *  - back is the default and `onBack={null}` hides it; `tone="none"` draws no glow, `grey` the grey one;
+ *  - the content can ask for the measures: the status bar, the title bar's spot and how much room its last row must leave;
  *  - the queue tiles are 84 tall, radius 20, two to a row 10 apart; a statement of fact ("Downloaded") is the same tile with no press.
  */
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { colour } from '@/design';
+import { barsReserve, colour, contentTopReserve } from '@/design';
 
 let mockNow = false;
 const mockBack = jest.fn();
@@ -21,7 +24,7 @@ jest.mock('@/ui/shell/providers', () => ({ useStores: () => ({ settings: { get: 
 jest.mock('@/settings/queue', () => ({ queueEpisode: (...a: unknown[]) => mockQueueEpisode(...a) }));
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({ __esModule: true, default: jest.fn(() => ({ width: 390, height: 844, scale: 3, fontScale: 1 })) }));
 
-import { PageList } from '@/ui/kit/layout';
+import { PushedPage, pushedLayout } from '@/ui/kit/PushedPage';
 import { PageGlow } from '@/ui/kit/PageGlow';
 import { QueueButtons, SheetTile, TileRow } from '@/ui/queue/QueueButtons';
 
@@ -36,14 +39,57 @@ const render = (el: React.ReactElement, insets = { top: 47, bottom: 34, left: 0,
 const flat = (n: ReactTestInstance): Record<string, unknown> => (StyleSheet.flatten(n.props['style']) ?? {}) as Record<string, unknown>;
 const byLabel = (r: ReactTestRenderer, label: string) => r.root.findAll((n) => n.props['accessibilityLabel'] === label && typeof n.props['onPress'] === 'function');
 const hostOf = (n: ReactTestInstance) => n.findAll((x) => typeof x.type === 'string')[0]!;
+const titleBar = (r: ReactTestRenderer) => r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'title-bar')[0]!;
 
-// 039 verifier fix: 'where the bars sit' (PushedPage's pushedLayout, title bar top, safeBottom, back, measures) went with PushedPage; Page/PageList pin the gutter, title row, foot and `safeBottom` in src/ui/kit/layout/__tests__.
+describe('where the bars sit', () => {
+  // 037 D1: was "the title bar is 6 above the foot, 74 with the now bar; top = the status bar; `extraAbove` grows the reserve". The title bar is at the top now (53 = 47 + 6) and the
+  // content starts under its block; the foot zone (6 / 74, `titleBottom`) is what a `below` slot stands on; a field under the title (`extraAbove`) moves the content start, not the foot.
+  it('the foot zone is 6 above the foot, 74 with the now bar; the content starts under the title block and leaves the bars\' room', () => {
+    expect(pushedLayout(47, false).titleBottom).toBe(6);
+    expect(pushedLayout(47, true).titleBottom).toBe(74);
+    expect(pushedLayout(47, false).titleTop).toBe(53);
+    expect(pushedLayout(47, false).top).toBe(53 + contentTopReserve());
+    expect(pushedLayout(47, true).reserve).toBeGreaterThan(pushedLayout(47, false).reserve);
+    expect(pushedLayout(47, false).reserve).toBe(barsReserve({}));
+    expect(pushedLayout(47, false, 60).top - pushedLayout(47, false).top).toBe(60);
+  });
+  it('a page draws its title bar at the top, the same with or without the now bar showing', () => {
+    const plain = render(createElement(PushedPage, { title: 'Queue' } as React.ComponentProps<typeof PushedPage>, null));
+    expect(flat(titleBar(plain))['top']).toBe(53);
+    mockNow = true;
+    const withNow = render(createElement(PushedPage, { title: 'Queue' } as React.ComponentProps<typeof PushedPage>, null));
+    expect(flat(titleBar(withNow))['top']).toBe(53);
+  });
+  it('a page outside the root\'s padding (a modal route) adds its own strip to the foot zone and may say there is no now bar', () => {
+    mockNow = true;
+    let seen: { titleBottom: number; reserve: number } | undefined;
+    const r = render(createElement(PushedPage, { title: 'Voice status', now: false, safeBottom: 34, children: (l: { titleBottom: number; reserve: number }) => { seen = l; return null; } } as React.ComponentProps<typeof PushedPage>));
+    expect(flat(titleBar(r))['top']).toBe(53);
+    expect(seen).toMatchObject({ titleBottom: 6 + 34, reserve: barsReserve({}) + 34 });
+  });
+  it('back is the default (history back); onBack={null} hides it; backIcon / size / subtitle reach the bar', () => {
+    const r = render(createElement(PushedPage, { title: 'Downloads', subtitle: '6 episodes' } as React.ComponentProps<typeof PushedPage>, null));
+    act(() => { byLabel(r, 'Back')[0]!.props['onPress'](); });
+    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(r.toJSON())).toContain('6 episodes');
+    const none = render(createElement(PushedPage, { title: 'x', onBack: null } as React.ComponentProps<typeof PushedPage>, null));
+    expect(byLabel(none, 'Back')).toHaveLength(0);
+    const close = render(<PushedPage title="x" onBack={jest.fn()} backIcon="close" backLabel="Cancel">{null}</PushedPage>);
+    expect(byLabel(close, 'Cancel').length).toBeGreaterThan(0);
+  });
+  it('the content may ask for the measures', () => {
+    let seen: { top: number; titleBottom: number; reserve: number } | undefined;
+    render(<PushedPage title="x">{(l: { top: number; titleBottom: number; reserve: number }) => { seen = l; return null; }}</PushedPage>);
+    expect(seen).toMatchObject({ top: 53 + contentTopReserve(), titleBottom: 6 });
+    expect(seen!.reserve).toBe(barsReserve({}));
+  });
+});
 
 describe('the glow', () => {
   const stops = (r: ReactTestRenderer) => r.root.findAll((n) => typeof n.props['stopColor'] === 'string').map((n) => n.props['stopColor']);
   it('hot is the brand pair at 32 % from 220 above; grey the drawing\'s #3A3A44 / #24242C at 40 % from 200 above', () => {
     const hot = render(createElement(PageGlow, {}));
-    expect(stops(hot)).toEqual(expect.arrayContaining([colour.hot, colour.line])); // Q8: was [hot, violet]
+    expect(stops(hot)).toEqual(expect.arrayContaining([colour.hot, colour.violet]));
     const svg = hot.root.findAll((n) => n.props['testID'] === 'page-glow')[0]!.findAll((n) => typeof n.type === 'string' && flat(n)['opacity'] !== undefined)[0]!;
     expect(flat(svg)['opacity']).toBe(0.32);
     expect(flat(svg)['top']).toBe(-220);
@@ -53,11 +99,8 @@ describe('the glow', () => {
     expect(colour.glowGrey).toBe('#3a3a44');
   });
   it('tone="none" draws none', () => {
-    // 039: was a PushedPage; PageList draws a glow for its `tone` and none for 'none'.
-    const none = render(createElement(PageList as React.ComponentType<Record<string, unknown>>, { title: 'x', tone: 'none', data: [], renderItem: () => null }));
-    expect(none.root.findAll((n) => n.props['testID'] === 'page-glow')).toHaveLength(0);
-    const hot = render(createElement(PageList as React.ComponentType<Record<string, unknown>>, { title: 'x', tone: 'hot', data: [], renderItem: () => null }));
-    expect(hot.root.findAll((n) => n.props['testID'] === 'page-glow').length).toBeGreaterThan(0);
+    const r = render(createElement(PushedPage, { title: 'x', tone: 'none' } as React.ComponentProps<typeof PushedPage>, null));
+    expect(r.root.findAll((n) => n.props['testID'] === 'page-glow')).toHaveLength(0);
   });
 });
 

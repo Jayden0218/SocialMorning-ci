@@ -14,11 +14,10 @@
  */
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Input, InputField } from '@/ui/lib/input';
 import { Box } from '@/ui/lib/box';
-import { hit } from '@/design';
-import { FormPage } from '@/ui/form/FormPage';
-import { Section } from '@/ui/kit/layout';
-import { AuthField } from '@/ui/auth/AuthShell';
+import { colour, hit } from '@/design';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { KeyboardPage } from '@/ui/me/lists';
@@ -26,11 +25,8 @@ import { useStores, useToast } from '@/ui/shell/providers';
 import { ApiError } from '@/social/api';
 import { useSocial } from '@/social/context';
 import { emailChangedLine, isEmail, useAccountApi } from '@/social/account-api';
-import { Lede, Note, SetCard } from '@/ui/settings/hub-parts';
+import { FieldLabel, Lede, Note, Sec, SetCard, SetPage } from '@/ui/settings/hub-parts';
 import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
-
-/** The new address locks at 60 % once the codes are sent. */
-const DIM = { opacity: 0.6 };
 
 export default function ChangeEmailScreen(): React.ReactElement {
   const router = useRouter();
@@ -44,6 +40,7 @@ export default function ChangeEmailScreen(): React.ReactElement {
   const [sentTo, setSentTo] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
+  const [focus, setFocus] = useState(false);
 
   const fail = (e: unknown) => setError(e instanceof ApiError ? e.message : 'Something went wrong. Try again.');
 
@@ -72,6 +69,7 @@ export default function ChangeEmailScreen(): React.ReactElement {
   }
 
   const ready = sentTo ? code.trim().length === 6 && oldCode.trim().length === 6 : isEmail(email);
+  const field = { paddingHorizontal: 0, paddingVertical: 0 };
   const foot = (
     <Box className="flex-row" style={{ gap: SET.tileGap }}>
       {sentTo ? <Box className="flex-1"><PulseButton kind="quiet" label="Use another email" onPress={() => { setSentTo(undefined); setCode(''); setOldCode(''); setError(undefined); }} full /></Box> : null}
@@ -82,37 +80,52 @@ export default function ChangeEmailScreen(): React.ReactElement {
   );
   return (
     <KeyboardPage>
-      <FormPage title="Change email" below={foot} belowHeight={sentTo ? hit.min : SET.button}>
-        <Section title="Now">
-          <SetCard>
-            <Type step="caption" className="text-text2" style={SET_TYPE.line12}>Now</Type>
-            <Type step="mono" className="text-text" style={SET_TYPE.mono15} numberOfLines={1}>{listener?.email ?? 'Not signed in'}</Type>
-          </SetCard>
-        </Section>
-        <Section title="New">
-          <Box style={{ gap: SET.gap }}>
-            <Box style={sentTo !== undefined ? DIM : undefined}>
-              <AuthField
-                label="New email" placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} editable={sentTo === undefined}
-                value={email} onChangeText={(v) => { setEmail(v); setError(undefined); }} accessibilityLabel="New email" />
-            </Box>
-            {sentTo ? (
-              <>
-                <AuthField
-                  label={`Code sent to ${sentTo}`} placeholder="The 6-digit code" keyboardType="number-pad" maxLength={6}
-                  value={code} onChangeText={(v) => { setCode(v); setError(undefined); }} accessibilityLabel="Code from your new email" />
-                <AuthField
-                  label={`Code sent to ${listener?.email ?? 'your current email'}`} placeholder="The 6-digit code" keyboardType="number-pad" maxLength={6}
-                  value={oldCode} onChangeText={(v) => { setOldCode(v); setError(undefined); }} accessibilityLabel="Code from your current email" />
-                <Note>Both codes work for 10 minutes. We tell your old address once it is changed.</Note>
-              </>
-            ) : (
-              <Lede small>We email a code to the new address and one to your current address. You keep signing in with the current one until you enter both.</Lede>
-            )}
-            {error ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> : null}
-          </Box>
-        </Section>
-      </FormPage>
+      <PushedPage title="Change email" below={foot} belowHeight={sentTo ? hit.min : SET.button}>
+        {(layout) => (
+          <SetPage layout={layout}>
+            <Sec label="Now">
+              <SetCard>
+                <Type step="caption" className="text-text2" style={SET_TYPE.line12}>Now</Type>
+                <Type step="mono" className="text-text" style={SET_TYPE.mono15} numberOfLines={1}>{listener?.email ?? 'Not signed in'}</Type>
+              </SetCard>
+            </Sec>
+            <Sec label="New">
+              <Box style={{ gap: SET.gap }}>
+                <FieldLabel label="New email" ring={focus && sentTo === undefined} dim={sentTo !== undefined}>
+                  <Input className="border-0 h-auto w-auto bg-transparent">
+                    <InputField
+                      placeholderTextColor={colour.text3} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} editable={sentTo === undefined}
+                      onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
+                      value={email} onChangeText={(v) => { setEmail(v); setError(undefined); }} accessibilityLabel="New email" className="text-text font-medium" style={[SET_TYPE.field15, field]} />
+                  </Input>
+                </FieldLabel>
+                {sentTo ? (
+                  <>
+                    <FieldLabel label={`Code sent to ${sentTo}`}>
+                      <Input className="border-0 h-auto w-auto bg-transparent">
+                        <InputField
+                          placeholderTextColor={colour.text3} placeholder="The 6-digit code" keyboardType="number-pad" maxLength={6}
+                          value={code} onChangeText={(v) => { setCode(v); setError(undefined); }} accessibilityLabel="Code from your new email" className="text-text font-medium" style={[SET_TYPE.field15, field]} />
+                      </Input>
+                    </FieldLabel>
+                    <FieldLabel label={`Code sent to ${listener?.email ?? 'your current email'}`}>
+                      <Input className="border-0 h-auto w-auto bg-transparent">
+                        <InputField
+                          placeholderTextColor={colour.text3} placeholder="The 6-digit code" keyboardType="number-pad" maxLength={6}
+                          value={oldCode} onChangeText={(v) => { setOldCode(v); setError(undefined); }} accessibilityLabel="Code from your current email" className="text-text font-medium" style={[SET_TYPE.field15, field]} />
+                      </Input>
+                    </FieldLabel>
+                    <Note>Both codes work for 10 minutes. We tell your old address once it is changed.</Note>
+                  </>
+                ) : (
+                  <Lede small>We email a code to the new address and one to your current address. You keep signing in with the current one until you enter both.</Lede>
+                )}
+                {error ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> : null}
+              </Box>
+            </Sec>
+          </SetPage>
+        )}
+      </PushedPage>
     </KeyboardPage>
   );
 }

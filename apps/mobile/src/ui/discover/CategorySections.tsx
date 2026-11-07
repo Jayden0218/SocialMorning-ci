@@ -10,7 +10,8 @@
 import { useEffect } from 'react';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { colour, gutter, spacing } from '@/design';
+import { useWindowDimensions } from 'react-native';
 import { useStores } from '@/ui/shell/providers';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
@@ -19,8 +20,7 @@ import { listSize } from '@/config/store'; // M25 A7: how many genres Discover s
 import { warmCategories } from '@/discover/category-cache';
 import { visibleGenres } from '@/discover/hidden-categories';
 import { useSocial } from '@/social/context';
-import { PX, useEdge } from './Deck';
-import { DiscoverSection, SectionLink } from './DiscoverLayout';
+import { DECK, DeckLink, DeckSection, PX, useEdge } from './Deck';
 
 /** How long after Discover appears the category lists start loading. */
 const WARM_AFTER_MS = 1500;
@@ -33,6 +33,7 @@ const HIDE_SLOP = { top: 6, bottom: 6, left: 6, right: 6 };
 export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () => void; /** M21: genre ids hidden with ×. */ hidden?: readonly number[]; onHide?: (id: number) => void }): React.ReactElement {
   const stores = useStores();
   const { api } = useSocial();
+  const { width } = useWindowDimensions();
   const edge = useEdge('Explore by category', 'Genres');
   // Owner, 2026-10-04: the genres' lists (and first covers) load in the background once
   // Discover has drawn, so a tapped category opens full (src/discover/category-cache.ts).
@@ -41,8 +42,8 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
     return () => clearTimeout(t);
   }, [api, stores]);
   return (
-    <DiscoverSection title={edge.spoken}>
-      <Box className="flex-row flex-wrap" style={{ gap: CHIP.gap }}>
+    <DeckSection {...edge}>
+      <Box className="flex-row flex-wrap" style={{ marginLeft: DECK.lane, marginRight: gutter(width) - spacing.hair, gap: CHIP.gap }}>
         {visibleGenres(GENRES, props.hidden ?? [], listSize('discoverCategories')).map((g) => (
           <Box key={g.id} className="flex-row items-center bg-raise border border-line rounded-pill" style={{ height: CHIP.height, paddingLeft: CHIP.left, paddingRight: CHIP.right }}>
             <Pressable onPress={() => props.onGenre(g.id)} accessibilityRole="button" accessibilityLabel={g.name} hitSlop={{ top: 6, bottom: 6, left: 4, right: 0 }} className="flex-row items-center" style={{ gap: PX.six }}>
@@ -60,7 +61,7 @@ export function CategoryStrip(props: { onGenre: (id: number) => void; onAll: () 
           <Type step="caption" className="text-hotText font-semibold">All ›</Type>
         </Pressable>
       </Box>
-    </DiscoverSection>
+    </DeckSection>
   );
 }
 
@@ -69,13 +70,17 @@ export function MoreCategories(props: { onPress: () => void; hidden?: readonly n
   const hidden = GENRES.filter((g) => (props.hidden ?? []).includes(g.id));
   if (!props.onShow || hidden.length === 0) {
     return (
-      <SectionLink label="Explore more categories" onPress={props.onPress} />
+      <Box style={{ marginTop: PX.six }}>
+        <DeckLink label="Explore more categories" onPress={props.onPress} />
+      </Box>
     );
   }
   return (
-    <DiscoverSection title="Hidden">
-      <Box style={{ gap: PX.ten }}>
-        <SectionLink label="Explore more categories" onPress={props.onPress} />
+    <DeckSection label="Hidden">
+      <Box style={{ marginLeft: DECK.lane, gap: PX.ten }}>
+        <Pressable onPress={props.onPress} accessibilityRole="link" accessibilityLabel="Explore more categories" hitSlop={{ top: 15, bottom: 15, left: 8, right: 8 }} className="self-start">
+          <Type step="caption" className="text-hotText font-semibold">Explore more categories ›</Type>
+        </Pressable>
         <Box className="flex-row flex-wrap" style={{ gap: CHIP.gap }}>
           {hidden.map((g) => (
             <Pressable
@@ -94,6 +99,6 @@ export function MoreCategories(props: { onPress: () => void; hidden?: readonly n
         </Box>
         <Type step="mono" className="text-text3">Tap a hidden genre to show it again.</Type>
       </Box>
-    </DiscoverSection>
+    </DeckSection>
   );
 }

@@ -1,6 +1,6 @@
 // Search with nothing sent yet: Recent, Try searching and Genres; and, while typing, the live suggestions.
 /**
- * M31 T030 (design-pulse2 `search--screen`, `home--search-overlay`). Under section headings, as in Discover:
+ * M31 T030 (design-pulse2 `search--screen`, `home--search-overlay`). Under edge labels, as in Discover:
  *   - Recent — the last searches as chips with a clock (14) and a "Clear" chip at the end;
  *   - Try — the admin's / the day's words as numbered tiles, two to a row, 56 tall (radius 18, raise, a line):
  *     the number in hot-text mono 13, the words Geist 600 14;

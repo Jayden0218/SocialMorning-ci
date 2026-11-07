@@ -3,7 +3,7 @@
  * A chat message (owner, 2026-10-04). A shared episode is a small card — artwork, title, show — that opens the episode page.
  *
  * M31 W4-C (T052; design-pulse2 `social.html#chat-thread--screen` `bubble`, `epMsg`): their messages are raise bubbles (radius 18,
- * the lower-left corner 6) on the page's gutter; yours are hot with void words, right-aligned, the lower-right corner 6; both up to
+ * the corner by the spine 6) at the spine's lane; yours are hot with void words, right-aligned, the lower-right corner 6; both up to
  * 236 wide, padding 10 / 13, Geist 15. An episode is its own 236 card (raise, a 1 px line, radius 18, padding 10): cover 44, title
  * in Geist 600 13, the show in mono 11, and a light 32 Play disc that plays it (a tap on the card opens the episode). Under your
  * newest message, "Seen" (mono 11) once they have opened the conversation. The drawing has no time on a bubble — the node's tick

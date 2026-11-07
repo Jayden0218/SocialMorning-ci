@@ -75,3 +75,15 @@ describe('036 D7: two links that were 18 and 26 tall', () => {
     expect(s['minWidth']).toBeGreaterThanOrEqual(MIN);
   });
 });
+
+describe('038: the reply composer\'s Post (a11y-frames, run 41934113529: 65 x 38)', () => {
+  it('"Post" is a 44 frame, -3 above and below, so the 38 pill and the head row stay as drawn', async () => {
+    const r = await mount(createElement(ComposerSheet, { initial: { episodeId: 'e1', body: 'Hi', moment: { offsetMs: 872_000 } } as never, onClose: jest.fn(), onPosted: jest.fn() }));
+    const found = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Post' && n.props['style'] !== undefined && typeof n.props['accessibilityRole'] === 'string' && typeof n.type === 'string');
+    expect(found.length).toBeGreaterThan(0);
+    const s = flat(found[0]!);
+    expect(s['minHeight']).toBe(MIN);
+    expect(s['marginVertical']).toBe(-3);
+    expect(Number(s['minWidth'] ?? 0)).toBeGreaterThanOrEqual(MIN);
+  });
+});

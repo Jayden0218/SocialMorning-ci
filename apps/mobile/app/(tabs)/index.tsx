@@ -45,9 +45,9 @@ export default function HomeScreen(): React.ReactElement {
       {view === 'moments' ? (
         <MomentsFeed list={moments} body={page.view?.body} inFront={focused} onDiscover={() => choose('discover')} />
       ) : (
-        <DiscoverPage page={page} moments={moments} switcher={<TrendingHomeSwitch inBand hints={page.hints} view={view} onChange={choose} onSearch={page.openSearch} />} />
+        <DiscoverPage page={page} moments={moments} />
       )}
-      {view === 'moments' ? <TrendingHomeSwitch hints={page.hints} view={view} onChange={choose} onSearch={page.openSearch} /> : null}
+      <TrendingHomeSwitch hints={page.hints} view={view} onChange={choose} onSearch={page.openSearch} />
     </Box>
   );
 }

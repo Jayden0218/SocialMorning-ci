@@ -64,20 +64,35 @@ const mountScreen = async () => { const r = await mount(createElement(UpdatesScr
 
 const style2 = (n: { props: Record<string, unknown> }) => (StyleSheet.flatten(n.props['style'] as never) ?? {}) as Record<string, number>;
 
-// 039 (Feed lane): the turned edge labels are gone, so there is nothing turned that can overlap at 200 %. Voice and Starred are `Section` headings in the page's flow; their
-// blocks take their height from what they hold (no fixed or minimum height). Was: three tests measuring the turned label's length against the block's minHeight.
-describe('Updates sections at 200 %', () => {
+describe('Updates edge labels at 200 %', () => {
   beforeEach(() => { mockSocial.listener = { listenerId: 'me', displayName: 'Me' }; mockDiscover.view = undefined; mockSheet.props = undefined; });
   afterEach(() => { while (mounted.length) act(() => { mounted.pop()!.unmount(); }); });
 
-  it('the Voice and Starred blocks have no fixed or least height and no turned label', async () => {
+  const measure = (r: Awaited<ReturnType<typeof mount>>, block: string, width: number) => {
+    const root = r.root.findAllByProps({ testID: block }).find((n) => typeof n.type === 'string')!;
+    const probe = root.findAll((n) => String(n.type) === 'Text' && typeof n.props['onLayout'] === 'function')[0]!;
+    act(() => { (probe.props['onLayout'] as (e: unknown) => void)({ nativeEvent: { layout: { width, height: 11, x: 0, y: 0 } } }); });
+    return style2(r.root.findAllByProps({ testID: block }).find((n) => typeof n.type === 'string')!);
+  };
+
+  it('the Voice block has no fixed height and is at least as tall as its turned label (a 140 long VOICE at 200 %)', async () => {
     setup({ starred: true });
     const r = await mountScreen();
-    for (const block of ['voice-block', 'starred-block']) {
-      const s = style2(r.root.findAllByProps({ testID: block }).find((n) => typeof n.type === 'string')!);
-      expect(s['height']).toBeUndefined();
-      expect(s['minHeight']).toBeUndefined();
-    }
-    expect(r.root.findAll((n) => n.props['testID'] === 'edge-label')).toHaveLength(0);
+    const s = measure(r, 'voice-block', 140);
+    expect(s['height']).toBeUndefined();
+    expect(s['minHeight']).toBeGreaterThanOrEqual(140);
+  });
+  it('the Starred block likewise (a 150 long STARRED)', async () => {
+    setup({ starred: true });
+    const r = await mountScreen();
+    const s = measure(r, 'starred-block', 150);
+    expect(s['height']).toBeUndefined();
+    expect(s['minHeight']).toBeGreaterThanOrEqual(150);
+  });
+  it('with a short label the blocks keep the drawn pitches as their least height (92 and 70)', async () => {
+    setup({ starred: true });
+    const r = await mountScreen();
+    expect(measure(r, 'voice-block', 30)['minHeight']).toBeGreaterThanOrEqual(92);
+    expect(measure(r, 'starred-block', 30)['minHeight']).toBeGreaterThanOrEqual(70);
   });
 });

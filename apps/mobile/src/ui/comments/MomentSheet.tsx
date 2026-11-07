@@ -6,7 +6,7 @@
  * (iOS i8: only the episode page offered it). Every action is at least 44 pt (iOS i4).
  *
  * M31 W2-B (`social.html` `moment-sheet--player-marker`): the kit sheet. Head: the solid moment chip, "At 14:32" in Unbounded
- * 800 24, a 36 close circle. Below it a Thread in miniature — a 2 px hot spine 6 in from the left, and each comment a
+ * 800 24, a 36 close circle. Below it a Thread in miniature — a 2 px hot-to-violet spine 6 in from the left, and each comment a
  * raise card (radius 18, padding 12): a 22 avatar, the name, "· 14:32" in mono 11, the words (Body 15/21) and a row of Reply
  * and Delete (yours) or Report (others', with the flag) in 13/600, the heart with its count at the right (a tap likes; signed
  * out it goes to sign-in). A reply sits under its comment, stepped in. "All comments ›" (a quiet 48 pill) opens the Comments
@@ -41,7 +41,7 @@ const SLOP = { top: 16, bottom: 16, left: 0, right: 0 };
 /** 16 tall + 16 + 16 of slop = 48; at least 48 wide. The drawing's row is 13 pt of words. */
 const TAP = { minWidth: 48, minHeight: 16 };
 const CARD = { borderRadius: COMMENTS.cardRadius, padding: COMMENTS.cardPad, gap: 6 };
-const SPINE_COLOURS = [colour.hot, colour.line] as const;
+const SPINE_COLOURS = [colour.hot, colour.violet] as const;
 
 export function MomentSheet(props: {
   episodeId: string;

@@ -40,16 +40,6 @@ env:
 - runFlow: _back-to-me.yaml
 # Add an episode from its page
 - runFlow: _search-show.yaml
-# 039 (run 42210800998): the "Share some shows" chip is drawn only when the list has a show (as before 039, app/subscriptions.tsx `rows.length > 0`). A full run had r06's
-# subscription by now; a narrowed shard run (r1[0-4]*) signs listener-05 in fresh, so subscribe here, where the page is open anyway.
-- runFlow:
-    when:
-      visible: "Subscribe to this show"
-    commands:
-      - tapOn: "Subscribe to this show"
-      - extendedWaitUntil:
-          visible: "Unsubscribe from this show"
-          timeout: 15000
 - tapOn:
     text: "Episode 1: A minute of tone\\. .*"
     index: 0

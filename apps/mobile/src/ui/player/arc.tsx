@@ -1,7 +1,7 @@
-// A ring that fills round a circle in the hot pulse: the sleep timer's rings and clock track.
+// A ring that fills round a circle in the hot-to-violet pulse: the sleep timer's rings and clock track.
 /**
  * M31 T024 (design-pulse2 `listen.html` `arcSvg`): an SVG circle drawn from 12 o'clock clockwise, `w` thick,
- * on a track colour, `fraction` of the way round in a hot gradient (or one flat colour
+ * on a track colour, `fraction` of the way round in a hot → violet gradient (or one flat colour
  * when `colour` is given). Decoration — the control around it carries the name and the state.
  */
 import Svg, { Circle, Defs, LinearGradient, Stop } from 'react-native-svg';
@@ -18,7 +18,7 @@ export function Arc(props: { size: number; fraction: number; width?: number; tra
       <Defs>
         <LinearGradient id={id} x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor={props.hot ?? colour.hot} />
-          <Stop offset="1" stopColor={colour.hot} />
+          <Stop offset="1" stopColor={colour.violet} />
         </LinearGradient>
       </Defs>
       <Circle cx={props.size / 2} cy={props.size / 2} r={r} fill="none" stroke={props.track ?? colour.line} strokeWidth={w} />

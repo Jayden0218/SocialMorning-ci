@@ -38,8 +38,6 @@ const SHAPES = {
   scis: "<circle cx=\"6\" cy=\"7\" r=\"2.5\"/><circle cx=\"6\" cy=\"17\" r=\"2.5\"/><path d=\"M8 8.5L20 16M8 15.5L20 8\"/>",
   list: "<path d=\"M9 7h11M9 12h11M9 17h11\"/><circle cx=\"4.5\" cy=\"7\" r=\"1\" fill=\"currentColor\"/><circle cx=\"4.5\" cy=\"12\" r=\"1\" fill=\"currentColor\"/><circle cx=\"4.5\" cy=\"17\" r=\"1\" fill=\"currentColor\"/>",
   queue: "<path d=\"M4 6h16M4 12h10M4 18h10\"/><path d=\"M17 15l3 2.5-3 2.5z\" fill=\"currentColor\"/>",
-  bookmark: "<path d=\"M7 4h10v16l-5-3.5L7 20z\"/>",
-  bookmarkF: "<path d=\"M7 4h10v16l-5-3.5L7 20z\" fill=\"currentColor\"/>",
   star: "<path d=\"M12 4l2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z\"/>",
   starF: "<path d=\"M12 4l2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z\" fill=\"currentColor\"/>",
   info: "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v6M12 7.5v.5\"/>",
@@ -136,8 +134,8 @@ export const DRAWN_ICONS: Readonly<Record<string, string>> = {
   "pin": SHAPES.pin,
   "pin-outline": SHAPES.pin,
   "copy-outline": SHAPES.paper,
-  "bookmark-outline": SHAPES.bookmark,
-  "bookmark": SHAPES.bookmarkF,
+  "bookmark-outline": SHAPES.star,
+  "bookmark": SHAPES.starF,
   "volume-mute-outline": SHAPES.mute,
   "sparkles-outline": SHAPES.star,
   "options-outline": SHAPES.gear,
@@ -157,7 +155,7 @@ export const DRAWN_ICONS: Readonly<Record<string, string>> = {
 
 /** The svg document for a drawn icon at `color`. */
 export function drawnIconXml(shape: string, color: string): string {
-  // `VOID` is the compass needle's cut-out (the page colour, `void`): the token, not a literal.
+  // `VOID` is the compass needle's cut-out (the page colour, #060608 in the drawing): the token, not a literal.
   const body = shape.replace(/currentColor/g, color).replace(/VOID/g, colour.void);
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="${DRAWN_ICON_STROKE}" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }

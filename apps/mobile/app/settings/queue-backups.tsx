@@ -6,21 +6,21 @@
  * (src/sync/queue.ts `restore`). Versions are saved when the chooser keeps the other list, and
  * before a restore. Own header and confirm — no native iOS UI.
  *
- * Spec 039 (List lane): a `Page` (Back + title); the spine and its dots are gone (design B: nothing sideways) — the versions are tiles one under the other, newest first.
- *
- * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 S-B (T060; design-pulse2 `settings-queue-backups--screen`, `--empty`, `--restore-dialog`, `toast--settings-queue-backups`; layout Thread): the
+ * M31 S-B (T060; design-pulse2 `settings-queue-backups--screen`, `--empty`, `--restore-dialog`, `toast--settings-queue-backups`; layout Thread): the
  * versions hang from a 2-wide spine (hot, violet at 60 %, then the line colour), newest first, a dot on it for each — the newest one hot —
  * and each is a tile: the date and time in mono 13, "device · n episodes", "Starts with …" in Geist 600 14, and at the foot the reason (12,
  * text-3) beside a quiet Restore pill (36; "Restoring" while busy, the others disabled meanwhile). The lede sits above; Restore asks first
  * (the kit dialog, a light action as nothing is lost). Empty is the kit's block. Same handlers, names and toasts.
  */
 import { useState } from 'react';
+import { LinearGradient } from '@/design/tailwind';
 import { plural } from '@socialmorning/social-core';
 import { Box } from '@/ui/lib/box';
 import { Type } from '@/ui/kit/Type';
 import { useQueueSync, useStores, useToast } from '@/ui/shell/providers';
 import { PageEmpty } from '@/ui/me/lists';
 import { useConfirm } from '@/ui/kit/confirm';
+import { colour } from '@/design';
 import { Lede, Line, QuietPill, SettingsPage, Tile } from '@/ui/settings/panel';
 import { SET, SET_TYPE } from '@/ui/settings/measures';
 import type { QueueBackup } from '@/storage/types';
@@ -60,17 +60,22 @@ export default function QueueBackupsScreen(): React.ReactElement {
 
   return (
     <>
-    <SettingsPage title="Playlist backups">
+    <SettingsPage title="Playlist backups" lane={false}>
       <Lede>The last 10 versions of your playlist on this phone.</Lede>
       {rows.length === 0 ? (
-        <PageEmpty title="No backups yet" line="A backup is saved before a playlist is replaced." top={0} />
+        <>
+          <Box style={{ height: SET.backupsEmptyTop }} />
+          <PageEmpty title="No backups yet" line="A backup is saved before a playlist is replaced." top={0} />
+        </>
       ) : (
-        <Box testID="backups-thread" style={{ gap: SET.threadGap }}>
-          {rows.map((b) => {
+        <Box testID="backups-thread" className="relative" style={{ paddingLeft: SET.threadPad, gap: SET.threadGap }}>
+          <LinearGradient testID="backups-spine" colors={[colour.hot, colour.violet, colour.line]} locations={[0, 0.6, 1]} accessible={false} importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', left: SET.spineLeft, top: SET.spineInset, bottom: SET.spineInset, width: SET.spineWidth }} />
+          {rows.map((b, i) => {
             const first = b.items[0] !== undefined ? stores.feeds.getEpisode(b.items[0])?.title : undefined;
             const label = `${when(b.createdAt)}, ${b.device ?? 'This phone'}, ${plural(b.items.length, 'episode')}`;
             return (
-              <Box key={b.id}>
+              <Box key={b.id} className="relative">
+                <Box testID="backup-node" className={i === 0 ? 'bg-hot' : 'bg-raise2'} accessible={false} importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', left: SET.nodeLeft, top: SET.nodeTop, width: SET.nodeSize, height: SET.nodeSize, borderRadius: SET.nodeSize / 2, borderWidth: SET.spineWidth, borderColor: colour.void }} />
                 <Tile style={{ gap: SET.backupGap }}>
                   <Type step="mono" className="text-text" style={SET_TYPE.mono13}>{when(b.createdAt)}</Type>
                   <Line>{`${b.device ?? 'This phone'} · ${plural(b.items.length, 'episode')}`}</Line>

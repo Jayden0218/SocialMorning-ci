@@ -10,8 +10,7 @@
  * Not as drawn: the header's name is Unbounded 18 (the scale has no 16); "1 / 2 →" turns to "2 / 2 ←" on
  * the last page and goes back (the old Previous page).
  */
-import { useRef, useState, type ComponentRef } from 'react';
-import type { ScrollView as RNScrollView } from 'react-native';
+import { useState } from 'react';
 import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
@@ -20,13 +19,12 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { Type } from '@/ui/kit/Type';
 import { pages, type ChartTab } from '@/discover/sections';
 import type { EpisodeCard } from '@/social/api';
-import { DECK, UNBOUNDED, DeckCard, PX, PlayGlyph } from './Deck';
-import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
+import { DECK, UNBOUNDED, Deck, DeckCard, DeckLink, DeckSection, PX, PlayGlyph } from './Deck';
 import type { Act } from './sections-common';
 
 /** Drawn: cards 270 x 220, a row 54 tall (7 + the 40 cover + 7), the rank 20 wide. */
 export const CHART_CARD = { width: 270, height: 220, cover: 40, rank: 20, rowPad: 7 } as const;
-/** The chart's name is a 44 frame around its 20 tall line (-12 above and below keeps the header as drawn). */
+/** 036 T015b: the chart's name is a 44 frame around its 20 tall line (-12 above and below keeps the header as drawn); the chart row's is 44 around the 40 cover (-2). */
 const NAME_FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - 20) / 2, justifyContent: 'center' as const };
 /** A page is as wide as the card's inside (the 1 line border off each side). */
 const PAGE = CHART_CARD.width - 2;
@@ -100,18 +98,14 @@ function ChartCard(props: Act & { tab: ChartTab; onName: () => void }): React.Re
 
 /** The charts — a card each, in the order the model gives (Top, Talked about, New shows). */
 export function ChartSection(props: Act & { tabs: ChartTab[]; onFull?: () => void }): React.ReactElement | null {
-  const shelf = useRef<ComponentRef<typeof RNScrollView>>(null);
-  const xs = useRef<number[]>([]);
-  const toCard = (i: number): void => {
-    const x = xs.current[i];
-    if (x !== undefined) shelf.current?.scrollTo({ x, animated: true });
-  };
+  const [focus, setFocus] = useState(0);
   if (props.tabs.length === 0 || props.tabs.every((t) => t.rows.length === 0)) return null;
   return (
-    <DiscoverSection title="Charts" {...(props.onFull ? { onSeeAll: props.onFull } : {})}>
-      <DiscoverShelf width={CHART_CARD.width} height={CHART_CARD.height} scrollRef={shelf} onCardX={(i, x) => { xs.current[i] = x; }}>
-        {props.tabs.map((tab, i) => <ChartCard key={tab.key} tab={tab} onOpen={props.onOpen} onPlay={props.onPlay} onName={() => toCard(i)} />)}
-      </DiscoverShelf>
-    </DiscoverSection>
+    <DeckSection label="Charts" spoken="The chart">
+      <Deck width={CHART_CARD.width} height={CHART_CARD.height} focus={focus}>
+        {props.tabs.map((tab, i) => <ChartCard key={tab.key} tab={tab} onOpen={props.onOpen} onPlay={props.onPlay} onName={() => setFocus(i)} />)}
+      </Deck>
+      {props.onFull ? <DeckLink label="Full chart" onPress={props.onFull} /> : null}
+    </DeckSection>
   );
 }

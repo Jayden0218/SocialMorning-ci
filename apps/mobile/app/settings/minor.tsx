@@ -16,7 +16,7 @@
  * passcode, so it turns off as before.
  *
  * M31 S-A (T060; design-pulse2 `settings-minor--screen`, `--set-passcode`, `--confirm-passcode`, `--turn-off-prompt`, `--forgot-passcode`, `toast--settings-minor`; Stage + Panel): a 112 disc
- * (hot-text to hot, a moon 48 in void, a hot glow) centred at the top with the line under it in 14 / 20; **Hide explicit episodes** as one large switch tile (Unbounded 17, its state
+ * (hot-text to hot to violet, a moon 48 in void, a hot glow) centred at the top with the line under it in 14 / 20; **Hide explicit episodes** as one large switch tile (Unbounded 17, its state
  * "On / Off" in mono 12; on = the tinted wash with a hot ring and "· Locked with a passcode"); the note "This relies on each publisher…" (12, centred) closes the page. Turning it on asks for a
  * passcode (set, then confirm), turning it off asks for it (with **Forgot passcode?** by email code); the switch is disabled while a passcode is being typed. Then the disc shrinks to 72 and a
  * tile ringed in hot asks the question: four 18 dots fill as digits arrive (or six cells for the emailed code); a wrong try says how many are left; locked says until when, in place of the dots.
@@ -35,6 +35,7 @@ import { useM19Api } from '@/social/m19-api';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { Icon } from '@/ui/kit/Icon';
 import { PulseButton } from '@/ui/kit/PulseButton';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Toggle } from '@/ui/kit/Toggle';
 import { Type } from '@/ui/kit/Type';
 import { KeyboardPage } from '@/ui/me/lists';
@@ -122,74 +123,78 @@ export default function MinorMode(): React.ReactElement {
   const disc = typing ? DISC.small : DISC.big;
   return (
     <KeyboardPage>
-      <SetPage title="Minor mode">
-        <Box className="items-center" style={{ gap: SET.gap, paddingTop: typing ? 0 : 20, paddingHorizontal: 10 }}>
-          <Box testID="minor-disc" className="overflow-hidden items-center justify-center" style={{ width: disc, height: disc, borderRadius: disc / 2, shadowColor: glow.cover.color, shadowOpacity: glow.cover.opacity, shadowRadius: glow.cover.radius, shadowOffset: { width: 0, height: 0 } }}>
-            <LinearGradient colors={[colour.hotText, colour.hot, colour.hot]} locations={[0, 0.55, 1]} start={{ x: 0.3, y: 0.25 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
-            <Icon name="moon-outline" size={typing ? DISC.moonSmall : DISC.moonBig} color={colour.void} />
-          </Box>
-          <Type step="note" className="text-text2 text-center">Episodes their publisher marks explicit are not listed in Updates, show pages or the inbox.</Type>
-        </Box>
-        <Sec label="Switch">
-          <Box testID="minor-switch" className="flex-row items-center" style={{ gap: SET.rowGap, padding: SET.tilePad, borderRadius: SET.radius, ...(on ? { backgroundColor: settingsColour.wash, borderWidth: 1, borderColor: settingsColour.ring } : { backgroundColor: colour.raise }) }}>
-            <Box className="flex-1">
-              <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>Hide explicit episodes</Type>
-              <Type step="mono" className={on ? 'text-hotText' : 'text-text3'} style={[SET_TYPE.mono12, { marginTop: 4 }]}>{`${on ? 'On' : 'Off'}${on && hasPasscode(stores.settings) && !typing ? ' · Locked with a passcode' : ''}`}</Type>
+      <PushedPage title="Minor mode">
+        {(layout) => (
+          <SetPage layout={layout}>
+            <Box className="items-center" style={{ gap: SET.gap, paddingTop: typing ? 0 : 20, paddingHorizontal: 10 }}>
+              <Box testID="minor-disc" className="overflow-hidden items-center justify-center" style={{ width: disc, height: disc, borderRadius: disc / 2, shadowColor: glow.cover.color, shadowOpacity: glow.cover.opacity, shadowRadius: glow.cover.radius, shadowOffset: { width: 0, height: 0 } }}>
+                <LinearGradient colors={[colour.hotText, colour.hot, colour.violet]} locations={[0, 0.55, 1]} start={{ x: 0.3, y: 0.25 }} end={{ x: 1, y: 1 }} style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+                <Icon name="moon-outline" size={typing ? DISC.moonSmall : DISC.moonBig} color={colour.void} />
+              </Box>
+              <Type step="note" className="text-text2 text-center">Episodes their publisher marks explicit are not listed in Updates, show pages or the inbox.</Type>
             </Box>
-            {/* M16a T004: the app's own toggle, not the iOS switch. */}
-            {/* M19 T090: on asks for a new passcode; off asks for it (the pref changes only after). */}
-            <Toggle value={on} onChange={onToggle} label="Hide explicit episodes" disabled={typing} />
-          </Box>
-        </Sec>
-        {typing ? (
-          <SetCard testID="passcode-card" wash gap={SET.rowGap}>
-            <Type step="row" className="text-text" style={SET_TYPE.field15}>{PROMPT[step.kind]}</Type>
-            {blocked ? (
-              <Type step="caption" className="text-hotText" style={SET_TYPE.line13}>{`Too many wrong tries. Try again after ${clock(locked ?? 0)}.`}</Type>
-            ) : (
-              <Box style={{ paddingVertical: step.kind === 'code' ? 0 : SET.gap }}>
-                {step.kind === 'code' ? (
-                  <Box testID="code-cells" className="flex-row" style={{ gap: SET.gap }} accessible={false} importantForAccessibility="no-hide-descendants">
-                    {Array.from({ length }, (_, k) => (
-                      <Box key={k} className="flex-1 bg-raise2 items-center justify-center" style={{ height: CELL, borderRadius: 16, ...(k === entry.length ? { borderWidth: 1.5, borderColor: colour.hot } : null) }}>
-                        <Type step="lede" className="text-text font-bold" style={SET_TYPE.cell26}>{entry[k] ?? ''}</Type>
-                      </Box>
-                    ))}
-                  </Box>
+            <Sec label="Switch">
+              <Box testID="minor-switch" className="flex-row items-center" style={{ gap: SET.rowGap, padding: SET.tilePad, borderRadius: SET.radius, ...(on ? { backgroundColor: settingsColour.wash, borderWidth: 1, borderColor: settingsColour.ring } : { backgroundColor: colour.raise }) }}>
+                <Box className="flex-1">
+                  <Type step="lede" className="text-text font-bold" style={SET_TYPE.display17}>Hide explicit episodes</Type>
+                  <Type step="mono" className={on ? 'text-hotText' : 'text-text3'} style={[SET_TYPE.mono12, { marginTop: 4 }]}>{`${on ? 'On' : 'Off'}${on && hasPasscode(stores.settings) && !typing ? ' · Locked with a passcode' : ''}`}</Type>
+                </Box>
+                {/* M16a T004: the app's own toggle, not the iOS switch. */}
+                {/* M19 T090: on asks for a new passcode; off asks for it (the pref changes only after). */}
+                <Toggle value={on} onChange={onToggle} label="Hide explicit episodes" disabled={typing} />
+              </Box>
+            </Sec>
+            {typing ? (
+              <SetCard testID="passcode-card" wash gap={SET.rowGap}>
+                <Type step="row" className="text-text" style={SET_TYPE.field15}>{PROMPT[step.kind]}</Type>
+                {blocked ? (
+                  <Type step="caption" className="text-hotText" style={SET_TYPE.line13}>{`Too many wrong tries. Try again after ${clock(locked ?? 0)}.`}</Type>
                 ) : (
-                  <Box testID="passcode-dots" className="flex-row justify-center" style={{ gap: 14 }} accessible={false} importantForAccessibility="no-hide-descendants">
-                    {Array.from({ length }, (_, k) => (
-                      <Box key={k} style={{ width: DOT, height: DOT, borderRadius: DOT / 2, ...(k < entry.length ? { backgroundColor: colour.text } : { borderWidth: 2, borderColor: colour.idle }) }} />
-                    ))}
+                  <Box style={{ paddingVertical: step.kind === 'code' ? 0 : SET.gap }}>
+                    {step.kind === 'code' ? (
+                      <Box testID="code-cells" className="flex-row" style={{ gap: SET.gap }} accessible={false} importantForAccessibility="no-hide-descendants">
+                        {Array.from({ length }, (_, k) => (
+                          <Box key={k} className="flex-1 bg-raise2 items-center justify-center" style={{ height: CELL, borderRadius: 16, ...(k === entry.length ? { borderWidth: 1.5, borderColor: colour.hot } : null) }}>
+                            <Type step="lede" className="text-text font-bold" style={SET_TYPE.cell26}>{entry[k] ?? ''}</Type>
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Box testID="passcode-dots" className="flex-row justify-center" style={{ gap: 14 }} accessible={false} importantForAccessibility="no-hide-descendants">
+                        {Array.from({ length }, (_, k) => (
+                          <Box key={k} style={{ width: DOT, height: DOT, borderRadius: DOT / 2, ...(k < entry.length ? { backgroundColor: colour.text } : { borderWidth: 2, borderColor: colour.idle }) }} />
+                        ))}
+                      </Box>
+                    )}
+                    {/* The number pad: a real field laid over the dots, drawn invisible, so the keyboard, secure entry and the spoken name are the phone's. */}
+                    <Input className="absolute border-0 bg-transparent" style={{ left: 0, right: 0, top: 0, bottom: 0, opacity: 0 }}>
+                      <InputField
+                        key={step.kind}
+                        value={entry}
+                        onChangeText={(t) => { const d = t.replace(/\D/g, '').slice(0, length); setEntry(d); if (d.length === length) submit(d); }}
+                        keyboardType="number-pad"
+                        secureTextEntry={step.kind !== 'code'}
+                        maxLength={length}
+                        autoFocus
+                        placeholder={step.kind === 'code' ? '6-digit code' : '4 digits'}
+                        placeholderTextColor={colour.text3}
+                        accessibilityLabel={step.kind === 'code' ? 'Emailed code' : step.kind === 'confirm' ? 'Passcode again' : 'Passcode'}
+                        className="text-text"
+                      />
+                    </Input>
                   </Box>
                 )}
-                {/* The number pad: a real field laid over the dots, drawn invisible, so the keyboard, secure entry and the spoken name are the phone's. */}
-                <Input className="absolute border-0 bg-transparent" style={{ left: 0, right: 0, top: 0, bottom: 0, opacity: 0 }}>
-                  <InputField
-                    key={step.kind}
-                    value={entry}
-                    onChangeText={(t) => { const d = t.replace(/\D/g, '').slice(0, length); setEntry(d); if (d.length === length) submit(d); }}
-                    keyboardType="number-pad"
-                    secureTextEntry={step.kind !== 'code'}
-                    maxLength={length}
-                    autoFocus
-                    placeholder={step.kind === 'code' ? '6-digit code' : '4 digits'}
-                    placeholderTextColor={colour.text3}
-                    accessibilityLabel={step.kind === 'code' ? 'Emailed code' : step.kind === 'confirm' ? 'Passcode again' : 'Passcode'}
-                    className="text-text"
-                  />
-                </Input>
-              </Box>
-            )}
-            {problem ? <Type step="caption" className="text-hotText" style={SET_TYPE.line13} accessibilityLiveRegion="polite">{problem}</Type> : null}
-            <Box className="flex-row" style={{ gap: SET.tileGap }}>
-              <Box className="flex-1"><PulseButton kind="quiet2" label="Cancel" onPress={() => go({ kind: 'none' })} full /></Box>
-              {step.kind === 'off' ? <Box className="flex-1"><PulseButton kind="ring" label="Forgot passcode?" onPress={forgot} disabled={busy} full /></Box> : null}
-            </Box>
-          </SetCard>
-        ) : null}
-        <Note centre>This relies on each publisher marking its episodes. SocialNet does not check the audio itself.</Note>
-      </SetPage>
+                {problem ? <Type step="caption" className="text-hotText" style={SET_TYPE.line13} accessibilityLiveRegion="polite">{problem}</Type> : null}
+                <Box className="flex-row" style={{ gap: SET.tileGap }}>
+                  <Box className="flex-1"><PulseButton kind="quiet2" label="Cancel" onPress={() => go({ kind: 'none' })} full /></Box>
+                  {step.kind === 'off' ? <Box className="flex-1"><PulseButton kind="ring" label="Forgot passcode?" onPress={forgot} disabled={busy} full /></Box> : null}
+                </Box>
+              </SetCard>
+            ) : null}
+            <Note centre>This relies on each publisher marking its episodes. SocialNet does not check the audio itself.</Note>
+          </SetPage>
+        )}
+      </PushedPage>
     </KeyboardPage>
   );
 }

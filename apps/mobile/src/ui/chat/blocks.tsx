@@ -59,7 +59,7 @@ export function ErrTile(props: { line: string; children?: ReactNode }): React.Re
     <Box
       testID="err-tile"
       className="bg-raise border border-line"
-      style={{ borderRadius: CHAT.tileRadius, padding: CHAT.tilePad, gap: CHAT.tileInnerGap }}
+      style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right, borderRadius: CHAT.tileRadius, padding: CHAT.tilePad, gap: CHAT.tileInnerGap }}
       accessibilityLiveRegion="polite"
     >
       <Box className="flex-row items-start" style={{ gap: ME_MOSAIC.rowGap - 2 }}>

@@ -63,10 +63,16 @@ jest.mock('@/ui/shell/providers', () => ({
   useToast: () => mockToastFn,
   useCovered: () => false,
 }));
-jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null, goBack: () => undefined }));
-// 039: the settings page is a `Page`; where the bars sit is not what this guard is about.
-jest.mock('@/ui/shell/toastPlacement', () => ({ useToastPlacement: () => ({ tabs: false, now: false, player: false }) }));
-// 039: PushedPage is retired (the pages are Page / PageList); nothing is mocked in its place.
+jest.mock('@/ui/kit/PageHeader', () => ({ PageHeader: () => null }));
+// M31 S-B: the Updates / Notifications pages sit in the settings page body (`PushedPage` under it needs the router's path); the bar is not what these guards are about.
+const mockBody = (c: unknown): unknown => (typeof c === 'function' ? (c as (layout: { top: number; titleBottom: number; reserve: number }) => unknown)({ top: 0, titleBottom: 0, reserve: 0 }) : c);
+// M31 S-A: a page with a bottom zone (Change email's button) passes it as `below`; draw it after the body.
+jest.mock('@/ui/kit/PushedPage', () => ({
+  PushedPage: (p: { children: unknown; below?: unknown }) => {
+    const { createElement, Fragment } = require('react');
+    return createElement(Fragment, null, mockBody(p.children), p.below ?? null);
+  },
+}));
 jest.mock('@/notify/expo', () => ({ expoNotify: { status: () => Promise.resolve('granted') } }));
 jest.mock('@/social/m12-api', () => ({ useM12Api: () => mockM12 }));
 jest.mock('@/ui/settings/NotifyShows', () => ({ NotifyShows: () => null }));
@@ -195,30 +201,30 @@ describe('1 (rendered). every way out of the sheet records an answer, and the sh
     expect(style(disc)).toMatchObject({ width: 60, height: 60, borderRadius: 30 });
     const title = r.root.findAll((n) => typeof n.type === 'string' && n.props['accessibilityRole'] === 'header' && style(n)['fontSize'] === 21)[0]!;
     expect(title).toBeDefined();
-    // "A rating helps a lot" is drawn one character at a time, all hotText now (Q8: one accent; was hot to violet, first and last differed).
+    // "A rating helps a lot" is drawn one character at a time, hot to violet: the first and last differ.
     const chars = r.root.findAll((n) => n.props['testID'] === 'glow-words')[0]!.findAll((n) => typeof n.type === 'string' && n.children.length === 1 && typeof n.children[0] === 'string' && n.children[0] !== ' ');
     const colourOf = (n: ReactTestInstance): unknown => style(n)['color'];
-    expect(colourOf(chars[0]!)).toBe(colourOf(chars[chars.length - 1]!));
+    expect(colourOf(chars[0]!)).not.toBe(colourOf(chars[chars.length - 1]!));
     act(() => { jest.runOnlyPendingTimers(); });
     act(() => r.unmount());
   });
 });
 
 describe('2. main Play buttons are the fixed light circle, whatever the accent', () => {
-  it('`play` is the Pulse light circle #eceef2 with void words under every accent theme, and the pair clears 4.5', () => {
+  it('`play` is the Pulse light circle #f4f2ee with void words under every accent theme, and the pair clears 4.5', () => {
     for (const name of Object.keys(ACCENTS) as (keyof typeof ACCENTS)[]) {
       const p = withAccent(colour, name);
-      expect(p.play).toBe('#eceef2');
-      expect(p.onPlay).toBe('#111318');
+      expect(p.play).toBe('#f4f2ee');
+      expect(p.onPlay).toBe('#060608');
     }
-    expect(withAccent(colour, 'teal').primary).not.toBe('#eceef2');
+    expect(withAccent(colour, 'teal').primary).not.toBe('#f4f2ee');
     expect(PAIRS.some((p) => p.fg === colour.onPlay && p.bg === colour.play)).toBe(true);
     expect(contrastRatio(colour.onPlay, colour.play)).toBeGreaterThanOrEqual(BODY_MIN);
   });
   // KEPT as a source check: global.css is generated CSS, not a component — nothing to render.
   it('global.css carries the token (light, dark and the theme)', () => {
-    expect(read('global.css').match(/--color-play: #eceef2;/g)).toHaveLength(3);
-    expect(read('global.css').match(/--color-onPlay: #111318;/g)).toHaveLength(3);
+    expect(read('global.css').match(/--color-play: #f4f2ee;/g)).toHaveLength(3);
+    expect(read('global.css').match(/--color-onPlay: #060608;/g)).toHaveLength(3);
   });
 
   describe('rendered under the Teal accent: the pills are `bg-play` / `text-onPlay`, the glyph is onPlay', () => {
@@ -452,8 +458,8 @@ describe('6. Notifications: "System notices", server key `system`, on by default
     mockM22.pushSwitches.mockResolvedValue({});
     let r!: ReactTestRenderer;
     await act(async () => { r = create(createElement(PushSettings)); });
-    // 039 (List lane): the group is named by the kit Section heading SocialNet (was the edge label SOCIALNET, drawn in capitals).
-    expect(texts(r)).toEqual(expect.arrayContaining(['SocialNet', 'System notices', 'Notices from SocialNet']));
+    // M31 S-B: the group is named by the edge label SOCIALNET (design-pulse2 `settings-push--screen`), drawn in capitals.
+    expect(texts(r)).toEqual(expect.arrayContaining(['SOCIALNET', 'System notices', 'Notices from SocialNet']));
     const toggle = tap(r, 'System notices')!;
     expect(toggle.props['accessibilityState']).toEqual(expect.objectContaining({ checked: true }));
     await act(async () => { toggle.props['onPress'](); });

@@ -12,7 +12,29 @@ import { episode, player } from '@/design/tokens';
 
 export const EPISODE = episode;
 
-// 039 I2: `EpisodeLayout` and `episodeLayout(insets)` (the drawn page's pill, curve and stage positions) went with EpisodeStage; the Episode page is a DetailPage.
+export type EpisodeLayout = {
+  /** The pills row's top edge. */
+  pillsTop: number;
+  curveTop: number;
+  /** Where the sections start: under the stage (the cover's height, moved down by a taller status bar). */
+  stageHeight: number;
+  /** Distance from the top of the home strip (the root pads it) to the title block's bottom, and to the tray's. */
+  titleBottom: number;
+  trayBottom: number;
+};
+
+/** The page's positions for the status bar's height. */
+export function episodeLayout(insets: { top: number }): EpisodeLayout {
+  const status = Math.max(insets.top, episode.statusBar);
+  const shift = status - episode.statusBar;
+  return {
+    pillsTop: status + episode.pillsBelowStatus,
+    curveTop: episode.curveTop + shift,
+    stageHeight: episode.coverHeight + shift,
+    titleBottom: episode.titleBottom - episode.homeInset,
+    trayBottom: episode.trayBottom - episode.homeInset,
+  };
+}
 
 /** The tray's measures are the player's (same bar: 60 tall, radius 22, 12 in from each side). */
 export const TRAY = player;

@@ -4,20 +4,24 @@
  * every number: specs/033-m31-redesign/design-pulse2 `listen.html` (`spine`, `card`, `histNode`, `momCard`, `dcard`, `dots`,
  * `mosaic`), `shell.html` (`seg`, `glowTile`), `discover.html` (`lBars`, `seg`). Each test names the revert that turns it red
  * (each was seen red once, then restored):
- *  - (039 I2: the spine, the node's 46 column and 56 indent, the dots, the deck and the mosaic column went with the parts that drew them.)
- *  - card radius 16, padding 16, gap 8: `LIST.cardRadius` / `LIST.cardPad` changed — red;
+ *  - card 56 in, head column 46, padding 12: `LIST.indent` / `LIST.column` / `LIST.cardPad` changed — red;
+ *  - card radius 18, padding 12, gap 6: `LIST.cardRadius` back to 16 — red;
  *  - day tag light and upper case: `bg-text` to `bg-hot`, or the tag's `toUpperCase` removed — red;
- *  - switch pill track, chosen light with void words, spoken as tabs: `bg-text` removed from the chosen choice — red;
- *  - search field 48, radius 16, raise2: `LIST.field` to 44 — red;
+ *  - dots 18 / 6 / 4 tall; the current one is light: `LIST.dotOn` to 6 — red;
+ *  - switch 44 (46 roomy), chosen light with void words, spoken as tabs: `bg-text` removed from the chosen choice — red;
+ *  - search field 48, radius 18, raise2: `LIST.field` to 44 — red;
+ *  - mosaic column 168 on a 390 phone (28 + 168 + 10 + 168 + 16): `mosaicColumn` without the lane — red;
  *  - bars 8 + 110 × share, a quiet day a 3 tick, the tapped bar hot, a tap picks the column: `BARS.span` to 100 — red;
- *  - the title takes the one title size (30): `TitleBar`'s size changed — red. (039: the foot zone / `bare` guards went with PushedPage; PageList pins `below` and `onTitle`.)
+ *  - the title bar takes a drawn size (26), the foot zone lifts it (`below`), `bare` hides it: the props removed from PushedPage — red.
  */
 import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
-import { ageLabel, ArtTile, DayTag, PageEmpty, PlayDot, SearchField, SegmentSwitch, ThreadCard, GlowTile } from '@/ui/me/lists';
+import { COMMENTS } from '@/ui/comments/measures';
+import { ageLabel, ArtTile, CardDeck, DayTag, EmptySpine, LIST, mosaicColumn, PageDots, PageEmpty, PlayDot, SearchField, SegmentSwitch, ThreadCard, ThreadNode, ThreadSpine, threadPad, emptyTop, GlowTile } from '@/ui/me/lists';
 import { barHeight, BARS, columnAt, ListeningBars } from '@/ui/me/ListeningBars';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { TitleBar } from '@/ui/kit/TitleBar';
 
 jest.mock('expo-router', () => ({ router: { push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true }, usePathname: () => '/history' }));
@@ -46,17 +50,46 @@ const say = (n: unknown): string => {
 };
 const words = (r: ReactTestRenderer): string[] => r.root.findAll((x) => String(x.type) === 'Text').map((x) => say(x.props['children']));
 
-describe('Card (listen.html card, 039 I2 on the 038 tokens)', () => {
-  it('a card is raise, radius 16, padding 16, 8 between its parts', () => {
-    // 039 I2: was radius 18, padding 12, gap 6 (the drawing's `card()`); now radius.row, spacing.section, spacing.gap.
+describe('Thread (listen.html spine, card, node)', () => {
+  it('the spine is 2 wide at x 40 and starts under the status bar', () => {
+    const r = render(createElement(ThreadSpine, { top: 56 }));
+    const line = byId(r, 'spine-line')[0]!;
+    expect(flat(line)).toMatchObject({ left: 40, width: 2 });
+    expect(COMMENTS.spineX).toBe(40);
+    expect(flat(byId(r, 'thread-spine')[0])).toMatchObject({ top: 56 });
+  });
+
+  it('a node: the head column is 46 wide, the card sits 56 in', () => {
+    const r = render(createElement(ThreadNode, { lead: createElement(DayTag, { text: 'Today' }) } as React.ComponentProps<typeof ThreadNode>, createElement(ThreadCard, null)));
+    const node = byId(r, 'thread-node')[0]!;
+    const column = node.findAll((n) => typeof n.type === 'string' && flat(n)['width'] === 46)[0];
+    expect(column).toBeDefined();
+    const indented = hosts(r, (n) => flat(n)['marginLeft'] === 56);
+    expect(indented).toHaveLength(1);
+    expect(indented[0]!.findAll((n) => n.props['testID'] === 'thread-card').length).toBeGreaterThan(0);
+    expect(LIST.indent).toBe(56);
+  });
+
+  it('a card is raise, radius 18, padding 12, 6 between its parts', () => {
     const r = render(createElement(ThreadCard, null));
     const c = byId(r, 'thread-card')[0]!;
     expect(classOf(c)).toContain('bg-raise');
-    expect(flat(c)).toMatchObject({ borderRadius: 16, padding: 16, gap: 8 });
+    expect(flat(c)).toMatchObject({ borderRadius: 18, padding: 12, gap: 6 });
+  });
+
+  it('the list pads 10 over the first node, 18 in from the left and 20 from the right', () => {
+    expect(threadPad(120)).toEqual({ paddingTop: 10, paddingLeft: 18, paddingRight: 20, paddingBottom: 120 });
+  });
+
+  it('an empty page draws a grey spine at x 40, 2 wide, and nothing hung on it', () => {
+    const r = render(createElement(EmptySpine, { top: 60 }));
+    const s = byId(r, 'empty-spine')[0]!;
+    expect(classOf(s)).toContain('bg-line');
+    expect(flat(s)).toMatchObject({ left: 40, top: 60, width: 2, height: 300 });
   });
 });
 
-describe('Day tag, play dot', () => {
+describe('Day tag, play dot, dots', () => {
   it('the day tag is the light tag: 22 tall, radius 7, 8 of padding, upper case, Geist Mono 11', () => {
     const r = render(createElement(DayTag, { text: 'Earlier this week' }));
     const t = byId(r, 'day-tag')[0]!;
@@ -69,6 +102,18 @@ describe('Day tag, play dot', () => {
     expect(flat(w)).toMatchObject({ fontSize: 11 });
   });
 
+  it('F3 defect 2: a growing lead sizes to its text from the column\'s left edge (EARLIER THIS WEEK was clipped to THIS)', () => {
+    const r = render(createElement(ThreadNode, { grow: true, lead: createElement(DayTag, { text: 'Earlier this week' }) } as React.ComponentProps<typeof ThreadNode>, createElement(ThreadCard, null)));
+    const lead = byId(r, 'thread-lead')[0]!;
+    expect(flat(lead)['width']).toBeUndefined();
+    expect(flat(lead)).toMatchObject({ minWidth: 46, alignItems: 'flex-start' });
+    const w = r.root.findAll((x) => String(x.type) === 'Text')[0]!;
+    expect(w.props['numberOfLines']).toBe(1);
+    // the plain node keeps the 46 column, centred
+    const plain = render(createElement(ThreadNode, { lead: createElement(DayTag, { text: 'Today' }) } as React.ComponentProps<typeof ThreadNode>, createElement(ThreadCard, null)));
+    expect(flat(byId(plain, 'thread-lead')[0]!)).toMatchObject({ width: 46 });
+  });
+
   it('the play dot is a light circle with a void play glyph at 0.4 of it', () => {
     const r = render(createElement(PlayDot, { size: 34 }));
     const d = byId(r, 'play-dot')[0]!;
@@ -76,22 +121,53 @@ describe('Day tag, play dot', () => {
     expect(flat(d)).toMatchObject({ width: 34, height: 34, borderRadius: 17 });
     expect(byId(r, 'icon-play')[0]!.props['width']).toBe(14);
   });
+
+  it('the dots: the current card 18 wide and light, the rest 6, all 4 tall; one card draws none', () => {
+    const r = render(createElement(PageDots, { count: 4, index: 1 }));
+    const dots = byId(r, 'page-dots')[0]!.children.map((c) => c as ReactTestInstance);
+    expect(dots.map((d) => flat(d)['width'])).toEqual([6, 18, 6, 6]);
+    expect(dots.map((d) => flat(d)['height'])).toEqual([4, 4, 4, 4]);
+    expect(flat(dots[1])['backgroundColor']).not.toBe(flat(dots[0])['backgroundColor']);
+    const one = render(createElement(PageDots, { count: 1, index: 0 }));
+    expect(byId(one, 'page-dots')).toHaveLength(0);
+  });
+});
+
+describe('Deck (listen.html dcard / momCard)', () => {
+  it('cards are 290 wide, 10 apart, the first at the 20 gutter, snapping every 300, with the dots 20 under', () => {
+    const r = render(createElement(CardDeck, { count: 3, height: 360, card: (i: number) => createElement(ThreadCard, { testID: `c${i}` } as React.ComponentProps<typeof ThreadCard>, null) }));
+    const deck = byId(r, 'card-deck')[0]!;
+    expect(deck.props['snapToInterval']).toBe(300);
+    expect(flat(deck)).toMatchObject({ height: 360 });
+    expect(StyleSheet.flatten(deck.props['contentContainerStyle'])).toMatchObject({ paddingLeft: 20, gap: 10 });
+    const widths = hosts(r, (n) => flat(n)['width'] === 290).length;
+    expect(widths).toBe(3);
+    expect(byId(r, 'page-dots')).toHaveLength(1);
+    const under = hosts(r, (n) => flat(n)['marginTop'] === 20 && flat(n)['marginLeft'] === 20);
+    expect(under.some((n) => n.findAll((x) => x.props['testID'] === 'page-dots').length > 0)).toBe(true);
+  });
+
+  it('a flick to the second card moves the current dot', () => {
+    const r = render(createElement(CardDeck, { count: 3, height: 360, card: () => createElement(ThreadCard, null) }));
+    act(() => { byId(r, 'card-deck')[0]!.props['onMomentumScrollEnd']({ nativeEvent: { contentOffset: { x: 300 } } }); });
+    const dots = byId(r, 'page-dots')[0]!.children.map((c) => flat(c as ReactTestInstance)['width']);
+    expect(dots).toEqual([6, 18, 6]);
+  });
 });
 
 describe('Switch, search field, empty block, tile', () => {
   const items = [{ value: 'a', label: 'Episodes · 6', accessibilityLabel: 'Episodes' }, { value: 'b', label: 'Comments · 3', accessibilityLabel: 'Comments' }] as const;
 
-  it('the switch is a pill track (raise, a line, 4 and 4), choices 36 / pill; the chosen one is light with void words', () => {
-    // 039 I2: was a 44 track, radius 22, padding 3, choices radius 18.
+  it('the switch is a 44 track (raise, a line, 3 and 3), choices 36 / radius 18; the chosen one is light with void words', () => {
     const onChange = jest.fn();
     const r = render(createElement(SegmentSwitch, { items, value: 'a', onChange }));
     const track = byId(r, 'segment-switch')[0]!;
-    expect(flat(track)).toMatchObject({ borderRadius: 999, padding: 4, gap: 4 });
+    expect(flat(track)).toMatchObject({ height: 44, borderRadius: 22, padding: 3, gap: 3 });
     expect(track.props['accessibilityRole']).toBe('tablist');
     const all = r.root.findAll((n) => n.props['accessibilityRole'] === 'tab' && typeof n.props['onPress'] === 'function');
     const tabs = ['Episodes', 'Comments'].map((l) => all.find((n) => n.props['accessibilityLabel'] === l)!);
     expect(tabs.map((t) => t.props['accessibilityLabel'])).toEqual(['Episodes', 'Comments']);
-    expect(flat(tabs[0])).toMatchObject({ height: 36, borderRadius: 999 });
+    expect(flat(tabs[0])).toMatchObject({ height: 36, borderRadius: 18 });
     expect(classOf(tabs[0]!)).toContain('bg-text');
     expect(classOf(tabs[1]!)).not.toContain('bg-text');
     expect(tabs[0]!.props['accessibilityState']).toEqual({ selected: true });
@@ -99,17 +175,17 @@ describe('Switch, search field, empty block, tile', () => {
     expect(onChange).toHaveBeenCalledWith('b');
   });
 
-  it('the roomy switch of Listening data is the same one track (039 I2: there is one size, 4 and 4)', () => {
+  it('the roomy switch of Listening data is 46 tall with 4 and 4', () => {
     const r = render(createElement(SegmentSwitch, { items, value: 'a', onChange: jest.fn(), roomy: true }));
-    expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ padding: 4, gap: 4 });
+    expect(flat(byId(r, 'segment-switch')[0])).toMatchObject({ height: 46, padding: 4, gap: 4 });
   });
 
-  it('the search field is 48 tall, radius 16, raise2, with a 20 magnifier and the typed words reported', () => {
+  it('the search field is 48 tall, radius 18, raise2, with a 20 magnifier and the typed words reported', () => {
     const onChange = jest.fn();
     const r = render(createElement(SearchField, { value: '', onChange, placeholder: 'Search your history' }));
     const f = byId(r, 'search-field')[0]!;
     expect(classOf(f)).toContain('bg-raise2');
-    expect(flat(f)).toMatchObject({ height: 48, borderRadius: 16 }); // 039 I2: was radius 18
+    expect(flat(f)).toMatchObject({ height: 48, borderRadius: 18 });
     expect(byId(r, 'icon-search-outline')[0]!.props['width']).toBe(20);
     const input = r.root.findAll((n) => n.props['accessibilityLabel'] === 'Search your history' && typeof n.props['onChangeText'] === 'function')[0]!;
     act(() => { input.props['onChangeText']('rain'); });
@@ -133,9 +209,9 @@ describe('Switch, search field, empty block, tile', () => {
     expect(hosts(r, (n) => n.props['accessibilityLabel'] === 'Nothing matches')).toHaveLength(1);
   });
 
-  it('an art tile: radius 24, the words low on a fade, a corner mark top right', () => {
+  it('an art tile: radius 22, the words low on a fade, a corner mark top right', () => {
     const r = render(createElement(ArtTile, { name: 'Morning Notes', width: 168, height: 194, corner: createElement(PlayDot, { size: 18 }) } as React.ComponentProps<typeof ArtTile>, createElement(ThreadCard, null)));
-    expect(flat(byId(r, 'art-tile')[0])).toMatchObject({ width: 168, height: 194, borderRadius: 24 }); // 039 I2: was radius 22
+    expect(flat(byId(r, 'art-tile')[0])).toMatchObject({ width: 168, height: 194, borderRadius: 22 });
     expect(byId(r, 'play-dot')).toHaveLength(1);
   });
 
@@ -148,6 +224,13 @@ describe('Switch, search field, empty block, tile', () => {
 });
 
 describe('measures', () => {
+  it('two mosaic columns on a 390 phone are 168: 28 lane + 168 + 10 + 168 + 16', () => {
+    expect(mosaicColumn(390)).toBe(168);
+    expect(28 + 168 + 10 + 168 + 16).toBe(390);
+  });
+  it('an empty block drawn 300 from the top of the phone sits 244 under a list that starts at 56', () => {
+    expect(emptyTop(300)).toBe(244);
+  });
   it('ages: now, minutes, hours, days, then the date', () => {
     const now = Date.UTC(2026, 9, 28, 12, 0, 0);
     expect(ageLabel(now - 20_000, now)).toBe('now');
@@ -200,7 +283,7 @@ describe('Listening bars (discover.html lBars)', () => {
   });
 });
 
-describe('the title size (was: PushedPage additions)', () => {
+describe('PushedPage additions (size, below, bare, onTitle)', () => {
   // 038 D3: was "the title takes the drawn size: 26 and its own line (33), tracking −1 % (−0.26)" via a `size` prop; there is one title size now: 30, line 38, tracking −0.3.
   it('a long title is still the one title size: 30, line 38, tracking −0.3', () => {
     const r = render(createElement(TitleBar, { title: 'Listening history', top: 53 }));
@@ -210,5 +293,28 @@ describe('the title size (was: PushedPage additions)', () => {
     expect(val(s['lineHeight'])).toBe(38);
     expect(s['letterSpacing']).toBeCloseTo(-0.3);
   });
-  // 039 verifier fix: the foot zone (`below`) and the title link (`onTitle`) guards moved to PageList (src/ui/kit/layout/__tests__/PageList.test.tsx: "the below slot is drawn over the foot", "onTitle makes the title a link"); `bare` went with PushedPage.
+
+  // 037 D1: was "…and lifts the title row by its height and 12" (a bottom title stood on the zone). The title is at the top now and stays put; the zone sits lowest and the content leaves room for it and 12.
+  it('a foot zone sits lowest; the title bar stays at the top and does not lift', () => {
+    const r = render(createElement(PushedPage, { title: 'Favourites', below: createElement(SegmentSwitch, { items: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }], value: 'a', onChange: jest.fn() }), belowHeight: 44 } as React.ComponentProps<typeof PushedPage>, null));
+    const zone = byId(r, 'pushed-below')[0]!;
+    expect(flat(zone)).toMatchObject({ bottom: 6, paddingHorizontal: 20, gap: 12 });
+    expect(flat(r.root.findAllByType(TitleBar)[0]!.findAll((n) => n.props['testID'] === 'title-bar' && typeof n.type === 'string')[0]!)).toMatchObject({ zIndex: 20 });
+    expect(r.root.findAllByType(TitleBar)[0]!.props['top']).toBe(6);
+    expect(r.root.findAllByType(TitleBar)[0]!.props['bottom']).toBeUndefined();
+  });
+
+  it('bare draws no title bar; a title link is a link with its spoken name', () => {
+    const bare = render(createElement(PushedPage, { title: 'Slow mornings', bare: true } as React.ComponentProps<typeof PushedPage>, null));
+    expect(bare.root.findAll((n) => n.props['accessibilityRole'] === 'header')).toHaveLength(0);
+    // F3 defect 4: a bare page draws its own foot (and its own fade) — the page's fade must not be laid over it (zIndex 15 over the wrapper hid the rename form).
+    const fades = (t: ReturnType<typeof render>) => t.root.findAll((n) => typeof n.type === 'string' && flat(n)['zIndex'] === 15);
+    expect(fades(bare)).toHaveLength(0);
+    expect(fades(render(createElement(PushedPage, { title: 'Slow mornings' } as React.ComponentProps<typeof PushedPage>, null)))).toHaveLength(1);
+    const onTitle = jest.fn();
+    const link = render(<PushedPage title="Slow mornings" onTitle={onTitle} titleLabel="Slow mornings, rename">{null}</PushedPage>);
+    const l = link.root.findAll((n) => n.props['accessibilityLabel'] === 'Slow mornings, rename' && typeof n.props['onPress'] === 'function')[0]!;
+    act(() => { l.props['onPress'](); });
+    expect(onTitle).toHaveBeenCalledTimes(1);
+  });
 });

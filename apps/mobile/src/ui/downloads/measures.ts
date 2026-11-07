@@ -9,7 +9,7 @@
  */
 const t = (fontSize: number, lineHeight: number): { fontSize: number; lineHeight: number } => ({ fontSize, lineHeight });
 
-export const DOWNLOAD_TILE = { height: 178, pad: 14, cover: 56, foot: 12, tick: 24, retry: 32, retryGap: 6, retryPad: 12, gap: 10, right: 16 } as const;
+export const DOWNLOAD_TILE = { height: 178, pad: 14, cover: 56, foot: 12, tick: 24, retry: 32, retryGap: 6, retryPad: 12, gap: 10, lane: 28, right: 16 } as const;
 export const DOWNLOAD_RING = { size: 40, stroke: 4, budgetSize: 56, budgetStroke: 5 } as const;
 /** The scroll starts 20 under the status bar (the drawing's 70 under a 50 pt one); the empty block 190 (240). */
 export const DOWNLOADS_PAGE = { top: 20, emptyTop: 190, sectionGap: 10, panelGap: 12, panelRadius: 20, panelPad: 14, rowMin: 56, rowIcon: 34, chipGap: 8 } as const;

@@ -8,25 +8,21 @@
  * (src/ui/shell/ListDetail.tsx); a phone pushes the episode page as before.
  *
  * M31 W5-D (T064; design-pulse2 `discover.html` `picks-daily--screen`, `picks-daily--error`, layout pattern Deck): a pushed page, the title bar low
- * ("Daily picks", the date, a clock circle = Past picks) over the hot glow, and under the heading TODAY a Deck of cards 290 x 470: the
+ * ("Daily picks", the date, a clock circle = Past picks) over the hot glow, and under the edge label TODAY a Deck of cards 290 x 470: the
  * cover (240) with "Show · Open the show ›" in hot-text at its foot, the editor's whole note in Unbounded 600 17/24, the title (Unbounded 700,
  * one line) and at the foot the length in mono, + (ring, 42) and Play (42). The deck ends in a dashed "Past picks ›" card. A pick with no episode
  * yet keeps its note and opens the show. A failed load is the error tile with Retry (Past picks stays in the title bar); empty says "No picks today yet".
- *
- * Spec 039 (Feed lane, design B): a `FeedScroll` (Back + title + the clock circle); "Today" is a `Section` heading (no edge label) over the same Deck, whose first
- * card starts on the 20 gutter and runs off the right edge (`lead`); a failed load is an `InlineNotice` with Retry; empty is the empty block.
  */
 import { useLoad } from '@/ui/kit/useLoad';
 import { useState } from 'react';
 import { router } from 'expo-router';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { useWindowDimensions } from 'react-native';
-import { bars, colour, gutter } from '@/design';
+import { bars, colour } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
 import { Loader } from '@/ui/kit/Loader';
-import { InlineNotice, Section } from '@/ui/kit/layout';
-import { FeedEmpty, FeedScroll } from '@/ui/feed/FeedPage';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Type } from '@/ui/kit/Type';
 import { minutesLabel } from '@/ui/kit/format';
 import { dayTitle } from '@/discover/sections';
@@ -34,8 +30,14 @@ import { useCardActions } from '@/discover/useDiscover';
 import { useSafety } from '@/safety/context';
 import { useExploreApi, type DailyPick } from '@/discover/explore-api';
 import { EpisodePane, ListDetail, useOpensInPane } from '@/ui/shell/ListDetail';
-import { CoverBand, DECK, Deck, DeckCard, DiscPlay, RingAdd } from '@/ui/discover/Deck';
+import { CoverBand, DECK, Deck, DeckCard, DeckSection, DiscPlay, RingAdd } from '@/ui/discover/Deck';
+import { RetryTile } from '@/ui/discover/Mosaic';
 import { PAGE, PAGE_TYPE } from '@/ui/discover/measures';
+import { bodyTop } from '@/ui/discover/page-parts';
+import { DRAWN, emptyTop, PageEmpty } from '@/ui/me/lists';
+
+/** The error tile sits 120 from the top of the phone; the empty block 250. */
+const ERROR_TOP = 120;
 
 export default function DailyPicksScreen(): React.ReactElement {
   const api = useExploreApi();
@@ -45,7 +47,6 @@ export default function DailyPicksScreen(): React.ReactElement {
   const [state, load] = useLoad(() => api.daily().then((daily) => ({ daily })), [api], 'picks.daily');
   const daily = state.kind === 'ok' ? state.daily : undefined;
   const items = (daily?.items ?? []).filter((p) => !hiddenFeeds.has(p.feedUrl));
-  const side = gutter(useWindowDimensions().width);
   const inPane = useOpensInPane();
   const [paneId, setPaneId] = useState<string | undefined>(undefined);
   const pane = inPane ? setPaneId : undefined;
@@ -88,37 +89,41 @@ export default function DailyPicksScreen(): React.ReactElement {
   };
 
   return (
-    <ListDetail
-      placeholder="Choose an episode to see it here."
-      detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
-      list={
-        <FeedScroll
-          title="Daily picks"
-          {...(daily?.date ? { subtitle: dayTitle(daily.date) } : {})}
-          actions={[{ icon: 'time-outline', label: 'Past picks', onPress: past }]}
-        >
-          {state.kind === 'loading' ? <Loader className="my-section" /> : null}
-          {state.kind === 'error' ? <InlineNotice text="Couldn't load today's picks." actionLabel="Retry" onAction={load} /> : null}
-          {state.kind === 'ok' && items.length === 0 ? <FeedEmpty title="No picks today yet" /> : null}
-          {items.length > 0 ? (
-            <Section title="Today">
-              <Box style={{ marginHorizontal: -side }}>
-                <Deck width={PAGE.daily.width} height={PAGE.daily.height} lead={side} accessibilityLabel="Today's picks">
-                  {[
-                    ...items.map((item, i) => <Box key={`${item.feedUrl}#${item.guid ?? i}`} className="flex-1">{card(item)}</Box>),
-                    <DeckCard key="past" tone="dashed">
-                      <Pressable onPress={past} accessibilityRole="link" accessibilityLabel="Past picks" className="flex-1 items-center justify-center" style={{ gap: PAGE.gap }}>
-                        <Icon name="time-outline" size={30} color={colour.text} />
-                        <Type step="lede" className="text-text" numberOfLines={1}>Past picks ›</Type>
-                      </Pressable>
-                    </DeckCard>,
-                  ]}
-                </Deck>
-              </Box>
-            </Section>
-          ) : null}
-        </FeedScroll>
-      }
-    />
+    <PushedPage
+      title="Daily picks"
+      {...(daily?.date ? { subtitle: dayTitle(daily.date) } : {})}
+      actions={[{ icon: 'time-outline', label: 'Past picks', onPress: past }]}
+    >
+      {(layout) => (
+        <ListDetail
+          placeholder="Choose an episode to see it here."
+          detail={paneId !== undefined ? <EpisodePane episodeId={paneId} onOpenPage={() => router.push({ pathname: '/episode/[id]', params: { id: paneId } })} /> : undefined}
+          list={
+            <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: bodyTop(layout, PAGE.body64), paddingBottom: layout.reserve }}>
+              {state.kind === 'loading' ? <Loader className="my-section" /> : null}
+              {state.kind === 'error' ? (
+                <Box style={{ marginTop: ERROR_TOP - PAGE.body64 }}><RetryTile line="Couldn't load today's picks." onRetry={load} /></Box>
+              ) : null}
+              {state.kind === 'ok' && items.length === 0 ? <PageEmpty top={emptyTop(250) - (PAGE.body64 - DRAWN.listTop)} title="No picks today yet" /> : null}
+              {items.length > 0 ? (
+                <DeckSection label="Today">
+                  <Deck width={PAGE.daily.width} height={PAGE.daily.height} accessibilityLabel="Today's picks">
+                    {[
+                      ...items.map((item, i) => <Box key={`${item.feedUrl}#${item.guid ?? i}`} className="flex-1">{card(item)}</Box>),
+                      <DeckCard key="past" tone="dashed">
+                        <Pressable onPress={past} accessibilityRole="link" accessibilityLabel="Past picks" className="flex-1 items-center justify-center" style={{ gap: PAGE.gap }}>
+                          <Icon name="time-outline" size={30} color={colour.text} />
+                          <Type step="lede" className="text-text" numberOfLines={1}>Past picks ›</Type>
+                        </Pressable>
+                      </DeckCard>,
+                    ]}
+                  </Deck>
+                </DeckSection>
+              ) : null}
+            </ScrollView>
+          }
+        />
+      )}
+    </PushedPage>
   );
 }

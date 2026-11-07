@@ -1,15 +1,17 @@
-// The Deck: a section's row of cards that snaps card by card, under the section's heading.
+// The Deck: a section's row of cards that snaps card by card, under the section's edge label.
 /**
- * M31 T030 (design-pulse2 `discover.html#home--fold-a`, `#home--fold-b`; layout pattern Deck), restyled by spec 039 I2 (design B): each section below
- * the Discover page is a `DeckSection` (a heading at the `heading` step on the 20 gutter, then its content; the vertical section heading and its 28 lane are
- * gone) holding a `Deck`: cards of one width, `DECK.gap` apart, the first starting at the gutter, the next one peeking in at the right; a flick moves one
- * card (`snapToInterval`). `DeckCard` is the card (radius 24, raise, a 1 line border); `DeckLink` the hot-text "Full chart ›" line under a deck.
+ * M31 T030 (design-pulse2 `discover.html#home--fold-a`, `#home--fold-b`; layout pattern Deck). Each
+ * section below the Discover mosaic is `DeckSection` (the vertical edge label in the 28 lane, 2 above
+ * and 18 below the content, at least 120 tall) holding a `Deck`: cards of one width, `DECK.gap` (10)
+ * apart, the first starting at the 28 lane, the next one peeking in at the right; a flick moves one
+ * card (`snapToInterval`). `DeckCard` is the card (radius 24, raise, a 1 line border); `DeckLink` the
+ * hot-text "Full chart ›" line under a deck (13/600, 10 under the deck, 28 from the left).
  *
  * Small parts the cards share: `CoverBand` (a cover cut to a band, the made-for-you tile behind it
  * while it loads), `DiscPlay` (the light Play disc, 38–40) and `RingAdd` (the "+" ring). They are
  * 38–40 drawn and 48 to touch (`hitSlop`).
  *
- * The heading keeps the admin's rename (Admin › Discover › section titles): `useEdge` gives the drawn
+ * The edge label keeps the admin's rename (Admin › Discover › section titles): `useEdge` gives the drawn
  * short name ("For you") unless the owner gave the section another one.
  */
 import { useEffect, useRef, type ComponentRef, type ReactNode } from 'react';
@@ -21,14 +23,15 @@ import { Image } from '@/ui/lib/image';
 import { Text } from '@/ui/kit/Text';
 import { coverLetters, coverTone } from '@socialmorning/social-core';
 import { bars, colour, gutter, radius, spacing } from '@/design';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { thumbUrl } from '@/ui/kit/Artwork';
 import { useSectionTitle } from '@/config/store';
 import { drawnType } from '@/design/type-px';
 
-/** The deck's measures: the left edge of the first card (the page gutter), the gap between cards, the section's foot, the card's padding. */
-export const DECK = { lane: spacing.screenX, gap: 10, bottom: spacing.block, linkTop: spacing.gap, pad: 14 } as const;
+/** The deck's measures (drawn): the left lane the edge label lives in, the gap between cards, the section's padding. */
+export const DECK = { lane: 28, gap: 10, top: 2, bottom: 18, min: 120, edgeTop: 4, linkTop: 10, pad: 14 } as const;
 
 /** The drawing's own small numbers between the named spacing steps (4 · 8 · 12 · 16): 2, 3, 6, 10, 14, 18 — chip paddings, card gaps, the Hidden card's padding. */
 export const PX = { two: 2, three: 3, four: 4, six: 6, ten: 10, fourteen: 14, eighteen: 18 } as const;
@@ -41,7 +44,7 @@ export const PX = { two: 2, three: 3, four: 4, six: 6, ten: 10, fourteen: 14, ei
 export const UNBOUNDED = drawnType.unbounded;
 
 /**
- * The heading of a section: the drawn short name ("For you"), or the owner's own name for it when they renamed it
+ * The edge label of a section: the drawn short name ("For you"), or the owner's own name for it when they renamed it
  * (Admin › Discover); a screen reader always hears the full name (the owner's, or `title`).
  */
 export function useEdge(title: string, short: string): { label: string; spoken: string } {
@@ -51,15 +54,15 @@ export function useEdge(title: string, short: string): { label: string; spoken: 
 
 export function DeckSection(props: { label: string; /** What a screen reader says when `label` is a short form. */ spoken?: string; bottom?: number; children: ReactNode; onLayout?: React.ComponentProps<typeof Box>['onLayout'] }): React.ReactElement {
   return (
-    <Box onLayout={props.onLayout} style={{ paddingBottom: props.bottom ?? DECK.bottom, gap: spacing.row }}>
-      <Type step="heading" accessibilityRole="header" accessibilityLabel={props.spoken ?? props.label} className="text-text" style={{ marginLeft: DECK.lane, marginRight: spacing.section }} numberOfLines={1}>{props.label}</Type>
+    <Box onLayout={props.onLayout} style={{ paddingTop: DECK.top, paddingBottom: props.bottom ?? DECK.bottom, minHeight: DECK.min }}>
+      <EdgeLabel label={props.label} {...(props.spoken ? { spoken: props.spoken } : {})} top={DECK.edgeTop} />
       {props.children}
     </Box>
   );
 }
 
-/** Cards `width` x `height`, snapping one at a time. `focus` scrolls the deck to that card when it changes. `lead`: the first card's left edge (the gutter by default). */
-export function Deck(props: { width: number; height: number; children: ReactNode[] | ReactNode; focus?: number; accessibilityLabel?: string; /** Where the first card starts: the gutter (20) by default; a page that measures its own gutter passes it. */ lead?: number }): React.ReactElement {
+/** Cards `width` x `height`, snapping one at a time. `focus` scrolls the deck to that card when it changes. `lead` (D-A, Updates): the first card's left edge. */
+export function Deck(props: { width: number; height: number; children: ReactNode[] | ReactNode; focus?: number; accessibilityLabel?: string; /** Where the first card starts: the 28 lane by default; the Updates deck has no edge label beside it and starts at the gutter (20). */ lead?: number }): React.ReactElement {
   const { width: window } = useWindowDimensions();
   const scroller = useRef<ComponentRef<typeof ScrollView>>(null);
   const cards = Array.isArray(props.children) ? props.children : [props.children];
@@ -90,7 +93,7 @@ export function Deck(props: { width: number; height: number; children: ReactNode
 /** The card: raise, a line, radius 24. `premium` is the violet Premium card; `dashed` the hidden For You card. */
 export function DeckCard(props: { children: ReactNode; tone?: 'plain' | 'premium' | 'dashed'; className?: string }): React.ReactElement {
   const tone = props.tone ?? 'plain';
-  const cls = tone === 'premium' ? 'bg-hotSoft border-line' : tone === 'dashed' ? 'bg-void border-dashed border-switchOff' : 'bg-raise border-line';
+  const cls = tone === 'premium' ? 'bg-premiumTint border-violet/40' : tone === 'dashed' ? 'bg-void border-dashed border-switchOff' : 'bg-raise border-line';
   return (
     <Box testID="deck-card" className={`flex-1 border overflow-hidden ${cls} ${props.className ?? ''}`} style={{ borderRadius: radius.card }}>
       {props.children}

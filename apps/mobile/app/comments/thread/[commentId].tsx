@@ -12,19 +12,16 @@
  * conversation oldest first). A tap on a card opens its menu (as the long-press), which adds
  * Share (the episode link at that moment) and Mute (others' cards; hidden for me only).
  *
- * Before spec 039 (the page as M31 drew it, with a spine; the Spec 039 paragraph below is what the page is now) — M31 W2-B (T032; `design-pulse2/social.html#comment-thread--screen` and its variants): the Pulse Stage + Thread. The comment being
+ * M31 W2-B (T032; `design-pulse2/social.html#comment-thread--screen` and its variants): the Pulse Stage + Thread. The comment being
  * answered is the stage at the top (avatar, name, its solid moment chip that plays from there, the words in Unbounded 22, the
  * heart, the age and episode, ⋯) over a soft glow; the replies hang on the spine below it, each with an age tick; the thumb zone
  * has the back circle, "Replies 6", the All / Newest capsule and the reply composer with a mic. Signed out the composer is one
  * light "Sign in to reply" button; no replies and a failed load have their own blocks.
- *
- * Spec 039 (Feed lane, design B): a `FeedPage` — the title row at the TOP holds Back, "Replies", the count and the All / Newest capsule; the comment being answered is the first
- * block of the list (avatar, name, its solid moment chip, the words, the heart, the age and episode, ⋯; no glow behind it); the replies are `CommentRow` cards one under
- * another (no spine, no age tick: the card says its age). The foot zone keeps the reply composer and the mic exactly as they were (`BottomZone` rides above the keyboard).
  */
 import { useCallback, useState } from 'react';
-import { Clipboard, Share } from 'react-native';
+import { Clipboard, Share, useWindowDimensions } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { FlatList } from '@/ui/lib/flat-list';
 import { Box } from '@/ui/lib/box';
 import { Pressable } from '@/ui/lib/pressable';
 import { useSocial } from '@/social/context';
@@ -33,20 +30,20 @@ import { useM12Api } from '@/social/m12-api';
 import { useCommentExtrasApi, type Thread } from '@/social/comment-extras-api';
 import type { ComposerState } from '@/social/composer';
 import { ComposerSheet } from '@/ui/comments/Composer';
-import { CommentRow, agoAndPlace, placeOf, type LikeView } from '@/ui/comments/CommentRow';
+import { CommentRow, agoAndPlace, placeOf, shortAgo, type LikeView } from '@/ui/comments/CommentRow';
 import { CommentMenu, type MenuItem } from '@/ui/comments/CommentMenu';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { VoiceComposer } from '@/ui/comments/VoiceRecord';
-import { BottomZone, Capsule, ComposerBar, SignInBar } from '@/ui/comments/CommentsBottom';
-import { GhostRows } from '@/ui/comments/Spine';
-import { COMMENTS, ZONE_BOTTOM } from '@/ui/comments/measures';
-import { FeedPage } from '@/ui/feed/FeedPage';
-import { EndOfList } from '@/ui/kit/EndOfList';
+import { BottomZone, Capsule, ComposerBar, SignInBar, ZoneTitle } from '@/ui/comments/CommentsBottom';
+import { GhostRows, SpineLine, SpineNode, StageGlow, Tick } from '@/ui/comments/Spine';
+import { COMMENTS, ZONE_BOTTOM, belowStatus } from '@/ui/comments/measures';
+import { useInsets } from '@/ui/comments/useInsets';
 import { playVoice } from '@/playback/expo-audio-adapter';
 import { getPref } from '@/settings/prefs';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { livePositionMs, selectEpisodeId, usePlayer, usePlayerSelector } from '@/playback/store';
 import { toPlayable } from '@/storage/playable';
+import { goBack } from '@/ui/kit/PageHeader';
 import { Avatar } from '@/ui/kit/Avatar';
 import { Curve } from '@/ui/kit/Curve';
 import { Fade } from '@/ui/kit/Fade';
@@ -54,7 +51,7 @@ import { Icon } from '@/ui/kit/Icon';
 import { TimestampChip } from '@/ui/kit/TimestampChip';
 import { Type } from '@/ui/kit/Type';
 import { mmss, relativeTime } from '@/ui/kit/format';
-import { colour, spacing } from '@/design';
+import { colour } from '@/design';
 import { plural } from '@socialmorning/social-core';
 import { drawnType } from '@/design/type-px';
 import { nowMs as clockMs } from '@/ui/kit/clock';
@@ -73,6 +70,8 @@ export default function ThreadScreen(): React.ReactElement {
   const extras = useCommentExtrasApi();
   const player = usePlayer();
   const loadedId = usePlayerSelector(selectEpisodeId);
+  const insets = useInsets();
+  const { width } = useWindowDimensions();
   const { composer, listener, refresh, bump } = useSocial();
   const [thread, setThread] = useState<Thread | undefined>();
   const [failed, setFailed] = useState(false);
@@ -82,6 +81,7 @@ export default function ThreadScreen(): React.ReactElement {
   const [reporting, setReporting] = useState<ReportTarget | undefined>();
   const [composing, setComposing] = useState<ComposerState | undefined>();
   const [tab, setTab] = useState<Tab>('all');
+  const [stage, setStage] = useState(0);
   const [zone, setZone] = useState(0);
   const ep = episodeId ?? '';
 
@@ -172,96 +172,99 @@ export default function ThreadScreen(): React.ReactElement {
   const parent = thread?.parent;
   const name = parent?.displayName ?? 'this comment';
   const serverTime = new Date(clockMs()).toISOString();
+  const listTop = Math.max(belowStatus(insets.top, 250), belowStatus(insets.top, 60) + stage + COMMENTS.stageGap);
   const parentLike = parent ? likeOf(parent) : undefined;
   const episodeTitle = ep ? stores.feeds.getEpisode(ep)?.title : undefined;
 
-  const stageBlock = parent ? (
-    <Box style={{ gap: COMMENTS.stageGap }} testID="thread-stage">
-      <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
-        <Avatar size={COMMENTS.stageAvatar} url={parent.avatarUrl} name={parent.displayName} />
-        <Type step="row" className="text-text flex-1" numberOfLines={1}>{parent.mine ? 'You' : name}</Type>
-        {parent.offsetMs !== null ? <Box><TimestampChip text={mmss(parent.offsetMs)} solid onPress={() => seek(parent.offsetMs!)} /></Box> : null}
-      </Box>
-      <Pressable
-        onPress={() => setMenu(parent)}
-        onLongPress={() => setMenu(parent)}
-        delayLongPress={350}
-        accessibilityRole="button"
-        accessibilityLabel={[name, relativeTime(parent.createdAt, serverTime), parent.body ?? ''].filter((x) => x !== '').join(', ')}
-        accessibilityHint="Opens reply, share, copy, mute and report"
-      >
-        {parent.body ? <Type step="heading" className="text-text" numberOfLines={6} style={drawnType.threadParent}>{parent.body}</Type> : null}
-      </Pressable>
-      <Box className="flex-row items-center" style={{ gap: COMMENTS.actionGap }}>
-        {parent.mine ? (
-          parentLike && parentLike.count > 0 ? <Box className="flex-row items-center" style={{ gap: 5 }}><Icon name="heart" size={16} color={colour.hotText} /><Type step="mono" className="text-hotText">{parentLike.count}</Type></Box> : null
-        ) : (
-          <Pressable onPress={() => void like(parent)} accessibilityRole="button" accessibilityState={{ selected: parentLike?.liked === true }} accessibilityLabel={`${parentLike?.liked ? 'Unlike' : 'Like'}. ${plural(parentLike?.count ?? 0, 'like')}`} hitSlop={SLOP} className="flex-row items-center" style={{ gap: 5 }}>
-            <Icon name={parentLike?.liked ? 'heart' : 'heart-outline'} size={16} color={parentLike?.liked ? colour.hotText : colour.text2} />
-            {(parentLike?.count ?? 0) > 0 ? <Type step="mono" className={parentLike?.liked ? 'text-hotText' : 'text-text2'}>{parentLike?.count}</Type> : null}
-          </Pressable>
-        )}
-        <Type step="caption" className="text-text2 flex-1" numberOfLines={1}>{[agoAndPlace(parent.createdAt, serverTime, placeOf(parent)), episodeTitle].filter((x): x is string => !!x).join(' · ')}</Type>
-        <Pressable onPress={() => setMenu(parent)} accessibilityRole="button" accessibilityLabel="More for this comment" hitSlop={SLOP}>
-          <Icon name="ellipsis-horizontal" size={16} color={colour.text2} />
-        </Pressable>
-      </Box>
-    </Box>
-  ) : null;
-
   return (
     <Box className="flex-1 bg-void">
-      <FeedPage<Comment>
-        now={false}
-        title="Replies"
-        trailing={
-          <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
-            {thread && replies.length > 0 ? <Type step="mono" className="text-text3">{replies.length}</Type> : null}
-            <Capsule hug items={TABS} value={tab} onChange={setTab} />
+      <StageGlow width={width} top={COMMENTS.glowTop} />
+      {/* The stage: the comment being answered. */}
+      {parent ? (
+        <Box className="absolute" style={{ left: COMMENTS.gutter, right: COMMENTS.gutter, top: belowStatus(insets.top, 60), gap: COMMENTS.stageGap, zIndex: 5 }} onLayout={(e) => setStage(e.nativeEvent.layout.height)} testID="thread-stage">
+          <Box className="flex-row items-center" style={{ gap: 10 }}>
+            <Avatar size={COMMENTS.stageAvatar} url={parent.avatarUrl} name={parent.displayName} />
+            <Type step="row" className="text-text flex-1" numberOfLines={1}>{parent.mine ? 'You' : name}</Type>
+            {parent.offsetMs !== null ? <Box><TimestampChip text={mmss(parent.offsetMs)} solid onPress={() => seek(parent.offsetMs!)} /></Box> : null}
           </Box>
-        }
-        data={thread ? replies : []}
-        keyExtractor={(x) => x.id}
-        footExtra={zone + 24}
-        gap={spacing.row}
-        contentStyle={{ flexGrow: 1 }}
-        ListHeaderComponent={stageBlock}
-        ListEmptyComponent={
-          failed && !thread ? (
-            <Box className="items-center" style={{ paddingTop: spacing.group, gap: spacing.row }} accessibilityLiveRegion="polite">
-              <Box className="bg-raise items-center justify-center rounded-pill" style={{ width: 64, height: 64 }}><Icon name="wifi" size={28} color={colour.hotText} /></Box>
-              <Type step="lede" className="text-text text-center">Couldn't load the replies — pull back and try again.</Type>
-            </Box>
-          ) : !thread ? (
-            <Box testID="replies-loading"><GhostRows /></Box>
-          ) : (
-            <Box className="items-center" style={{ paddingTop: spacing.row, gap: spacing.row }}>
-              <Box style={{ width: 200 }} accessible={false} importantForAccessibility="no-hide-descendants"><Curve data={NO_DATA} flat count={40} height={20} /></Box>
-              <Type step="lede" className="text-text text-center">No replies yet</Type>
-              <Type step="note" className="text-text2 text-center">No replies yet — be the first.</Type>
-            </Box>
-          )
-        }
-        ListFooterComponent={thread && replies.length > 0 ? <EndOfList label="That's all" /> : undefined}
-        renderItem={({ item }) => (
-          <CommentRow
-            c={{ ...item, replies: [] }}
-            flush
-            serverTime={serverTime}
-            likeOf={likeOf}
-            onSeek={seek}
-            onLike={(y) => void like(y)}
-            onMenu={setMenu}
-            playVoice={playVoice}
-            teenMode={getPref(stores.settings, 'hideExplicit')}
-            level={0}
-          />
+          <Pressable
+            onPress={() => setMenu(parent)}
+            onLongPress={() => setMenu(parent)}
+            delayLongPress={350}
+            accessibilityRole="button"
+            accessibilityLabel={[name, relativeTime(parent.createdAt, serverTime), parent.body ?? ''].filter((x) => x !== '').join(', ')}
+            accessibilityHint="Opens reply, share, copy, mute and report"
+          >
+            {parent.body ? <Type step="heading" className="text-text" numberOfLines={6} style={drawnType.threadParent}>{parent.body}</Type> : null}
+          </Pressable>
+          <Box className="flex-row items-center" style={{ gap: COMMENTS.actionGap }}>
+            {parent.mine ? (
+              parentLike && parentLike.count > 0 ? <Box className="flex-row items-center" style={{ gap: 5 }}><Icon name="heart" size={16} color={colour.hotText} /><Type step="mono" className="text-hotText">{parentLike.count}</Type></Box> : null
+            ) : (
+              <Pressable onPress={() => void like(parent)} accessibilityRole="button" accessibilityState={{ selected: parentLike?.liked === true }} accessibilityLabel={`${parentLike?.liked ? 'Unlike' : 'Like'}. ${plural(parentLike?.count ?? 0, 'like')}`} hitSlop={SLOP} className="flex-row items-center" style={{ gap: 5 }}>
+                <Icon name={parentLike?.liked ? 'heart' : 'heart-outline'} size={16} color={parentLike?.liked ? colour.hotText : colour.text2} />
+                {(parentLike?.count ?? 0) > 0 ? <Type step="mono" className={parentLike?.liked ? 'text-hotText' : 'text-text2'}>{parentLike?.count}</Type> : null}
+              </Pressable>
+            )}
+            <Type step="caption" className="text-text2 flex-1" numberOfLines={1}>{[agoAndPlace(parent.createdAt, serverTime, placeOf(parent)), episodeTitle].filter((x): x is string => !!x).join(' · ')}</Type>
+            <Pressable onPress={() => setMenu(parent)} accessibilityRole="button" accessibilityLabel="More for this comment" hitSlop={SLOP}>
+              <Icon name="ellipsis-horizontal" size={16} color={colour.text2} />
+            </Pressable>
+          </Box>
+        </Box>
+      ) : null}
+      {/* The replies hang on the spine. */}
+      <Box className="absolute left-0 right-0 bottom-0 overflow-hidden" style={{ top: listTop, zIndex: 3 }} testID="replies-thread">
+        {failed && !thread ? (
+          <Box className="items-center" style={{ paddingHorizontal: 36, paddingTop: 80, gap: 12 }} accessibilityLiveRegion="polite">
+            <Box className="bg-raise items-center justify-center rounded-pill" style={{ width: 64, height: 64 }}><Icon name="wifi" size={28} color={colour.hotText} /></Box>
+            <Type step="lede" className="text-text text-center">Couldn't load the replies — pull back and try again.</Type>
+          </Box>
+        ) : !thread ? (
+          <Box style={{ paddingTop: COMMENTS.listTop, paddingRight: COMMENTS.listRight }}><GhostRows /></Box>
+        ) : replies.length === 0 ? (
+          <Box className="items-center" style={{ paddingHorizontal: 24, paddingTop: 50, gap: 10 }}>
+            <Box style={{ width: 200 }} accessible={false} importantForAccessibility="no-hide-descendants"><Curve data={NO_DATA} flat count={40} height={20} /></Box>
+            <Type step="lede" className="text-text text-center">No replies yet</Type>
+            <Type step="note" className="text-text2 text-center">No replies yet — be the first.</Type>
+          </Box>
+        ) : (
+          <>
+            <SpineLine />
+            <FlatList
+              data={replies}
+              keyExtractor={(x) => x.id}
+              contentContainerStyle={{ paddingTop: COMMENTS.listTop, paddingLeft: COMMENTS.listLeft, paddingRight: COMMENTS.listRight, paddingBottom: zone + 24, gap: COMMENTS.nodeGap }}
+              ListFooterComponent={<Box className="flex-row items-center" style={{ width: COMMENTS.chipColumn, justifyContent: 'center' }}><Tick text="That's all" /></Box>}
+              renderItem={({ item }) => (
+                <SpineNode momentMs={null} tick={shortAgo(item.createdAt, serverTime)}>
+                  <CommentRow
+                    c={{ ...item, replies: [] }}
+                    serverTime={serverTime}
+                    likeOf={likeOf}
+                    onSeek={seek}
+                    onLike={(y) => void like(y)}
+                    onMenu={setMenu}
+                    playVoice={playVoice}
+                    teenMode={getPref(stores.settings, 'hideExplicit')}
+                    level={0}
+                  />
+                </SpineNode>
+              )}
+            />
+          </>
         )}
-      />
+      </Box>
       <Fade bottom={0} height={COMMENTS.fullHeight + 70} />
       {/* The thumb zone: back and the title, the All / Newest capsule, the reply composer. */}
       <BottomZone bottom={ZONE_BOTTOM}>
         <Box style={{ gap: COMMENTS.zoneGap }} onLayout={(e) => setZone(e.nativeEvent.layout.height + ZONE_BOTTOM)}>
+          <ZoneTitle
+            title="Replies"
+            count={thread ? replies.length : undefined}
+            back={{ icon: 'chevron-back', label: 'Back', onPress: goBack }}
+            right={<Capsule hug items={TABS} value={tab} onChange={setTab} />}
+          />
           {ep && commentId ? (
             listener ? (
               <VoiceComposer episodeId={ep} parentId={commentId} offsetMs={() => livePositionMs(player, ep)} onPosted={reload}>

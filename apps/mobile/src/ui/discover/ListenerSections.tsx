@@ -20,8 +20,7 @@ import { Type } from '@/ui/kit/Type';
 import { plural } from '@socialmorning/social-core';
 import { ago } from '@/discover/sections';
 import type { EpisodeCard, SaidItem, ShowCard } from '@/social/api';
-import { DECK, UNBOUNDED, DeckCard, DiscPlay, PX, PlayGlyph, useEdge } from './Deck';
-import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
+import { DECK, UNBOUNDED, Deck, DeckCard, DeckSection, DiscPlay, PX, PlayGlyph, useEdge } from './Deck';
 import type { Act } from './sections-common';
 
 export const SAID_CARD = { width: 240, height: 130, play: 36 } as const;
@@ -35,8 +34,8 @@ export function SaidSection(props: Act & { items: SaidItem[]; now: number }): Re
   const edge = useEdge('What listeners said', 'Said');
   if (props.items.length === 0) return null;
   return (
-    <DiscoverSection title={edge.spoken}>
-      <DiscoverShelf width={SAID_CARD.width} height={SAID_CARD.height}>
+    <DeckSection {...edge}>
+      <Deck width={SAID_CARD.width} height={SAID_CARD.height}>
         {props.items.map((s) => (
           <DeckCard key={s.commentId}>
             <Pressable
@@ -57,8 +56,8 @@ export function SaidSection(props: Act & { items: SaidItem[]; now: number }): Re
             </Box>
           </DeckCard>
         ))}
-      </DiscoverShelf>
-    </DiscoverSection>
+      </Deck>
+    </DeckSection>
   );
 }
 
@@ -67,8 +66,8 @@ export function NewArrivalsSection(props: Act & { items: { show: ShowCard; episo
   const edge = useEdge('New arrivals', 'New');
   if (props.items.length === 0) return null;
   return (
-    <DiscoverSection title={edge.spoken}>
-      <DiscoverShelf width={NEW_CARD.width} height={NEW_CARD.height}>
+    <DeckSection {...edge}>
+      <Deck width={NEW_CARD.width} height={NEW_CARD.height}>
         {props.items.map((n) => (
           <DeckCard key={n.episode.id}>
             <Box className="flex-1 flex-row items-center" style={{ paddingHorizontal: spacing.row, gap: PX.ten }}>
@@ -89,7 +88,7 @@ export function NewArrivalsSection(props: Act & { items: { show: ShowCard; episo
             </Box>
           </DeckCard>
         ))}
-      </DiscoverShelf>
-    </DiscoverSection>
+      </Deck>
+    </DeckSection>
   );
 }

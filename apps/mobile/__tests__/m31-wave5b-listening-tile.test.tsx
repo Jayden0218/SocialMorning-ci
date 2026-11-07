@@ -21,14 +21,3 @@ it('a long total ("128 h 14 min") is not forced onto one ellipsised line', async
   expect(wraps || shrinksOnAFloor).toBe(true);
   // The wrapping/shrinking text must be the one that takes the free width, so the facts column cannot squeeze it to nothing.
 });
-
-// 039 (run 42195300126, r13-02-profile): "0 h 0 min" wrapped to "0 h 0 / min" beside the facts column. One line that shrinks to a floor, never two.
-it('the total is ONE line that shrinks on a floor, so "0 h 0 min" cannot wrap', async () => {
-  let r!: ReturnType<typeof create>;
-  await act(async () => { r = create(createElement(ListeningTile, { total: '0 h 0 min', finished: 0, week: '0 min 02 s', spoken: '0 hours listened' })); });
-  const total = r.root.findAll((n) => typeof n.type === 'string' && n.props.children === '0 h 0 min')[0]!;
-  expect(total.props.numberOfLines).toBe(1);
-  expect(total.props.adjustsFontSizeToFit).toBe(true);
-  expect(Number(total.props.minimumFontScale)).toBeGreaterThan(0);
-  expect(Number(total.props.minimumFontScale)).toBeLessThanOrEqual(0.7);
-});

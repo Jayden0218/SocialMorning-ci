@@ -7,11 +7,6 @@
  * screen that waits for the network before showing episodes it already has
  * is the opposite of Principle IV.
  *
- * Spec 039 (Detail template, design B): a `DetailList` (`PageList`): Back, the show's name, search and More in the title row; the header is the
- * cover (96) beside the hosts line and the description, then Subscribe / Share / the Episodes · About pill, the chip row (a `Shelf`) and the
- * "Episodes" heading; the episodes are row cards, 8 apart. About and Similar shows are `Section`s. The 300 tall art stage, the glass
- * circles, the 2 x 2 newest tile, the edge labels and the absolutely placed thumb zone are gone; the newest row carries the hot chip.
- *
  * History (every behaviour below survived each redraw): "Most played" sorts by FR-061's listener counts and hides itself when
  * there are none (owner, 2026-10-01); rows add plays and comments from one server call (M12 FR-061); About adds the host row and up to 6
  * similar shows from the show's genre chart (FR-063); the host's newest announcement (owner 2026-10-01; RSS has no announcement tag, FR-062);
@@ -21,7 +16,7 @@
  *
  * M31 W3-A2 (T040; design-pulse2 `show--screen`, layout Mosaic + Stage; the owner's rule: "completely the same, or explain why it is
  * different"). The show's art fills the top 300 and fades to void; search and ⋯ are two glass circles top right. The list sits under an
- * "Episodes" section heading: the newest episode is a 2 x 2 art tile with its hot chip (the time of its hottest moment, when the show's
+ * "Episodes" edge label: the newest episode is a 2 x 2 art tile with its hot chip (the time of its hottest moment, when the show's
  * Hot moments are in), the others 2 x 1 tiles — cover 56, title, the played curve, length · date, a 36 play disc. Over the tiles one row of
  * chips: All · Host picks · Most popular · Hot moments (NEW), then Newest/Oldest and Unplayed, to scroll to. Hot moments is a Deck of 290 x
  * 340 cards (src/ui/show/HotMoments.tsx), fed by `GET /v1/discover/moments?feedUrl=`. The thumb zone holds the hosts line, back, the
@@ -35,11 +30,15 @@
 import { reportAndDrop } from '@/telemetry/reportError';
 import { useLocalSearchParams, useFocusEffect, useRouter } from 'expo-router';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Clipboard, Share } from 'react-native';
+import { Clipboard, Share, useWindowDimensions } from 'react-native';
 import { LINK_REFUSED, openSystem } from '@/ui/kit/openLink';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSharePanel } from '@/ui/clips/ShareChooser';
+import { FlatList } from '@/ui/lib/flat-list';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
+import { LinearGradient } from '@/design/tailwind';
 import { refreshShow } from '@/feeds/fetch';
 import { readHiddenGuids, saveHiddenGuids, withoutHidden } from '@/feeds/hidden';
 import { htmlToText, mmss } from '@/ui/kit/format';
@@ -59,11 +58,14 @@ import { ActionSheet } from '@/ui/kit/ActionSheet';
 import { Avatar } from '@/ui/kit/Avatar';
 import { Chip } from '@/ui/kit/Chip';
 import { Curve } from '@/ui/kit/Curve';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
+import { Fade } from '@/ui/kit/Fade';
 import { Icon } from '@/ui/kit/Icon';
 import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
 import { PanelRow } from '@/ui/kit/PanelRow';
 import { Type } from '@/ui/kit/Type';
-import { bars, colour, radius, spacing } from '@/design';
+import { usePushedLayout } from '@/ui/kit/PushedPage';
+import { bars, colour, gutter, spacing } from '@/design';
 import { drawnType } from '@/design/type-px';
 import { addAllMessage, addAllToQueue, hostPicksOf, subsShort } from '@/ui/show/show-page';
 import { useM12Api } from '@/social/m12-api';
@@ -77,14 +79,12 @@ import { EndOfList } from '@/ui/kit/EndOfList';
 import { PanelGroup } from '@/ui/me/Panel';
 import { SearchField } from '@/ui/me/lists';
 import { Artwork } from '@/ui/kit/Artwork';
+import { CoverBand, Deck, DeckCard, DeckSection } from '@/ui/discover/Deck';
 import { useMomentActions } from '@/ui/discover/useMomentActions';
 import { HotMoments } from '@/ui/show/HotMoments';
 import { useShowMoments } from '@/ui/show/useShowMoments';
-import { SHOW } from '@/ui/show/measures';
-import { CoverBand, DeckCard } from '@/ui/discover/Deck';
-import { CardShelf } from '@/ui/detail/CardShelf';
-import { DetailList } from '@/ui/detail/DetailPage';
-import { Section, Shelf } from '@/ui/kit/layout';
+import { ShowStage } from '@/ui/show/ShowStage';
+import { chipsTop, mosaicTop, SHOW, showShift } from '@/ui/show/measures';
 import { hotChip, hottestOf } from '@/ui/show/hot-moments';
 import { nowMs as clockMs } from '@/ui/kit/clock';
 
@@ -92,11 +92,11 @@ import { nowMs as clockMs } from '@/ui/kit/clock';
 const playKeyOf = (s: PlayerState): string =>
   s.kind === 'playing' || s.kind === 'buffering' ? `p:${s.episodeId}` : s.kind !== 'idle' && s.episodeId !== undefined ? `l:${s.episodeId}` : '';
 
-/** The show's cover in the header. */
-const HEAD_COVER = 96;
-
 /** The tiles' progress meter: an even curve, lit up to where you stopped (the list keeps no per-episode heat). */
 const EVEN = Array.from({ length: 100 }, () => 0.5);
+const VEIL_TILE = [colour.clear, colour.scrimFoot] as const;
+const VEIL_AT = [0.2, 1] as const;
+const GLASS = { backgroundColor: SHOW.circleFill };
 // 036 lane F: three small controls become 44 pt frames, the layout as drawn (a negative margin takes back what the frame adds; never `hitSlop` alone).
 /** A host's 26 (22 + 2 ring each side) avatar: the frame overhangs it by 9 on every side. */
 const HOST_FRAME_OVERHANG = (bars.circle - (SHOW.hostAvatar + 4)) / 2;
@@ -107,16 +107,16 @@ const TAB_FRAME = { minWidth: bars.circle, minHeight: bars.circle };
 
 type RowProps = {
   item: CachedEpisode; plays: number; talk: number; progress: string; share: number; now: number; playing: boolean; iconColour: string;
-  /** The newest episode: the time of its hottest moment when known. */
-  hot: string | undefined; onHot: (() => void) | undefined;
+  /** The newest episode: the 2 x 2 art tile, with the time of its hottest moment when known. */
+  big: boolean; hot: string | undefined; onHot: (() => void) | undefined;
   onOpen: (e: CachedEpisode) => void; onPlay: (e: CachedEpisode) => void; onMenu: (e: CachedEpisode) => void;
 };
 
 /**
- * Each episode a row card (spec 039; was the mosaic's 2 x 1 tile and the newest 2 x 2): cover 56, title, the played curve,
- * length · date, play 36; the newest also carries the time of its hottest moment. M23 US7: memoised, and the notes are not parsed here at all (the tile has no notes line).
+ * Each episode a tile of the mosaic (`show--screen`): the newest is 2 x 2 over its art, the rest 2 x 1 (cover 56, title, the played curve,
+ * length · date, play 36). M23 US7: memoised, and the notes are not parsed here at all (the tile has no notes line).
  */
-const EpisodeTile = memo(function EpisodeTile({ item, plays, talk, progress, share, now, playing, iconColour, hot, onHot, onOpen, onPlay, onMenu }: RowProps): React.ReactElement {
+const EpisodeTile = memo(function EpisodeTile({ item, plays, talk, progress, share, now, playing, iconColour, big, hot, onHot, onOpen, onPlay, onMenu }: RowProps): React.ReactElement {
   // Owner, 2026-10-01: "duration · ago  plays  comments" with icons; the label keeps the words.
   const metaIn = { durationMs: item.durationMs, publishedAt: item.publishedAt, plays, comments: talk, progress, now };
   const meta = metaLabel(metaIn);
@@ -134,20 +134,39 @@ const EpisodeTile = memo(function EpisodeTile({ item, plays, talk, progress, sha
       <Icon name={playing ? 'pause' : 'play'} size={Math.round(size * 0.4)} color={colour.void} />
     </Pressable>
   );
+  if (big) {
+    return (
+      <Box testID="show-big-tile" className="overflow-hidden bg-raise" style={{ marginLeft: SHOW.lane, marginRight: SHOW.right, height: SHOW.bigHeight, borderRadius: SHOW.tileRadius }}>
+        <CoverBand url={item.imageUrl} name={item.title} height={SHOW.bigHeight} />
+        <LinearGradient colors={VEIL_TILE} locations={VEIL_AT} pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }} />
+        <Pressable className="absolute inset-0" accessibilityRole="button" accessibilityLabel={`${item.title}. ${meta}`} onPress={() => onOpen(item)} onLongPress={() => onMenu(item)} {...menu} />
+        <Box className="absolute" pointerEvents="box-none" style={{ left: spacing.row, right: spacing.row + SHOW.bigPlay + spacing.row, bottom: spacing.row - 2, gap: 3 }}>
+          {hot !== undefined && onHot ? (
+            <Pressable onPress={onHot} accessibilityRole="button" accessibilityLabel={`Play from the hottest moment, ${hot}`} hitSlop={{ top: 11, bottom: 11, left: 4, right: 4 }} className="self-start flex-row items-center rounded-chip bg-hotSoft" style={{ height: 22, paddingHorizontal: 7, gap: spacing.hair }}>
+              <Icon name="flame-outline" size={12} color={colour.hotText} />
+              <Type step="mono" className="text-hotText">{hot}</Type>
+            </Pressable>
+          ) : null}
+          {/* 038 (run 41961274572, r07-episode-player-xl): the words let a touch through to the full-tile Pressable behind them; a title that wraps over the middle of the tile (large text) was a dead zone. */}
+          <Box pointerEvents="none" style={{ gap: 3 }}>
+            <Type step="lede" className="text-text" style={drawnType.unbounded[17]} numberOfLines={2}>{item.title}</Type>
+            <EpisodeMeta {...metaIn} iconColour={iconColour} />
+          </Box>
+        </Box>
+        <Box className="absolute" style={{ right: spacing.row, bottom: spacing.row }}>
+          {disc(SHOW.bigPlay)}
+        </Box>
+      </Box>
+    );
+  }
   return (
-    <Box testID="show-row-tile" className="flex-row items-center bg-raise" style={{ minHeight: SHOW.rowHeight, borderRadius: radius.row, padding: spacing.row, gap: spacing.row }}>
+    <Box testID="show-row-tile" className="flex-row items-center bg-raise" style={{ marginLeft: SHOW.lane, marginRight: SHOW.right, marginTop: SHOW.rowGap, height: SHOW.rowHeight, borderRadius: SHOW.tileRadius, padding: spacing.row, gap: spacing.row }}>
       <Pressable className="flex-1 flex-row items-center" style={{ gap: spacing.row }} accessibilityRole="button" accessibilityLabel={`${item.title}. ${meta}`} onPress={() => onOpen(item)} onLongPress={() => onMenu(item)} {...menu}>
         <Artwork url={item.imageUrl} size={SHOW.rowCover} name={item.title} />
         <Box className="flex-1" style={{ gap: spacing.hair }}>
           <Type step="compact" className="text-text" numberOfLines={1}>{item.title}</Type>
           <Curve data={EVEN} count={SHOW.rowBars} height={SHOW.rowBarsHeight} min={2} played={share} />
           <EpisodeMeta {...metaIn} iconColour={iconColour} />
-          {hot !== undefined && onHot ? (
-            <Pressable onPress={onHot} accessibilityRole="button" accessibilityLabel={`Play from the hottest moment, ${hot}`} hitSlop={{ top: 11, bottom: 11, left: 4, right: 4 }} className="self-start flex-row items-center rounded-chip bg-hotSoft" style={{ paddingHorizontal: spacing.gap, gap: spacing.hair }}>
-              <Icon name="flame-outline" size={12} color={colour.hotText} />
-              <Type step="mono" className="text-hotText">{hot}</Type>
-            </Pressable>
-          ) : null}
         </Box>
       </Pressable>
       {disc(SHOW.rowPlay)}
@@ -164,6 +183,10 @@ export default function ShowScreen(): React.ReactElement {
   const router = useRouter();
   const params = useLocalSearchParams<{ feedUrl: string }>();
   const feedUrl = decodeURIComponent(params.feedUrl ?? '');
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const layout = usePushedLayout();
+  const side = gutter(width);
 
   const [show, setShow] = useState<CachedShow | undefined>(() => stores.feeds.getShow(feedUrl));
   const [episodes, setEpisodes] = useState<CachedEpisode[]>(() =>
@@ -370,40 +393,50 @@ export default function ShowScreen(): React.ReactElement {
   const countLine = [allowed.length > 0 ? `${allowed.length} eps` : '', subs ?? ''].filter((p) => p !== '').join(' · ');
   const desc = description === undefined ? '' : htmlToText(description);
   const strip = [reportedShow ? 'You reported this show. It stays in your library; it is hidden from discovery for you.' : '', hiddenShow ? 'Hidden from discovery by moderation. It stays in your library.' : '', stale ? 'Showing the last copy — refresh failed' : '', failed ?? ''].filter((p) => p !== '');
-  // M31 F9 (listen.html `show--search`): with a query typed the page IS the results — the Results heading over the matching rows, no chips.
-  const resultsMode = searching && term.trim() !== '';
-  const chips = tab === 'episodes' && !resultsMode ? (
-    // The chips: All · Host picks · Most popular · Hot moments (NEW), then Newest/Oldest and Unplayed. A long-press on the row adds the list to the queue.
-    <Pressable onLongPress={addAll} accessible={false} accessibilityLabel={`Add all to playlist, ${shown.length} episodes`}>
-      <Shelf>
-        {episodes.length > 0 ? <Chip compact label="All" chosen={activeView === 'all'} onPress={() => setView('all')} /> : null}
-        {picks.length > 0 ? <Chip compact label="Host picks" chosen={activeView === 'picks'} onPress={() => setView('picks')} /> : null}
-        {playsKnown ? <Chip compact label="Most popular" chosen={activeView === 'mostPlayed'} onPress={() => setView('mostPlayed')} /> : null}
-        <Chip compact label="Hot moments" accessibilityLabel="Hot moments, new" tag="NEW" chosen={activeView === 'hot'} onPress={() => setView('hot')} />
-        {activeView !== 'hot' ? (
-          <>
-            <Chip compact label={oldestFirst ? 'Oldest' : 'Newest'} accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} onPress={() => setOldestFirst((o) => !o)} />
-            <Chip compact label="Unplayed" chosen={unplayedOnly} accessibilityLabel={unplayedOnly ? 'Showing unplayed only. Show all' : 'Show unplayed only'} onPress={() => setUnplayedOnly((u) => !u)} />
-          </>
-        ) : null}
-      </Shelf>
-    </Pressable>
-  ) : null;
-  const stripBox = strip.length > 0 ? (
-    <Box testID="show-strip" className="bg-raise" style={{ borderRadius: radius.row, padding: spacing.row }} accessibilityLiveRegion="polite">
-      <Type step="caption" className="text-hotText" numberOfLines={3}>{strip.join(' ')}</Type>
-    </Box>
-  ) : null;
+  const top = mosaicTop(insets.top);
+  const shift = showShift(insets.top);
 
+  // M31 F9 (listen.html `show--search`): with a query typed the page IS the results — the RESULTS label over the matching 2 x 1 tiles, no cover, chips or lead card.
+  const resultsMode = searching && term.trim() !== '';
+  const header = (
+    <Box style={{ height: resultsMode ? insets.top + 8 : top }}>
+      {/* The chips: All · Host picks · Most popular · Hot moments (NEW), then Newest/Oldest and Unplayed. A long-press on the row adds the list to the queue. */}
+      {tab === 'episodes' && !resultsMode ? (
+        <Box className="absolute left-0 right-0" style={{ top: chipsTop(insets.top) }}>
+          <Pressable onLongPress={addAll} accessible={false} accessibilityLabel={`Add all to playlist, ${shown.length} episodes`}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: SHOW.lane, paddingRight: SHOW.right, gap: SHOW.chipsGap }} keyboardShouldPersistTaps="handled">
+              {episodes.length > 0 ? <Chip compact label="All" chosen={activeView === 'all'} onPress={() => setView('all')} /> : null}
+              {picks.length > 0 ? <Chip compact label="Host picks" chosen={activeView === 'picks'} onPress={() => setView('picks')} /> : null}
+              {playsKnown ? <Chip compact label="Most popular" chosen={activeView === 'mostPlayed'} onPress={() => setView('mostPlayed')} /> : null}
+              <Chip compact label="Hot moments" accessibilityLabel="Hot moments, new" tag="NEW" chosen={activeView === 'hot'} onPress={() => setView('hot')} />
+              {activeView !== 'hot' ? (
+                <>
+                  <Chip compact label={oldestFirst ? 'Oldest' : 'Newest'} accessibilityLabel={oldestFirst ? 'Oldest first. Show newest first' : 'Newest first. Show oldest first'} onPress={() => setOldestFirst((o) => !o)} />
+                  <Chip compact label="Unplayed" chosen={unplayedOnly} accessibilityLabel={unplayedOnly ? 'Showing unplayed only. Show all' : 'Show unplayed only'} onPress={() => setUnplayedOnly((u) => !u)} />
+                </>
+              ) : null}
+            </ScrollView>
+          </Pressable>
+        </Box>
+      ) : null}
+      {strip.length > 0 ? (
+        <Box testID="show-strip" className="absolute rounded-chip" style={[GLASS, { top: SHOW.statusBar + shift + SHOW.circlesTop + SHOW.circle + spacing.hair, left: SHOW.lane, right: SHOW.right, paddingHorizontal: spacing.row, paddingVertical: spacing.hair }]} accessibilityLiveRegion="polite">
+          <Type step="chip" className="text-hotText" numberOfLines={2}>{strip.join(' ')}</Type>
+        </Box>
+      ) : null}
+    </Box>
+  );
+
+  const edge = (label: string) => <EdgeLabel label={label} top={0} />;
   const about = (
-    <Box testID="show-about" style={{ gap: spacing.block }}>
-    <Section title="About">
-    <Box style={{ gap: spacing.row }}>
+    <Box testID="show-about">
+    {edge('About')}
+    <Box style={{ marginLeft: SHOW.lane, marginRight: SHOW.right, gap: spacing.row }}>
       {description === undefined ? <Type step="body" className="text-text2">This show has no description.</Type> : (
         <Type step="body" className="text-text">{htmlToText(description)}</Type>
       )}
       {hostLine === undefined ? null : (
-        <Box className="flex-row items-center bg-raise" accessible accessibilityLabel={`Hosted by ${hostLine}`} style={{ borderRadius: radius.row, padding: spacing.row, gap: spacing.row }}>
+        <Box className="flex-row items-center bg-raise" accessible accessibilityLabel={`Hosted by ${hostLine}`} style={{ borderRadius: SHOW.tileRadius, padding: spacing.row, gap: spacing.row }}>
           <Icon name="person-outline" size={20} color={colour.hotText} />
           <Box className="flex-1">
             <Type step="tag" className="text-text3">Hosted by</Type>
@@ -421,10 +454,9 @@ export default function ShowScreen(): React.ReactElement {
         <Type step="row" className="text-text2">{reportedShow ? 'Reported' : 'Report this show'}</Type>
       </Pressable>
     </Box>
-    </Section>
       {similarRow.length > 0 ? (
-        <Section title="Similar shows">
-          <CardShelf width={SHOW.similarCard.width} height={SHOW.similarCard.cover + 56}>
+        <DeckSection label="Similar shows" bottom={spacing.block}>
+          <Deck width={SHOW.similarCard.width} height={SHOW.similarCard.cover + 56}>
             {similarRow.map((s) => (
               <Pressable key={s.feedUrl} onPress={() => router.push({ pathname: '/show/[feedUrl]', params: { feedUrl: encodeURIComponent(s.feedUrl) } })} accessibilityRole="button" accessibilityLabel={s.title} className="flex-1">
                 <DeckCard>
@@ -435,19 +467,23 @@ export default function ShowScreen(): React.ReactElement {
                 </DeckCard>
               </Pressable>
             ))}
-          </CardShelf>
-        </Section>
+          </Deck>
+        </DeckSection>
       ) : null}
     </Box>
   );
 
   // The empty parts of the list: Hot moments, About, or no episodes.
   const empty = tab === 'about' ? about : activeView === 'hot' ? (
-    <Section title="Episodes">
+    <Box>
+      {edge('Episodes')}
       <HotMoments status={moments.status} cards={moments.cards} all={moments.all} durationOf={durationOf} onPlay={momentActions.playFull} onRetry={moments.reload} />
-    </Section>
+    </Box>
   ) : show === undefined && failed === undefined ? undefined : (
-    <Type step="body" className="text-text2">{failed !== undefined ? failed : searching && term.trim() !== '' && ordered.length > 0 ? `No episodes match "${term.trim()}".` : 'No episodes yet.'}</Type>
+    <Box style={{ minHeight: SHOW.rowHeight }}>
+      {edge('Episodes')}
+      <Type step="body" className="text-text2" style={{ marginLeft: SHOW.lane, marginRight: SHOW.right }}>{failed !== undefined ? failed : searching && term.trim() !== '' && ordered.length > 0 ? `No episodes match "${term.trim()}".` : 'No episodes yet.'}</Type>
+    </Box>
   );
 
   const hostsRow = (
@@ -468,93 +504,91 @@ export default function ShowScreen(): React.ReactElement {
     </Box>
   );
 
+  const bottomPad = layout.titleBottom + 240;
   return (
-    <>
-      <DetailList
-        testID="show-page"
-        title={title ?? 'Loading…'}
-        onBack={() => router.back()}
-        trailing={
-          <Box className="flex-row" style={{ gap: spacing.row }}>
-            <IconButton icon={searching ? 'close' : 'search-outline'} label={searching ? 'Close search' : "Search this show's episodes"} onPress={toggleSearch} fill />
-            <IconButton icon="ellipsis-horizontal" label="More: show info, report this show" onPress={() => setShowMenu(true)} fill />
-          </Box>
-        }
-        gap={spacing.gap}
-        header={
-          <Box style={{ gap: spacing.row }}>
-            {resultsMode ? null : (
-              <Box testID="show-head" className="flex-row" style={{ gap: spacing.section }}>
-                <Artwork url={coverUrl ?? null} size={HEAD_COVER} {...(title !== undefined ? { name: title } : {})} />
-                <Box className="flex-1 min-w-0" style={{ gap: spacing.gap }}>
-                  {searching ? null : hostsRow}
-                  {desc === '' ? null : (
-                    <Box className="flex-row items-center" style={{ gap: spacing.hair }}>
-                      <Type step="caption" className="text-text2 flex-shrink" {...(descOpen ? {} : { numberOfLines: 3 })}>{desc}</Type>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-            )}
-            {/* M21 US5: a tap opens the whole description; another closes it. */}
-            {desc === '' || resultsMode ? null : (
-              <Pressable onPress={() => setDescOpen((o) => !o)} accessibilityRole="button" accessibilityLabel={descOpen ? 'Description. Show less' : 'Description. Show all'} accessibilityState={{ expanded: descOpen }} className="self-start justify-center" style={SHOW_ALL_FRAME}>
-                <Type step="caption" className="text-text">{descOpen ? 'Show less' : 'Show all'}</Type>
-              </Pressable>
-            )}
-            {searching ? <SearchField value={term} onChange={setTerm} placeholder="Search this show's episodes" autoFocus /> : null}
-            {stripBox}
-            {resultsMode ? null : (
-              <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
-                <PulseButton
-                  label={subscribed ? 'Subscribed' : 'Subscribe'}
-                  accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'}
-                  kind={subscribed ? 'quiet' : 'light'}
-                  selected={subscribed}
-                  onPress={toggleSubscription}
-                  className="flex-1 min-w-0"
-                  fit
-                />
-                <IconButton icon="share-outline" label="Share this show" onPress={shareShow} fill size={20} diameter={48} />
-                <Box className="flex-row items-center bg-raise rounded-pill flex-shrink" style={{ height: 48, paddingHorizontal: spacing.section - 2, gap: spacing.hair }}>
-                  <Pressable onPress={() => setTab('episodes')} accessibilityRole="button" accessibilityLabel="Episodes" accessibilityState={{ selected: tab === 'episodes' }} hitSlop={{ top: 0, bottom: 0, left: 4, right: 4 }} className="items-center justify-center flex-shrink" style={TAB_FRAME}>
-                    <Type step="row" className={tab === 'episodes' ? 'text-text' : 'text-text2'}>Episodes</Type>
-                  </Pressable>
-                  <Type step="row" className="text-text3" accessible={false}>·</Type>
-                  <Pressable onPress={() => { setSearching(false); setTerm(''); setTab('about'); }} accessibilityRole="button" accessibilityLabel="About" accessibilityState={{ selected: tab === 'about' }} hitSlop={{ top: 0, bottom: 0, left: 4, right: 4 }} className="items-center justify-center flex-shrink" style={TAB_FRAME}>
-                    <Type step="row" className={tab === 'about' ? 'text-text' : 'text-text2'}>About</Type>
-                  </Pressable>
-                </Box>
-              </Box>
-            )}
-            {chips}
-            {tab === 'episodes' && activeView !== 'hot' && shown.length > 0 ? <Type step="heading" accessibilityRole="header" className="text-text">{resultsMode ? 'Results' : 'Episodes'}</Type> : null}
-          </Box>
-        }
+    <Box className="flex-1 bg-void" testID="show-page">
+      {resultsMode ? null : <ShowStage url={coverUrl} name={title} />}
+      <FlatList
         data={tab === 'episodes' && activeView !== 'hot' ? shown : []}
         extraData={listKey} // FlatList is pure: without this the rows keep their old text (M23: one string, not a new array per render)
         keyExtractor={(episode) => episode.id}
+        ListHeaderComponent={header}
+        contentContainerStyle={{ paddingBottom: bottomPad }}
         // iOS i13: "No episodes yet." showed while the show was still loading.
         ListEmptyComponent={empty}
         renderItem={({ item, index }) => (
-          <EpisodeTile
-            item={item}
-            plays={counts.listeners?.[item.id] ?? 0}
-            talk={counts.counts[item.id] ?? 0}
-            progress={progressFor(item)}
-            share={shareOf(item)}
-            now={now}
-            playing={isPlaying(item.id)}
-            iconColour={colour.text3}
-            hot={index === 0 && !resultsMode && newestHot ? hotChip(newestHot).replace('HOT · ', '') : undefined}
-            onHot={index === 0 && !resultsMode && newestHot ? () => momentActions.playFull(newestHot) : undefined}
-            onOpen={openEpisode}
-            onPlay={playOrPause}
-            onMenu={setMenuFor}
-          />
+          <Box>
+            {index === 0 ? edge(resultsMode ? 'Results' : 'Episodes') : null}
+            <EpisodeTile
+              item={item}
+              plays={counts.listeners?.[item.id] ?? 0}
+              talk={counts.counts[item.id] ?? 0}
+              progress={progressFor(item)}
+              share={shareOf(item)}
+              now={now}
+              playing={isPlaying(item.id)}
+              iconColour={colour.text3}
+              big={index === 0 && !resultsMode}
+              hot={index === 0 && !resultsMode && newestHot ? hotChip(newestHot).replace('HOT · ', '') : undefined}
+              onHot={index === 0 && !resultsMode && newestHot ? () => momentActions.playFull(newestHot) : undefined}
+              onOpen={openEpisode}
+              onPlay={playOrPause}
+              onMenu={setMenuFor}
+            />
+          </Box>
         )}
         ListFooterComponent={<>{tab === 'episodes' && activeView !== 'hot' && shown.length > 0 ? <EndOfList /> : undefined}<ReportSheet target={reporting} onClose={() => setReporting(undefined)} /></>}
       />
+      <Fade bottom={0} height={SHOW.fade} />
+      {/* The glass circles, top right: search and ⋯. */}
+      <Box className="absolute flex-row" style={{ top: SHOW.statusBar + shift + SHOW.circlesTop, right: side, gap: SHOW.circlesGap, zIndex: 20 }}>
+        <Box style={[GLASS, { borderRadius: SHOW.circle / 2 }]}>
+          <IconButton icon={searching ? 'close' : 'search-outline'} label={searching ? 'Close search' : "Search this show's episodes"} onPress={toggleSearch} size={20} />
+        </Box>
+        <Box style={[GLASS, { borderRadius: SHOW.circle / 2 }]}>
+          <IconButton icon="ellipsis-horizontal" label="More: show info, report this show" onPress={() => setShowMenu(true)} size={20} />
+        </Box>
+      </Box>
+      {/* The thumb zone: hosts (or the search field), back and the title, then Subscribe, Share and the Episodes · About pill. */}
+      <Box testID="show-thumb-zone" className="absolute" style={{ left: side, right: side, bottom: layout.titleBottom, gap: spacing.row, zIndex: 20 }}>
+        {searching ? <SearchField value={term} onChange={setTerm} placeholder="Search this show's episodes" autoFocus /> : hostsRow}
+        <Box className="flex-row items-end" style={{ gap: spacing.row }}>
+          <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} fill size={22} />
+          <Box className="flex-1 min-w-0">
+            <Type step="hero" className="text-text" numberOfLines={2} accessibilityRole="header">{title ?? 'Loading…'}</Type>
+            {desc === '' ? null : (
+              <Box className="flex-row items-center" style={{ gap: spacing.hair, marginTop: spacing.hair + 2 }}>
+                <Type step="caption" className="text-text2 flex-shrink" {...(descOpen ? {} : { numberOfLines: 1 })}>{desc}</Type>
+                {/* M21 US5: a tap opens the whole description; another closes it. */}
+                <Pressable onPress={() => setDescOpen((o) => !o)} accessibilityRole="button" accessibilityLabel={descOpen ? 'Description. Show less' : 'Description. Show all'} accessibilityState={{ expanded: descOpen }} hitSlop={spacing.row} className="justify-center" style={SHOW_ALL_FRAME}>
+                  <Type step="caption" className="text-text">{descOpen ? 'Show less' : 'Show all'}</Type>
+                </Pressable>
+              </Box>
+            )}
+          </Box>
+        </Box>
+        <Box className="flex-row items-center" style={{ gap: spacing.row - 2 }}>
+          <PulseButton
+            label={subscribed ? 'Subscribed' : 'Subscribe'}
+            accessibilityLabel={subscribed ? 'Unsubscribe from this show' : 'Subscribe to this show'}
+            kind={subscribed ? 'quiet' : 'light'}
+            selected={subscribed}
+            onPress={toggleSubscription}
+            className="flex-1 min-w-0"
+            fit
+          />
+          <IconButton icon="share-outline" label="Share this show" onPress={shareShow} fill size={20} diameter={48} />
+          <Box className="flex-row items-center bg-raise rounded-pill flex-shrink" style={{ height: 48, paddingHorizontal: spacing.section - 2, gap: spacing.hair }}>
+            <Pressable onPress={() => setTab('episodes')} accessibilityRole="button" accessibilityLabel="Episodes" accessibilityState={{ selected: tab === 'episodes' }} hitSlop={{ top: 0, bottom: 0, left: 4, right: 4 }} className="justify-center" style={TAB_FRAME}>
+              <Type step="row" className={tab === 'episodes' ? 'text-text' : 'text-text2'}>Episodes</Type>
+            </Pressable>
+            <Type step="row" className="text-text3" accessible={false}>·</Type>
+            <Pressable onPress={() => { setSearching(false); setTerm(''); setTab('about'); }} accessibilityRole="button" accessibilityLabel="About" accessibilityState={{ selected: tab === 'about' }} hitSlop={{ top: 0, bottom: 0, left: 4, right: 4 }} className="justify-center" style={TAB_FRAME}>
+              <Type step="row" className={tab === 'about' ? 'text-text' : 'text-text2'}>About</Type>
+            </Pressable>
+          </Box>
+        </Box>
+      </Box>
       {/* M21 US4 (FR-035): the shared episode sheet, from a long-press (and the tile's "More for …" action). */}
       <EpisodeRowSheet
         episode={menuFor ? { id: menuFor.id, title: menuFor.title, feedUrl, showTitle: title, imageUrl: menuFor.imageUrl ?? ov?.coverUrl ?? show?.imageUrl } : undefined}
@@ -571,6 +605,6 @@ export default function ShowScreen(): React.ReactElement {
         <PulseButton label="Cancel" kind="quiet" hotWords onPress={() => setShowMenu(false)} full />
       </ActionSheet>
       {sharePanel}
-    </>
+    </Box>
   );
 }

@@ -14,7 +14,7 @@ import { Box } from '@/ui/lib/box';
 import { Image } from '@/ui/lib/image';
 import { Pressable } from '@/ui/lib/pressable';
 import { LinearGradient } from '@/design/tailwind';
-import { colour, radius, spacing } from '@/design';
+import { colour } from '@/design';
 import { coverTone } from '@socialmorning/social-core';
 import { Artwork, thumbUrl } from '@/ui/kit/Artwork';
 import { Curve } from '@/ui/kit/Curve';
@@ -120,31 +120,4 @@ export function chartTiles(items: readonly ExploreChartItem[], a: ChartActions):
     if (i < 3) return { key: item.key, w: 1, h: 2, node: <SmallTile item={item} rank={i + 1} a={a} /> };
     return { key: item.key, w: 2, h: 1, node: <RowTile item={item} rank={i + 1} a={a} /> };
   });
-}
-
-/** The height of a tile that spans `rows` rows (the Mosaic's own sum). */
-const spanOf = (rows: number): number => rows * PAGE.row + (rows - 1) * PAGE.gap;
-
-/**
- * Spec 039: the ranked tiles in the page's flow instead of the Mosaic's absolute grid (which sits in a 28 / 16 lane). A 2 wide tile is a full row; 1 wide
- * tiles pair up, 12 apart, as `TileGrid` does. Each cell keeps the tile's height (272 / 178 / 84) and the `mosaic-tile` test id.
- */
-export function ChartGrid(props: { tiles: readonly TileSpec[] }): React.ReactElement {
-  const rows: TileSpec[][] = [];
-  for (const t of props.tiles) {
-    const last = rows[rows.length - 1];
-    if (t.w === 1 && last && last.length === 1 && last[0]!.w === 1) last.push(t);
-    else rows.push([t]);
-  }
-  return (
-    <Box testID="chart-grid" style={{ gap: spacing.row }}>
-      {rows.map((row) => (
-        <Box key={row[0]!.key} className="flex-row" style={{ gap: spacing.row }}>
-          {row.map((t) => (
-            <Box key={t.key} testID="mosaic-tile" className="flex-1 overflow-hidden bg-raise" style={{ height: spanOf(t.h), borderRadius: radius.row }}>{t.node}</Box>
-          ))}
-        </Box>
-      ))}
-    </Box>
-  );
 }

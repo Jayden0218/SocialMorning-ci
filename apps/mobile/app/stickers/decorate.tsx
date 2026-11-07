@@ -13,7 +13,7 @@
  * M31 W4-A (T050; design-pulse2 social.html `stickers-decorate--screen`, `--chosen`, `--signed-out`, `--empty`, `--toast`; layout pattern Stage + Deck):
  * the stage is a live preview of your profile head (raise, radius 28, the glow; photo 84, name, "preview of your profile", and the hint "drag to
  * move, two fingers to resize and turn" at its foot) with the placed stickers on it. When one is chosen ("Chosen: First hour") eight 38 buttons
- * nudge it (left, up, down, right, smaller, bigger, turn left, turn right) over "To the front" and "Remove". Under the section heading "Your
+ * nudge it (left, up, down, right, smaller, bigger, turn left, turn right) over "To the front" and "Remove". Under the edge label "Your
  * stickers" the Deck is 96 x 118 cards (the disc 48, the name 11); a placed card has a hot border and a hot check. The title bar is back,
  * "Decorate my profile" (20), "2 of 10 placed", an Undo circle (dimmed until changed) and the hot Save. Signed out: a lock disc and "Sign in to
  * decorate your profile." with a light Sign in; none yet: "You have no stickers yet. Listen for an hour to earn the first."
@@ -22,21 +22,24 @@
  */
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
-import { colour } from '@/design';
+import { colour, gutter } from '@/design';
 import { goBack } from '@/ui/kit/PageHeader';
-import { FormPage } from '@/ui/form/FormPage';
-import { Section, Shelf } from '@/ui/kit/layout';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { Loader } from '@/ui/kit/Loader';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { IconButton, PulseButton } from '@/ui/kit/PulseButton';
 import { Type } from '@/ui/kit/Type';
 import { StickerCanvas } from '@/ui/me/StickerCanvas';
 import { ME_MOSAIC } from '@/ui/me/mosaic';
-import { IconBlock } from '@/ui/profile/parts';
+import { DRAWN } from '@/ui/me/lists';
+import { CenterBlock, IconBlock } from '@/ui/profile/parts';
 import { StickerDisc } from '@/ui/profile/StickerDisc';
 import { PROFILE, PROFILE_TYPE } from '@/ui/profile/measures';
+import { useWindowDimensions } from 'react-native';
 import { useSocial } from '@/social/context';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { myStickers } from '@/me/my-stickers';
@@ -62,6 +65,7 @@ export default function DecorateScreen(): React.ReactElement {
   const { api, listener } = useSocial();
   const stickersApi = useListeningApi();
   const toast = useToast();
+  const { width } = useWindowDimensions();
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [saved, setSaved] = useState<Placement[]>([]);
   const [list, setList] = useState<Placement[]>([]);
@@ -112,42 +116,50 @@ export default function DecorateScreen(): React.ReactElement {
       <PulseButton label="Save" kind="hot" height={44} disabled={!changed} busy={saving} onPress={() => { void save(); }} />
     </>
   ) : undefined;
+  const side = gutter(width);
 
   return (
-    <FormPage title="Decorate my profile" {...(ready && earned.length > 0 ? { subtitle: `${list.length} of ${MAX} placed` } : {})} {...(right ? { trailing: right } : {})}>
-      {!listener ? (
-        <IconBlock icon="lock-closed-outline" line="Sign in to decorate your profile."><PulseButton label="Sign in" kind="light" onPress={() => router.push('/auth/sign-in')} full /></IconBlock>
-      ) : load.kind === 'loading' ? (
-        <Box className="items-center"><Loader /></Box>
-      ) : load.kind === 'error' ? (
-        <IconBlock icon="wifi" failure line="Couldn't load your stickers right now."><PulseButton label="Retry" kind="light" onPress={() => { setLoad({ kind: 'loading' }); fetchAll(); }} full /></IconBlock>
-      ) : (
-        <>
-          <StickerCanvas placements={list} selected={selected} onSelect={setSelected} onMove={(next) => setList((l) => update(l, next))} name={load.name} {...(load.avatarUrl ? { avatarUrl: load.avatarUrl } : {})} />
-
-          {chosen ? (
-            <Box testID="sticker-controls" style={{ gap: PROFILE.photoGap }}>
-              <Type step="compact" className="text-text">{`Chosen: ${chosenTitle}`}</Type>
-              <Box className="flex-row" style={{ gap: PROFILE.chipGap }}>
-                {MOVES.map((m) => (
-                  <Pressable key={m.how} onPress={() => setList(update(list, nudge(chosen, m.how)))} accessibilityRole="button" accessibilityLabel={`${m.label}: ${chosenTitle}`} className="flex-1 items-center justify-center bg-raise border border-line" style={{ height: PROFILE.nudge, borderRadius: PROFILE.nudgeRadius }}>
-                    <Icon name={m.icon} size={18} color={colour.text} />
-                  </Pressable>
-                ))}
-              </Box>
-              <Box className="flex-row" style={{ gap: PROFILE.photoGap - 2 }}>
-                <Box className="flex-1"><PulseButton label="To the front" accessibilityLabel={`Bring ${chosenTitle} to the front`} kind="quiet" height={PROFILE.actionHeight} full onPress={() => setList(bringToFront(list, chosen.stickerId))} /></Box>
-                <Box className="flex-1"><PulseButton label="Remove" accessibilityLabel={`Remove ${chosenTitle}`} icon="trash-outline" kind="quiet" height={PROFILE.actionHeight} full onPress={() => { setList(removeSticker(list, chosen.stickerId)); setSelected(undefined); }} /></Box>
-              </Box>
+    <PushedPage title="Decorate my profile" {...(ready && earned.length > 0 ? { subtitle: `${list.length} of ${MAX} placed` } : {})} {...(right ? { right } : {})}>
+      {(layout) => {
+        const top = layout.top + (PROFILE.stageTop - DRAWN.status);
+        if (!listener) {
+          return <Box className="flex-1"><CenterBlock top={layout.top} drawn={250}><IconBlock icon="lock-closed-outline" line="Sign in to decorate your profile."><PulseButton label="Sign in" kind="light" onPress={() => router.push('/auth/sign-in')} full /></IconBlock></CenterBlock></Box>;
+        }
+        if (load.kind === 'loading') return <Box className="flex-1 items-center" style={{ paddingTop: top }}><Loader /></Box>;
+        if (load.kind === 'error') {
+          return <Box className="flex-1"><CenterBlock top={layout.top} drawn={250}><IconBlock icon="wifi" failure line="Couldn't load your stickers right now."><PulseButton label="Retry" kind="light" onPress={() => { setLoad({ kind: 'loading' }); fetchAll(); }} full /></IconBlock></CenterBlock></Box>;
+        }
+        return (
+          <ScrollView className="flex-1" contentContainerStyle={{ paddingTop: top, paddingBottom: layout.reserve }} scrollEnabled>
+            <Box style={{ marginHorizontal: side }}>
+              <StickerCanvas placements={list} selected={selected} onSelect={setSelected} onMove={(next) => setList((l) => update(l, next))} name={load.name} {...(load.avatarUrl ? { avatarUrl: load.avatarUrl } : {})} />
             </Box>
-          ) : null}
 
-          {earned.length === 0 ? (
-            <Type step="body" className="text-text2 text-center">You have no stickers yet. Listen for an hour to earn the first.</Type>
-          ) : (
-            <Section title="Your stickers">
-              <Box testID="sticker-deck">
-                <Shelf>
+            {chosen ? (
+              <Box testID="sticker-controls" style={{ marginHorizontal: side, marginTop: PROFILE.deckGap + 2, gap: PROFILE.photoGap }}>
+                <Type step="compact" className="text-text">{`Chosen: ${chosenTitle}`}</Type>
+                <Box className="flex-row" style={{ gap: PROFILE.chipGap }}>
+                  {MOVES.map((m) => (
+                    <Pressable key={m.how} onPress={() => setList(update(list, nudge(chosen, m.how)))} accessibilityRole="button" accessibilityLabel={`${m.label}: ${chosenTitle}`} className="flex-1 items-center justify-center bg-raise border border-line" style={{ height: PROFILE.nudge, borderRadius: PROFILE.nudgeRadius }}>
+                      <Icon name={m.icon} size={18} color={colour.text} />
+                    </Pressable>
+                  ))}
+                </Box>
+                <Box className="flex-row" style={{ gap: PROFILE.photoGap - 2 }}>
+                  <Box className="flex-1"><PulseButton label="To the front" accessibilityLabel={`Bring ${chosenTitle} to the front`} kind="quiet" height={PROFILE.actionHeight} full onPress={() => setList(bringToFront(list, chosen.stickerId))} /></Box>
+                  <Box className="flex-1"><PulseButton label="Remove" accessibilityLabel={`Remove ${chosenTitle}`} icon="trash-outline" kind="quiet" height={PROFILE.actionHeight} full onPress={() => { setList(removeSticker(list, chosen.stickerId)); setSelected(undefined); }} /></Box>
+                </Box>
+              </Box>
+            ) : null}
+
+            {earned.length === 0 ? (
+              <Box style={{ marginHorizontal: side, marginTop: ME_MOSAIC.lane + PROFILE.deckGap }}>
+                <Type step="body" className="text-text2 text-center">You have no stickers yet. Listen for an hour to earn the first.</Type>
+              </Box>
+            ) : (
+              <Box testID="sticker-deck" style={{ marginTop: ME_MOSAIC.lane }}>
+                <EdgeLabel label="Your stickers" top={PROFILE.labelTop + 2} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingLeft: ME_MOSAIC.lane, paddingRight: side, gap: PROFILE.deckGap }}>
                   {earned.map((s) => {
                     const placed = list.some((p) => p.stickerId === s.id);
                     return (
@@ -162,12 +174,12 @@ export default function DecorateScreen(): React.ReactElement {
                       </Pressable>
                     );
                   })}
-                </Shelf>
+                </ScrollView>
               </Box>
-            </Section>
-          )}
-        </>
-      )}
-    </FormPage>
+            )}
+          </ScrollView>
+        );
+      }}
+    </PushedPage>
   );
 }

@@ -57,8 +57,6 @@ const TOOL = { width: UPDATES.card.action, height: UPDATES.card.action, minWidth
 /** 036 T015c: "Open <show>" (a 16 line) and the episode title are 44 frames. The show link takes 14 above and below its line back (-14), so the card is as drawn; a one-line title (25) grows to 44, which a two-line one already was. */
 const SHOW_FRAME = { minHeight: bars.circle, marginVertical: -(bars.circle - LIB_TYPE.show12.lineHeight) / 2 };
 const TITLE_FRAME = { minHeight: bars.circle };
-/** 039 (run 42210796897): the line measured 260 x 22. A 44 frame, -11 above and below, so the card's column stays as drawn. */
-const HOT_LINE = { gap: UPDATES.card.chipPadX - 1, minHeight: 44, marginVertical: -11 };
 const TOOL_SLOP = Math.ceil((48 - UPDATES.card.action) / 2);
 
 export function UpdateEpisodeRow(props: {
@@ -131,7 +129,7 @@ export function UpdateEpisodeRow(props: {
             <Type step="lede" className="text-text font-bold" style={LIB_TYPE.cardTitle} numberOfLines={3}>{e.title}</Type>
           </Pressable>
           {props.hot ? (
-            <Box testID="update-hot" accessible accessibilityLabel={`${chipClock(mmss(props.hot.startMs))} · ${compactCount(props.hot.reactions)} already reacting`} className="flex-row items-center" style={HOT_LINE}>
+            <Box testID="update-hot" accessible accessibilityLabel={`${chipClock(mmss(props.hot.startMs))} · ${compactCount(props.hot.reactions)} already reacting`} className="flex-row items-center" style={{ gap: UPDATES.card.chipPadX - 1 }}>
               <TimestampChip text={mmss(props.hot.startMs)} />
               <Icon name="flame-outline" size={12} color={colour.hotText} />
               <Type step="tag" className="text-hotText" numberOfLines={1}>{`${compactCount(props.hot.reactions)} already reacting`}</Type>

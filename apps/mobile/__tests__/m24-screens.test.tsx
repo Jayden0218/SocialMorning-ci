@@ -41,7 +41,7 @@ describe('Home: the Editor\'s pick card comes before For You', () => {
     const order = sectionOrder(undefined);
     expect(order.indexOf('picks')).toBeLessThan(order.indexOf('forYou'));
   });
-  it('the picks shelf: a Section heading "Editor\'s picks", one card per pick with the 64 cover, and a "Past picks" link (rendered)', () => {
+  it('the picks deck: an edge label (spoken "Editor\'s pick"), one card per pick with the 64 cover; "Past picks" is in the pick tile (rendered)', () => {
     // M31 T030 (`home--fold-a`): the section's title is the vertical edge label, not a heading row or an Eyebrow
     // inside the card; the card's cover is 64; "Past picks →" is drawn in the pick tile at the top (DiscoverMosaic), not repeated.
     const episode = { id: 'p1', feedUrl: 'https://f/p1.xml', guid: 'p1', title: 'Title p1', showTitle: 'Show p1', enclosureUrl: 'https://a/p1.mp3' };
@@ -51,9 +51,8 @@ describe('Home: the Editor\'s pick card comes before For You', () => {
     expect(r.root.findAllByType(Card)).toHaveLength(0);
     const cards = r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'deck-card');
     expect(cards).toHaveLength(1);
-    // Spec 039 D4 (was: an edge label with the spoken name "Editor's pick", and no "Past picks" here): a `Section` heading "Editor's picks", and "Past picks ›" under the shelf.
-    expect(r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && [n.props['children']].flat(5).join('') === "Editor's picks")).not.toHaveLength(0);
-    expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Past picks' && typeof n.props['onPress'] === 'function')).not.toHaveLength(0);
+    expect(r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && n.props['accessibilityLabel'] === "Editor's pick")).not.toHaveLength(0);
+    expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Past picks')).toHaveLength(0);
     // Artwork is memo'd (the perf port, 2026-10-13): the rendered instance's type is the inner view.
     expect(cards[0]!.findAllByType(Artwork.type).map((a) => a.props['size'])).toContain(64);
     act(() => r.unmount());
@@ -80,7 +79,7 @@ describe('Notifications: opens on People, the People pill first', () => {
     act(() => r.unmount());
   });
   it('the System and From hosts cards are still on the page', () => {
-    expect(read('app/notifications.tsx')).toMatch(/<NoticeChips /);
+    expect(read('app/notifications.tsx')).toMatch(/<NoticeEntries /);
   });
 });
 

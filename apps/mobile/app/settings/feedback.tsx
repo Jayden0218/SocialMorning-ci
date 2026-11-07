@@ -36,19 +36,21 @@ import { plural } from '@socialmorning/social-core';
 import { APPEALS_KEY, refreshAppeals } from '@/social/links';
 import { useSocial } from '@/social/context';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { FormPage } from '@/ui/form/FormPage';
-import { Section } from '@/ui/kit/layout';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { shortDate } from '@/ui/kit/format';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import { PanelGroup } from '@/ui/me/Panel';
-import { KeyboardPage } from '@/ui/me/lists';
-import { FormEmpty } from '@/ui/form/FormEmpty';
+import { KeyboardPage, PageEmpty } from '@/ui/me/lists';
 import { useStores, useToast } from '@/ui/shell/providers';
-import { SetCard, SetRow } from '@/ui/settings/hub-parts';
+import { Sec, SetCard, SetPage, SetRow } from '@/ui/settings/hub-parts';
 import { SET, SET_TYPE } from '@/ui/settings/hub-measures';
 
 const TILE = 52;
+/** "My feedback" empty: 200 down, as drawn. */
+const EMPTY_TOP = 200;
+/** The chip above the title is 36 tall; the title bar puts 8 under it (10 drawn). */
+const CHIP_ABOVE = 44;
 
 export default function FeedbackScreen(): React.ReactElement {
   const { api, listener } = useSocial();
@@ -142,10 +144,12 @@ export default function FeedbackScreen(): React.ReactElement {
   ) : undefined;
   return (
     <KeyboardPage>
-      <FormPage title={tab === 'write' ? 'Write feedback' : 'My feedback'} subtitle="Help and feedback" extra={chip} {...(foot ? { below: foot, belowHeight: TILE } : {})}>
+      <PushedPage title={tab === 'write' ? 'Write feedback' : 'My feedback'} subtitle="Help and feedback" extra={chip} extraAbove={CHIP_ABOVE} {...(foot ? { below: foot, belowHeight: TILE } : {})}>
+        {(layout) => (
+          <SetPage layout={layout}>
             {tab === 'write' ? (
               <>
-                <Section title="About">
+                <Sec label="About">
                   <Box className="flex-row flex-wrap" style={{ gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="Kind of feedback">
                     {FEEDBACK_KINDS.map((k) => (
                       <Pressable key={k} onPress={() => setKind(k)} accessibilityRole="radio" accessibilityState={{ checked: kind === k }} accessibilityLabel={k} hitSlop={6} className={`rounded-pill items-center justify-center border ${kind === k ? 'bg-text border-text' : 'bg-raise border-line'}`} style={{ height: 36, paddingHorizontal: 14 }}>
@@ -153,8 +157,8 @@ export default function FeedbackScreen(): React.ReactElement {
                       </Pressable>
                     ))}
                   </Box>
-                </Section>
-                <Section title="Write">
+                </Sec>
+                <Sec label="Write">
                   <Box style={{ gap: 8 }}>
                     <Box className="bg-raise" style={{ minHeight: 150, borderRadius: SET.radius, padding: SET.tilePad }}>
                       <Textarea className="border-0 bg-transparent h-auto w-auto min-h-0">
@@ -163,17 +167,20 @@ export default function FeedbackScreen(): React.ReactElement {
                     </Box>
                     {listener ? <Type step="mono" className="text-text2" style={SET_TYPE.mono12}>{`${images.length} of 3 images`}</Type> : null}
                   </Box>
-                </Section>
+                </Sec>
                 {errorCount > 0 ? (
-                  <Section title="Extra">
+                  <Sec label="Extra">
                     <PanelGroup>
                       <SetRow label="Include recent errors" line={`The last ${plural(errorCount, 'error')} this phone saw: where, what and the app version. Nothing personal.`} right={<Toggle value={includeErrors} onChange={setIncludeErrors} label="Include recent errors" />} />
                     </PanelGroup>
-                  </Section>
+                  </Sec>
                 ) : null}
               </>
             ) : sent.length === 0 ? (
-              <FormEmpty title="Nothing sent yet" line="What you send is listed here, newest first." />
+              <>
+                <Box style={{ height: EMPTY_TOP }} />
+                <PageEmpty top={0} title="Nothing sent yet" line="What you send is listed here, newest first." />
+              </>
             ) : (
               <Box style={{ gap: SET.gap }}>
                 {sent.map((item) => (
@@ -184,7 +191,9 @@ export default function FeedbackScreen(): React.ReactElement {
                 ))}
               </Box>
             )}
-      </FormPage>
+          </SetPage>
+        )}
+      </PushedPage>
     </KeyboardPage>
   );
 }

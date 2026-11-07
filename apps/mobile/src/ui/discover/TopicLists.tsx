@@ -17,8 +17,7 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { Type } from '@/ui/kit/Type';
 import { plural } from '@socialmorning/social-core';
 import type { Collection } from '@/social/api';
-import { DECK, DeckCard, PX, useEdge } from './Deck';
-import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
+import { DECK, Deck, DeckCard, DeckSection, PX, useEdge } from './Deck';
 
 const COVERS = 3;
 /** Drawn: cards 200 x 130, covers 36 overlapping by 10 with a 2 ring. */
@@ -29,8 +28,8 @@ export function TopicListCards(props: { lists: Collection[] }): React.ReactEleme
   const lists = props.lists.filter((l) => l.items.length > 0);
   if (lists.length === 0) return null;
   return (
-    <DiscoverSection title={edge.spoken}>
-      <DiscoverShelf width={TOPIC_CARD.width} height={TOPIC_CARD.height}>
+    <DeckSection {...edge}>
+      <Deck width={TOPIC_CARD.width} height={TOPIC_CARD.height}>
         {lists.map((l) => (
           <DeckCard key={l.id}>
             <Pressable
@@ -52,7 +51,7 @@ export function TopicListCards(props: { lists: Collection[] }): React.ReactEleme
             </Pressable>
           </DeckCard>
         ))}
-      </DiscoverShelf>
-    </DiscoverSection>
+      </Deck>
+    </DeckSection>
   );
 }

@@ -49,14 +49,13 @@ jest.mock('@/social/profile-api', () => ({ useProfileApi: () => ({ me: () => Pro
 
 import MeScreen from '../app/(tabs)/me';
 import { useShortcutTiles } from '@/ui/discover/DiscoverShortcuts';
-import { BrowseTile } from '@/ui/discover/DiscoverPage';
-import { TileGrid } from '@/ui/kit/layout';
+import { DiscoverMosaic } from '@/ui/discover/DiscoverMosaic';
 
-/** M31 T025 / 039: Discover's shortcuts are the Browse grid's tiles (`BrowseTile` in a `TileGrid`); this draws them with the real hook. */
+/** M31 T025: Discover's shortcuts are tiles of the mosaic; this draws them with the real hook. */
 function ShortcutProbe(): React.ReactElement {
   const noop = () => undefined;
   const tiles = useShortcutTiles({ onCategories: noop, onPremium: noop });
-  return createElement(TileGrid, null, ...tiles.map((tile) => createElement(BrowseTile, { key: tile.label, tile })));
+  return createElement(DiscoverMosaic, { pick: undefined, hot: undefined, offline: false, tiles, actions: { onOpen: noop, onPlay: noop, onQueue: noop, onHot: noop } });
 }
 
 const draw = (el: React.ReactElement): ReactTestRenderer => {

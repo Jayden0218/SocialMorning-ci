@@ -5,5 +5,5 @@ appId: app.socialmorning.mobile
 # second Back that run 41289865753 needed are gone. Every assertion below is kept.
 - tapOn: "Back"
 - extendedWaitUntil:
-    visible: "View profile|Account and settings"
+    visible: "Listener 05, open your profile|Account and settings"
     timeout: 30000

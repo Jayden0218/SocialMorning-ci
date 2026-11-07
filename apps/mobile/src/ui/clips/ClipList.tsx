@@ -1,13 +1,13 @@
 // The episode's clips, sending ones first, then newest first.
 /**
  * The episode's clips (M4 FR-006): pending ones first as "sending", then newest first.
- * M31 W4-D (T053; design-pulse2 `episode--screen` "Clips", `episode--clips-empty`): a Deck — the section heading "Clips" names it, the cards
+ * M31 W4-D (T053; design-pulse2 `episode--screen` "Clips", `episode--clips-empty`): a Deck — the edge label "Clips" names it, the cards
  * (200 × 120, `ClipCard`) scroll sideways 10 apart under the right edge; with no clips the deck is the dashed empty card ("No clips yet" and
  * today's sentence, `EmptyDeck`), not a heading and a button: the player's scissors make clips, and "Open player" is the title bar's own way there.
  */
 import { useMemo, useState } from 'react';
 import { Share } from 'react-native';
-import { Shelf } from '@/ui/kit/layout';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { useSafety } from '@/safety/context';
 import { ReportSheet, type ReportTarget } from '@/ui/comments/ReportSheet';
 import { useGraph } from '@/graph/context';
@@ -21,6 +21,7 @@ import type { Clip } from '@/social/api';
 import { EMPTY_STATES } from '@socialmorning/social-core';
 import { EmptyDeck } from '@/ui/episode/EmptyDeck';
 import { EpisodeSection } from '@/ui/episode/EpisodeSection';
+import { EPISODE } from '@/ui/episode/measures';
 
 export function ClipList(props: { episode: PlayableEpisode }): React.ReactElement {
   const { useEpisodeClips } = useGraph();
@@ -38,8 +39,8 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
   if (clips.length === 0 && pending.length === 0) return <EpisodeSection label="Clips"><EmptyDeck title="No clips yet" sentence={EMPTY_STATES.clips.sentence} /></EpisodeSection>;
   const art = { imageUrl: props.episode.artworkUrl, showTitle: props.episode.showTitle };
   return (
-    <EpisodeSection label="Clips">
-      <Shelf>
+    <EpisodeSection label="Clips" bleed>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: EPISODE.deckGap, paddingRight: EPISODE.right }}>
         {pendingAsClips.map((c) => <ClipCard key={c.id} clip={c} pending {...art} onPlay={() => player.playClip(props.episode, { startMs: c.startMs, endMs: c.endMs })} />)}
         {clips.map((c) => (
           <ClipCard
@@ -52,7 +53,7 @@ export function ClipList(props: { episode: PlayableEpisode }): React.ReactElemen
             onReport={listener?.listenerId !== c.author.id ? () => setReporting({ kind: 'clip', id: c.id, authorId: c.author.id, label: 'clip' }) : undefined}
           />
         ))}
-      </Shelf>
+      </ScrollView>
       <ReportSheet target={reporting} onClose={() => setReporting(undefined)} />
       {sharePanel}
     </EpisodeSection>

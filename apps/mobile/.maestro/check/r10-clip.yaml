@@ -39,7 +39,7 @@ env:
     text: "Cancel"
     optional: true
 - runFlow: _me.yaml
-- tapOn: "View profile"
+- tapOn: "Listener 05, open your profile"
 - extendedWaitUntil:
     visible: "This is you"
     timeout: 30000
@@ -47,7 +47,6 @@ env:
 # (Run 41282540688 found no such row and the clip page was reached by its id, with clip-id.js; that fallback is gone.)
 - scrollUntilVisible:
     element: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"
-    centerElement: true                  # 039 (run 42195300126): the row stopped at the screen's foot, under the now bar, and the tap opened the player
     timeout: 30000
 - takeScreenshot: r10-03-own-profile-activity
 - tapOn: "Listener 05 clipped .* of Episode 1: A minute of tone \\(Journey Morning\\)"

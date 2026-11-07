@@ -41,7 +41,7 @@ it('the strongest mix that reads is taken: a dark navy takes the full 30 % on th
   expect(tintFor('#1e3a8a', [colour.accent])).toBe(mixOverPage('#1e3a8a', 0.3));
   // M31 (dark only): white laid on the black page at 30 % greys it until the secondary text fails.
   expect(wordsReadOn(mixOverPage('#ffffff', 0.3)!, [colour.accent])).toBe(false);
-  expect(tintFor('#ffffff', [colour.accent])).toBe(mixOverPage('#ffffff', 0.12));
+  expect(tintFor('#ffffff', [colour.accent])).toBe(mixOverPage('#ffffff', 0.2));
   // A bright cover is tinted, not left plain.
   expect(tintFor('#f4d03f', [colour.accent])).not.toBe(colour.background);
 });

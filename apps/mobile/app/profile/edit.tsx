@@ -7,7 +7,7 @@
  * then the photo, then says so and goes back.
  *
  * M31 W4-A (T050; design-pulse2 social.html `profile-edit--screen`, `--signed-out`, `--load-failed`, `--toast`; layout pattern Panel): your photo
- * (88, a 3 light ring) over the chips "Change photo" (or "Add photo") and "Remove photo"; under the heading "About you" and "Private" the
+ * (88, a 3 light ring) over the chips "Change photo" (or "Add photo") and "Remove photo"; under the edge labels "About you" and "Private" the
  * fields are tiles (radius 20, padding 12 / 14): Name (count, hot "A name is needed"), Bio (count), Age range and Gender as small chips, then
  * Birthday and Industry; "Likes are public" is a tile with its switch after Gender. The title bar is back, "Edit profile" (26) and a hot
  * Save on the right, dimmed until something changed and while the name is empty or the birthday malformed. Signed out: a lock disc and
@@ -18,14 +18,16 @@
  */
 import { useEffect, useState } from 'react';
 import { router } from 'expo-router';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Pressable } from '@/ui/lib/pressable';
 import { Box } from '@/ui/lib/box';
+import { Input, InputField } from '@/ui/lib/input';
 import { Textarea, TextareaInput } from '@/ui/lib/textarea';
-import { colour, spacing } from '@/design';
+import { colour } from '@/design';
 import { goBack } from '@/ui/kit/PageHeader';
-import { FormPage } from '@/ui/form/FormPage';
-import { Section } from '@/ui/kit/layout';
-import { AuthField } from '@/ui/auth/AuthShell';
+import { PushedPage } from '@/ui/kit/PushedPage';
+import { PageGlow } from '@/ui/kit/PageGlow';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { PulseButton } from '@/ui/kit/PulseButton';
 import { Toggle } from '@/ui/kit/Toggle';
 import { Type } from '@/ui/kit/Type';
@@ -35,8 +37,10 @@ import { useSocial } from '@/social/context';
 import { ApiError } from '@/social/api';
 import { AGE_RANGES, BIO_MAX, GENDERS, INDUSTRY_MAX, NAME_MAX, birthdayOk, useProfileApi, type AgeRange, type Gender } from '@/social/profile-api';
 import { avatarBytes, pickAvatar } from '@/social/avatar-image';
-import { KeyboardPage } from '@/ui/me/lists';
-import { IconBlock } from '@/ui/profile/parts';
+import { ME_MOSAIC } from '@/ui/me/mosaic';
+import { ME_TYPE } from '@/ui/me/measures';
+import { DRAWN, KeyboardPage } from '@/ui/me/lists';
+import { CenterBlock, IconBlock } from '@/ui/profile/parts';
 import { CameraMark, ChipText, FieldTile, PhotoRing, photoChip, smallChip } from '@/ui/profile/EditParts';
 import { PROFILE, PROFILE_TYPE } from '@/ui/profile/measures';
 import { nowMs as clockMs } from '@/ui/kit/clock';
@@ -128,88 +132,102 @@ export default function EditProfileScreen(): React.ReactElement {
   };
 
   const saveButton = <PulseButton label="Save" kind="hot" onPress={() => void save()} disabled={!nameOk || !bdayOk || !changed} busy={busy} />;
+  const lane = { marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right, gap: PROFILE.fieldGap } as const;
   const chips = { flexDirection: 'row', flexWrap: 'wrap', gap: PROFILE.chipGap } as const;
-  const note = (text: string, hot = false) => <Type step="caption" className={hot ? 'text-hotText' : 'text-text2'} style={PROFILE_TYPE.note12}>{text}</Type>;
 
   return (
     <KeyboardPage>
-      <FormPage title="Edit profile" {...(listener && loaded === 'ok' ? { trailing: saveButton } : {})}>
-        {!listener ? (
-          <IconBlock icon="lock-closed-outline" line="Sign in to edit your profile."><PulseButton label="Sign in" kind="light" onPress={() => router.push('/auth/sign-in')} full /></IconBlock>
-        ) : loaded === 'loading' ? (
-          <Box className="items-center"><Loader /></Box>
-        ) : loaded === 'error' ? (
-          <IconBlock icon="wifi" failure line="Couldn't load your profile right now."><PulseButton label="Retry" kind="light" onPress={load} full /></IconBlock>
-        ) : (
-          <>
-            <Box className="items-center" style={{ gap: PROFILE.photoGap }} testID="photo-block">
-              <PhotoRing url={shownUrl} name={trimmed || listener.displayName} />
-              <Box className="flex-row" style={{ gap: PROFILE.chipGap + 2 }}>
-                <Pressable onPress={() => void choosePhoto()} accessibilityRole="button" accessibilityLabel={shownUrl ? 'Change photo' : 'Add photo'} {...photoChip}>
-                  <CameraMark />
-                  <Type step="caption" className="text-text font-semibold">{shownUrl ? 'Change photo' : 'Add photo'}</Type>
-                </Pressable>
-                {shownUrl ? (
-                  <Pressable onPress={() => setPhoto({ kind: 'removed' })} accessibilityRole="button" accessibilityLabel="Remove photo" {...photoChip}>
-                    <Type step="caption" className="text-text2 font-semibold">Remove photo</Type>
-                  </Pressable>
-                ) : null}
-              </Box>
+      <PushedPage title="Edit profile" tone="none" {...(listener && loaded === 'ok' ? { right: saveButton } : {})}>
+        {(layout) => {
+          const top = layout.top + (PROFILE.photoTop - DRAWN.status);
+          if (!listener) {
+            return <Box className="flex-1"><CenterBlock top={layout.top} drawn={250}><IconBlock icon="lock-closed-outline" line="Sign in to edit your profile."><PulseButton label="Sign in" kind="light" onPress={() => router.push('/auth/sign-in')} full /></IconBlock></CenterBlock></Box>;
+          }
+          if (loaded === 'loading') return <Box className="flex-1 items-center" style={{ paddingTop: top }}><Loader /></Box>;
+          if (loaded === 'error') {
+            return <Box className="flex-1"><CenterBlock top={layout.top} drawn={260}><IconBlock icon="wifi" failure line="Couldn't load your profile right now."><PulseButton label="Retry" kind="light" onPress={load} full /></IconBlock></CenterBlock></Box>;
+          }
+          return (
+            <Box className="flex-1">
+              <PageGlow top={-260} strength={0.3} />
+              <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: top, paddingBottom: layout.reserve, gap: PROFILE.formTop - PROFILE.photoTop - PROFILE.photo - PROFILE.photoGap - PROFILE.photoChip }}>
+                <Box className="items-center" style={{ gap: PROFILE.photoGap }} testID="photo-block">
+                  <PhotoRing url={shownUrl} name={trimmed || listener.displayName} />
+                  <Box className="flex-row" style={{ gap: PROFILE.chipGap + 2 }}>
+                    <Pressable onPress={() => void choosePhoto()} accessibilityRole="button" accessibilityLabel={shownUrl ? 'Change photo' : 'Add photo'} {...photoChip}>
+                      <CameraMark />
+                      <Type step="caption" className="text-text font-semibold">{shownUrl ? 'Change photo' : 'Add photo'}</Type>
+                    </Pressable>
+                    {shownUrl ? (
+                      <Pressable onPress={() => setPhoto({ kind: 'removed' })} accessibilityRole="button" accessibilityLabel="Remove photo" {...photoChip}>
+                        <Type step="caption" className="text-text2 font-semibold">Remove photo</Type>
+                      </Pressable>
+                    ) : null}
+                  </Box>
+                </Box>
+
+                <Box style={{ gap: PROFILE.fieldGap }}>
+                  <Box>
+                    <EdgeLabel label="About you" top={PROFILE.labelTop - 2} />
+                    <Box style={lane}>
+                      <FieldTile label="Name" note={`${trimmed.length === 0 ? 'A name is needed · ' : ''}${name.length} / ${NAME_MAX}`} noteHot={!nameOk}>
+                        <Input className="border-0 h-auto w-auto bg-transparent">
+                          <InputField placeholderTextColor={colour.text3} placeholder="Your name" value={name} onChangeText={(t) => setName(t.slice(0, NAME_MAX))} maxLength={NAME_MAX} accessibilityLabel="Name" className="text-text font-medium" style={[PROFILE_TYPE.field16, { paddingHorizontal: 0, paddingVertical: 0 }]} />
+                        </Input>
+                      </FieldTile>
+                      <FieldTile label="Bio" note={`${bio.length} / ${BIO_MAX}`}>
+                        <Textarea className="border-0 h-auto w-auto bg-transparent min-h-0">
+                          <TextareaInput placeholderTextColor={colour.text3} placeholder="A line about you (optional)" value={bio} onChangeText={(t) => setBio(t.slice(0, BIO_MAX))} maxLength={BIO_MAX} multiline textAlignVertical="top" accessibilityLabel="Bio" className="text-text" style={[PROFILE_TYPE.bio15, { paddingHorizontal: 0, paddingVertical: 0 }]} />
+                        </Textarea>
+                      </FieldTile>
+                      <FieldTile label="Age range">
+                        <Box style={chips}>
+                          {AGE_RANGES.map((a) => (
+                            <Pressable key={a} onPress={() => setAge(age === a ? null : a)} accessibilityRole="button" accessibilityLabel={`Age ${AGE_LABEL[a]}`} {...smallChip(age === a)}><ChipText chosen={age === a}>{AGE_LABEL[a]}</ChipText></Pressable>
+                          ))}
+                          <Pressable onPress={() => setAge(null)} accessibilityRole="button" accessibilityLabel="Age: prefer not to say" {...smallChip(age === null)}><ChipText chosen={age === null}>Prefer not to say</ChipText></Pressable>
+                        </Box>
+                      </FieldTile>
+                      <FieldTile label="Gender" note="Never shown on your profile. Creators see only totals of 10 or more.">
+                        <Box style={chips}>
+                          {GENDERS.map((g) => (
+                            <Pressable key={g} onPress={() => setGender(gender === g ? null : g)} accessibilityRole="button" accessibilityLabel={`Gender: ${GENDER_LABEL[g]}`} {...smallChip(gender === g)}><ChipText chosen={gender === g}>{GENDER_LABEL[g]}</ChipText></Pressable>
+                          ))}
+                        </Box>
+                      </FieldTile>
+                      <Box testID="likes-tile" className="flex-row items-center bg-raise" style={{ borderRadius: PROFILE.tileRadius, paddingVertical: PROFILE.tilePadY, paddingHorizontal: PROFILE.tilePadX, gap: PROFILE.tilePadX }}>
+                        <Box className="flex-1">
+                          <Type step="chip" className="text-text2" style={PROFILE_TYPE.label12}>Likes are public</Type>
+                          <Type step="caption" className="text-text3" style={PROFILE_TYPE.note12}>People who follow you see the episodes you like.</Type>
+                        </Box>
+                        <Toggle value={likesPublic} onChange={setLikesPublic} label="Likes are public" />
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* M21 US8 (FR-075): both optional, both private — never on your profile. */}
+                  <Box>
+                    <EdgeLabel label="Private" top={PROFILE.labelTop - 2} />
+                    <Box style={lane}>
+                      <FieldTile label="Birthday" {...(bdayOk ? {} : { note: 'Write it as year-month-day, e.g. 1995-04-21.', noteHot: true })}>
+                        <Input className="border-0 h-auto w-auto bg-transparent">
+                          <InputField placeholderTextColor={colour.text3} placeholder="YYYY-MM-DD (optional)" value={birthday} onChangeText={(t) => setBirthday(t.replace(/[^0-9-]/g, '').slice(0, 10))} maxLength={10} keyboardType="numbers-and-punctuation" accessibilityLabel="Birthday, year-month-day" className="text-text font-mono" style={[PROFILE_TYPE.mono15, { paddingHorizontal: 0, paddingVertical: 0 }]} />
+                        </Input>
+                      </FieldTile>
+                      <FieldTile label="Industry" note={`Private: only you see your birthday and industry. ${industry.length} / ${INDUSTRY_MAX}`}>
+                        <Input className="border-0 h-auto w-auto bg-transparent">
+                          <InputField placeholderTextColor={colour.text3} placeholder="What you work in (optional)" value={industry} onChangeText={(t) => setIndustry(t.slice(0, INDUSTRY_MAX))} maxLength={INDUSTRY_MAX} accessibilityLabel="Industry" className="text-text font-medium" style={[ME_TYPE.field15, { paddingHorizontal: 0, paddingVertical: 0 }]} />
+                        </Input>
+                      </FieldTile>
+                    </Box>
+                  </Box>
+                  {error ? <Type step="note" className="text-hotText" style={{ marginLeft: ME_MOSAIC.lane, marginRight: ME_MOSAIC.right }} accessibilityLiveRegion="polite">{error}</Type> : null}
+                </Box>
+              </ScrollView>
             </Box>
-
-            <Section title="About you">
-              <Box style={{ gap: PROFILE.fieldGap }}>
-                <Box style={{ gap: spacing.gap }}>
-                  <AuthField label="Name" placeholder="Your name" value={name} onChangeText={(t) => setName(t.slice(0, NAME_MAX))} maxLength={NAME_MAX} accessibilityLabel="Name" />
-                  {note(`${trimmed.length === 0 ? 'A name is needed · ' : ''}${name.length} / ${NAME_MAX}`, !nameOk)}
-                </Box>
-                <FieldTile label="Bio" note={`${bio.length} / ${BIO_MAX}`}>
-                  <Textarea className="border-0 h-auto w-auto bg-transparent min-h-0">
-                    <TextareaInput placeholderTextColor={colour.text3} placeholder="A line about you (optional)" value={bio} onChangeText={(t) => setBio(t.slice(0, BIO_MAX))} maxLength={BIO_MAX} multiline textAlignVertical="top" accessibilityLabel="Bio" className="text-text" style={[PROFILE_TYPE.bio15, { paddingHorizontal: 0, paddingVertical: 0 }]} />
-                  </Textarea>
-                </FieldTile>
-                <FieldTile label="Age range">
-                  <Box style={chips}>
-                    {AGE_RANGES.map((a) => (
-                      <Pressable key={a} onPress={() => setAge(age === a ? null : a)} accessibilityRole="button" accessibilityLabel={`Age ${AGE_LABEL[a]}`} {...smallChip(age === a)}><ChipText chosen={age === a}>{AGE_LABEL[a]}</ChipText></Pressable>
-                    ))}
-                    <Pressable onPress={() => setAge(null)} accessibilityRole="button" accessibilityLabel="Age: prefer not to say" {...smallChip(age === null)}><ChipText chosen={age === null}>Prefer not to say</ChipText></Pressable>
-                  </Box>
-                </FieldTile>
-                <FieldTile label="Gender" note="Never shown on your profile. Creators see only totals of 10 or more.">
-                  <Box style={chips}>
-                    {GENDERS.map((g) => (
-                      <Pressable key={g} onPress={() => setGender(gender === g ? null : g)} accessibilityRole="button" accessibilityLabel={`Gender: ${GENDER_LABEL[g]}`} {...smallChip(gender === g)}><ChipText chosen={gender === g}>{GENDER_LABEL[g]}</ChipText></Pressable>
-                    ))}
-                  </Box>
-                </FieldTile>
-                <Box testID="likes-tile" className="flex-row items-center bg-raise" style={{ borderRadius: PROFILE.tileRadius, paddingVertical: PROFILE.tilePadY, paddingHorizontal: PROFILE.tilePadX, gap: PROFILE.tilePadX }}>
-                  <Box className="flex-1">
-                    <Type step="chip" className="text-text2" style={PROFILE_TYPE.label12}>Likes are public</Type>
-                    <Type step="caption" className="text-text2" style={PROFILE_TYPE.note12}>People who follow you see the episodes you like.</Type>
-                  </Box>
-                  <Toggle value={likesPublic} onChange={setLikesPublic} label="Likes are public" />
-                </Box>
-              </Box>
-            </Section>
-
-            {/* M21 US8 (FR-075): both optional, both private — never on your profile. */}
-            <Section title="Private">
-              <Box style={{ gap: PROFILE.fieldGap }}>
-                <Box style={{ gap: spacing.gap }}>
-                  <AuthField label="Birthday" placeholder="YYYY-MM-DD (optional)" value={birthday} onChangeText={(t) => setBirthday(t.replace(/[^0-9-]/g, '').slice(0, 10))} maxLength={10} keyboardType="numbers-and-punctuation" accessibilityLabel="Birthday, year-month-day" />
-                  {bdayOk ? null : note('Write it as year-month-day, e.g. 1995-04-21.', true)}
-                </Box>
-                <Box style={{ gap: spacing.gap }}>
-                  <AuthField label="Industry" placeholder="What you work in (optional)" value={industry} onChangeText={(t) => setIndustry(t.slice(0, INDUSTRY_MAX))} maxLength={INDUSTRY_MAX} accessibilityLabel="Industry" />
-                  {note(`Private: only you see your birthday and industry. ${industry.length} / ${INDUSTRY_MAX}`)}
-                </Box>
-              </Box>
-            </Section>
-            {error ? <Type step="note" className="text-hotText" accessibilityLiveRegion="polite">{error}</Type> : null}
-          </>
-        )}
-      </FormPage>
+          );
+        }}
+      </PushedPage>
     </KeyboardPage>
   );
 }

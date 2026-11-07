@@ -8,7 +8,7 @@
  *  - Video: cards 260 x 150 — the cover fills the card, a video mark at the top left, the title and the show
  *    at the foot on a dark gradient; a card opens the episode.
  *
- * Not as drawn (gate log): the Premium card's fill and tag are the accent wash (`hotSoft`)
+ * Not as drawn (gate log): the Premium card's fill and tag are the palette's violet-brown (`premiumTint`)
  * and violet at 25 %, not the drawing's one-off #16121F / #2E2346 (no new colour for one card).
  */
 import { Pressable } from '@/ui/lib/pressable';
@@ -19,8 +19,7 @@ import { Artwork } from '@/ui/kit/Artwork';
 import { Icon } from '@/ui/kit/Icon';
 import { Type } from '@/ui/kit/Type';
 import type { DiscoverItem, ShowCard } from '@/social/api';
-import { CoverBand, DeckCard, PX, useEdge } from './Deck';
-import { DiscoverSection, DiscoverShelf } from './DiscoverLayout';
+import { CoverBand, Deck, DeckCard, DeckSection, PX, useEdge } from './Deck';
 import type { Act } from './sections-common';
 
 /** Drawn: show cards 150 x 180 (cover 120), Premium cards 260 x 96 (cover 72), Video cards 260 x 150. */
@@ -37,8 +36,8 @@ export function ShowTiles(props: { title: string; shows: Tile[]; onShow: (feedUr
   const edge = useEdge(props.title, props.short ?? 'Shows');
   if (props.shows.length === 0) return null;
   return (
-    <DiscoverSection title={edge.spoken}>
-      <DiscoverShelf width={SHOW_CARD.width} height={SHOW_CARD.height}>
+    <DeckSection {...edge}>
+      <Deck width={SHOW_CARD.width} height={SHOW_CARD.height}>
         {props.shows.map((s) => (
           <DeckCard key={s.feedUrl}>
             <Pressable onPress={() => props.onShow(s.feedUrl)} accessibilityRole="button" accessibilityLabel={s.line ? `${s.title}. ${s.line}` : s.title} className="flex-1">
@@ -50,8 +49,8 @@ export function ShowTiles(props: { title: string; shows: Tile[]; onShow: (feedUr
             </Pressable>
           </DeckCard>
         ))}
-      </DiscoverShelf>
-    </DiscoverSection>
+      </Deck>
+    </DeckSection>
   );
 }
 
@@ -66,15 +65,15 @@ export function PremiumSection(props: { shows: ShowCard[]; onShow: (feedUrl: str
   const edge = useEdge('Premium picks', 'Premium');
   if (props.shows.length === 0) return null;
   return (
-    <DiscoverSection title={edge.spoken}>
-      <DiscoverShelf width={PREMIUM_CARD.width} height={PREMIUM_CARD.height}>
+    <DeckSection {...edge}>
+      <Deck width={PREMIUM_CARD.width} height={PREMIUM_CARD.height}>
         {props.shows.map((s) => (
           <DeckCard key={s.feedUrl} tone="premium">
             <Pressable onPress={() => props.onShow(s.feedUrl)} accessibilityRole="button" accessibilityLabel={`${s.title}, ${s.author}. Premium pick`} className="flex-1 flex-row items-center" style={{ padding: spacing.row, gap: spacing.row }}>
               <Artwork url={s.imageUrl} size={PREMIUM_CARD.cover} name={s.title} />
               <Box className="flex-1 min-w-0" style={{ gap: spacing.hair }}>
-                <Box className="self-start bg-hotSoft rounded-chip" style={{ paddingHorizontal: PX.six, paddingVertical: PX.three }}>
-                  <Type step="badge" className="text-hotText">PREMIUM</Type>
+                <Box className="self-start bg-violet/25 rounded-chip" style={{ paddingHorizontal: PX.six, paddingVertical: PX.three }}>
+                  <Type step="badge" className="text-hotEnd">PREMIUM</Type>
                 </Box>
                 <Type step="row" className="text-text font-bold" numberOfLines={1}>{s.title}</Type>
                 <Type step="caption" className="text-text2" numberOfLines={1}>{s.author}</Type>
@@ -82,8 +81,8 @@ export function PremiumSection(props: { shows: ShowCard[]; onShow: (feedUrl: str
             </Pressable>
           </DeckCard>
         ))}
-      </DiscoverShelf>
-    </DiscoverSection>
+      </Deck>
+    </DeckSection>
   );
 }
 
@@ -92,8 +91,8 @@ export function VideoSection(props: Act & { items: DiscoverItem[] }): React.Reac
   const edge = useEdge('Podcasts you can watch', 'Video');
   if (props.items.length === 0) return null;
   return (
-    <DiscoverSection title={edge.spoken}>
-      <DiscoverShelf width={VIDEO_CARD.width} height={VIDEO_CARD.height}>
+    <DeckSection {...edge}>
+      <Deck width={VIDEO_CARD.width} height={VIDEO_CARD.height}>
         {props.items.map((i) => (
           <DeckCard key={i.key}>
             <Pressable onPress={() => props.onOpen(i.episode)} accessibilityRole="button" accessibilityLabel={`Video: ${i.episode.title}, ${i.episode.showTitle}`} className="flex-1">
@@ -107,7 +106,7 @@ export function VideoSection(props: Act & { items: DiscoverItem[] }): React.Reac
             </Pressable>
           </DeckCard>
         ))}
-      </DiscoverShelf>
-    </DiscoverSection>
+      </Deck>
+    </DeckSection>
   );
 }

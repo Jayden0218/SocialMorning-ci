@@ -6,9 +6,6 @@
  * claimed. The feed address is shown in full with a Copy button. Offline, the page still shows
  * the feed address (Principle IV) and says the rest could not load.
  *
- * Spec 039 (Detail template): a `DetailPage` (Back + "Show info", the show's name under it, one 20 gutter); the tiles are one `Section` "Feed"; a failed lookup is an
- * `InlineNotice` with Retry (it used to be an error tile that only leaving and returning retried). The edge label and the 28 lane are gone.
- *
  * M31 W3-A (T040; design-pulse2 `show-info--screen`, `-loading`, `-error`, `toast--show-info`; layout Panel): a pushed page
  * (`PushedPage`: the glow, the title bar low — "Show info", the show's name, back). The tiles start 70 under the top, the edge
  * label "Feed" on the left, content 28 in. Tile 1: Feed address with the address under it and a Copy pill ("Feed address
@@ -21,16 +18,16 @@
 import { useEffect, useState } from 'react';
 import { Clipboard } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
+import { EdgeLabel } from '@/ui/kit/EdgeLabel';
 import { PulseButton } from '@/ui/kit/PulseButton';
-import { InlineNotice, Section } from '@/ui/kit/layout';
-import { DetailPage } from '@/ui/detail/DetailPage';
-import { Type } from '@/ui/kit/Type';
-import { spacing } from '@/design';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { useSocial } from '@/social/context';
 import { useStores, useToast } from '@/ui/shell/providers';
 import { dayMonth } from '@/ui/kit/format';
-import { InfoGhost, InfoGroup, type InfoRowSpec } from '@/ui/show/InfoGroup';
+import { InfoError, InfoGhost, InfoGroup, type InfoRowSpec } from '@/ui/show/InfoGroup';
+import { EPISODE } from '@/ui/episode/measures';
 import type { ShowInfo } from '@/social/api';
 
 export const OWNER_LABEL: Record<ShowInfo['ownerType'], string> = {
@@ -65,12 +62,11 @@ export default function ShowInfoScreen(): React.ReactElement {
   const toast = useToast();
   const { api } = useSocial();
   const [info, setInfo] = useState<ShowInfo | 'failed' | undefined>();
-  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let live = true;
     api.showInfo(feedUrl).then((r) => { if (live) setInfo(r); }, () => { if (live) setInfo('failed'); });
     return () => { live = false; };
-  }, [api, feedUrl, attempt]);
+  }, [api, feedUrl]);
   const title = stores.feeds.getShow(feedUrl)?.title;
   const feedTile: InfoRowSpec = {
     icon: 'globe-outline',
@@ -80,16 +76,21 @@ export default function ShowInfoScreen(): React.ReactElement {
     right: <PulseButton label="Copy" accessibilityLabel="Copy the feed address" kind="quiet" onPress={() => { Clipboard.setString(feedUrl); toast('Feed address copied.'); }} />,
   };
   return (
-    <DetailPage title="Show info">
-      {title ? <Type step="caption" className="text-text2" numberOfLines={2}>{title}</Type> : null}
-      <Section title="Feed">
-        <Box testID="show-info-tiles" style={{ gap: spacing.row }}>
-          <InfoGroup rows={[feedTile]} />
-          {info === undefined ? <InfoGhost rows={4} /> : info === 'failed' ? (
-            <InlineNotice text="Couldn't load who owns this show. Check your connection and try again." actionLabel="Retry" onAction={() => { setInfo(undefined); setAttempt((n) => n + 1); }} />
-          ) : <InfoGroup rows={ownerRows(info)} />}
-        </Box>
-      </Section>
-    </DetailPage>
+    <PushedPage title="Show info" {...(title ? { subtitle: title } : {})}>
+      {(layout) => (
+        <ScrollView testID="show-info-scroll" className="flex-1" contentContainerStyle={{ paddingBottom: layout.reserve }}>
+          {/* The tiles start 70 under the top of the drawn 50 pt status bar: 20 under the bar. */}
+          <Box style={{ marginTop: layout.top + EPISODE.infoTop - EPISODE.statusBar }}>
+          <EdgeLabel label="Feed" top={0} />
+          <Box testID="show-info-tiles" className="gap-row" style={{ marginLeft: EPISODE.lane, marginRight: EPISODE.right }}>
+            <InfoGroup rows={[feedTile]} />
+            {info === undefined ? <InfoGhost rows={4} /> : info === 'failed' ? (
+              <InfoError>Couldn't load who owns this show. Check your connection and try again.</InfoError>
+            ) : <InfoGroup rows={ownerRows(info)} />}
+          </Box>
+          </Box>
+        </ScrollView>
+      )}
+    </PushedPage>
   );
 }

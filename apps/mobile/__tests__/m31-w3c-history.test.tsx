@@ -18,6 +18,7 @@ import { createElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { setReducedMotionForTest } from '@/ui/kit/useReducedMotion';
+import { player } from '@/design/tokens';
 
 const mockPush = jest.fn();
 const mockToast = jest.fn();
@@ -108,6 +109,7 @@ const comp = (r: ReactTestRenderer, label: string): ReactTestInstance => {
 const titleOf = (r: ReactTestRenderer): ReactTestInstance => r.root.findAll((n) => n.props['accessibilityRole'] === 'header' && String(n.type) === 'Text' && n.props['numberOfLines'] !== undefined && say(n.props['children']) !== say(n.props['children']).toUpperCase())[0]!; // not a day tag (upper case, also a header)
 
 /** Stops of the page glow painted in the grey of a failed page (not the hot-violet pair). */
+const greyStops = (r: ReactTestRenderer): number => r.root.findAll((n) => typeof n.props['stopColor'] === 'string' && n.props['stopColor'] === player.emptyInk).length;
 // 036 D4: a fixed clock (local noon). The rows are "N hours ago" and the screen groups them by local calendar day, so with the real
 // clock the TODAY and YESTERDAY tags failed in the first hours after midnight. Only Date is faked; timers and microtasks stay real.
 jest.useFakeTimers({ now: new Date(2026, 5, 15, 12, 0, 0).getTime(), doNotFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'setImmediate', 'clearImmediate', 'nextTick', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback', 'performance', 'hrtime'] });
@@ -132,8 +134,9 @@ describe('History (history--screen)', () => {
     const t = titleOf(r);
     expect(val(flat(t)['fontSize'])).toBe(30);
     expect(words(r)).toEqual(expect.arrayContaining(['Listening history', 'All · 3 episodes']));
-    // 039 D4: was "the title bar hangs from the top (zIndex 20, `top` >= 6)"; the title row is the first thing in the list now (PageList: Back, title, circles in one row).
-    expect(byId(r, 'page-title-row')).toHaveLength(1);
+    const bar = hosts(r, (n) => flat(n)['zIndex'] === 20 && flat(n)['top'] !== undefined)[0]!;
+    expect(flat(bar)['top']).toBeGreaterThanOrEqual(6);
+    expect(flat(bar)['bottom']).toBeUndefined();
     expect(comp(r, 'Search your history')).toBeDefined();
     expect(comp(r, 'Select')).toBeDefined();
     const chips = ['All', 'Only finished'].map((l) => comp(r, l));
@@ -144,8 +147,8 @@ describe('History (history--screen)', () => {
   it('day tags on the spine, a 44 cover and a 34 play dot on an unfinished row with its curve and "Stopped at", "Finished" on a done one', async () => {
     const r = await render(createElement(HistoryScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['TODAY', 'YESTERDAY', 'Stopped at 12:00', 'Finished']));
-    // 039 D4: was a spine line at x 40 (width 2); design B draws cards without a spine.
-    expect(byId(r, 'spine-line')).toHaveLength(0);
+    const spine = byId(r, 'spine-line')[0]!;
+    expect(flat(spine)).toMatchObject({ left: 40, width: 2 });
     expect(byId(r, 'day-tag')).toHaveLength(2);
     expect(flat(byId(r, 'play-dot')[0])).toMatchObject({ width: 34, height: 34 });
     expect(byId(r, 'play-dot')).toHaveLength(1);
@@ -191,7 +194,7 @@ describe('History (history--screen)', () => {
     expect(words(r)).toContain('Nothing matches');
   });
 
-  it('select mode: "n selected", Clear all · Delete (n) · Done, a 24 tick beside each card; a tick turns hot; Delete asks the server', async () => {
+  it('select mode: "n selected", Clear all · Delete (n) · Done, a 24 tick on the spine; a tick turns hot; Delete asks the server', async () => {
     const r = await render(createElement(HistoryScreen));
     await press(r, 'Select');
     expect(words(r)).toContain('0 selected');
@@ -203,8 +206,7 @@ describe('History (history--screen)', () => {
     expect(del.props['onPress']).toBeUndefined();
     const ticks = byId(r, 'history-tick');
     expect(ticks).toHaveLength(3);
-    // 039 D4: was `left: -34, top: 20` on the spine; the tick is the first item of the row now, still 24 round.
-    expect(flat(ticks[0])).toMatchObject({ width: 24, height: 24, borderRadius: 12 });
+    expect(flat(ticks[0])).toMatchObject({ left: -34, top: 20, width: 24, height: 24, borderRadius: 12 });
     expect(classOf(ticks[0]!)).toContain('border-text');
     // One touch target: the card and the tick sit in a non-touchable box under the row's Pressable.
     const rowBtn = comp(r, 'Select Why mornings matter');
@@ -236,8 +238,8 @@ describe('History (history--screen)', () => {
     mockRows = [];
     const r = await render(createElement(HistoryScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Nothing played yet', 'Choose an episode to see it here.']));
-    // 039 D4: was an empty grey spine (`empty-spine`); no spine now.
-    expect(byId(r, 'empty-spine')).toHaveLength(0);
+    expect(byId(r, 'empty-spine')).toHaveLength(1);
+    expect(byId(r, 'spine-line')).toHaveLength(0);
     expect(r.root.findAll((n) => n.props['accessibilityLabel'] === 'Select')).toHaveLength(0);
   });
 });
@@ -249,8 +251,7 @@ describe('My comments (my-comments--screen)', () => {
     mockMine = () => Promise.resolve({ items: [mine({}), mine({ id: 'y', body: null, removed: true, offsetMs: 135_000 }), mine({ id: 'z', body: null, deleted: true, offsetMs: null })] });
     const r = await render(createElement(MyCommentsScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['My comments', '3 comments', '14:32', 'On Why mornings matter', 'This is the part I replay every morning.', '5h', 'Removed by moderation', 'You deleted this comment', 'no moment']));
-    // 039 (Feed lane): was the spine-line at left 40 / width 2; one card per comment, no spine.
-    expect(byId(r, 'spine-line')).toHaveLength(0);
+    expect(flat(byId(r, 'spine-line')[0])).toMatchObject({ left: 40, width: 2 });
     const chips = hosts(r, (n) => classOf(n).includes('bg-hot') && flat(n)['minHeight'] === 22);
     expect(chips.length).toBeGreaterThan(0);
     const removed = r.root.findAll((x) => String(x.type) === 'Text' && say(x.props['children']) === 'Removed by moderation')[0]!;
@@ -277,8 +278,7 @@ describe('My comments (my-comments--screen)', () => {
     mockMine = () => Promise.resolve({ items: [] });
     const r = await render(createElement(MyCommentsScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['No comments yet', 'Say something at a moment from the player.']));
-    // 039 (Feed lane): was an empty spine; the empty block now.
-    expect(byId(r, 'page-empty')).toHaveLength(1);
+    expect(byId(r, 'empty-spine')).toHaveLength(1);
     mockMine = () => Promise.reject(new Error('x'));
     const f = await render(createElement(MyCommentsScreen));
     expect(words(f)).toContain("Couldn't load your comments");
@@ -292,9 +292,7 @@ describe('Likes (likes--screen)', () => {
     mockLikes = () => Promise.resolve({ items: [like] });
     const r = await render(createElement(LikesScreen));
     expect(words(r)).toEqual(expect.arrayContaining(['Likes', 'Episodes people you follow liked', 'Aisha', 'liked · 2h', 'The long walk home', 'Field Recordings', '“The rain at the end.”']));
-    // 039 (Feed lane): was the spine-line at left 40 / width 2; the like is one card now, with no spine.
-    expect(byId(r, 'spine-line')).toHaveLength(0);
-    expect(byId(r, 'like-card')).toHaveLength(1);
+    expect(flat(byId(r, 'spine-line')[0])).toMatchObject({ left: 40, width: 2 });
     expect(flat(byId(r, 'play-dot')[0])).toMatchObject({ width: 34, height: 34 });
     expect(hosts(r, (n) => flat(n)['width'] === 52 && flat(n)['height'] === 52).length).toBeGreaterThan(0);
     // The head is the profile link (the router's Link supplies its press; the test stubs the Link).
@@ -319,12 +317,13 @@ describe('Likes (likes--screen)', () => {
     let calls = 0;
     mockLikes = () => { calls += 1; return calls === 1 ? Promise.reject(new Error('x')) : Promise.resolve({ items: [] }); };
     const bad = await render(createElement(LikesScreen));
-    // 039 (Feed lane): was the grey-glow block titled "Couldn't load likes" and an empty spine; now an InlineNotice with Retry and the empty block.
-    expect(words(bad)).toEqual(expect.arrayContaining(["Couldn't load likes right now.", 'Retry']));
-    expect(byId(bad, 'inline-notice')).toHaveLength(1);
+    expect(words(bad)).toEqual(expect.arrayContaining(["Couldn't load likes", "Couldn't load likes right now.", 'Retry']));
+    expect(byId(bad, 'page-glow')).toHaveLength(1);
+    expect(greyStops(bad)).toBeGreaterThan(0);
+    expect(greyStops(out)).toBe(0);
     await press(bad, 'Retry');
     expect(calls).toBe(2);
     expect(words(bad)).toContain('No likes yet');
-    expect(byId(bad, 'page-empty')).toHaveLength(1);
+    expect(byId(bad, 'empty-spine')).toHaveLength(1);
   });
 });

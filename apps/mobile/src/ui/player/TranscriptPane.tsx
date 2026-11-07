@@ -22,7 +22,7 @@
  *     Without `onReport` a long-press starts picking at once, as before.
  *
  * M31 T024 (design-pulse2 `player--transcript-pane`, "Layout: Thread"): each line hangs from a time
- * spine (2 wide, hot → line) with its timestamp chip; the live line is a solid hot chip and
+ * spine (2 wide, hot → violet → line) with its timestamp chip; the live line is a solid hot chip and
  * 18/26 semibold text, the others 16/24 in text3; "Back to now" is a light pill (40). Same names,
  * handlers and picking as before; the pills of the menus and bars are the kit's quiet / light / hot.
  *
@@ -52,7 +52,7 @@ const BOX_FILL = 'w-full flex-1';
 const TAP = { minHeight: hit.min };
 /** The spine runs down the middle of the chips' column (46 wide). */
 const SPINE = { left: 22, width: 2, top: 0, bottom: 0 };
-const SPINE_COLOURS = [colour.hot, colour.line] as const;
+const SPINE_COLOURS = [colour.hot, colour.violet, colour.line] as const;
 /** The quiet pill the menus and bars use. */
 const QUIET = 'px-section justify-center rounded-pill bg-raise';
 

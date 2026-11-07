@@ -1,7 +1,7 @@
 // The frame every email sign-in step shares, and the fields and buttons the sign-in pages draw.
 /**
  * M31 S-C (T061; design-pulse2 `settings.html` `emailPage`, entries `auth-email--screen`, `--code-step`, `--name-step`):
- * the Panel frame of the three email steps — the hot glow (top −300, 25 %), the form under a spacer (120, 100 or
+ * the Panel frame of the three email steps — the hot-to-violet glow (top −300, 25 %), the form under a spacer (120, 100 or
  * 40 for the step), a fade, and the title low by the thumb with a close (✕) circle for its back, a subtitle or an eyebrow over
  * it, and the step's button in a 52 row at the foot (title at 70, foot at 6). The keyboard lifts the whole bottom zone.
  *
@@ -10,19 +10,60 @@
  * code from Messages work; `SentTo` — the address in a tile with Change; `NameMonogram` — the 110 disc with the typed initials;
  * `AuthButton` — a 56 pill, light or ring, with an optional mark pinned 20 from the left (the sign-in page's buttons).
  */
-import type { TextInputProps } from 'react-native';
+import { router } from 'expo-router';
+import type { ReactNode } from 'react';
+import { Platform, useWindowDimensions, type TextInputProps } from 'react-native';
 import { Input, InputField } from '@/ui/lib/input';
 import { Image } from '@/ui/lib/image';
+import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
 import { Pressable } from '@/ui/lib/pressable';
+import { ScrollView } from '@/ui/lib/scroll-view';
 import { Box } from '@/ui/lib/box';
-import { colour, hit, radius, type Colour } from '@/design';
+import { colour, gutter, hit, radius, type Colour } from '@/design';
 import { useColours } from '@/ui/kit/useColours';
 import { Icon, type IconName } from '@/ui/kit/Icon';
 import { BusyContent } from '@/ui/kit/BusyContent';
+import { OverlayPage } from '@/ui/kit/OverlayPage';
 import { Type } from '@/ui/kit/Type';
 import { AUTH, AUTH_TYPE } from './measures';
 
 const TAP = { minHeight: hit.min };
+
+function close(): void {
+  if (router.canGoBack()) router.back();
+  else router.replace('/');
+}
+
+/**
+ * `lead` is the step's spacer under the status bar (`AUTH.lead`); `eyebrow` is the small capital line over the title (the code
+ * step's "Check your email"); `subtitle` sits under the title (the name step's line).
+ */
+export function AuthShell(props: { title: string; eyebrow?: string; subtitle?: string; lead: number; foot: ReactNode; children: ReactNode }): React.ReactElement {
+  const { width } = useWindowDimensions();
+  return (
+    <KeyboardAvoidingView className="flex-1 bg-void" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <OverlayPage
+        title={props.title}
+        {...(props.subtitle ? { subtitle: props.subtitle } : {})}
+        size={30}
+        onBack={close}
+        backIcon="close"
+        backLabel="Close"
+        fade={0}
+        glowTop={-300}
+        glowStrength={0.25}
+        foot={props.foot}
+        {...(props.eyebrow ? { extra: <Type step="mono" className="text-hotText" style={AUTH_TYPE.eyebrow} accessibilityRole="header">{props.eyebrow}</Type> } : {})}
+      >
+        {(l) => (
+          <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingTop: l.top + AUTH.bodyTop + props.lead, paddingBottom: l.reserve, paddingHorizontal: gutter(width), gap: AUTH.bodyGap }}>
+            {props.children}
+          </ScrollView>
+        )}
+      </OverlayPage>
+    </KeyboardAvoidingView>
+  );
+}
 
 /**
  * The name step's monogram (design-pulse2 `emailPage` name step): a 110 disc in raise-2 with the typed name's initials in

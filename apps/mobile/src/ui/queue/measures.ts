@@ -9,7 +9,7 @@
  */
 const t = (fontSize: number, lineHeight: number): { fontSize: number; lineHeight: number } => ({ fontSize, lineHeight });
 
-export const QUEUE_CARD = { width: 290, height: 330, gap: 10, coverShare: 0.46, pad: 14, bars: 30, curve: 22, play: 44, more: 40, pill: 40, tick: 26 } as const;
+export const QUEUE_CARD = { width: 290, height: 330, gap: 10, coverShare: 0.46, pad: 14, bars: 30, curve: 22, play: 44, more: 40, pill: 40, tick: 26, lane: 28 } as const;
 /** One card plus the gap: the snap distance, and what a sideways drag moves a card by one place. */
 export const QUEUE_PITCH = QUEUE_CARD.width + QUEUE_CARD.gap;
 /** The deck starts 60 under the status bar; the empty block 210 (the drawings' 110 and 260 on a 50 pt bar). */

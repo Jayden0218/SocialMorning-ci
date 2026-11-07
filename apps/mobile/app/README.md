@@ -20,13 +20,13 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | `downloads.tsx` | `/downloads` | Downloaded episodes as a mosaic: in progress, needs attention, downloaded; a settings panel; select to delete. |
 | `favourites.tsx` | `/favourites` | Starred episodes (a mosaic of covers) and starred comments (a thread), in two tabs, with search. |
 | `friends-listening.tsx` | `/friends-listening` | Episodes people you follow played this week, with who and when. |
-| `history.tsx` | `/history` | Listening history by day, with where you stopped; filter to finished only, search, select and delete. |
+| `history.tsx` | `/history` | Listening history by day on a spine, with where you stopped; filter to finished only, search, select and delete. |
 | `inbox.tsx` | `/inbox` | No screen: old link, sends you to Updates. |
 | `maintenance.tsx` | `/maintenance` | A calm page while the server is under maintenance: when it is expected back, and your downloads still play. |
 | `issues.tsx` | `/issues` | All curated issues, newest first; each opens its list of picks. |
-| `likes.tsx` | `/likes` | Likes: episodes people you follow liked, newest first, one card each; tap a card to open the like, the circle to play. |
+| `likes.tsx` | `/likes` | Likes: episodes people you follow liked, newest first, on a spine; tap a card to open the like, the circle to play. |
 | `moments.tsx` | `/moments` | Saved moments as a deck of cards; play from there, edit the note, delete. |
-| `my-comments.tsx` | `/my-comments` | Every comment you wrote, one card each at its moment; tap to open the episode there. |
+| `my-comments.tsx` | `/my-comments` | Every comment you wrote, hung on a spine at its moment; tap to open the episode there. |
 | `notifications.tsx` | `/notifications` | Notifications: Interactions aimed at you, People you follow; System and From hosts open their pages. |
 | `plaza.tsx` | `/plaza` | The new-shows plaza page: drag a wall of new shows' covers, Shuffle it, or read it as a list. |
 | `play-latest.tsx` | `/play-latest` | Plays your next queued or newest episode and opens the player. |
@@ -46,12 +46,12 @@ Keep this file up to date: when you add, move or delete a screen, change its lin
 | File | Route | What the user sees |
 |---|---|---|
 | `(tabs)/_layout.tsx` | (wraps the tabs) | The bottom bar: Discover, Updates, Chat, Me, with the now bar floating above it. |
-| `(tabs)/chat.tsx` | `/chat` | Chat tab: your conversations as cards, newest first, with unread counts; start a new chat. |
+| `(tabs)/chat.tsx` | `/chat` | Chat tab: your conversations on a spine, newest first, with unread counts; start a new chat. |
 | `(tabs)/discover.tsx` | `/discover` | No screen: old link, sends you to Discover at `/`. |
 | `(tabs)/following.tsx` | `/following` | No screen: old link, sends you to Notifications. |
 | `(tabs)/index.tsx` | `/` | Home, the first screen: the Moments feed or Discover, behind one switch above the bars. |
 | `(tabs)/library.tsx` | `/library` | Updates tab: friends' voice posts, newest episodes from your shows. |
-| `(tabs)/me.tsx` | `/me` | Me tab: your picture and name, four tiles, Continue listening, then every other place as a pill. |
+| `(tabs)/me.tsx` | `/me` | Me tab: your picture, saved moments, menu tiles, a panel of four rows; your name sits low in the title bar. |
 
 ### `academy/`
 

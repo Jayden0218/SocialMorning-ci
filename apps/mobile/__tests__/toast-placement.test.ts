@@ -10,15 +10,15 @@ jest.mock('@/ui/player/MiniPlayer', () => ({
   TAB_ROUTES: ['/', '/library'],
   miniPlayerShows: (path: string, ctx: string, idle: boolean) => path !== '/player' && !(ctx === 'root' && ['/', '/library'].includes(path)) && !idle,
 }));
-import { bars, toastBottom } from '@/design';
+import { toastBottom } from '@/design';
 import { toastPlacement } from '@/ui/shell/toastPlacement';
 
 const at = (path: string, idle: boolean, moments = false) => { const p = toastPlacement(path, idle, moments); return toastBottom(34, p); };
 
 // 037 D1: were 176 / 108 / 232 / 108 / 116 / 48 / 48 (the toast sat over a title bar at the foot); the title is at the top now, so a toast is 8 over the highest bar.
-it('a tab screen with something playing: over the tab bar and the now bar (166)', () => expect(at('/', false)).toBe(108 + bars.tab)); // 039 D4: was 166 (bars.tab 58)
-it('a tab screen with nothing loaded: over the tab bar alone (100); the Updates tab is the same (its tall title is at the top now)', () => { expect(at('/', true)).toBe(42 + bars.tab); expect(at('/library', true)).toBe(42 + bars.tab); }); // 039 D4: was 100
-it('Home on Moments hides the now bar, so the toast drops to the tab bar (100)', () => expect(at('/', false, true)).toBe(42 + bars.tab)); // 039 D4: was 100
+it('a tab screen with something playing: over the tab bar and the now bar (166)', () => expect(at('/', false)).toBe(166));
+it('a tab screen with nothing loaded: over the tab bar alone (100); the Updates tab is the same (its tall title is at the top now)', () => { expect(at('/', true)).toBe(100); expect(at('/library', true)).toBe(100); });
+it('Home on Moments hides the now bar, so the toast drops to the tab bar (100)', () => expect(at('/', false, true)).toBe(100));
 it('the player: clears the tray (112), whatever is loaded', () => { expect(at('/player', false)).toBe(112); expect(at('/player', true)).toBe(112); });
 it('a pushed page with the now bar: 106; without: 42', () => { expect(at('/show/x', false)).toBe(106); expect(at('/show/x', true)).toBe(42); });
 

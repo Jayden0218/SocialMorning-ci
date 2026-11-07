@@ -12,7 +12,7 @@
  * through the player. M21 US11 adds its audio rows at the marked spot.
  *
  * M31 S-B (T060 part 2; design-pulse2 `settings-playback--screen`; layout Panel + Mosaic): the four most-used switches are large 2-column
- * tiles under the heading MOST USED — Skip silence, Music mode, Allow mobile data for playback and Voice boost (only where the phone can
+ * tiles under the edge label MOST USED — Skip silence, Music mode, Allow mobile data for playback and Voice boost (only where the phone can
  * do it; "Not available for this live stream" and dimmed when the episode blocks it) — each with its state in mono under the name. PLAYING
  * is one group: Queue adds to the end, Show transcript entry on the player, Comments on lock screen, Playlist backups (a link) and ±5 min
  * on the lock screen, their lines kept. SOUND is one group: "Another app's short sound" with its two-way track (Lower the volume | Pause),

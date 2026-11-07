@@ -28,10 +28,7 @@ import { useColours } from '@/ui/kit/useColours';
 import { authColour } from '@/design/tokens';
 import { SUSPENDED_KEY, useSocial } from '@/social/context';
 import { useStores } from '@/ui/shell/providers';
-import { Platform } from 'react-native';
-import { KeyboardAvoidingView } from '@/ui/lib/keyboard-avoiding-view';
-import { FormPage } from '@/ui/form/FormPage';
-import { AuthField, CodeCells, NameMonogram, SentTo } from '@/ui/auth/AuthShell';
+import { AuthField, AuthShell, CodeCells, NameMonogram, SentTo } from '@/ui/auth/AuthShell';
 import { ConsentDialog, ConsentRow, useLegalOverlay } from '@/ui/auth/Consent';
 import { describe } from '@/ui/auth/errors';
 import { toApp } from '@/ui/auth/navigate';
@@ -43,11 +40,7 @@ import { AUTH, AUTH_TYPE } from '@/ui/auth/measures';
 type Step = 'email' | 'code' | 'name';
 
 const TITLE: Record<Step, string> = { email: 'Continue with email', code: 'Enter the code', name: 'Your name' };
-
-function closeEmail(): void {
-  if (router.canGoBack()) router.back();
-  else router.replace('/');
-}
+const LEAD: Record<Step, number> = AUTH.lead;
 
 /** A tile (raise, radius 22, padding 16) for the refusal and the under-age line. */
 const TILE = { borderRadius: AUTH.tile.radius, padding: AUTH.tile.pad, gap: AUTH.tile.gap };
@@ -129,20 +122,12 @@ export default function EmailScreen(): React.ReactElement {
   );
 
   return (
-    // 039: the three steps share the Form frame (Back as the ✕ Close circle, the title, the step's line, the form, the step's button in the foot).
-    // The keyboard lifts the whole page (KeyboardAvoidingView), as before, so the foot slot does not lift itself.
-    <KeyboardAvoidingView className="flex-1 bg-void" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-    <FormPage
+    <AuthShell
       title={TITLE[step]}
-      onBack={closeEmail}
-      backIcon="close"
-      backLabel="Close"
-      now={false}
-      keyboardLift={false}
-      below={<Box testID="overlay-foot" className="flex-row items-center gap-row">{foot}</Box>}
-      belowHeight={AUTH.foot.button}
-      {...(step === 'code' ? { extra: <Type step="mono" className="text-hotText" style={AUTH_TYPE.eyebrow} accessibilityRole="header">Check your email</Type> } : {})}
+      lead={LEAD[step]}
+      {...(step === 'code' ? { eyebrow: 'Check your email' } : {})}
       {...(step === 'name' ? { subtitle: 'This is the name others see. You can use any name.' } : {})}
+      foot={foot}
     >
       {step === 'email' ? (
         <>
@@ -185,7 +170,6 @@ export default function EmailScreen(): React.ReactElement {
         onAgree={() => { setAsking(false); setAgreed(true); void sendCode(); }}
       />
       {legal.overlay}
-    </FormPage>
-    </KeyboardAvoidingView>
+    </AuthShell>
   );
 }

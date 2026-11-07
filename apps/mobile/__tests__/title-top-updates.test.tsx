@@ -5,12 +5,11 @@
  * room for the bars only (no title part).
  */
 import { createElement } from 'react';
-import { StyleSheet } from 'react-native';
+import { ScrollView } from 'react-native';
 import { act } from 'react-test-renderer';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { bottomInset, spacing } from '@/design';
+import { barsReserve, contentTopReserve, titleBarTop } from '@/design';
 import { TitleBar } from '@/ui/kit/TitleBar';
-import { PIN_GAP } from '@/ui/kit/layout/Page';
 import { seededStores, mount } from './support/screen-kit';
 
 // One object each, as the real hooks give: a new one per render re-runs the tab's focus effect for ever.
@@ -46,34 +45,32 @@ jest.mock('@/ui/social/VoicePosts', () => ({ VoicePosts: () => null }));
 jest.mock('@/ui/kit/EpisodeRowSheet', () => ({ EpisodeRowSheet: () => null }));
 jest.mock('@/ui/episode/useEpisodeHotMoments', () => ({ useEpisodeHotMoments: () => new Map(), useEpisodeHotMomentsWith: () => new Map() }));
 
-// 039 (Feed lane): was "the Updates title bar sits 6 from the top of its pane; the content starts under the block; the foot leaves the bars' room only" (a TitleBar over a fade).
-// Updates is a `PageList` now: the title row is the list's header, the content starts below the status bar (inset + spacing.section) and the foot clears the bars.
-describe('039 the Updates tab title is the page\'s first row', () => {
+describe('037 M4 the Updates tab title at the top', () => {
   const withInsets = (top: number, el: React.ReactElement): React.ReactElement => createElement(SafeAreaInsetsContext.Provider, { value: { top, bottom: 34, left: 0, right: 0 } }, el);
-  const content = (r: Awaited<ReturnType<typeof mount>>): Record<string, number> =>
-    (StyleSheet.flatten(r.root.findAll((n) => n.props['testID'] === 'page-scroll' && n.props['contentContainerStyle'] !== undefined)[0]?.props['contentContainerStyle'] as never) ?? {}) as Record<string, number>;
-  it('with a 47 pt status bar the content starts below it, and there is no TitleBar', async () => {
+  // The Updates title bar is drawn inside the list pane, a flow child that the SafeAreaView's padding already moved below the status bar (run 41813306847, r11-02:
+  // adding the inset again put the title 47 pt too low and the voice rail over the subtitle). Me and Chat draw theirs directly in the padded view, where it is added.
+  it('with a 47 pt status bar the title bar still sits 6 from the top of its pane (the pane is already below the status bar)', async () => {
     mockIdle = true;
     mockRef.stores = seededStores([]) as never;
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Screen = require('../app/(tabs)/library').default;
     const r = await mount(withInsets(47, createElement(Screen)));
-    expect(r.root.findAllByType(TitleBar)).toHaveLength(0);
-    // 039 D2 (list was -> now): the pinned title row holds the safe top + 16; the scroll content starts 12 under it.
-    const pin = r.root.findAll((n) => typeof n.type === 'string' && n.props['testID'] === 'page-title-pin')[0]!;
-    expect((StyleSheet.flatten(pin.props['style']) as Record<string, number>)['paddingTop']).toBe(47 + spacing.section);
-    expect(content(r)['paddingTop']).toBe(PIN_GAP);
-    expect(r.root.findAll((n) => n.props['testID'] === 'page-title-row').length).toBeGreaterThan(0);
+    expect(r.root.findByType(TitleBar).props['top']).toBe(titleBarTop(0));
     act(() => r.unmount());
   });
   for (const idle of [true, false]) {
-    it(`${idle ? 'idle' : 'with a now bar'}: the foot leaves the tab bar${idle ? '' : ' and the now bar'} room only`, async () => {
+    it(`${idle ? 'idle' : 'with a now bar'}: top 6, no bottom; the content starts under the block; the foot leaves the bars' room only`, async () => {
       mockIdle = idle;
       mockRef.stores = seededStores([]) as never;
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Screen = require('../app/(tabs)/library').default;
       const r = await mount(withInsets(0, createElement(Screen)));
-      expect(content(r)['paddingBottom']).toBe(bottomInset(34, { tabs: true, now: !idle }));
+      const bar = r.root.findByType(TitleBar);
+      expect(bar.props['top']).toBe(titleBarTop(0));
+      expect(bar.props['bottom']).toBeUndefined();
+      const style = (r.root.findAll((n) => n.props['testID'] === 'updates-page' && n.type === ScrollView)[0]?.props['contentContainerStyle'] ?? {}) as Record<string, number>;
+      expect(Number(style['paddingTop'])).toBeGreaterThanOrEqual(titleBarTop(0) + contentTopReserve());
+      expect(style['paddingBottom']).toBe(barsReserve({ tabs: true, now: !idle }));
       act(() => r.unmount());
     });
   }

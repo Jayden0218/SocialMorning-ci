@@ -37,6 +37,7 @@ import { useStores, useToast } from '@/ui/shell/providers';
 import { ACCENT_KEY, applyAccent, readAccent } from '@/design/accent';
 import { ACCENTS, colour, type AccentName } from '@/design';
 import { Icon } from '@/ui/kit/Icon';
+import { PushedPage } from '@/ui/kit/PushedPage';
 import { Toggle } from '@/ui/kit/Toggle';
 import { Type } from '@/ui/kit/Type';
 import { BigGrid, BigTile, Sec, SetButton, SetCard, SetPage } from '@/ui/settings/hub-parts';
@@ -68,44 +69,48 @@ export default function AppearanceScreen(): React.ReactElement {
   const rows: AccentName[][] = [];
   for (let i = 0; i < names.length; i += COLUMNS) rows.push(names.slice(i, i + COLUMNS));
   return (
-    <SetPage title="Appearance" subtitle="Dark only · the accent tints Pulse's hot colour">
-      <Sec label="Accent">
-        <SetCard testID="accent-card" gap={SET.rowGap}>
-          <Type step="row" className="text-text" accessibilityRole="header">Accent colour</Type>
-          <Box style={{ gap: SET.rowGap }}>
-            {rows.map((row, r) => (
-              <Box key={r} className="flex-row" style={{ gap: 8 }}>
-                {row.map((name) => {
-                  const t = ACCENTS[name];
-                  const on = accent === name;
-                  return (
-                    <Pressable key={name} onPress={() => pick(name)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Accent: ${t.label}`} className="items-center" style={{ flex: 1, minHeight: 48, gap: 6 }}>
-                      <Box style={{ width: SWATCH, height: SWATCH }}>
-                        <Box testID="accent-swatch" className="items-center justify-center" style={{ width: SWATCH, height: SWATCH, borderRadius: SWATCH / 2, backgroundColor: t.light.primary }}>
-                          {on ? <Icon name="checkmark" size={20} color={t.light.onPrimary} /> : null}
-                        </Box>
-                        {on ? <Box testID="accent-ring" pointerEvents="none" className="absolute" style={{ left: -(RING.gap + RING.width), top: -(RING.gap + RING.width), width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2, borderWidth: RING.width, borderColor: colour.text }} /> : null}
-                      </Box>
-                      <Type step="chip" className={on ? 'text-text font-bold' : 'text-text2 font-medium'} style={{ marginTop: RING.gap + RING.width - 2 }}>{t.label}</Type>
-                    </Pressable>
-                  );
-                })}
-                {row.length < COLUMNS ? Array.from({ length: COLUMNS - row.length }, (_, k) => <Box key={`s${k}`} style={{ flex: 1 }} />) : null}
+    <PushedPage title="Appearance" subtitle="Dark only · the accent tints Pulse's hot colour">
+      {(layout) => (
+        <SetPage layout={layout}>
+          <Sec label="Accent">
+            <SetCard testID="accent-card" gap={SET.rowGap}>
+              <Type step="row" className="text-text" accessibilityRole="header">Accent colour</Type>
+              <Box style={{ gap: SET.rowGap }}>
+                {rows.map((row, r) => (
+                  <Box key={r} className="flex-row" style={{ gap: 8 }}>
+                    {row.map((name) => {
+                      const t = ACCENTS[name];
+                      const on = accent === name;
+                      return (
+                        <Pressable key={name} onPress={() => pick(name)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Accent: ${t.label}`} className="items-center" style={{ flex: 1, minHeight: 48, gap: 6 }}>
+                          <Box style={{ width: SWATCH, height: SWATCH }}>
+                            <Box testID="accent-swatch" className="items-center justify-center" style={{ width: SWATCH, height: SWATCH, borderRadius: SWATCH / 2, backgroundColor: t.light.primary }}>
+                              {on ? <Icon name="checkmark" size={20} color={t.light.onPrimary} /> : null}
+                            </Box>
+                            {on ? <Box testID="accent-ring" pointerEvents="none" className="absolute" style={{ left: -(RING.gap + RING.width), top: -(RING.gap + RING.width), width: RING_SIZE, height: RING_SIZE, borderRadius: RING_SIZE / 2, borderWidth: RING.width, borderColor: colour.text }} /> : null}
+                          </Box>
+                          <Type step="chip" className={on ? 'text-text font-bold' : 'text-text2 font-medium'} style={{ marginTop: RING.gap + RING.width - 2 }}>{t.label}</Type>
+                        </Pressable>
+                      );
+                    })}
+                    {row.length < COLUMNS ? Array.from({ length: COLUMNS - row.length }, (_, k) => <Box key={`s${k}`} style={{ flex: 1 }} />) : null}
+                  </Box>
+                ))}
               </Box>
-            ))}
-          </Box>
-        </SetCard>
-      </Sec>
-      <Sec label="Feel">
-        <BigGrid>
-          <BigTile icon="phone-portrait-outline" label="Vibration" state={vibration ? 'On · a light tick' : 'Off'} on={vibration} right={<Toggle value={vibration} onChange={vibrate} label="Vibration" />} />
-          <Box className="bg-raise justify-end" style={{ flex: 1, minWidth: 0, borderRadius: SET.radius, padding: SET.bigPad }}>
-            <Type step="caption" className="text-text2" style={SET_TYPE.line12}>A light tick when you scroll a picker or tap some buttons</Type>
-          </Box>
-        </BigGrid>
-      </Sec>
-      <AppIconSection />
-    </SetPage>
+            </SetCard>
+          </Sec>
+          <Sec label="Feel">
+            <BigGrid>
+              <BigTile icon="phone-portrait-outline" label="Vibration" state={vibration ? 'On · a light tick' : 'Off'} on={vibration} right={<Toggle value={vibration} onChange={vibrate} label="Vibration" />} />
+              <Box className="bg-raise justify-end" style={{ flex: 1, minWidth: 0, borderRadius: SET.radius, padding: SET.bigPad }}>
+                <Type step="caption" className="text-text2" style={SET_TYPE.line12}>A light tick when you scroll a picker or tap some buttons</Type>
+              </Box>
+            </BigGrid>
+          </Sec>
+          <AppIconSection />
+        </SetPage>
+      )}
+    </PushedPage>
   );
 }
 

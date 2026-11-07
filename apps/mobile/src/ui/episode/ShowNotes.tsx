@@ -4,7 +4,7 @@
  * Geist 15/23; a time that starts a line is a timestamp chip (`TimestampChip`, hot-soft, mono) beside the chapter's words and
  * the row plays from there ("Play from m:ss"); a time inside a sentence is a hot-text link; a picture is a 130 tall card
  * (radius 18) with a raise "scan" circle bottom right and opens full screen. The "Show notes" eyebrow is gone — the page names
- * the section with the section heading. Paragraph colour: the drawing's #D9D7DE is not a token; `text` (18.1 on void) is the nearest.
+ * the section with the edge label. Paragraph colour: the drawing's #D9D7DE is not a token; `text` (18.1 on void) is the nearest.
  */
 /**
  * M17 (`Episode-B`): the episode page's show notes, laid out the Editorial way — a "Show notes"
